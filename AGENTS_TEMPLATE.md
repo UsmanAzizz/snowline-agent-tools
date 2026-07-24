@@ -69,6 +69,13 @@ If you are unsure whether a situation qualifies as a valid exception, ALWAYS run
   3. **CRITICAL**: Before executing any command that MODIFIES files (like replace_text.py --apply), write your intended action in the "Waiting for User Approval" section and STOP for user approval.
   4. Once a task is fully completed, archive the file to \plan_archive/PLAN_<date>_<task_name>.md\.
 
+
+## 🛡️ ZERO TOLERANCE FOR NATIVE IDE TOOLS (STRICT BUDGETING)
+To strictly conserve token quotas, you are **ABSOLUTELY FORBIDDEN** from using the native IDE editing tools (`replace_file_content`, `multi_replace_file_content`, or `write_to_file` for large refactors) unless explicitly requested. 
+- **For Single/Multi-file Edits:** ALWAYS use the custom python tool `python .agents/skills/smart_replace/replace_text.py`.
+- **For Surgical / Complex Edits:** Write a quick python script in the workspace (using standard `open(file, 'w')`) to perform the regex/string replacement, execute the python script, and then delete the script. 
+- The native edit tools consume massive amounts of context tokens due to IDE differential streaming. **Do not use them unless explicitly forced by the user.**
+
 ## 🗣️ Communication Efficiency
 
 **Language Handling**
