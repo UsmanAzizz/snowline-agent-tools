@@ -5,6 +5,10 @@ import re
 import shutil
 from datetime import datetime
 
+# Force UTF-8 encoding for Windows terminal
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 DEFAULT_EXCLUDES = {'.git', 'node_modules', '.history', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents'}
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 

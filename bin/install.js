@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('Installing 12-Pillars Agent Ecosystem (Project-Level)...');
+console.log('Installing Snowline Agent Agent Ecosystem (Project-Level)...');
 
 const projectRoot = process.cwd();
 const agentsDir = path.join(projectRoot, '.agents');
@@ -35,7 +35,7 @@ if (fs.existsSync(skillsDir)) {
     }
 } else {
     isNewInstall = true;
-    console.log(`Downloading 12-Pillars skills...`);
+    console.log(`Downloading Snowline Agent skills...`);
     try {
         execSync(`git clone ${repoUrl} "${skillsDir}"`, { stdio: 'inherit' });
     } catch (e) {
@@ -67,5 +67,5 @@ if (!fs.existsSync(planPath)) {
 
 if (isNewInstall) {
     console.log('\nInstallation Complete!');
-    console.log('This project is now powered by the 12-Pillars Ecosystem.');
+    console.log('This project is now powered by the Snowline Agent Ecosystem.');
 }

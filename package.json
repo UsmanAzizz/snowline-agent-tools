@@ -1,7 +1,7 @@
 {
   "name": "create-snowline-agents",
   "version": "1.0.0",
-  "description": "One-Liner installer for the 12-Pillars AI Agents ecosystem (Global Rules & Python Skills)",
+  "description": "One-Liner installer for the Snowline Agent AI Agents ecosystem (Global Rules & Python Skills)",
   "main": "index.js",
   "bin": {
     "create-snowline-agents": "bin/install.js"
@@ -19,7 +19,7 @@
     "gemini",
     "tools",
     "scaffolding",
-    "12-pillars"
+    "Snowline Agent"
   ],
   "author": "UsmanAzizz",
   "license": "MIT",

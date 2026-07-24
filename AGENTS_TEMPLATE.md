@@ -1,9 +1,9 @@
-﻿# Project Rules (CBT Master - 12-PILLARS Ecosystem)
+﻿# Project Rules (CBT Master - Snowline Agent Ecosystem)
 
 - Before creating a new function, always define all variables that will be used first (to avoid *ReferenceError* or variables that have not been *destructured*).
 
-## 🛑 THE 12-PILLARS CORE DIRECTIVES (MANDATORY)
-You (the AI Agent) are **STRICTLY FORBIDDEN** from using standard tools (such as \grep_search\, \cat\, \ls\, standard ESLint, or manually reading \package.json\) if there is a custom tool from the 12-PILLARS ecosystem that can do it faster and save more tokens.
+## 🛑 THE Snowline Agent CORE DIRECTIVES (MANDATORY)
+You (the AI Agent) are **STRICTLY FORBIDDEN** from using standard tools (such as \grep_search\, \cat\, \ls\, standard ESLint, or manually reading \package.json\) if there is a custom tool from the Snowline Agent ecosystem that can do it faster and save more tokens.
 
 **You MUST ALWAYS use the following Python scripts according to the need:**
 

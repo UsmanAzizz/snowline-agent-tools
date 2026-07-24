@@ -1,4 +1,4 @@
-Write-Host "Installing 12-Pillars Agent Ecosystem (Project-Level)..." -ForegroundColor Cyan
+Write-Host "Installing Snowline Agent Agent Ecosystem (Project-Level)..." -ForegroundColor Cyan
 
 $ProjectRoot = (Get-Location).Path
 $AgentsDir = Join-Path $ProjectRoot ".agents"
@@ -32,7 +32,7 @@ if (Test-Path $SkillsDir) {
     }
 } else {
     $IsNewInstall = $true
-    Write-Host "Downloading 12-Pillars skills..." -ForegroundColor Cyan
+    Write-Host "Downloading Snowline Agent skills..." -ForegroundColor Cyan
     try {
         git clone $RepoUrl $SkillsDir
     } catch {
@@ -64,5 +64,5 @@ if (-not (Test-Path $PlanPath)) {
 
 if ($IsNewInstall) {
     Write-Host "`nInstallation Complete!" -ForegroundColor Green
-    Write-Host "This project is now powered by the 12-Pillars Ecosystem." -ForegroundColor Cyan
+    Write-Host "This project is now powered by the Snowline Agent Ecosystem." -ForegroundColor Cyan
 }

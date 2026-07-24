@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Installing 12-Pillars Agent Ecosystem (Project-Level)..."
+echo "Installing Snowline Agent Agent Ecosystem (Project-Level)..."
 
 PROJECT_ROOT=$(pwd)
 AGENTS_DIR="$PROJECT_ROOT/.agents"
@@ -24,7 +24,7 @@ if [ -d "$SKILLS_DIR" ]; then
     fi
 else
     IS_NEW_INSTALL=true
-    echo "Downloading 12-Pillars skills..."
+    echo "Downloading Snowline Agent skills..."
     if ! git clone "$REPO_URL" "$SKILLS_DIR"; then
         echo "Failed to clone repository. Make sure git is installed."
         exit 1
@@ -54,5 +54,5 @@ fi
 
 if [ "$IS_NEW_INSTALL" = true ]; then
     echo -e "\nInstallation Complete!"
-    echo "This project is now powered by the 12-Pillars Ecosystem."
+    echo "This project is now powered by the Snowline Agent Ecosystem."
 fi

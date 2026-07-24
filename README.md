@@ -5,7 +5,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## 🚀 Quick Install (Project-Level)
-Make any project "AI-Ready" in seconds. Run one of these commands in your project's root folder to instantly install the 12-Pillars ecosystem. It will safely scaffold `.agents/skills`, `.agents/knowledge`, and your `PLAN.md` without affecting global system configs.
+Make any project "AI-Ready" in seconds. Run one of these commands in your project's root folder to instantly install the Snowline Agent ecosystem. It will safely scaffold `.agents/skills`, `.agents/knowledge`, and your `PLAN.md` without affecting global system configs.
 
 **Option 1: Using NPM (Cross-Platform)**
 ```bash
