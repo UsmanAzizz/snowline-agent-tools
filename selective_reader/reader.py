@@ -2,6 +2,9 @@ import os
 import sys
 import re
 
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 
 def parse_js(content):

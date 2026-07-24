@@ -27,6 +27,12 @@ This toolset was completely overhauled to adhere to 4 strict design pillars, spe
    - The Knowledge Catalog builder. Automatically generates `PROJECT_STRUCTURE.md` and `COMMON_PATTERNS.md` inside `.agents/knowledge/`. AI agents are instructed to read these files first to instantly understand the project's architecture without blind-searching.
 7. **Deep Analyzer (`deep_analyzer/analyzer.py`)**
    - The Project Profiler (X-Ray Scanner). Automatically extracts the tech stack, core dependencies, file statistics, and available testing/linting commands directly from `package.json` or config files. Prevents the AI from wasting tokens reading massive configuration files manually.
+8. **Crash Decoder (`crash_decoder/decoder.py`)**
+   - The Error Trace Analyzer. Parses massive terminal crash logs, filters out `node_modules` noise, and pinpoints the exact line in your source code that caused the crash.
+9. **Auto-Scaffolder (`auto_scaffolder/scaffolder.py`)**
+   - The Pattern Generator. Instantly generates boilerplate files for React components or API routes following the project's standards, avoiding inconsistent manual coding.
+10. **Smart Import Fixer (`import_fixer/fixer.py`)**
+    - Automatically searches the project for the correct location of a broken relative import, computes the accurate relative path, and safely applies the fix (with built-in dry-run and backup mechanisms).
 
 ## Installation & Prerequisites
 

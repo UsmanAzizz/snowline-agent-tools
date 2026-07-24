@@ -40,6 +40,21 @@ TOOLS = [
         "name": "Deep Analyzer (Project Profiler)",
         "script": "deep_analyzer/analyzer.py",
         "args": [os.getcwd()]
+    },
+    {
+        "name": "Crash Decoder (Error Trace Analyzer)",
+        "script": "crash_decoder/decoder.py",
+        "args": ["<path_to_error_log.txt>"]
+    },
+    {
+        "name": "Auto-Scaffolder (Pattern Generator)",
+        "script": "auto_scaffolder/scaffolder.py",
+        "args": ["<react_or_api>", "<ComponentName>"]
+    },
+    {
+        "name": "Smart Import Fixer",
+        "script": "import_fixer/fixer.py",
+        "args": ["<source_file>", "<broken_import_string>"]
     }
 ]
 
@@ -57,7 +72,7 @@ def main():
     while True:
         print_menu()
         try:
-            choice = input("\nEnter your choice (0-7): ").strip()
+            choice = input("\nEnter your choice (0-10): ").strip()
         except KeyboardInterrupt:
             break
             
