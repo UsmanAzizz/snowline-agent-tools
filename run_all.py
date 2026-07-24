@@ -55,14 +55,29 @@ TOOLS = [
         "name": "Smart Import Fixer",
         "script": "import_fixer/fixer.py",
         "args": ["<source_file>", "<broken_import_string>"]
+    },
+    {
+        "name": "Smart Tree Viewer (Compact Directory Mapper)",
+        "script": "smart_tree/scripts/tree_viewer.py",
+        "args": ["<directory_path>"]
+    },
+    {
+        "name": "Database Extractor (Schema Parser)",
+        "script": "db_extractor/scripts/extractor.py",
+        "args": ["<project_root_dir>"]
+    },
+    {
+        "name": "Impact Analyzer (Dependency Graph)",
+        "script": "impact_analyzer/analyzer.py",
+        "args": ["<target_file_path>", "<project_root_dir>"]
     }
 ]
 
 def print_menu():
     print("\n" + "=" * 60)
-    print("❄️ SNOWLINE AGENT TOOLS - INTERACTIVE DASHBOARD ❄️")
+    print("🚀 SNOWLINE AGENT TOOLS - INTERACTIVE DASHBOARD 🚀")
     print("=" * 60)
-    print("Select a tool to run (Powered by 4-Pillars Vision):")
+    print("Select a tool to run (Powered by 13-Pillars Vision):")
     for i, tool in enumerate(TOOLS, 1):
         print(f"[{i}] {tool['name']}")
     print("[0] Exit")
@@ -72,7 +87,7 @@ def main():
     while True:
         print_menu()
         try:
-            choice = input("\nEnter your choice (0-10): ").strip()
+            choice = input("\nEnter your choice (0-13): ").strip()
         except KeyboardInterrupt:
             break
             

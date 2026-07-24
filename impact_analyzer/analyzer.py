@@ -8,7 +8,7 @@ if sys.stdout.encoding.lower() != 'utf-8':
 def find_usages(project_root, target_name):
     """Scan all files to find which ones mention target_name"""
     usages = set()
-    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor'}
+    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history'}
     
     pattern = re.compile(r'\b' + re.escape(target_name) + r'\b')
     
