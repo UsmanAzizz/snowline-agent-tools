@@ -5,13 +5,9 @@ import re
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 
 def parse_js(content):
-    # Heuristics for JS/TS functions and classes
     toc = []
-    # Match class Name {
     class_pattern = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?class\s+([A-Za-z0-9_]+)', re.MULTILINE)
-    # Match function name(
     func_pattern = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z0-9_]+)', re.MULTILINE)
-    # Match const name = (args) =>
     arrow_pattern = re.compile(r'^\s*(?:export\s+)?const\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[A-Za-z0-9_]+)\s*=>', re.MULTILINE)
     
     for match in class_pattern.finditer(content):
@@ -31,23 +27,23 @@ def parse_js(content):
 
 def main():
     if len(sys.argv) < 2:
-        print("[FAIL] Penggunaan: python reader.py <absolute_path_to_file>")
+        print("[FAIL] Usage: python reader.py <absolute_path_to_file>")
         sys.exit(1)
         
     filepath = sys.argv[1]
     if not os.path.exists(filepath):
-        print(f"[FAIL] File tidak ditemukan: {filepath}")
+        print(f"[FAIL] File not found: {filepath}")
         sys.exit(1)
         
     if os.path.getsize(filepath) > MAX_FILE_SIZE:
-        print(f"[FAIL] File terlalu besar (>500KB): {filepath}")
+        print(f"[FAIL] File too large (>500KB): {filepath}")
         sys.exit(1)
         
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
-        print(f"[FAIL] Gagal membaca file: {e}")
+        print(f"[FAIL] Failed to read file: {e}")
         sys.exit(1)
         
     print(f"📄 TABLE OF CONTENTS: {os.path.basename(filepath)}")
@@ -55,14 +51,14 @@ def main():
     
     toc = parse_js(content)
     if not toc:
-        print("[INFO] Tidak ditemukan deklarasi class atau fungsi utama.")
+        print("[INFO] No primary class or function declarations found.")
     else:
         for line, desc in toc:
-            print(f"Baris {line:<5}: {desc}")
+            print(f"Line {line:<5}: {desc}")
             
     print("-" * 50)
-    print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
-    print(f'"Berdasarkan TOC di atas, tolong gunakan tool view_file untuk membaca hanya baris yang relevan dari fungsi yang bermasalah di file {os.path.basename(filepath)}."')
+    print("\n💡 AI PROMPT (Copy & Paste this):")
+    print(f'"Based on the TOC above, please use the view_file tool to read ONLY the relevant lines of the function in {os.path.basename(filepath)}."')
 
 if __name__ == '__main__':
     main()

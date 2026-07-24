@@ -42,26 +42,26 @@ def print_menu():
     print("\n" + "=" * 60)
     print("❄️ SNOWLINE AGENT TOOLS - INTERACTIVE DASHBOARD ❄️")
     print("=" * 60)
-    print("Pilih alat yang ingin dijalankan (Otomatis menggunakan aturan Visi 4 Pilar):")
+    print("Select a tool to run (Powered by 4-Pillars Vision):")
     for i, tool in enumerate(TOOLS, 1):
         print(f"[{i}] {tool['name']}")
-    print("[0] Keluar")
+    print("[0] Exit")
     print("=" * 60)
 
 def main():
     while True:
         print_menu()
         try:
-            choice = input("\nMasukkan nomor pilihan (0-6): ").strip()
+            choice = input("\nEnter your choice (0-6): ").strip()
         except KeyboardInterrupt:
             break
             
         if choice == '0':
-            print("Keluar dari dashboard.")
+            print("Exiting dashboard.")
             break
             
         if not choice.isdigit() or not (1 <= int(choice) <= len(TOOLS)):
-            print("[FAIL] Pilihan tidak valid.")
+            print("[FAIL] Invalid choice.")
             continue
             
         idx = int(choice) - 1
@@ -69,28 +69,27 @@ def main():
         
         script_path = os.path.join(os.path.dirname(__file__), tool["script"])
         if not os.path.exists(script_path):
-            print(f"[FAIL] Script tidak ditemukan di {script_path}")
+            print(f"[FAIL] Script not found at {script_path}")
             continue
             
-        # If the tool requires specific arguments like keyword or strings, prompt for them
         args = []
         for arg in tool["args"]:
             if arg.startswith("<") and arg.endswith(">"):
-                val = input(f"Masukkan {arg}: ").strip()
+                val = input(f"Enter {arg}: ").strip()
                 args.append(val)
             else:
                 args.append(arg)
                 
         cmd = [sys.executable, script_path] + args
-        print(f"\nMenjalankan: {' '.join(cmd)}")
+        print(f"\nRunning: {' '.join(cmd)}")
         print("-" * 60)
         
         try:
             subprocess.run(cmd, check=False)
         except Exception as e:
-            print(f"[FAIL] Terjadi kesalahan saat mengeksekusi: {e}")
+            print(f"[FAIL] Error during execution: {e}")
             
-        input("\nTekan Enter untuk kembali ke menu utama...")
+        input("\nPress Enter to return to main menu...")
 
 if __name__ == "__main__":
     main()

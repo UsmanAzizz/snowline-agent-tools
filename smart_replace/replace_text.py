@@ -5,8 +5,6 @@ import re
 import shutil
 from datetime import datetime
 
-# Visi 4 Pilar: Pure Python, Hemat Token, Mid-Tier Perf (skip >500KB)
-
 DEFAULT_EXCLUDES = {'.git', 'node_modules', '.history', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents'}
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 
@@ -32,12 +30,11 @@ def main():
     args = get_args()
     
     if not os.path.exists(args.target_dir):
-        print(f"[FAIL] Direktori target tidak ditemukan: {args.target_dir}")
+        print(f"[FAIL] Target directory not found: {args.target_dir}")
         sys.exit(1)
         
     exts = [e.strip() for e in args.ext.split(',')] if args.ext else []
     
-    # Prepare regex pattern
     pattern_str = args.search_string
     if not args.regex:
         pattern_str = re.escape(pattern_str)
@@ -47,7 +44,7 @@ def main():
     try:
         regex = re.compile(pattern_str)
     except re.error as e:
-        print(f"[FAIL] Regex tidak valid: {e}")
+        print(f"[FAIL] Invalid regex: {e}")
         sys.exit(1)
         
     backup_dir = None
@@ -66,7 +63,6 @@ def main():
                 continue
             
             filepath = os.path.join(root, file)
-            # Mid-tier perf: skip large files
             if os.path.getsize(filepath) > MAX_FILE_SIZE:
                 continue
                 
@@ -84,20 +80,19 @@ def main():
                 match_count += count
                 
                 rel_path = os.path.relpath(filepath, args.target_dir)
-                # Hemat Token: Jangan dump baris kode. Cukup peringatan.
-                print(f"[WARN] Menemukan {count} kecocokan di {rel_path}")
+                print(f"[WARN] Found {count} matches in {rel_path}")
                 
                 if args.apply:
                     backup_file(filepath, backup_dir)
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(new_content)
 
-    print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
+    print(f"\n[OK] Scan complete ({scanned_files} files scanned). Found {match_count} matches across {file_count} files.")
     if not args.apply:
-        print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
-        print('"Berdasarkan hasil dry-run di atas, tolong jalankan ulang perintah tersebut dengan menambahkan flag --apply untuk menerapkan perubahannya secara aman."')
+        print("\n💡 AI PROMPT (Copy & Paste this):")
+        print('"Based on the dry-run results above, please re-run the command with the --apply flag to safely apply the changes."')
     else:
-        print(f"\n[INFO] Perubahan telah diterapkan ke {file_count} file. Backup tersimpan di: {backup_dir}")
+        print(f"\n[INFO] Changes applied to {file_count} files. Backups saved at: {backup_dir}")
 
 if __name__ == "__main__":
     main()

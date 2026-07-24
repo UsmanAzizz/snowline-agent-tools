@@ -17,12 +17,10 @@ def sweep(target):
     for root, dirs, files in os.walk(target):
         dirs[:] = [d for d in dirs if d not in ignore_dirs]
         
-        # Check for residue directories
         for d in dirs:
             if d.lower() in ['aa', 'arsip', 'temp', 'backup', 'old', 'scratch']:
                 residue_files.append(os.path.join(root, d) + " [Suspected Backup/Temp Folder]")
                 
-        # Check for residue files
         for f in files:
             filepath = os.path.join(root, f)
             if os.path.getsize(filepath) > MAX_FILE_SIZE:
@@ -77,7 +75,7 @@ def main():
             total_issues += 1
             
     if todo_count > 0:
-        print(f"[WARN] Ditemukan {todo_count} tag TODO/FIXME di dalam kode.")
+        print(f"[WARN] Found {todo_count} TODO/FIXME tags in the code.")
         total_issues += 1
         
     if comment_blocks:
@@ -90,11 +88,11 @@ def main():
     print("\n" + "=" * 50)
     
     if total_issues == 0:
-        print(f"[OK] Proyek bersih! {scanned_files} file dipindai tanpa ada temuan residu.")
+        print(f"[OK] Project is clean! {scanned_files} files scanned with zero residue findings.")
     else:
-        print(f"[OK] Selesai memindai {scanned_files} file.")
-        print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
-        print('"Berdasarkan laporan Clean Sweeper di atas, tolong periksa temuan [FAIL] dan hapus file yatim piatu tersebut. Untuk temuan [WARN], periksa apakah komentar raksasa itu bisa dihapus."')
+        print(f"[OK] Finished scanning {scanned_files} files.")
+        print("\n💡 AI PROMPT (Copy & Paste this):")
+        print('"Based on the Clean Sweeper report above, please review the [FAIL] findings and safely delete the orphan files. For [WARN] findings, check if the massive comment blocks can be removed."')
 
 if __name__ == "__main__":
     main()

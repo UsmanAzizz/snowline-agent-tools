@@ -38,7 +38,6 @@ def search_files(directory, keyword, extensions):
                     matches.append(i)
                     
             if matches:
-                # Merge overlapping contexts (5 lines)
                 context_lines = 5
                 blocks = []
                 current_block = None
@@ -63,10 +62,10 @@ def search_files(directory, keyword, extensions):
     return results, scanned, skipped
 
 def main():
-    parser = argparse.ArgumentParser(description="Smart Code Finder - Menemukan kode dengan konteks (Hemat Token)")
-    parser.add_argument("target_dir", help="Direktori yang akan dipindai")
-    parser.add_argument("keyword", help="Kata kunci yang dicari (contoh: 'nama_fungsi')")
-    parser.add_argument("--ext", help="Filter ekstensi dipisah koma (contoh: .js,.jsx)", default="")
+    parser = argparse.ArgumentParser(description="Smart Code Finder - Find code with context (Token Efficient)")
+    parser.add_argument("target_dir", help="Directory to scan")
+    parser.add_argument("keyword", help="Search keyword (e.g., 'function_name')")
+    parser.add_argument("--ext", help="Comma-separated extensions to filter (e.g., .js,.jsx)", default="")
     args = parser.parse_args()
 
     extensions = [ext.strip() for ext in args.ext.split(",")] if args.ext else []
@@ -74,16 +73,16 @@ def main():
     results, scanned, skipped = search_files(args.target_dir, args.keyword, extensions)
     
     if not results:
-        print(f"[OK] Pencarian '{args.keyword}' tidak ditemukan di {scanned} file.")
+        print(f"[OK] Keyword '{args.keyword}' not found in {scanned} files.")
         sys.exit(0)
         
-    print(f"🔎 HASIL PENCARIAN: '{args.keyword}'")
+    print(f"🔎 SEARCH RESULTS: '{args.keyword}'")
     print("=" * 60)
     
     total_matches = 0
     for r in results:
         rel_path = os.path.relpath(r['file'], args.target_dir)
-        print(f"\n[WARN] Ditemukan di: {rel_path}")
+        print(f"\n[WARN] Found in: {rel_path}")
         print("-" * 60)
         
         for block in r['blocks']:
@@ -96,9 +95,9 @@ def main():
             print("-" * 30)
 
     print("\n" + "=" * 60)
-    print(f"[OK] Selesai: {total_matches} kecocokan di {len(results)} file (dari {scanned} dipindai, {skipped} di-skip karena >500KB).")
-    print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
-    print(f'"Tolong baca cuplikan kode di atas. Jika Anda perlu mengubah kode tersebut, perbaiki saja di fungsi terkait dan jelaskan."' )
+    print(f"[OK] Done: {total_matches} matches in {len(results)} files ({scanned} scanned, {skipped} skipped because >500KB).")
+    print("\n💡 AI PROMPT (Copy & Paste this):")
+    print('"Please review the code snippets above. If you need to modify the code, use the replace_file_content tool on the mentioned files."')
 
 if __name__ == "__main__":
     main()
