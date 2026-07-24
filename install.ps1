@@ -1,10 +1,11 @@
-Write-Host "[INIT] Installing 12-Pillars Agent Ecosystem (Project-Level)..." -ForegroundColor Cyan
+Write-Host "Installing 12-Pillars Agent Ecosystem (Project-Level)..." -ForegroundColor Cyan
 
 $ProjectRoot = (Get-Location).Path
 $AgentsDir = Join-Path $ProjectRoot ".agents"
 $SkillsDir = Join-Path $AgentsDir "skills"
 $KnowledgeDir = Join-Path $AgentsDir "knowledge"
 $RepoUrl = "https://github.com/UsmanAzizz/snowline-agent-tools.git"
+$IsNewInstall = $false
 
 # Ensure .agents and .agents/knowledge exist
 if (-not (Test-Path $AgentsDir)) {
@@ -16,25 +17,26 @@ if (-not (Test-Path $KnowledgeDir)) {
 
 # Scaffold skills
 if (Test-Path $SkillsDir) {
-    Write-Host "[INFO] Found existing skills directory at $SkillsDir" -ForegroundColor Yellow
+    Write-Host "Found existing skills directory at $SkillsDir" -ForegroundColor Yellow
     if (Test-Path (Join-Path $SkillsDir ".git")) {
-        Write-Host "[UPDATE] Pulling latest updates..." -ForegroundColor Cyan
+        Write-Host "Pulling latest updates..." -ForegroundColor Cyan
         Set-Location $SkillsDir
         try {
             git pull origin main
         } catch {
-            Write-Host "[ERROR] Failed to update repository." -ForegroundColor Red
+            Write-Host "Failed to update repository." -ForegroundColor Red
         }
         Set-Location $ProjectRoot
     } else {
-        Write-Host "[WARN] Existing skills directory is not a git repository. Skipping git pull." -ForegroundColor Yellow
+        Write-Host "Existing skills directory is not a git repository. Skipping git pull." -ForegroundColor Yellow
     }
 } else {
-    Write-Host "[DOWNLOAD] Downloading 12-Pillars skills..." -ForegroundColor Cyan
+    $IsNewInstall = $true
+    Write-Host "Downloading 12-Pillars skills..." -ForegroundColor Cyan
     try {
         git clone $RepoUrl $SkillsDir
     } catch {
-        Write-Host "[ERROR] Failed to clone repository. Make sure git is installed." -ForegroundColor Red
+        Write-Host "Failed to clone repository. Make sure git is installed." -ForegroundColor Red
         exit 1
     }
 }
@@ -45,20 +47,22 @@ $LocalAgentsPath = Join-Path $AgentsDir "AGENTS.md"
 
 if (Test-Path $TemplatePath) {
     if (-not (Test-Path $LocalAgentsPath)) {
-        Write-Host "[CREATE] Creating Project AGENTS.md..." -ForegroundColor Cyan
+        Write-Host "Creating Project AGENTS.md..." -ForegroundColor Cyan
         Copy-Item -Path $TemplatePath -Destination $LocalAgentsPath -Force
-        Write-Host "[SUCCESS] Project AGENTS.md created successfully." -ForegroundColor Green
+        Write-Host "Project AGENTS.md created successfully." -ForegroundColor Green
     } else {
-        Write-Host "[INFO] Project AGENTS.md already exists. Skipping overwrite." -ForegroundColor Yellow
+        Write-Host "Project AGENTS.md already exists. Skipping overwrite." -ForegroundColor Yellow
     }
 }
 
 # Scaffold PLAN.md
 $PlanPath = Join-Path $ProjectRoot "PLAN.md"
 if (-not (Test-Path $PlanPath)) {
-    Write-Host "[CREATE] Creating PLAN.md..." -ForegroundColor Cyan
+    Write-Host "Creating PLAN.md..." -ForegroundColor Cyan
     Set-Content -Path $PlanPath -Value "# Project Plan / Task Tracker`n`n- [ ] Initial task" -Encoding UTF8
 }
 
-Write-Host "`n[DONE] Installation Complete!" -ForegroundColor Green
-Write-Host "This project is now powered by the 12-Pillars Ecosystem." -ForegroundColor Cyan
+if ($IsNewInstall) {
+    Write-Host "`nInstallation Complete!" -ForegroundColor Green
+    Write-Host "This project is now powered by the 12-Pillars Ecosystem." -ForegroundColor Cyan
+}
