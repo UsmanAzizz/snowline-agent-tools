@@ -24,12 +24,12 @@ TOOLS = [
     {
         "name": "Smart Replace (Pure Python RegEx Replacer)",
         "script": "smart_replace/replace_text.py",
-        "args": ["<target_dir>", "<search_string>", "<replace_string>"]
+        "args": [os.getcwd(), "<search_string>", "<replace_string>"]
     },
     {
         "name": "Smart Search (5-Lines Context Code Finder)",
         "script": "smart_search/code_finder.py",
-        "args": ["<target_dir>", "<keyword>"]
+        "args": [os.getcwd(), "<keyword>"]
     },
     {
         "name": "Selective Reader (TOC Extractor)",
