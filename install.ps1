@@ -1,4 +1,4 @@
-Write-Host "Installing Snowline Agent Agent Ecosystem (Project-Level)..." -ForegroundColor Cyan
+Write-Host "Installing Snowline Agent Ecosystem (Project-Level)..." -ForegroundColor Cyan
 
 $ProjectRoot = (Get-Location).Path
 $AgentsDir = Join-Path $ProjectRoot ".agents"

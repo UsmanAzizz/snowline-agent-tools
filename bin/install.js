@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-console.log('Installing Snowline Agent Agent Ecosystem (Project-Level)...');
+console.log('Installing Snowline Agent Ecosystem (Project-Level)...');
 
 const projectRoot = process.cwd();
 const agentsDir = path.join(projectRoot, '.agents');

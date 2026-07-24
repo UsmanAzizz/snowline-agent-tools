@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Installing Snowline Agent Agent Ecosystem (Project-Level)..."
+echo "Installing Snowline Agent Ecosystem (Project-Level)..."
 
 PROJECT_ROOT=$(pwd)
 AGENTS_DIR="$PROJECT_ROOT/.agents"
