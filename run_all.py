@@ -35,6 +35,11 @@ TOOLS = [
         "name": "Selective Reader (TOC Extractor)",
         "script": "selective_reader/reader.py",
         "args": ["<absolute_file_path>"]
+    },
+    {
+        "name": "Deep Analyzer (Project Profiler)",
+        "script": "deep_analyzer/analyzer.py",
+        "args": [os.getcwd()]
     }
 ]
 
@@ -52,7 +57,7 @@ def main():
     while True:
         print_menu()
         try:
-            choice = input("\nEnter your choice (0-6): ").strip()
+            choice = input("\nEnter your choice (0-7): ").strip()
         except KeyboardInterrupt:
             break
             

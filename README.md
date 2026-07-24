@@ -25,6 +25,8 @@ This toolset was completely overhauled to adhere to 4 strict design pillars, spe
    - A holistic security and health auditor (Satpam). Detects exposed credentials, validates `.gitignore` rules, checks for broken relative imports, and flags unused npm packages. Uses `--summary` for silent execution.
 6. **Context Mapper (`context_mapper/context_mapper.py`)**
    - The Knowledge Catalog builder. Automatically generates `PROJECT_STRUCTURE.md` and `COMMON_PATTERNS.md` inside `.agents/knowledge/`. AI agents are instructed to read these files first to instantly understand the project's architecture without blind-searching.
+7. **Deep Analyzer (`deep_analyzer/analyzer.py`)**
+   - The Project Profiler (X-Ray Scanner). Automatically extracts the tech stack, core dependencies, file statistics, and available testing/linting commands directly from `package.json` or config files. Prevents the AI from wasting tokens reading massive configuration files manually.
 
 ## Installation & Prerequisites
 
