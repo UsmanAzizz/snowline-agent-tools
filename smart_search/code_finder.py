@@ -95,9 +95,9 @@ def main():
             print("-" * 30)
 
     print("\n" + "=" * 60)
-    print(f"[OK] Done: {total_matches} matches in {len(results)} files ({scanned} scanned, {skipped} skipped because >500KB).")
-    print("\n💡 AI PROMPT (Copy & Paste this):")
-    print('"Please review the code snippets above. If you need to modify the code, use the replace_file_content tool on the mentioned files."')
+    print(f"[OK] Selesai: {total_matches} kecocokan di {len(results)} file (dari {scanned} dipindai, {skipped} dilewati karena >500KB).")
+    print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
+    print('"Tolong baca cuplikan kode di atas. Jika Anda perlu mengubah kode tersebut, gunakan tool replace_file_content pada file yang disebutkan di atas."')
 
 if __name__ == "__main__":
     main()

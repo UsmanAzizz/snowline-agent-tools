@@ -195,12 +195,12 @@ def main():
     check_dependencies(args.summary)
     
     if args.summary:
-        print(f"🛡️ GUARDIAN SUMMARY: 🔴 {total_fails} FAIL | 🟡 {total_warns} WARN | 🟢 Other sectors are Secure.")
+        print(f"🛡️ RINGKASAN GUARDIAN: 🔴 {total_fails} FAIL | 🟡 {total_warns} WARN | 🟢 Sektor lainnya Aman.")
     else:
         print("\n" + "=" * 60)
-        print(f"🛡️ SUMMARY: 🔴 {total_fails} FAIL | 🟡 {total_warns} WARN | 🟢 Other sectors are Secure.")
-        print("\n💡 AI PROMPT (Copy & Paste this):")
-        print('"Please fix all [FAIL] findings above (especially .gitignore and envs). For [WARN], you may ignore them if they are dummy data or test files."')
+        print(f"🛡️ RINGKASAN: 🔴 {total_fails} FAIL | 🟡 {total_warns} WARN | 🟢 Sektor lainnya Aman.")
+        print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
+        print('"Tolong perbaiki semua temuan [FAIL] di atas (khususnya .gitignore dan env). Untuk [WARN], abaikan jika itu adalah dummy data atau file test."')
 
 if __name__ == '__main__':
     main()

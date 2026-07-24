@@ -57,8 +57,8 @@ def main():
             print(f"Line {line:<5}: {desc}")
             
     print("-" * 50)
-    print("\n💡 AI PROMPT (Copy & Paste this):")
-    print(f'"Based on the TOC above, please use the view_file tool to read ONLY the relevant lines of the function in {os.path.basename(filepath)}."')
+    print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
+    print(f'"Berdasarkan TOC di atas, tolong gunakan tool view_file untuk membaca hanya baris yang relevan dari fungsi yang bermasalah di file {os.path.basename(filepath)}."')
 
 if __name__ == '__main__':
     main()

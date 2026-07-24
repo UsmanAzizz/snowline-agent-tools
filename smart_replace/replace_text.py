@@ -87,12 +87,12 @@ def main():
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(new_content)
 
-    print(f"\n[OK] Scan complete ({scanned_files} files scanned). Found {match_count} matches across {file_count} files.")
+    print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
     if not args.apply:
-        print("\n💡 AI PROMPT (Copy & Paste this):")
-        print('"Based on the dry-run results above, please re-run the command with the --apply flag to safely apply the changes."')
+        print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
+        print('"Berdasarkan hasil dry-run di atas, tolong jalankan ulang perintah tersebut dengan menambahkan flag --apply untuk menerapkan perubahannya secara aman."')
     else:
-        print(f"\n[INFO] Changes applied to {file_count} files. Backups saved at: {backup_dir}")
+        print(f"\n[INFO] Perubahan telah diterapkan ke {file_count} file. Backup tersimpan di: {backup_dir}")
 
 if __name__ == "__main__":
     main()

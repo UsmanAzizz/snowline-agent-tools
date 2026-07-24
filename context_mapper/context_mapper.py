@@ -55,9 +55,9 @@ def main():
             f.write("## 2. Code Style\n- Document styling rules here (e.g. no Tailwind, use Vanilla CSS).\n\n")
             f.write("## 3. Security\n- Never store credentials in code. Always use `.env`.\n")
 
-    print(f"[OK] Knowledge Catalog successfully generated/updated in `{KNOWLEDGE_DIR}/`.")
-    print("\n💡 AI PROMPT (Copy & Paste this):")
-    print('"From now on, whenever you work on this project, please call view_file on .agents/knowledge/PROJECT_STRUCTURE.md and COMMON_PATTERNS.md first before performing searches or writing code."')
+    print(f"[OK] Knowledge Catalog berhasil dibuat/diperbarui di folder `{KNOWLEDGE_DIR}/`.")
+    print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
+    print('"Mulai sekarang, setiap kali Anda menangani proyek ini, tolong panggil view_file pada .agents/knowledge/PROJECT_STRUCTURE.md dan COMMON_PATTERNS.md terlebih dahulu sebelum melakukan pencarian atau menulis kode."')
 
 if __name__ == "__main__":
     main()

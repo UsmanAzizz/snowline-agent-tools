@@ -88,11 +88,11 @@ def main():
     print("\n" + "=" * 50)
     
     if total_issues == 0:
-        print(f"[OK] Project is clean! {scanned_files} files scanned with zero residue findings.")
+        print(f"[OK] Proyek bersih! {scanned_files} file dipindai tanpa ada temuan residu.")
     else:
-        print(f"[OK] Finished scanning {scanned_files} files.")
-        print("\n💡 AI PROMPT (Copy & Paste this):")
-        print('"Based on the Clean Sweeper report above, please review the [FAIL] findings and safely delete the orphan files. For [WARN] findings, check if the massive comment blocks can be removed."')
+        print(f"[OK] Selesai memindai {scanned_files} file.")
+        print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
+        print('"Berdasarkan laporan Clean Sweeper di atas, tolong periksa temuan [FAIL] dan hapus file yatim piatu tersebut. Untuk temuan [WARN], periksa apakah komentar raksasa itu bisa dihapus."')
 
 if __name__ == "__main__":
     main()
