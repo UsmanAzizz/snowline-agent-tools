@@ -76,6 +76,12 @@ To strictly conserve token quotas, you are **ABSOLUTELY FORBIDDEN** from using t
 - **For Surgical / Complex Edits:** Write a quick python script in the workspace (using standard `open(file, 'w')`) to perform the regex/string replacement, execute the python script, and then delete the script. 
 - The native edit tools consume massive amounts of context tokens due to IDE differential streaming. **Do not use them unless explicitly forced by the user.**
 
+
+## 🛡️ ZERO TOLERANCE FOR NATIVE SEARCH TOOLS
+To strictly conserve token quotas, you are **ABSOLUTELY FORBIDDEN** from using the native IDE search tools (like `grep_search`). 
+- **For Searching Code:** ALWAYS use the custom python tool `python .agents/skills/smart_search/code_finder.py <dir> <keyword>`.
+- The native `grep_search` tool is banned because it often returns unoptimized or poorly formatted output. Rely exclusively on the custom Python tools provided in the Snowline Arsenal.
+
 ## 🗣️ Communication Efficiency
 
 **Language Handling**
