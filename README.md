@@ -25,6 +25,9 @@ This repository provides **5 specialized tools** to force AI agents to work tran
    - **Guardrails (Veto Protocol):** Strictly acts as a reporter. The AI is forbidden from deleting anything without explicitly asking for human permission first.
 5. **Live Progress Tracker (`PLAN_TEMPLATE.md`)**
    - A mandatory standard operating procedure (SOP). Forces the AI to log its intentions live and implement a "Mandatory Stop" before executing destructive actions.
+6. **Project Guardian (`guardian.py`)**
+   - A holistic security and health auditor (Satpam) for AI-assisted codebases.
+   - Detects exposed credentials, validates `.gitignore` rules, checks for broken relative imports, and flags unused npm packages or known vulnerabilities.
 
 ## Installation & Prerequisites
 
