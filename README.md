@@ -4,6 +4,26 @@
 ![No Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
+## 🚀 Quick Install (Project-Level)
+Make any project "AI-Ready" in seconds. Run one of these commands in your project's root folder to instantly install the 12-Pillars ecosystem. It will safely scaffold `.agents/skills`, `.agents/knowledge`, and your `PLAN.md` without affecting global system configs.
+
+**Option 1: Using NPM (Cross-Platform)**
+```bash
+npx create-snowline-agents
+```
+
+**Option 2: Using PowerShell (Windows)**
+```powershell
+irm https://raw.githubusercontent.com/UsmanAzizz/snowline-agent-tools/main/install.ps1 | iex
+```
+
+**Option 3: Using Bash/cURL (Mac/Linux)**
+```bash
+curl -sL https://raw.githubusercontent.com/UsmanAzizz/snowline-agent-tools/main/install.sh | bash
+```
+
+---
+
 Kumpulan *script* Python sederhana, portabel, dan ringan yang dirancang khusus untuk memandu AI coding assistant (seperti Gemini, Claude, atau Aider) bekerja di dalam sebuah *repository*. 
 
 Tujuan utama proyek ini adalah **menghemat penggunaan token LLM** dengan mencegah AI membaca *file* secara buta, serta menyediakan perlindungan (*guardrail*) untuk modifikasi *file* secara otomatis.

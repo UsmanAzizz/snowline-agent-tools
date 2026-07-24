@@ -2,24 +2,26 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const os = require('os');
 
-console.log('🚀 Installing 12-Pillars Agent Ecosystem...');
+console.log('🚀 Installing 12-Pillars Agent Ecosystem (Project-Level)...');
 
-const homeDir = os.homedir();
-const configDir = path.join(homeDir, '.gemini', 'config');
-const skillsDir = path.join(configDir, 'skills');
+const projectRoot = process.cwd();
+const agentsDir = path.join(projectRoot, '.agents');
+const skillsDir = path.join(agentsDir, 'skills');
+const knowledgeDir = path.join(agentsDir, 'knowledge');
 const repoUrl = 'https://github.com/UsmanAzizz/snowline-agent-tools.git';
 
-// Ensure config dir exists
-if (!fs.existsSync(configDir)) {
-    fs.mkdirSync(configDir, { recursive: true });
+// Ensure .agents and .agents/knowledge exist
+if (!fs.existsSync(agentsDir)) {
+    fs.mkdirSync(agentsDir, { recursive: true });
+}
+if (!fs.existsSync(knowledgeDir)) {
+    fs.mkdirSync(knowledgeDir, { recursive: true });
 }
 
-// Check if skills dir exists
+// Scaffold skills
 if (fs.existsSync(skillsDir)) {
     console.log(`📁 Found existing skills directory at ${skillsDir}`);
-    // Check if it's a git repo
     if (fs.existsSync(path.join(skillsDir, '.git'))) {
         console.log('🔄 Pulling latest updates...');
         try {
@@ -31,29 +33,35 @@ if (fs.existsSync(skillsDir)) {
         console.log('⚠️ Existing skills directory is not a git repository. Skipping git pull.');
     }
 } else {
-    console.log(`📥 Cloning 12-Pillars repository to ${skillsDir}...`);
+    console.log(`📥 Downloading 12-Pillars skills...`);
     try {
         execSync(`git clone ${repoUrl} "${skillsDir}"`, { stdio: 'inherit' });
     } catch (e) {
-        console.error('❌ Failed to clone repository.');
+        console.error('❌ Failed to clone repository. Make sure git is installed.');
         process.exit(1);
     }
 }
 
-// Copy AGENTS_TEMPLATE.md to AGENTS.md globally if AGENTS.md doesn't exist
+// Copy AGENTS_TEMPLATE.md to AGENTS.md in the project root
 const templatePath = path.join(skillsDir, 'AGENTS_TEMPLATE.md');
-const globalAgentsPath = path.join(configDir, 'AGENTS.md');
+const localAgentsPath = path.join(agentsDir, 'AGENTS.md');
 
 if (fs.existsSync(templatePath)) {
-    if (!fs.existsSync(globalAgentsPath)) {
-        console.log('📝 Creating Global AGENTS.md from template...');
-        fs.copyFileSync(templatePath, globalAgentsPath);
-        console.log('✅ Global AGENTS.md created successfully.');
+    if (!fs.existsSync(localAgentsPath)) {
+        console.log('📝 Creating Project AGENTS.md...');
+        fs.copyFileSync(templatePath, localAgentsPath);
+        console.log('✅ Project AGENTS.md created successfully.');
     } else {
-        console.log('⚠️ Global AGENTS.md already exists. Skipping overwrite to preserve your personal rules.');
+        console.log('ℹ️ Project AGENTS.md already exists. Skipping overwrite.');
     }
 }
 
+// Scaffold PLAN.md in project root
+const planPath = path.join(projectRoot, 'PLAN.md');
+if (!fs.existsSync(planPath)) {
+    console.log('📝 Creating PLAN.md...');
+    fs.writeFileSync(planPath, '# Project Plan / Task Tracker\n\n- `[ ]` Initial task\n', 'utf8');
+}
+
 console.log('\n🎉 Installation Complete!');
-console.log('Your IDE is now powered by the 12-Pillars Ecosystem.');
-console.log('Open any new project, and the agent will automatically scaffold the architecture for you!');
+console.log('This project is now powered by the 12-Pillars Ecosystem.');
