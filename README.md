@@ -24,16 +24,16 @@ curl -sL https://raw.githubusercontent.com/UsmanAzizz/snowline-agent-tools/main/
 
 ---
 
-Kumpulan *script* Python sederhana, portabel, dan ringan yang dirancang khusus untuk memandu AI coding assistant (seperti Gemini, Claude, atau Aider) bekerja di dalam sebuah *repository*. 
+A collection of simple, portable, and lightweight Python scripts specifically designed to guide AI coding assistants (like Gemini, Claude, or Aider) working within a repository.
 
-Tujuan utama proyek ini adalah **menghemat penggunaan token LLM** dengan mencegah AI membaca *file* secara buta, serta menyediakan perlindungan (*guardrail*) untuk modifikasi *file* secara otomatis.
+The main goal of this project is to **save LLM token usage** by preventing the AI from reading files blindly, as well as providing safety guardrails for automated file modifications.
 
-## 🏛️ Prinsip Utama
+## 🏛️ Core Principles
 
-1. **Sederhana & Portabel:** 100% menggunakan Python murni (`os`, `re`, `json`). Tidak butuh `node_modules`, tidak butuh eksekutor eksternal seperti `ripgrep`. Cukup salin script ke proyek Anda dan jalankan.
-2. **Hemat Token:** Output terminal sangat ringkas. Tidak ada log panjang yang tidak berguna, hanya menampilkan *insight* krusial (`[FAIL]`, `[WARN]`) agar AI tidak kehabisan memori konteks.
-3. **AI Prompt Bridge:** Setiap script Python tidak sekadar mencetak data, tapi juga mengembalikan kalimat perintah (prompt) siap pakai di baris terakhir agar user bisa langsung menyalinnya untuk mengarahkan AI.
-4. **Proteksi & Dry-Run:** Script yang memodifikasi *file* wajib memiliki mode pratinjau (*dry-run*) sebagai default dan harus memaksa penggunaan argumen `--apply` sebelum benar-benar mengubah file di disk.
+1. **Simple & Portable:** 100% pure Python (`os`, `re`, `json`). No `node_modules` required, no external executors like `ripgrep` needed. Just copy the scripts to your project and run them.
+2. **Token Efficient:** Terminal outputs are extremely concise. No useless long logs, only displaying crucial insights (`[FAIL]`, `[WARN]`) to prevent the AI from exhausting its context memory.
+3. **AI Prompt Bridge:** Each Python script doesn't just print data; it also returns a ready-to-use prompt sentence at the very last line, so users can instantly copy it to guide the AI.
+4. **Protection & Dry-Run:** Scripts that modify files MUST feature a dry-run preview mode by default and force the use of an `--apply` argument before actually altering files on disk.
 
 ---
 
