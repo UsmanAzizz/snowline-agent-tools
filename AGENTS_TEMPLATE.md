@@ -1,9 +1,13 @@
-﻿# Project Rules (CBT Master - Snowline Agent Ecosystem)
+# Project Rules (CBT Master - 10-Pillars Ecosystem)
 
 - Before creating a new function, always define all variables that will be used first (to avoid *ReferenceError* or variables that have not been *destructured*).
 
 ## 🛑 THE Snowline Agent CORE DIRECTIVES (MANDATORY)
-You (the AI Agent) are **STRICTLY FORBIDDEN** from using standard tools (such as \grep_search\, \cat\, \ls\, standard ESLint, or manually reading \package.json\) if there is a custom tool from the Snowline Agent ecosystem that can do it faster and save more tokens.
+
+**THE GOLDEN RULE: MANDATORY ANALYTICAL PRE-FLIGHT**
+Before writing ANY code, proposing a plan, or making assumptions about the architecture for a new task, you MUST use the corresponding analytical tools (`deep_analyzer`, `impact_analyzer`, `smart_search`, or `selective_reader`). DO NOT proceed to execution or use generic search tools without running the required Snowline analysis first.
+
+You (the AI Agent) are **STRICTLY FORBIDDEN** from using standard tools (such as `grep_search`, `cat`, `ls`, standard ESLint, or manually reading `package.json`) if there is a custom tool from the Snowline Agent ecosystem that can do it faster and save more tokens.
 
 **You MUST ALWAYS use the following Python scripts according to the need:**
 
@@ -30,10 +34,6 @@ You (the AI Agent) are **STRICTLY FORBIDDEN** from using standard tools (such as
    - ALWAYS generate boilerplate first: \python .agents/skills/auto_scaffolder/scaffolder.py <type> <name>\
 10. **Fixing Broken Imports (Smart Import Fixer)**
     - ALWAYS use: \python .agents/skills/import_fixer/fixer.py <file> <import_string>\
-11. **Viewing Directory Trees (Smart Tree)**
-    - ALWAYS use: \python .agents/skills/smart_tree/scripts/tree_viewer.py <dir>\
-12. **Extracting Database Schema (DB Extractor)**
-    - ALWAYS use: \python .agents/skills/db_extractor/scripts/extractor.py <project_root_dir>\
 
 
 ## 📖 Mandatory Reading Protocol (Selective Reader)
@@ -106,10 +106,9 @@ When starting a session in any project, evaluate the completeness of the \.agent
 
 **Action Flow:**
 1. Check the project root for these 3 components.
-2. If any are missing, DO NOT ask via normal chat text. Instead, create an implementation_plan.md Artifact with RequestFeedback=true (this generates a clickable 'Proceed' button for the user).
-3. Include this exact summary in the artifact:
-   > [INFO] Dokumentasi ekosistem .agents di project ini belum lengkap. Klik 'Proceed' agar saya men-setup semuanya (Aturan Lokal, Peta Arsitektur, dan Tracker) sekarang.
-4. Once the user clicks Proceed, automatically create the folders, run Context Mapper to generate the knowledge files, and scaffold the \PLAN.md\ and \AGENTS.md\ files.
+2. If any are missing, ask the user using this format:
+   > [INFO] Dokumentasi ekosistem .agents di project ini belum lengkap. Ingin saya setup semuanya (Aturan Lokal, Peta Arsitektur, dan Tracker) sekarang?
+3. Once the user approves, automatically create the folders, run Context Mapper to generate the knowledge files, and scaffold the \PLAN.md\ and \AGENTS.md\ files.
 ## 🧠 Tech Lead Disciplines (Built-in)
 To maintain high code quality while remaining effortless for the user, the agent automatically applies these disciplines:
 1. **Implicit Grilling (No Guesswork)**: For complex feature requests, do not blindly guess edge cases (e.g., timeouts, null states, missing data). Ask 1-2 highly targeted questions to clarify the boundaries before writing code. Keep it brief and easy to answer.
