@@ -8,6 +8,16 @@ from datetime import datetime
 DEFAULT_EXCLUDES = {'.git', 'node_modules', '.history', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents'}
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 
+def find_project_root(start_path):
+    current = os.path.abspath(start_path)
+    while True:
+        if os.path.exists(os.path.join(current, 'package.json')) or os.path.exists(os.path.join(current, '.git')):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return os.path.abspath(start_path)
+        current = parent
+
 def get_args():
     parser = argparse.ArgumentParser(description="Smart Replace (Pure Python Edition)")
     parser.add_argument("target_dir", help="Target directory (absolute path)")
@@ -50,7 +60,8 @@ def main():
     backup_dir = None
     if args.apply:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_dir = os.path.join(args.target_dir, '.backup_replace', timestamp)
+        project_root = find_project_root(args.target_dir)
+        backup_dir = os.path.join(project_root, '.backup_replace', timestamp)
 
     match_count = 0
     file_count = 0

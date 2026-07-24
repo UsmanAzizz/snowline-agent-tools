@@ -21,3 +21,7 @@ python .agents/skills/selective_reader/reader.py "<absolute_path_to_file>"
 3. Once you know the line numbers, use your native `view_file` tool and supply `StartLine` and `EndLine` parameters to read ONLY that specific block of code!
 
 By doing this, you act as a "Selective Reader" and dramatically optimize your memory usage.
+
+## ⚠️ Known Limitations & Future Enhancements
+- **Monolithic JSX Components**: The heuristic regex currently only detects function and class declarations. If a file contains a single massive React component returning a huge block of JSX (e.g., hundreds of lines of <table> or <form>), the TOC will only show the top-level function. You may still need to manually paginate through the file to find specific HTML structures. 
+- *Future Enhancement Idea:* Add regex rules to detect major JSX landmarks (like <table, <form, or <Modal) to improve precision in UI components.
