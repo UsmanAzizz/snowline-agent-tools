@@ -1,20 +1,19 @@
-# ❄️ Snowline Agent Tools: The 10-Pillars Ecosystem
+# ❄️ Snowline Agent Tools
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue.svg?logo=python&logoColor=white)
 ![No Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-A suite of lightweight, high-performance custom tools and operational protocols engineered to solve critical bottlenecks in AI-assisted coding for mid-tier and enterprise-level projects. 
+Kumpulan *script* Python sederhana, portabel, dan ringan yang dirancang khusus untuk memandu AI coding assistant (seperti Gemini, Claude, atau Aider) bekerja di dalam sebuah *repository*. 
 
-If you use AI coding assistants (like Gemini, Claude Code, or Aider), you know the pain of **token exhaustion**, **context loss**, and **unverified destructive file edits**. The 10-Pillars Ecosystem solves this by completely replacing standard IDE tools (`grep`, `ls`, `cat`) with AI-optimized, heavily guarded Python alternatives.
+Tujuan utama proyek ini adalah **menghemat penggunaan token LLM** dengan mencegah AI membaca *file* secara buta, serta menyediakan perlindungan (*guardrail*) untuk modifikasi *file* secara otomatis.
 
-## 🏛️ The Philosophy
+## 🏛️ Prinsip Utama
 
-This toolset was completely overhauled to adhere to 4 strict design pillars, specifically tailored for mid-level production codebases where security, speed, and reliability are paramount:
-1. **Extreme Portability:** 100% Pure Python. No Node.js required. No external binaries (like `ripgrep`). Just clone into your workspace and run instantly.
-2. **Aggressive Token Saving:** Suppresses verbose logs. Outputs are strictly limited to actionable insights (`[FAIL]`, `[WARN]`) to preserve the AI's context window and reduce LLM inference costs. File sizes are capped at 500KB to prevent memory bottlenecks.
-3. **AI Bridge (UX):** Tools do not just dump raw data. At the end of every scan, the tool generates a ready-to-use **Copy-Paste Prompt** that human engineers can directly feed back to their AI agent for immediate, context-aware remediation.
-4. **Interactive Accessibility:** A central `run_all.py` dashboard allows engineers to execute any security or refactoring tool interactively without memorizing complex CLI arguments.
+1. **Sederhana & Portabel:** 100% menggunakan Python murni (`os`, `re`, `json`). Tidak butuh `node_modules`, tidak butuh eksekutor eksternal seperti `ripgrep`. Cukup salin script ke proyek Anda dan jalankan.
+2. **Hemat Token:** Output terminal sangat ringkas. Tidak ada log panjang yang tidak berguna, hanya menampilkan *insight* krusial (`[FAIL]`, `[WARN]`) agar AI tidak kehabisan memori konteks.
+3. **AI Prompt Bridge:** Setiap script Python tidak sekadar mencetak data, tapi juga mengembalikan kalimat perintah (prompt) siap pakai di baris terakhir agar user bisa langsung menyalinnya untuk mengarahkan AI.
+4. **Proteksi & Dry-Run:** Script yang memodifikasi *file* wajib memiliki mode pratinjau (*dry-run*) sebagai default dan harus memaksa penggunaan argumen `--apply` sebelum benar-benar mengubah file di disk.
 
 ---
 
