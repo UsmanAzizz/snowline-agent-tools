@@ -50,14 +50,13 @@ Assumptions like these MUST NOT be used as an excuse to skip Selective Reader. R
 
 **The ONLY Permitted Exceptions**
 You may skip Selective Reader ONLY if the following conditions are met:
-1. **Documented Technical Limitations**: Such as files with monolithic JSX components noted in the "Known Limitations" of the Selective Reader SKILL.md. In this case, you MUST still run Selective Reader first to view the TOC output. ONLY IF the TOC proves insufficiently detailed (as per the documented limitation) may you proceed to read manually with \iew_file\ for the unreached sections.
+1. **Documented Technical Limitations**: Such as files with monolithic JSX components noted in the "Known Limitations" of the Selective Reader SKILL.md. In this case, you MUST still run Selective Reader first to view the TOC output. 
 2. **Proven Small Files via TOC**: If Selective Reader has already been run and the TOC proves the file is indeed short (e.g., under 50 lines), you do not need to run it again for the SAME file in the SAME task.
 
-These exceptions DO NOT serve as an excuse to skip at the beginning — exceptions only apply AFTER Selective Reader has been run and proven insufficient or small.
-
-**Strictly Forbidden**
-- Skipping Selective Reader because you "can guess" the file contents based on filename, patterns, or past experience.
-- Reading a file directly with \iew_file\ without running Selective Reader first, unless you can prove Selective Reader was already run for that same file in the current task.
+**Strictly Forbidden (ZERO TOLERANCE FOR MANUAL ANALYSIS)**
+- **Skipping TOC:** Skipping Selective Reader because you "can guess" the file contents based on filename, patterns, or past experience.
+- **Reading Code Blocks Manually:** Even AFTER running Selective Reader, you are **ABSOLUTELY FORBIDDEN** from using `view_file` (or `cat`) to manually read large chunks of logic (e.g., reading lines 200-300 just to "understand" a function). 
+- **The Right Way:** If you need to understand inner logic after seeing the TOC, use `smart_search` to target specific variables/keywords within that block. The AI must NOT rely on manual reading to save tokens. `view_file` is ONLY for tiny config files or when the user explicitly forces it.
 
 **When in Doubt**
 If you are unsure whether a situation qualifies as a valid exception, ALWAYS run Selective Reader first. It is cheaper than reading the full file, carrying no significant risk if it turns out unnecessary.
