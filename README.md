@@ -1,14 +1,14 @@
 # Snowline Agent Tools: The 4-Pillars Ecosystem
 
-A collection of lightweight, high-performance custom tools and operational protocols designed to solve the common pain points of working with AI coding agents (like token exhaustion, context loss, and unverified destructive file edits).
+A suite of lightweight, high-performance custom tools and operational protocols engineered to solve critical bottlenecks in AI-assisted coding for mid-tier and enterprise-level projects (e.g., token exhaustion, context loss, and unverified destructive file edits).
 
 ## The 4 Pillars Philosophy
 
-This toolset was completely overhauled to adhere to 4 strict design pillars, specifically tailored for mid-tier projects and educational environments (like Vocational High Schools / SMK):
-1. **Extreme Portability:** 100% Pure Python. No Node.js required. No external binaries (like `ripgrep`). Just clone and run.
-2. **Aggressive Token Saving:** Suppresses verbose `[OK]` logs. Outputs are strictly limited to `[FAIL]` and `[WARN]` to preserve the AI's context window. File sizes are capped at 500KB.
-3. **AI Bridge (UX):** Tools don't just output raw data. At the end of every scan, the tool generates a ready-to-use **Copy-Paste Prompt** (in Indonesian) that the user can directly feed back to their AI agent.
-4. **Interactive Accessibility:** A central `run_all.py` dashboard allows users to run any tool easily without memorizing paths or arguments.
+This toolset was completely overhauled to adhere to 4 strict design pillars, specifically tailored for mid-level production codebases where security, speed, and reliability are paramount:
+1. **Extreme Portability:** 100% Pure Python. No Node.js required. No external binaries (like `ripgrep`). Just clone into your workspace and run instantly.
+2. **Aggressive Token Saving:** Suppresses verbose `[OK]` logs. Outputs are strictly limited to `[FAIL]` and `[WARN]` to preserve the AI's context window and reduce LLM inference costs. File sizes are capped at 500KB to prevent memory bottlenecks.
+3. **AI Bridge (UX):** Tools do not just dump raw data. At the end of every scan, the tool generates a ready-to-use **Copy-Paste Prompt** that human engineers can directly feed back to their AI agent for immediate, context-aware remediation.
+4. **Interactive Accessibility:** A central `run_all.py` dashboard allows engineers to execute any security or refactoring tool interactively without memorizing complex CLI arguments.
 
 ## The Arsenal
 
