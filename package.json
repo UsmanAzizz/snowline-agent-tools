@@ -4,7 +4,7 @@
   "description": "One-Liner installer for the 12-Pillars AI Agents ecosystem (Global Rules & Python Skills)",
   "main": "index.js",
   "bin": {
-    "create-snowline-agents": "./bin/install.js"
+    "create-snowline-agents": "bin/install.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
