@@ -4,23 +4,18 @@
 ![No Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-## 🚀 Quick Install (Project-Level)
-Make any project "AI-Ready" in seconds. Run one of these commands in your project's root folder to instantly install the Snowline Agent ecosystem. It will safely scaffold `.agents/skills`, `.agents/knowledge`, and your `PLAN.md` without affecting global system configs.
+## 🚀 Installation (Safe Mode)
 
-**Option 1: Using NPM (Cross-Platform)**
-```bash
-npx create-snowline-agents
-```
+To strictly prevent Supply-Chain Attacks, this toolkit does NOT support automated execution from the internet (no `curl | bash` or `irm | iex`). 
 
-**Option 2: Using PowerShell (Windows)**
-```powershell
-irm https://raw.githubusercontent.com/UsmanAzizz/snowline-agent-tools/main/install.ps1 | iex
-```
+To use these tools in your project:
 
-**Option 3: Using Bash/cURL (Mac/Linux)**
-```bash
-curl -sL https://raw.githubusercontent.com/UsmanAzizz/snowline-agent-tools/main/install.sh | bash
-```
+1. **Clone the repository locally:**
+   ```bash
+   git clone https://github.com/UsmanAzizz/snowline-agent-tools.git
+   ```
+2. **Copy the tools to your project:**
+   Copy the desired folders into your project's `.agents/skills/` directory. Your AI agent can then execute them safely.
 
 ---
 
