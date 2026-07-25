@@ -20,12 +20,14 @@ To use these tools in your project, install the package directly from GitHub usi
    ```bash
    snowline-init
    ```
+   *(If you get a "command not found" error due to your Python Scripts PATH, you can use `python -m snowline_toolkit.cli` instead).*
 
 3. **Apply the changes:**
    Once you've verified the dry-run output, apply the changes to safely copy the tools into your `.agents/skills/` directory:
    ```bash
    snowline-init --apply
    ```
+   *(Or `python -m snowline_toolkit.cli --apply`)*
 
 ---
 
