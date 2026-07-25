@@ -8,14 +8,24 @@
 
 To strictly prevent Supply-Chain Attacks, this toolkit does NOT support automated execution from the internet (no `curl | bash` or `irm | iex`). 
 
-To use these tools in your project:
+To use these tools in your project, install the package directly from GitHub using `pip`, then run the initializer:
 
-1. **Clone the repository locally:**
+1. **Install via PIP:**
    ```bash
-   git clone https://github.com/UsmanAzizz/snowline-agent-tools.git
+   pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git
    ```
-2. **Copy the tools to your project:**
-   Copy the desired folders into your project's `.agents/skills/` directory. Your AI agent can then execute them safely.
+
+2. **Initialize in your project:**
+   Run the initialization command. By default, it runs a **dry-run** to show you what files will be created without modifying your disk:
+   ```bash
+   snowline-init
+   ```
+
+3. **Apply the changes:**
+   Once you've verified the dry-run output, apply the changes to safely copy the tools into your `.agents/skills/` directory:
+   ```bash
+   snowline-init --apply
+   ```
 
 ---
 
