@@ -1,0 +1,51 @@
+import sys
+import os
+import json
+import fnmatch
+
+def check_scope(target_file):
+    # Normalize path separators for comparison
+    target_file = target_file.replace('\\', '/')
+    lock_file_path = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
+    
+    if not os.path.exists(lock_file_path):
+        print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
+        sys.exit(1)
+        
+    try:
+        with open(lock_file_path, 'r', encoding='utf-8') as f:
+            scope_data = json.load(f)
+    except Exception as e:
+        print(f"[BLOCKED] Failed to parse scope_lock.json: {e}")
+        sys.exit(1)
+        
+    task = scope_data.get('task', 'Unknown task')
+    allowed_files = [f.replace('\\', '/') for f in scope_data.get('allowed_files', [])]
+    allowed_patterns = scope_data.get('allowed_patterns', [])
+    
+    # 1. Check exact matches
+    for allowed in allowed_files:
+        if target_file.endswith(allowed) or allowed.endswith(target_file) or target_file == allowed:
+            print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
+            sys.exit(0)
+            
+    # 2. Check patterns
+    for pattern in allowed_patterns:
+        if fnmatch.fnmatch(target_file, pattern):
+            print(f"[ALLOWED] File '{target_file}' matches pattern '{pattern}'.")
+            sys.exit(0)
+            
+    # 3. If no match
+    print(f"[BLOCKED] File '{target_file}' is OUT OF SCOPE for the current task.")
+    print(f"Task: {task}")
+    print(f"Allowed files: {allowed_files}")
+    print(f"Allowed patterns: {allowed_patterns}")
+    print("To proceed, you MUST ask the user to explicitly approve expanding the scope.")
+    sys.exit(1)
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Usage: python scope_check.py <file_path>")
+        sys.exit(1)
+    
+    check_scope(sys.argv[1])
