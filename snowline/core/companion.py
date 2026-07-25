@@ -96,7 +96,8 @@ class SnowlineCompanion:
         if not validation.safe:
             raise PermissionError("Cannot execute unsafe action.")
             
-        exec_id = "exec_" + datetime.now().strftime("%Y%m%d%H%M%S")
+        import uuid
+        exec_id = f"exec_{uuid.uuid4().hex[:8]}_{datetime.now().strftime('%Y%m%d%H%M%S')}"
         self.state.start_execution(exec_id, tool_name)
         
         try:
