@@ -313,3 +313,43 @@ For very small and unambiguous tasks (Micro Tasks), the agent is **PERMITTED** t
 
 **File Limits for Micro Tasks:**
 Although Micro Tasks are exempt from `PLAN.md`, `scope_lock.json`, and formal pseudocode, the agent **MUST ONLY touch files that are explicitly mentioned or clearly implied** by the user's instruction. If the agent feels the need to inspect/modify OTHER files outside of that (including for reasons like "cleaning up while at it" or "for consistency"), this automatically is **NO LONGER considered a Micro Task** — the agent MUST stop and ask the user first, or revert to the full protocol (`PLAN.md` + pseudocode) if it turns out to be more complex than initially expected.
+
+## END & CONTINUE Command — Exit and Resume Mechanism
+
+**Purpose:**
+Provide a way to stop working instantly without friction (no follow-up questions, no layered confirmations, no long reports), while ensuring the latest work state is fully saved and can be reviewed anytime via the CONTINUE command — even if the pause between END and CONTINUE lasts a long time (days or more).
+
+### Behavior of "END" Command
+When the user types END (in any message, no specific format needed), the agent MUST:
+1. **Stop completely** from any ongoing execution — no new tool calls, no code writing/modifying, no follow-up questions of any kind.
+2. **Update the state files without asking the user for details:**
+   - Update the active `PLAN.md` with a brief closing entry: label the current task status as `PAUSED` (not completed, not cancelled — a safe default that assumes nothing).
+   - Update `task_state.json` (if there is a task waiting for pseudocode approval) — save the exact condition as last seen, and add a `"paused_at": "<timestamp>"` field.
+   - DO NOT archive these files into `plan_archive/` — leave them in the project root, as the task is not necessarily finished.
+   - Log a brief state summary into `PLAN.md`, including:
+     - The task currently being worked on
+     - The last step that was completed
+     - The next planned step (if any)
+     - Which files have been touched so far
+3. **Reply to the user with EXACTLY ONE short line of confirmation, nothing more:**
+   `[PAUSED] Dihentikan. State tersimpan di PLAN.md. Ketik CONTINUE kapan saja untuk melanjutkan.`
+   No additional reports, no long summaries, no "are you sure" questions — END is executed immediately upon being typed.
+
+### Behavior of "CONTINUE" Command
+When the user types CONTINUE in any session (whether the same session or a new chat/session), the agent MUST:
+1. **Find and read** `PLAN.md` and `task_state.json` with the `PAUSED` status in the project root — do not assume from the memory of previous sessions, always reread from the files, because the time gap could be long and previous chat context might be unavailable.
+2. **Display a brief summary to the user before resuming anything:**
+   ```text
+   [RESUMED] Last task: <task description>
+   Last step: <brief summary>
+   Next plan: <next step if any>
+   
+   Lanjutkan dari sini, atau ada perubahan arahan?
+   ```
+3. **Wait for user confirmation.** Do not immediately execute anything until the user confirms whether to proceed as originally planned or change direction — this is critical because the user might need time to recall the context before deciding.
+4. **After user confirmation,** update the status in `PLAN.md`/`task_state.json` from `PAUSED` back to the appropriate active status (e.g., `pseudocode_pending`, `approved`, etc. depending on the applicable protocol), and resume work as usual.
+
+### Key Principles
+- **END never fails or delays** — no matter what is happening, as soon as the user types END, the agent stops immediately. There is no condition that makes the agent "finish this step first before stopping".
+- **State is never lost** — even if END is called in the middle of a very early process (e.g., just started analysis), the agent still records something to `PLAN.md`, however small the progress, so CONTINUE always has something to read.
+- **CONTINUE makes no assumptions** — always read the actual state files, do not rely on conversational memory, because PAUSED can persist across sessions/days/weeks.
