@@ -260,6 +260,25 @@ Once the code is applied and verified, the task is considered complete. The agen
 - `PLAN.md` logs the approved pseudocode as part of the task log, maintaining a written trail from plan to implementation.
 - This protocol applies BEFORE Scope Guardian is technically active — pseudocode-first prevents the plan from expanding, Scope Guardian prevents the touched files from expanding. Both complement each other, rather than replacing one another.
 
-### Exceptions
-For very small and unambiguous tasks (e.g.: changing a CSS color, fixing a typo), the pseudocode step may be skipped — simply execute directly with a short report as usual. Pseudocode-first is mandatory for tasks involving logic (new functions, flow changes, state handling, etc.), not for trivial cosmetic changes.
-If the agent is unsure whether a task is small enough to skip, it MUST default to the pseudocode path — better one extra unnecessary step than a task expanding without a clear contract.
+### The Micro-Task Exception (Fast Track Protocol)
+For very small and unambiguous tasks (Micro Tasks), the agent is **PERMITTED** to bypass the creation of `PLAN.md`, `scope_lock.json`, and pseudocode approval. The agent may execute the changes directly and provide a brief report.
+
+**Specific Criteria for Permitted Micro Tasks:**
+1. **Minor Comments/Deletions:** Commenting out or deleting 1-3 lines of code.
+2. **Cosmetics & Styling:** Changing colors (CSS/hex), margins, padding, font sizes, or UI styling.
+3. **Static Text:** Fixing typos, changing button labels, or input placeholders.
+4. **Additional Debugging:** Adding or removing `console.log` for debugging purposes.
+5. **Hardcoded Configurations:** Changing simple numbers or boolean values (e.g., timeout `1000` to `3000`).
+6. **Non-Critical Config Updates:** Updating `.gitignore` or `.env.example`.
+7. **Dead Code Cleanup:** Deleting static files, unused packages, or obsolete functions that are 100% unused.
+8. **Small Prop/Parameter Adjustments:** Adding optional props (e.g., `disabled={true}`) without breaking core logic.
+9. **File Layout Refactoring:** Moving component files between folders (including updating imports) without changing their contents.
+10. **Safe Syntax Modifications:** Changing `==` to `===`, or adding Optional Chaining (`?.`).
+
+**Doubt Mechanism (Self-Correction Rule):**
+- If the task clearly falls into the list above, the agent **MUST execute directly** without the long protocol.
+- If the agent is **in doubt** whether a task is a Micro Task or not, the agent **MUST ask the user first**.
+- If the user confirms it is a Micro Task, the agent **MUST execute the task AND immediately add that task category to the Micro Task list above (in AGENTS.md)** so it becomes a standard in the future.
+
+**File Limits for Micro Tasks:**
+Although Micro Tasks are exempt from `PLAN.md`, `scope_lock.json`, and formal pseudocode, the agent **MUST ONLY touch files that are explicitly mentioned or clearly implied** by the user's instruction. If the agent feels the need to inspect/modify OTHER files outside of that (including for reasons like "cleaning up while at it" or "for consistency"), this automatically is **NO LONGER considered a Micro Task** — the agent MUST stop and ask the user first, or revert to the full protocol (`PLAN.md` + pseudocode) if it turns out to be more complex than initially expected.
