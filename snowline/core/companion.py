@@ -3,6 +3,7 @@ from datetime import datetime
 from snowline.core.tool_registry import ToolRegistry
 from snowline.domains.checks import SafetyValidator, RiskAssessor, GuidanceGenerator
 from snowline.core.state_manager import StateManager
+from snowline.tools.smart_replace import SmartReplace
 
 class SnowlineCompanion:
     """
@@ -16,6 +17,9 @@ class SnowlineCompanion:
         
         db_path = self.config.get("state_db", "./.snowline/state.db")
         self.state = StateManager(db_path=db_path)
+        
+        # Register core tools
+        self.registry.register(SmartReplace(workspace_dir="."))
         
         self.validator = SafetyValidator()
         self.assessor = RiskAssessor()

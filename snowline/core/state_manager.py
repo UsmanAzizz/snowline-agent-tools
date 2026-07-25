@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import uuid
+import os
 from datetime import datetime
 
 class StateManager:
@@ -11,6 +12,11 @@ class StateManager:
     
     def __init__(self, db_path: str = "./.snowline/state.db"):
         self.db_path = db_path
+        
+        # Ensure parent directory exists
+        db_dir = os.path.dirname(os.path.abspath(db_path))
+        os.makedirs(db_dir, exist_ok=True)
+        
         self.db = sqlite3.connect(db_path)
         self.current_execution_id = None
         self._init_schema()

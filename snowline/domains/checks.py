@@ -36,10 +36,12 @@ class SafetyValidator:
         is_dry_run = params.get("dry_run", False)
         
         risks = []
-        if tool_name == "smart_replace" and not is_dry_run:
-            risks.append("Eksekusi tanpa dry_run sangat berisiko merusak struktur file.")
-            return SafetyResult(safe=False, risks=risks)
-            
+        if tool_name == "smart_replace":
+            pattern = params.get("pattern", "")
+            if not pattern:
+                risks.append("Pattern tidak boleh kosong.")
+                return SafetyResult(safe=False, risks=risks)
+                
         return SafetyResult(safe=True, risks=[])
 
 class RiskAssessor:
