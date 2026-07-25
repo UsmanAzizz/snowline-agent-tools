@@ -26,7 +26,8 @@ def get_args():
     parser = argparse.ArgumentParser(description="Smart Replace (Pure Python Edition)")
     parser.add_argument("target_dir", help="Target directory (absolute path)")
     parser.add_argument("search_string", help="String or pattern to search for")
-    parser.add_argument("replace_string", help="String to replace with")
+    parser.add_argument("replace_string", nargs="?", default="", help="String to replace with (or empty if using --replacement-file)")
+    parser.add_argument("--replacement-file", help="Path to file containing replacement text", default=None)
     parser.add_argument("--ext", help="Comma-separated extensions to include (e.g. .js,.jsx)", default="")
     parser.add_argument("--regex", action="store_true", help="Treat search_string as a regular expression")
     parser.add_argument("--whole-word", action="store_true", help="Match whole words only")
@@ -42,6 +43,14 @@ def backup_file(filepath, backup_dir):
 
 def main():
     args = get_args()
+
+    if args.replacement_file:
+        try:
+            with open(args.replacement_file, 'r', encoding='utf-8') as f:
+                args.replace_string = f.read()
+        except Exception as e:
+            print(f"[ERROR] Could not read replacement file: {e}")
+            sys.exit(1)
     
     if not os.path.exists(args.target_dir):
         print(f"[FAIL] Target directory not found: {args.target_dir}")
