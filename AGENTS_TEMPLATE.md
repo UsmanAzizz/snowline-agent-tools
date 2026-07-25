@@ -307,10 +307,10 @@ For very small and unambiguous tasks (Micro Tasks), the agent is **PERMITTED** t
 **File Limits for Micro Tasks:**
 Although Micro Tasks are exempt from `PLAN.md`, `scope_lock.json`, and formal pseudocode, the agent **MUST ONLY touch files that are explicitly mentioned or clearly implied** by the user's instruction. If the agent feels the need to inspect/modify OTHER files outside of that (including for reasons like "cleaning up while at it" or "for consistency"), this automatically is **NO LONGER considered a Micro Task** — the agent MUST stop and ask the user first, or revert to the full protocol (`PLAN.md` + pseudocode) if it turns out to be more complex than initially expected.
 
-## END & CONTINUE Command — Exit and Resume Mechanism
+## END, CONTINUE & KILL Command — Exit, Resume, and Abort Mechanism
 
 **Purpose:**
-Provide a way to stop working instantly without friction (no follow-up questions, no layered confirmations, no long reports), while ensuring the latest work state is fully saved and can be reviewed anytime via the CONTINUE command — even if the pause between END and CONTINUE lasts a long time (days or more).
+Provide a way to stop working instantly without friction (no follow-up questions, no layered confirmations, no long reports), while ensuring the latest work state is fully saved and can be reviewed anytime via the CONTINUE command — even if the pause between END and CONTINUE lasts a long time (days or more). Additionally, provide a KILL command to abort and completely clear out a task's plans when it is no longer relevant.
 
 ### Behavior of "END" Command
 When the user types END (in any message, no specific format needed), the agent MUST:
@@ -346,3 +346,10 @@ When the user types CONTINUE in any session (whether the same session or a new c
 - **END never fails or delays** — no matter what is happening, as soon as the user types END, the agent stops immediately. There is no condition that makes the agent "finish this step first before stopping".
 - **State is never lost** — even if END is called in the middle of a very early process (e.g., just started analysis), the agent still records something to `PLAN.md`, however small the progress, so CONTINUE always has something to read.
 - **CONTINUE makes no assumptions** — always read the actual state files, do not rely on conversational memory, because PAUSED can persist across sessions/days/weeks.
+
+### Behavior of "KILL" Command
+When the user types KILL (in any message, no specific format needed), the agent MUST:
+1. **Stop completely** from any ongoing execution.
+2. **Delete all state files** related to the current task from the project root (`PLAN.md`, `task_state.json`, `scope_lock.json`, and any implementation artifacts) without archiving them to `plan_archive/`. The task is considered aborted.
+3. **Reply to the user with EXACTLY ONE short line of confirmation, nothing more:**
+   `[KILLED] Semua plan dan task saat ini telah dihapus. Siap menerima instruksi baru.`
