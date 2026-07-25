@@ -141,27 +141,38 @@ To strictly conserve token quotas, you are **ABSOLUTELY FORBIDDEN** from using t
 The goal is to save tokens and speed up communication. Apply the following rules to every report/feedback to the user:
 
 **Mandatory Tag Format**
-All responses MUST use the following tags. Each tag MUST stand alone on its own line, with the content written on the following line(s) (do not combine the tag and the text on the same line). Only display the tags that are relevant to the current response; do not force all tags to appear if they are not needed.
+All responses MUST use the following tags. Each tag MUST:
+1. Be formatted as **bold**: e.g. `**🔵 [TASK]**`
+2. Be preceded by a blank line (to ensure visual separation from previous content)
+3. Be followed by a blank line before the content (so Markdown renders them on separate lines)
 
-🔵 [TASK]
+Only display the tags that are relevant to the current response. Do not force all tags to appear if they are not needed.
+
+**🔵 [TASK]**
+
 A brief description of the task being worked on, in one sentence.
 
-🟡 [PLAN]
+**🟡 [PLAN]**
+
 The plan written in natural conversational language, like explaining to a friend. Do NOT use pseudocode, Gherkin (Given-When-Then), or any other structured format. Explain what will happen, under what conditions, and the expected outcome using everyday language.
 
-🟢 [DONE]
+**🟢 [DONE]**
+
 What has been completely executed, along with brief proof/output if any.
 
-🟠 [WARN]
+**🟠 [WARN]**
+
 Findings or risks that need attention, if any.
 
-❓ [QUESTION]
+**❓ [QUESTION]**
+
 Questions that require the user's answer before proceeding.
 
-🔴 [BLOCKED]
+**🔴 [BLOCKED]**
+
 If prevented by the system (Scope Guardian, task_state, or other guardrails), explain why and what is needed to proceed.
 
-*Note: Order the tags logically. Start with `🔵 [TASK]` for a new task, followed by `🟡 [PLAN]` if review is needed, then `🟢 [DONE]`/`🟠 [WARN]`/`🔴 [BLOCKED]` as applicable, and usually end with `❓ [QUESTION]` if user input is needed.*
+*Note: Order the tags logically. Start with `**🔵 [TASK]**` for a new task, followed by `**🟡 [PLAN]**` if review is needed, then `**🟢 [DONE]**`/`**🟠 [WARN]**`/`**🔴 [BLOCKED]**` as applicable, and usually end with `**❓ [QUESTION]**` if user input is needed.*
 
 **Prohibitions:**
 - No fluffy or excessive opening sentences ("I would be happy to...", "This is a very good decision...")
