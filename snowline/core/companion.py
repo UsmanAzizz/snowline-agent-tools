@@ -5,6 +5,7 @@ from snowline.domains.checks import SafetyValidator, RiskAssessor, GuidanceGener
 from snowline.core.state_manager import StateManager
 from snowline.tools.smart_replace import SmartReplace
 from snowline.tools.deep_analyzer import DeepAnalyzer
+from snowline.tools.impact_analyzer import ImpactAnalyzer
 
 class SnowlineCompanion:
     """
@@ -22,6 +23,7 @@ class SnowlineCompanion:
         # Register core tools
         self.registry.register(SmartReplace(workspace_dir="."))
         self.registry.register(DeepAnalyzer())
+        self.registry.register(ImpactAnalyzer(workspace_dir="."))
         
         self.validator = SafetyValidator()
         self.assessor = RiskAssessor()
