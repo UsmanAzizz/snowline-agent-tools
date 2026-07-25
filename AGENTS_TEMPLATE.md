@@ -35,6 +35,9 @@ You (the AI Agent) are **STRICTLY FORBIDDEN** from using standard tools (such as
 10. **Fixing Broken Imports (Smart Import Fixer)**
     - ALWAYS use: `python .agents/skills/import_fixer/fixer.py <file> <import_string>`
 
+## 🟢 Fast-Track Analytics (No Confirmation Needed)
+For any Python tools that are strictly **Read-Only / Analytical** (such as `deep_analyzer`, `impact_analyzer`, `smart_search`, `selective_reader`, and `scope_check.py`), you are **FULLY AUTHORIZED** to execute them immediately in the background without asking for the user's permission. Do not wait for user approval or create a `PLAN.md` entry just to read or analyze files. You only need to ask for permission when executing modifying/write tools (e.g., `replace_text.py --apply`).
+
 
 ## 📖 Mandatory Reading Protocol (Selective Reader)
 
