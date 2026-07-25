@@ -140,22 +140,28 @@ To strictly conserve token quotas, you are **ABSOLUTELY FORBIDDEN** from using t
 **Reporting & Feedback Style**
 The goal is to save tokens and speed up communication. Apply the following rules to every report/feedback to the user:
 
-**Standardized Communication Tags**
-All tags used in chat or implementation plans MUST consistently use the following vocabulary. Do not create new ad-hoc tags unless absolutely necessary and justified:
-- `[INFO]` — Neutral information, no user action needed.
-- `[WARN]` — Risks or findings to note, doesn't stop the process.
-- `[BLOCKED]` — Prevented by system (Scope Guardian/Guardrail), needs user decision to proceed.
-- `[TASK]` — Declaration of a single task to be worked on.
-- `[PLAN]` — Plan/scenario (Gherkin or Pseudocode) needing user review.
-- `[ADJUSTMENT]` — Small tweak outside the initial plan discovered during implementation.
-- `[DONE]` — Task completed.
-- `[QUESTION]` — Needs user answer before proceeding.
-Use these tags consistently in both normal chat responses AND separate implementation plan documents.
+**Mandatory Tag Format**
+All responses MUST use the following tags. Each tag MUST stand alone on its own line, with the content written on the following line(s) (do not combine the tag and the text on the same line). Only display the tags that are relevant to the current response; do not force all tags to appear if they are not needed.
 
-**Mandatory structure, in order:**
-1. What was done (1-2 sentences, without fluffy intros)
-2. Relevant proof/output (code snippets, terminal results, or concrete data — not a narrative summary)
-3. Questions or next steps (if any, max 1-2 options)
+[TASK]
+A brief description of the task being worked on, in one sentence.
+
+[PLAN]
+The plan written in natural conversational language, like explaining to a friend. Do NOT use pseudocode, Gherkin (Given-When-Then), or any other structured format. Explain what will happen, under what conditions, and the expected outcome using everyday language.
+
+[DONE]
+What has been completely executed, along with brief proof/output if any.
+
+[WARN]
+Findings or risks that need attention, if any.
+
+[QUESTION]
+Questions that require the user's answer before proceeding.
+
+[BLOCKED]
+If prevented by the system (Scope Guardian, task_state, or other guardrails), explain why and what is needed to proceed.
+
+*Note: Order the tags logically. Start with `[TASK]` for a new task, followed by `[PLAN]` if review is needed, then `[DONE]`/`[WARN]`/`[BLOCKED]` as applicable, and usually end with `[QUESTION]` if user input is needed.*
 
 **Prohibitions:**
 - No fluffy or excessive opening sentences ("I would be happy to...", "This is a very good decision...")
@@ -231,40 +237,16 @@ If the user provides an instruction containing MORE THAN ONE task at once (e.g.:
 `[MULTI-TASK DETECTED] I see 3 different tasks: (1) fix bug X, (2) tidy up Y, (3) add feature Z. According to the one-task-one-time principle, I will work on them one by one. Which one should we start with?`
 The agent MUST NOT work on more than one task in a single work cycle, even if the user provides them all at once in one message.
 
-**Step 2 — Write the Plan (Gherkin or Pseudocode), Not Actual Code**
-For the agreed task, the agent writes the plan using one of the following formats, NOT final code in the actual programming language.
+**Step 2 — Write the Plan (Conversational Narrative), Not Actual Code**
+For the agreed task, the agent writes the plan in natural, conversational language.
+Do NOT use keywords like GIVEN/WHEN/THEN, FUNCTION/IF/RETURN, or any code-like symbols. Write it as a plain paragraph that can be read in one pass without parsing formal structures.
 
-**Format Option A: Gherkin (Given-When-Then) — DEFAULT**
-Use this for behavioral/scenario tasks (how the system responds to a condition) — e.g., form validation, UI flow, handling empty/error data. If in doubt, default to Gherkin.
+*Exception for Highly Algorithmic Logic:* For genuinely complex mathematical or multi-step logic (e.g., cognitive profiling scores with many variables), you may insert slight technical notations within the narrative sentence (e.g., "the final score is calculated from the multiple-choice average multiplied by 0.7 plus the essay average multiplied by 0.3"), but it must remain as sentences, not a separate code block.
 
+Example:
 ```text
-[PLAN] Fix PDF filter bug in Data Guru
-
-GIVEN data guru is empty
-WHEN print PDF button is clicked
-THEN show alert "data is empty", do not generate PDF
-
-GIVEN data guru has content
-WHEN print PDF button is clicked
-THEN generate PDF as a blob (not datauristring)
-AND display in modal
-
-GIVEN PDF modal is closed
-WHEN handleClose is called
-THEN revoke the previously created blob object URL
-```
-
-**Format Option B: Pseudocode**
-Use this ONLY for tasks that genuinely need detailed algorithmic/multi-step calculations (e.g., cognitive profiling logic, score calculations, complex data transformations) — where the sequence of steps and mathematical logic is more important than behavioral scenarios.
-
-```text
-[PLAN] Calculate User Score
-
-FUNCTION calculateScore(answers):
-  total = 0
-  FOR each answer in answers:
-    IF answer is correct: total += 10
-  RETURN total
+[PLAN]
+If the teacher data is empty, show an 'empty data' message and don't proceed with printing. If there is data, generate the PDF as a blob (instead of the old datauristring format), then display it in the modal. When the modal is closed, clean up the blob URL so it doesn't pile up in memory.
 ```
 
 The plan MUST be:
