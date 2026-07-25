@@ -182,3 +182,68 @@ Setiap tool baru atau perubahan pada tool yang sudah ada WAJIB mempertahankan pr
 3. Setiap klaim bahwa guardrail "sudah diterapkan" WAJIB disertai bukti live-test (output nyata dari menjalankan tool tanpa flag apply, membuktikan tidak ada perubahan terjadi) — bukan hanya pernyataan di README atau SKILL.md.
 4. Jika ada perubahan kode yang berpotensi menghilangkan guardrail yang sudah ada (baik sengaja maupun tidak sengaja), WAJIB melaporkan hal ini secara eksplisit ke user sebelum melanjutkan — jangan biarkan regresi guardrail terjadi diam-diam.
 5. Dokumentasi (README, SKILL.md) HARUS selalu mencerminkan perilaku guardrail yang sebenarnya ada di kode. Jika ada perbedaan antara apa yang didokumentasikan dan apa yang benar-benar terjadi di kode, itu dianggap sebagai bug dan harus diperbaiki di kedua sisi (kode dan dokumentasi) secara konsisten.
+
+
+## Protokol One-Task-One-Time (Pseudocode-First)
+
+**Masalah yang Diselesaikan:**
+Proses development sering melebar di tengah jalan — dimulai dari satu task jelas, tapi pelan-pelan agent mulai menambahkan hal lain yang "kelihatan berguna" (refactor tambahan, fitur tambahan, perbaikan lain yang belum diminta) sebelum task awal benar-benar selesai. Ini berbeda dari masalah yang diselesaikan Scope Guardian (yang mengontrol file mana yang boleh disentuh) — protokol ini mengontrol jumlah task aktif dalam satu waktu, dan memastikan ada kontrak yang jelas SEBELUM baris kode pertama ditulis.
+
+**Prinsip Utama:**
+Satu task, satu waktu. Pseudocode dulu, kode asli kemudian.
+Sebelum menulis kode nyata (JS, Python, apa pun), agent WAJIB menulis rencana dalam bentuk pseudocode singkat dan mendapat persetujuan eksplisit dari user, BARU melanjutkan ke implementasi asli. Tidak ada kode yang ditulis sebelum pseudocode disetujui.
+
+### Alur Kerja Wajib
+
+**Langkah 1 — Deklarasi Task Tunggal**
+Sebelum memulai pekerjaan apa pun, agent menuliskan SATU task yang akan dikerjakan, dalam format singkat:
+`[TASK] <deskripsi task, satu kalimat>`
+
+Jika user memberikan instruksi yang mengandung LEBIH DARI SATU task sekaligus (misal: "perbaiki bug X, sekalian rapikan Y, dan tambahin fitur Z"), agent WAJIB memecahnya dan bertanya urutan prioritas:
+`[MULTI-TASK DETECTED] Saya lihat ada 3 task berbeda: (1) perbaiki bug X, (2) rapikan Y, (3) tambah fitur Z. Sesuai prinsip one-task-one-time, saya akan kerjakan satu per satu. Mulai dari yang mana?`
+Agent TIDAK BOLEH mengerjakan lebih dari satu task dalam satu siklus kerja, meskipun user memberikannya sekaligus dalam satu pesan.
+
+**Langkah 2 — Tulis Pseudocode, Bukan Kode Asli**
+Untuk task yang sudah disepakati, agent menuliskan rencana dalam bentuk pseudocode ringkas — logika langkah demi langkah dalam bahasa natural/semi-kode, BUKAN kode final dalam bahasa pemrograman asli. Contoh:
+```text
+[PSEUDOCODE] Fix bug filter PDF Data Guru
+
+FUNCTION generatePdf(guruList):
+  IF guruList kosong:
+    tampilkan alert "data kosong"
+    STOP
+  buat dokumen PDF dari guruList
+  convert dokumen ke blob (bukan datauristring)
+  tampilkan di modal
+
+FUNCTION handleCloseModal():
+  revoke object URL blob sebelumnya
+  tutup modal
+```
+Pseudocode ini HARUS:
+- Singkat (idealnya di bawah 15 baris untuk task kecil-menengah)
+- Fokus pada logika/alur, bukan sintaks detail bahasa pemrograman
+- Mencakup edge case yang relevan (kondisi kosong, error, dll) secara eksplisit
+
+**Langkah 3 — Tunggu Persetujuan Sebelum Kode Asli**
+Setelah pseudocode ditulis, agent WAJIB berhenti dan menunggu konfirmasi user:
+`Apakah alur ini sudah sesuai? Jika ya, saya akan lanjut menulis kode aslinya.`
+Agent TIDAK BOLEH menulis kode asli (real implementation) sebelum user menyetujui pseudocode. Jika user meminta perubahan pada pseudocode, agent merevisi pseudocode dulu, bukan langsung lompat ke kode dengan revisi yang belum disetujui bentuk logikanya.
+
+**Langkah 4 — Implementasi Sesuai Pseudocode yang Disetujui**
+Setelah disetujui, agent menulis kode asli yang mengikuti struktur logika yang sudah ada di pseudocode — tidak menambah langkah/logika baru yang tidak ada di pseudocode tanpa melaporkannya dulu.
+
+Jika saat implementasi agent menyadari ada kebutuhan tambahan yang tidak tercakup di pseudocode (misal: ternyata butuh import baru, atau ada edge case yang terlewat), agent WAJIB melaporkan itu sebagai penyesuaian kecil sebelum melanjutkan, bukan diam-diam menambahkannya:
+`[PENYESUAIAN] Saat implementasi, saya sadar perlu menambahkan <hal>. Ini di luar pseudocode awal. Lanjutkan dengan penyesuaian ini?`
+
+**Langkah 5 — Task Selesai, Tutup Siklus**
+Setelah kode diterapkan dan diverifikasi, task dianggap selesai. Agent TIDAK melanjutkan ke task berikutnya secara otomatis — agent menunggu instruksi baru dari user untuk task selanjutnya, meskipun ada beberapa task yang tadinya di-declare di Langkah 1 (multi-task terdeteksi).
+
+### Kaitan dengan Mekanisme yang Sudah Ada
+- **Scope Guardian** tetap berlaku di Langkah 4 (implementasi) — file yang disentuh selama implementasi tetap harus melalui validasi `scope_check.py`.
+- `PLAN.md` mencatat pseudocode yang disetujui sebagai bagian dari log task, sehingga ada jejak tertulis dari rencana ke implementasi.
+- Protokol ini berlaku SEBELUM Scope Guardian aktif secara teknis — pseudocode-first mencegah melebarnya rencana, Scope Guardian mencegah melebarnya file yang disentuh. Keduanya saling melengkapi, bukan saling menggantikan.
+
+### Pengecualian
+Untuk task yang sangat kecil dan tidak ambigu (misal: mengubah satu warna CSS, memperbaiki typo), langkah pseudocode boleh dilewati — cukup langsung eksekusi dengan laporan singkat seperti biasa. Pseudocode-first ini wajib untuk task yang melibatkan logika (function baru, perubahan alur, penanganan state, dll), bukan untuk perubahan kosmetik sepele.
+Jika agent tidak yakin apakah suatu task cukup kecil untuk dilewati, WAJIB memilih jalur pseudocode — lebih baik satu langkah ekstra yang ternyata tidak perlu, daripada task melebar tanpa kontrak yang jelas.
