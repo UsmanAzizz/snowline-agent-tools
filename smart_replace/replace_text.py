@@ -12,6 +12,25 @@ if sys.stdout.encoding.lower() != 'utf-8':
 DEFAULT_EXCLUDES = {'.git', 'node_modules', '.history', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents'}
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 
+import json
+
+def check_task_state():
+    state_file = os.path.join(os.getcwd(), '.agents', 'task_state.json')
+    if not os.path.exists(state_file):
+        return
+        
+    try:
+        with open(state_file, 'r', encoding='utf-8') as f:
+            state = json.load(f)
+    except Exception:
+        return
+        
+    if state.get('phase') == 'pseudocode_pending':
+        print("[BLOCKED] Pseudocode untuk task ini belum disetujui user.")
+        print(f"Task: {state.get('task', 'Unknown')}")
+        print("Minta user approve pseudocode dulu sebelum --apply bisa dijalankan.")
+        sys.exit(1)
+
 def find_project_root(start_path):
     current = os.path.abspath(start_path)
     while True:
@@ -72,6 +91,7 @@ def main():
         
     backup_dir = None
     if args.apply:
+        check_task_state()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         project_root = find_project_root(args.target_dir)
         backup_dir = os.path.join(project_root, '.backup_replace', timestamp)
@@ -107,6 +127,7 @@ def main():
                 print(f"[WARN] Found {count} matches in {rel_path}")
                 
                 if args.apply:
+        check_task_state()
                     backup_file(filepath, backup_dir)
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(new_content)

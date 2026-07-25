@@ -4,6 +4,25 @@ import sys
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
+import json
+
+def check_task_state():
+    state_file = os.path.join(os.getcwd(), '.agents', 'task_state.json')
+    if not os.path.exists(state_file):
+        return
+        
+    try:
+        with open(state_file, 'r', encoding='utf-8') as f:
+            state = json.load(f)
+    except Exception:
+        return
+        
+    if state.get('phase') == 'pseudocode_pending':
+        print("[BLOCKED] Pseudocode untuk task ini belum disetujui user.")
+        print(f"Task: {state.get('task', 'Unknown')}")
+        print("Minta user approve pseudocode dulu sebelum --apply bisa dijalankan.")
+        sys.exit(1)
+
 REACT_TEMPLATE = """import React, { useState, useEffect } from 'react';
 
 const {name} = () => {
