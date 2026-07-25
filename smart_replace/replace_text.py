@@ -127,7 +127,6 @@ def main():
                 print(f"[WARN] Found {count} matches in {rel_path}")
                 
                 if args.apply:
-        check_task_state()
                     backup_file(filepath, backup_dir)
                     with open(filepath, 'w', encoding='utf-8') as f:
                         f.write(new_content)

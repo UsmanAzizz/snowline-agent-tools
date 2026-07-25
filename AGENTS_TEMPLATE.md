@@ -105,11 +105,22 @@ To prevent the agent from accidentally modifying files outside the context of th
   4. Once a task is fully completed, archive the file to \plan_archive/PLAN_<date>_<task_name>.md\.
 
 
-## 🛡️ ZERO TOLERANCE FOR NATIVE IDE TOOLS (STRICT BUDGETING)
-To strictly conserve token quotas, you are **ABSOLUTELY FORBIDDEN** from using the native IDE editing tools (`replace_file_content`, `multi_replace_file_content`, or `write_to_file` for large refactors) unless explicitly requested. 
-- **For Single/Multi-file Edits:** ALWAYS use the custom python tool `python .agents/skills/smart_replace/replace_text.py`.
-- **For Surgical / Complex Edits:** Write a quick python script in the workspace (using standard `open(file, 'w')`) to perform the regex/string replacement, execute the python script, and then delete the script. 
-- The native edit tools consume massive amounts of context tokens due to IDE differential streaming. **Do not use them unless explicitly forced by the user.**
+## 🛡️ Aturan Penggunaan Tools untuk Modifikasi File (Revisi)
+
+**Kategori 1 — Membuat/menulis file konfigurasi, data, atau teks pendek (JSON, .md kecil, .txt)**
+Gunakan tool native (`write_to_file` atau setara) LANGSUNG. TIDAK PERLU menulis script Python perantara untuk kasus ini, apa pun isinya (termasuk teks yang mengandung banyak tanda kutip atau karakter khusus) — tool native mampu menangani ini tanpa masalah escaping karena tidak melalui argumen command-line terminal.
+*Contoh yang termasuk kategori ini:* `task_state.json`, `scope_lock.json`, `PLAN.md`, `SKILL.md`, file config kecil lain.
+
+**Kategori 2 — Search dan replace teks di source code project**
+WAJIB gunakan `smart_replace/replace_text.py`. Jika teks pengganti panjang atau mengandung banyak karakter khusus, gunakan flag `--replacement-file <path>` untuk membaca teks dari file, BUKAN menulis script Python perantara baru.
+
+**Kategori 3 — Refactor kompleks yang genuinely membutuhkan logika kondisional**
+Contoh sah untuk kategori ini: mengubah struktur AST kode, memindahkan blok kode antar file dengan logika penyesuaian, transformasi data yang butuh parsing bertingkat. HANYA untuk kasus seperti inilah agent boleh menulis script Python sekali-pakai, dan WAJIB menghapusnya segera setelah selesai dieksekusi (bukan dibiarkan, dan bukan "lupa dihapus").
+
+*Jika ragu termasuk kategori mana: default ke Kategori 1 atau 2 (gunakan tool yang sudah ada), JANGAN membuat script Python baru kecuali benar-benar yakin ini Kategori 3.*
+
+**Tambahan: Self-Check Wajib di Akhir Setiap Task**
+Sebelum mengarsipkan `PLAN.md`, agent WAJIB menjalankan *Clean Sweeper* sekali untuk memastikan tidak ada script Python sekali-pakai yang tertinggal (residu dari Kategori 3). Ini bagian dari checklist penutupan task, bukan sesuatu yang perlu diminta ulang oleh user setiap kali.
 
 
 ## 🛡️ ZERO TOLERANCE FOR NATIVE SEARCH TOOLS
