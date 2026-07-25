@@ -1,3 +1,5 @@
+__version__ = "0.1.0a1"
+
 from snowline.core.companion import SnowlineCompanion
 from snowline.core.tool_registry import ToolRegistry
 from snowline.core.state_manager import StateManager

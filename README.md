@@ -13,7 +13,7 @@ Snowline is not a framework. It's a **companion layer** that sits between your a
 ## Quick Start
 
 ```bash
-pip install snowline
+pip install snowline-agents
 ```
 
 ```python
