@@ -140,6 +140,18 @@ To strictly conserve token quotas, you are **ABSOLUTELY FORBIDDEN** from using t
 **Reporting & Feedback Style**
 The goal is to save tokens and speed up communication. Apply the following rules to every report/feedback to the user:
 
+**Standardized Communication Tags**
+All tags used in chat or implementation plans MUST consistently use the following vocabulary. Do not create new ad-hoc tags unless absolutely necessary and justified:
+- `[INFO]` — Neutral information, no user action needed.
+- `[WARN]` — Risks or findings to note, doesn't stop the process.
+- `[BLOCKED]` — Prevented by system (Scope Guardian/Guardrail), needs user decision to proceed.
+- `[TASK]` — Declaration of a single task to be worked on.
+- `[PLAN]` — Plan/scenario (Gherkin or Pseudocode) needing user review.
+- `[ADJUSTMENT]` — Small tweak outside the initial plan discovered during implementation.
+- `[DONE]` — Task completed.
+- `[QUESTION]` — Needs user answer before proceeding.
+Use these tags consistently in both normal chat responses AND separate implementation plan documents.
+
 **Mandatory structure, in order:**
 1. What was done (1-2 sentences, without fluffy intros)
 2. Relevant proof/output (code snippets, terminal results, or concrete data — not a narrative summary)
@@ -200,14 +212,14 @@ Any new tool or modification to an existing tool MUST preserve the following gua
 5. Documentation (README, SKILL.md) MUST always reflect the actual guardrail behavior in the code. If there is a discrepancy between what is documented and what actually happens in the code, it is considered a bug and must be fixed consistently on both sides (code and documentation).
 
 
-## One-Task-One-Time Protocol (Pseudocode-First)
+## One-Task-One-Time Protocol (Plan-First)
 
 **Problem Solved:**
 The development process often expands mid-way — starting from one clear task, but the agent gradually adds other "seemingly useful" things (extra refactors, additional features, unrelated fixes) before the initial task is fully completed. This is different from the problem solved by Scope Guardian (which controls which files can be touched) — this protocol controls the number of active tasks at any one time, ensuring a clear contract exists BEFORE the first line of code is written.
 
 **Core Principle:**
-One task at a time. Pseudocode first, actual code later.
-Before writing real code (JS, Python, etc.), the agent MUST write a plan in short pseudocode form and obtain explicit user approval, ONLY THEN proceed to actual implementation. No code is written before the pseudocode is approved.
+One task at a time. Plan first, actual code later.
+Before writing real code (JS, Python, etc.), the agent MUST write a plan and obtain explicit user approval, ONLY THEN proceed to actual implementation. No code is written before the plan is approved.
 
 ### Mandatory Workflow
 
@@ -219,35 +231,54 @@ If the user provides an instruction containing MORE THAN ONE task at once (e.g.:
 `[MULTI-TASK DETECTED] I see 3 different tasks: (1) fix bug X, (2) tidy up Y, (3) add feature Z. According to the one-task-one-time principle, I will work on them one by one. Which one should we start with?`
 The agent MUST NOT work on more than one task in a single work cycle, even if the user provides them all at once in one message.
 
-**Step 2 — Write Pseudocode, Not Actual Code**
-For the agreed task, the agent writes the plan in concise pseudocode form — step-by-step logic in natural/semi-code language, NOT final code in the actual programming language. Example:
+**Step 2 — Write the Plan (Gherkin or Pseudocode), Not Actual Code**
+For the agreed task, the agent writes the plan using one of the following formats, NOT final code in the actual programming language.
+
+**Format Option A: Gherkin (Given-When-Then) — DEFAULT**
+Use this for behavioral/scenario tasks (how the system responds to a condition) — e.g., form validation, UI flow, handling empty/error data. If in doubt, default to Gherkin.
+
 ```text
-[PSEUDOCODE] Fix PDF filter bug in Data Guru
+[PLAN] Fix PDF filter bug in Data Guru
 
-FUNCTION generatePdf(guruList):
-  IF guruList is empty:
-    show alert "data is empty"
-    STOP
-  create PDF document from guruList
-  convert document to blob (not datauristring)
-  display in modal
+GIVEN data guru is empty
+WHEN print PDF button is clicked
+THEN show alert "data is empty", do not generate PDF
 
-FUNCTION handleCloseModal():
-  revoke previous blob object URL
-  close modal
+GIVEN data guru has content
+WHEN print PDF button is clicked
+THEN generate PDF as a blob (not datauristring)
+AND display in modal
+
+GIVEN PDF modal is closed
+WHEN handleClose is called
+THEN revoke the previously created blob object URL
 ```
-This pseudocode MUST be:
+
+**Format Option B: Pseudocode**
+Use this ONLY for tasks that genuinely need detailed algorithmic/multi-step calculations (e.g., cognitive profiling logic, score calculations, complex data transformations) — where the sequence of steps and mathematical logic is more important than behavioral scenarios.
+
+```text
+[PLAN] Calculate User Score
+
+FUNCTION calculateScore(answers):
+  total = 0
+  FOR each answer in answers:
+    IF answer is correct: total += 10
+  RETURN total
+```
+
+The plan MUST be:
 - Concise (ideally under 15 lines for small-medium tasks)
-- Focused on logic/flow, not detailed language syntax
+- Focused on logic/behavior, not detailed language syntax
 - Explicitly cover relevant edge cases (empty states, errors, etc.)
 
 **Step 3 — Wait for Approval Before Actual Code**
-After the pseudocode is written, the agent MUST stop and wait for user confirmation:
-`Does this flow look good? If yes, I will proceed to write the actual code.`
-The agent MUST NOT write the actual code (real implementation) before the user approves the pseudocode. If the user requests changes to the pseudocode, the agent revises the pseudocode first, rather than immediately jumping to code with an unapproved logic revision.
+After the plan is written, the agent MUST stop and wait for user confirmation:
+`Does this plan look good? If yes, I will proceed to write the actual code.`
+The agent MUST NOT write the actual code (real implementation) before the user approves the plan. If the user requests changes to the plan, the agent revises the plan first, rather than immediately jumping to code with an unapproved logic revision.
 
-**Step 4 — Implementation According to Approved Pseudocode**
-Once approved, the agent writes the actual code following the logical structure already present in the pseudocode — do not add new steps/logic not present in the pseudocode without reporting it first.
+**Step 4 — Implementation According to Approved Plan**
+Once approved, the agent writes the actual code following the logical structure already present in the plan — do not add new steps/logic not present in the plan without reporting it first.
 
 If during implementation the agent realizes there is an additional need not covered in the pseudocode (e.g.: turns out a new import is needed, or an edge case was missed), the agent MUST report it as a minor adjustment before proceeding, rather than silently adding it:
 `[ADJUSTMENT] During implementation, I realized I need to add <thing>. This is outside the initial pseudocode. Shall I proceed with this adjustment?`
