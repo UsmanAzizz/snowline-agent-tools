@@ -125,3 +125,25 @@ When starting a session in any project, evaluate the completeness of the \.agent
 To maintain high code quality while remaining effortless for the user, the agent automatically applies these disciplines:
 1. **Implicit Grilling (No Guesswork)**: For complex feature requests, do not blindly guess edge cases (e.g., timeouts, null states, missing data). Ask 1-2 highly targeted questions to clarify the boundaries before writing code. Keep it brief and easy to answer.
 2. **Diagnostic Discipline (No Blind Fixes)**: When asked to fix a bug, DO NOT immediately suggest code changes based on error logs alone. First, ensure there is a clear feedback loop (a way to reproduce the error locally). If the error cannot be reproduced or tested, verify the logic first or ask the user for a reproduction step before writing the fix.
+
+## Larangan Bahasa Berlebihan (Anti-Hype)
+
+Dilarang keras menggunakan istilah promosional atau berlebihan dalam laporan, dokumentasi (README, SKILL.md, komentar kode), maupun percakapan dengan user, termasuk namun tidak terbatas pada:
+- "enterprise-grade", "enterprise-level", "mid-tier and enterprise-level projects"
+- "high-performance", "revolusioner", "revolusi"
+- "God-tier", "10-Pillars Ecosystem", atau penamaan sejenis yang terdengar seperti branding produk komersial
+- Superlatif tanpa bukti terukur ("luar biasa", "sempurna", "canggih", "profesional", "mutakhir")
+- Framing yang membesar-besarkan skala/kepentingan proyek personal sebagai sesuatu yang setara sistem produksi skala besar
+
+Gunakan bahasa teknis yang datar dan faktual. Contoh: bukan "high-performance regex engine", tapi "regex-based search implemented in Python". Bukan "revolusi untuk Selective Reader", tapi "peningkatan akurasi parsing untuk Selective Reader".
+
+Jika ragu apakah suatu kalimat termasuk hype, ajukan pertanyaan ini pada diri sendiri: "Apakah klaim ini bisa dibuktikan dengan angka/data konkret, atau ini murni opini yang terdengar meyakinkan?" Jika tidak bisa dibuktikan, hapus atau ganti dengan pernyataan yang lebih netral.
+
+## Kepatuhan Guardrail — Tidak Bisa Ditawar
+
+Setiap tool baru atau perubahan pada tool yang sudah ada WAJIB mempertahankan prinsip guardrail berikut, tanpa pengecualian:
+1. Setiap aksi yang menulis, mengubah, memindahkan, atau menghapus file HARUS memiliki mode dry-run/preview sebagai default.
+2. Eksekusi nyata (write/modify/delete) HANYA boleh terjadi dengan flag eksplisit seperti `--apply`, tidak pernah otomatis.
+3. Setiap klaim bahwa guardrail "sudah diterapkan" WAJIB disertai bukti live-test (output nyata dari menjalankan tool tanpa flag apply, membuktikan tidak ada perubahan terjadi) — bukan hanya pernyataan di README atau SKILL.md.
+4. Jika ada perubahan kode yang berpotensi menghilangkan guardrail yang sudah ada (baik sengaja maupun tidak sengaja), WAJIB melaporkan hal ini secara eksplisit ke user sebelum melanjutkan — jangan biarkan regresi guardrail terjadi diam-diam.
+5. Dokumentasi (README, SKILL.md) HARUS selalu mencerminkan perilaku guardrail yang sebenarnya ada di kode. Jika ada perbedaan antara apa yang didokumentasikan dan apa yang benar-benar terjadi di kode, itu dianggap sebagai bug dan harus diperbaiki di kedua sisi (kode dan dokumentasi) secara konsisten.

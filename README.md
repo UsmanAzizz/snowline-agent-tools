@@ -96,7 +96,7 @@ The ecosystem is divided into three major categories: **Search & Modify**, **Aud
 
 #### 12. Auto-Scaffolder (`auto_scaffolder/scaffolder.py`)
 - **Function:** The Pattern Generator. 
-- **Why it's better:** Instantly generates boilerplate files for React components or API routes following the project's standards.
+- **Why it's better:** Generates (requires --apply to write) boilerplate files for React components or API routes following the project's standards.
 
 #### 13. Impact Analyzer (`impact_analyzer/analyzer.py`)
 - **Function:** Dependency Graph / Impact Predictor.
