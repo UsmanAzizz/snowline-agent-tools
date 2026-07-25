@@ -12,28 +12,28 @@ You (the AI Agent) are **STRICTLY FORBIDDEN** from using standard tools (such as
 **You MUST ALWAYS use the following Python scripts according to the need:**
 
 1. **Starting a Session / Analyzing Project (Deep Analyzer)**
-   - DO NOT read \package.json\ manually. 
-   - ALWAYS use: \python .agents/skills/deep_analyzer/analyzer.py\
+   - DO NOT read `package.json` manually. 
+   - ALWAYS use: `python .agents/skills/deep_analyzer/analyzer.py`
 2. **Searching Code / Variables (Smart Search)**
-   - DO NOT use \grep_search\. 
-   - ALWAYS use: \python .agents/skills/smart_search/code_finder.py <dir> <keyword>\
+   - DO NOT use `grep_search`. 
+   - ALWAYS use: `python .agents/skills/smart_search/code_finder.py <dir> <keyword>`
 3. **Massive Code Editing (Smart Replace)**
-   - For cross-file edits, use: \python .agents/skills/smart_replace/replace_text.py <dir> <search> <replace>\
+   - For cross-file edits, use: `python .agents/skills/smart_replace/replace_text.py <dir> <search> <replace>`
 4. **Reading Large Files (Selective Reader)**
    - DO NOT read files > 300 lines entirely at once. 
-   - ALWAYS create a TOC first: \python .agents/skills/selective_reader/reader.py <file>\
+   - ALWAYS create a TOC first: `python .agents/skills/selective_reader/reader.py <file>`
 5. **Security & Bug Auditing (Project Guardian)**
-   - ALWAYS use: \python .agents/skills/project_guardian/guardian.py\
+   - ALWAYS use: `python .agents/skills/project_guardian/guardian.py`
 6. **Finding Residues / Junk Files (Clean Sweeper)**
-   - ALWAYS use: \python .agents/skills/clean_sweeper/sweeper.py <dir>\
+   - ALWAYS use: `python .agents/skills/clean_sweeper/sweeper.py <dir>`
 7. **Extracting Project Info (Deep Analyzer)**
-   - ALWAYS use: \python .agents/skills/deep_analyzer/analyzer.py\
+   - ALWAYS use: `python .agents/skills/deep_analyzer/analyzer.py`
 8. **Debugging Crashes (Crash Decoder)**
-   - DO NOT read huge tracebacks. Save to \.txt\ and use: \python .agents/skills/crash_decoder/decoder.py <file>\
+   - DO NOT read huge tracebacks. Save to `.txt` and use: `python .agents/skills/crash_decoder/decoder.py <file>`
 9. **Creating New Files (Auto-Scaffolder)**
-   - ALWAYS generate boilerplate first: \python .agents/skills/auto_scaffolder/scaffolder.py <type> <name>\
+   - ALWAYS generate boilerplate first: `python .agents/skills/auto_scaffolder/scaffolder.py <type> <name>`
 10. **Fixing Broken Imports (Smart Import Fixer)**
-    - ALWAYS use: \python .agents/skills/import_fixer/fixer.py <file> <import_string>\
+    - ALWAYS use: `python .agents/skills/import_fixer/fixer.py <file> <import_string>`
 
 
 ## 📖 Mandatory Reading Protocol (Selective Reader)
@@ -87,7 +87,7 @@ To prevent the agent from accidentally modifying files outside the context of th
 3. **Strict Blocking Behavior:**
    - If the script returns `[ALLOWED]`, proceed.
    - If the script returns `[BLOCKED]`, you MUST STOP immediately and ask the user:
-     `[SCOPE CHECK] File <filename> di luar scope task ini (<task>). Apakah saya perlu memeriksa/mengubahnya juga? Jika ya, saya akan update scope_lock.json terlebih dahulu.`
+     `[SCOPE CHECK] File <filename> is outside the scope of this task (<task>). Do I need to inspect/modify it as well? If yes, I will update scope_lock.json first.`
    - You CANNOT proceed to modify the blocked file without explicit user approval.
 
 4. **Legitimate Exceptions (Read-Only Context):**
@@ -97,30 +97,30 @@ To prevent the agent from accidentally modifying files outside the context of th
    When the task is complete, move `scope_lock.json` along with `PLAN.md` into the `plan_archive/` folder, using the format `scope_lock_<date>_<task_name>.json`.
 
 ## Live Progress Tracker (PLAN.md)
-- **MANDATORY**: For every significant task, you MUST maintain a \PLAN.md\ file in the root directory.
+- **MANDATORY**: For every significant task, you MUST maintain a `PLAN.md` file in the root directory.
 - **Execution Rules**:
   1. APPEND ONLY. Do not rewrite the whole file just to add a log entry.
   2. Write concise, bulleted logs, not paragraphs.
   3. **CRITICAL**: Before executing any command that MODIFIES files (like replace_text.py --apply), write your intended action in the "Waiting for User Approval" section and STOP for user approval.
-  4. Once a task is fully completed, archive the file to \plan_archive/PLAN_<date>_<task_name>.md\.
+  4. Once a task is fully completed, archive the file to `plan_archive/PLAN_<date>_<task_name>.md`.
 
 
-## 🛡️ Aturan Penggunaan Tools untuk Modifikasi File (Revisi)
+## 🛡️ Tool Usage Rules for File Modifications (Revised)
 
-**Kategori 1 — Membuat/menulis file konfigurasi, data, atau teks pendek (JSON, .md kecil, .txt)**
-Gunakan tool native (`write_to_file` atau setara) LANGSUNG. TIDAK PERLU menulis script Python perantara untuk kasus ini, apa pun isinya (termasuk teks yang mengandung banyak tanda kutip atau karakter khusus) — tool native mampu menangani ini tanpa masalah escaping karena tidak melalui argumen command-line terminal.
-*Contoh yang termasuk kategori ini:* `task_state.json`, `scope_lock.json`, `PLAN.md`, `SKILL.md`, file config kecil lain.
+**Category 1 — Creating/writing configuration files, data, or short text (JSON, small .md, .txt)**
+Use native tools (`write_to_file` or equivalent) DIRECTLY. THERE IS NO NEED to write intermediary Python scripts for these cases, regardless of the content (including text with many quotes or special characters) — native tools can handle this without escaping issues since it bypasses command-line terminal arguments.
+*Examples falling into this category:* `task_state.json`, `scope_lock.json`, `PLAN.md`, `SKILL.md`, and other small config files.
 
-**Kategori 2 — Search dan replace teks di source code project**
-WAJIB gunakan `smart_replace/replace_text.py`. Jika teks pengganti panjang atau mengandung banyak karakter khusus, gunakan flag `--replacement-file <path>` untuk membaca teks dari file, BUKAN menulis script Python perantara baru.
+**Category 2 — Search and replace text in project source code**
+You MUST use `smart_replace/replace_text.py`. If the replacement text is long or contains many special characters, use the `--replacement-file <path>` flag to read the text from a file, DO NOT write a new intermediary Python script.
 
-**Kategori 3 — Refactor kompleks yang genuinely membutuhkan logika kondisional**
-Contoh sah untuk kategori ini: mengubah struktur AST kode, memindahkan blok kode antar file dengan logika penyesuaian, transformasi data yang butuh parsing bertingkat. HANYA untuk kasus seperti inilah agent boleh menulis script Python sekali-pakai, dan WAJIB menghapusnya segera setelah selesai dieksekusi (bukan dibiarkan, dan bukan "lupa dihapus").
+**Category 3 — Complex refactoring that genuinely requires conditional logic**
+Valid examples for this category: modifying code AST structures, moving code blocks between files with adjustment logic, multi-level parsing data transformations. ONLY for these cases are you allowed to write single-use Python scripts, and you MUST delete them immediately after execution (do not leave them behind, and do not "forget to delete").
 
-*Jika ragu termasuk kategori mana: default ke Kategori 1 atau 2 (gunakan tool yang sudah ada), JANGAN membuat script Python baru kecuali benar-benar yakin ini Kategori 3.*
+*If in doubt about which category applies: default to Category 1 or 2 (use existing tools), DO NOT create a new Python script unless absolutely certain it is Category 3.*
 
-**Tambahan: Self-Check Wajib di Akhir Setiap Task**
-Sebelum mengarsipkan `PLAN.md`, agent WAJIB menjalankan *Clean Sweeper* sekali untuk memastikan tidak ada script Python sekali-pakai yang tertinggal (residu dari Kategori 3). Ini bagian dari checklist penutupan task, bukan sesuatu yang perlu diminta ulang oleh user setiap kali.
+**Additional: Mandatory Self-Check at the End of Every Task**
+Before archiving `PLAN.md`, you MUST run *Clean Sweeper* once to ensure no single-use Python scripts are left behind (residues from Category 3). This is part of the task closure checklist, not something the user needs to request repeatedly.
 
 
 ## 🛡️ ZERO TOLERANCE FOR NATIVE SEARCH TOOLS
@@ -151,110 +151,112 @@ The goal is to save tokens and speed up communication. Apply the following rules
 **Additional Guidelines:**
 - Ideal length: routine reports (tool execution results, minor change confirmations) should be 3-6 lines. Reports for complex findings (bug investigations, multi-file analysis) can be longer, but must remain in the structured format above — no free-form narratives.
 - Emojis and decorative formatting: use sparingly as structure markers (✅ ⚠️ 🛡️), avoid using them as excessive decorations on every line.
-- Mandatory Tool Usage: ALWAYS use the custom Python tools (Deep Analyzer, Smart Search, Selective Reader) located in \.agents/skills/\ for analyzing the project or finding code, rather than manual commands or blind reading.
+- Mandatory Tool Usage: ALWAYS use the custom Python tools (Deep Analyzer, Smart Search, Selective Reader) located in `.agents/skills/` for analyzing the project or finding code, rather than manual commands or blind reading.
+
 ## 🚀 Auto-Scaffolding for New Projects (Project Level)
 
-When starting a session in any project, evaluate the completeness of the \.agents\ ecosystem. If the \.agents\ folder is missing or incomplete (e.g., missing \knowledge\ architecture, \AGENTS.md\ rules, or \PLAN.md\ tracker), you MUST propose to auto-generate the complete ecosystem for the user.
+When starting a session in any project, evaluate the completeness of the `.agents` ecosystem. If the `.agents` folder is missing or incomplete (e.g., missing `knowledge` architecture, `AGENTS.md` rules, or `PLAN.md` tracker), you MUST propose to auto-generate the complete ecosystem for the user.
 
 **The Complete Ecosystem Standard (Project Level):**
-1. **\AGENTS.md\**: Project-specific rules (copied from the global template) for local overrides.
-2. **\knowledge/\**: Architectural context generated by the Context Mapper tool.
-3. **\PLAN.md\**: Live progress tracker in the project root.
-*(Note: \skills\ is no longer needed at the project level because it is installed globally).*
+1. **`AGENTS.md`**: Project-specific rules (copied from the global template) for local overrides.
+2. **`knowledge/`**: Architectural context generated by the Context Mapper tool.
+3. **`PLAN.md`**: Live progress tracker in the project root.
+*(Note: `skills/` is no longer needed at the project level because it is installed globally).*
 
 **Action Flow:**
 1. Check the project root for these 3 components.
 2. If any are missing, ask the user using this format:
-   > [INFO] Dokumentasi ekosistem .agents di project ini belum lengkap. Ingin saya setup semuanya (Aturan Lokal, Peta Arsitektur, dan Tracker) sekarang?
-3. Once the user approves, automatically create the folders, run Context Mapper to generate the knowledge files, and scaffold the \PLAN.md\ and \AGENTS.md\ files.
+   > [INFO] The .agents ecosystem documentation in this project is incomplete. Would you like me to set everything up (Local Rules, Architectural Map, and Tracker) now?
+3. Once the user approves, automatically create the folders, run Context Mapper to generate the knowledge files, and scaffold the `PLAN.md` and `AGENTS.md` files.
+
 ## 🧠 Tech Lead Disciplines (Built-in)
 To maintain high code quality while remaining effortless for the user, the agent automatically applies these disciplines:
 1. **Implicit Grilling (No Guesswork)**: For complex feature requests, do not blindly guess edge cases (e.g., timeouts, null states, missing data). Ask 1-2 highly targeted questions to clarify the boundaries before writing code. Keep it brief and easy to answer.
 2. **Diagnostic Discipline (No Blind Fixes)**: When asked to fix a bug, DO NOT immediately suggest code changes based on error logs alone. First, ensure there is a clear feedback loop (a way to reproduce the error locally). If the error cannot be reproduced or tested, verify the logic first or ask the user for a reproduction step before writing the fix.
 
-## Larangan Bahasa Berlebihan (Anti-Hype)
+## Anti-Hype Constraints
 
-Dilarang keras menggunakan istilah promosional atau berlebihan dalam laporan, dokumentasi (README, SKILL.md, komentar kode), maupun percakapan dengan user, termasuk namun tidak terbatas pada:
+It is strictly forbidden to use promotional or exaggerated terminology in reports, documentation (README, SKILL.md, code comments), or conversations with the user, including but not limited to:
 - "enterprise-grade", "enterprise-level", "mid-tier and enterprise-level projects"
-- "high-performance", "revolusioner", "revolusi"
-- "God-tier", "Snowline Agent Tools", atau penamaan sejenis yang terdengar seperti branding produk komersial
-- Superlatif tanpa bukti terukur ("luar biasa", "sempurna", "canggih", "profesional", "mutakhir")
-- Framing yang membesar-besarkan skala/kepentingan proyek personal sebagai sesuatu yang setara sistem produksi skala besar
+- "high-performance", "revolutionary", "revolution"
+- "God-tier", "Snowline Agent Tools", or similar naming that sounds like commercial product branding
+- Superlatives without measurable proof ("extraordinary", "perfect", "advanced", "professional", "cutting-edge")
+- Framing that exaggerates the scale/importance of personal projects to sound like large-scale production systems
 
-Gunakan bahasa teknis yang datar dan faktual. Contoh: bukan "high-performance regex engine", tapi "regex-based search implemented in Python". Bukan "revolusi untuk Selective Reader", tapi "peningkatan akurasi parsing untuk Selective Reader".
+Use flat and factual technical language. Example: Instead of "high-performance regex engine", use "regex-based search implemented in Python". Instead of "a revolution for Selective Reader", use "improved parsing accuracy for Selective Reader".
 
-Jika ragu apakah suatu kalimat termasuk hype, ajukan pertanyaan ini pada diri sendiri: "Apakah klaim ini bisa dibuktikan dengan angka/data konkret, atau ini murni opini yang terdengar meyakinkan?" Jika tidak bisa dibuktikan, hapus atau ganti dengan pernyataan yang lebih netral.
+If in doubt whether a sentence contains hype, ask yourself: "Can this claim be proven with concrete numbers/data, or is it purely an opinion that sounds convincing?" If it cannot be proven, remove or replace it with a more neutral statement.
 
-## Kepatuhan Guardrail — Tidak Bisa Ditawar
+## Guardrail Compliance — Non-Negotiable
 
-Setiap tool baru atau perubahan pada tool yang sudah ada WAJIB mempertahankan prinsip guardrail berikut, tanpa pengecualian:
-1. Setiap aksi yang menulis, mengubah, memindahkan, atau menghapus file HARUS memiliki mode dry-run/preview sebagai default.
-2. Eksekusi nyata (write/modify/delete) HANYA boleh terjadi dengan flag eksplisit seperti `--apply`, tidak pernah otomatis.
-3. Setiap klaim bahwa guardrail "sudah diterapkan" WAJIB disertai bukti live-test (output nyata dari menjalankan tool tanpa flag apply, membuktikan tidak ada perubahan terjadi) — bukan hanya pernyataan di README atau SKILL.md.
-4. Jika ada perubahan kode yang berpotensi menghilangkan guardrail yang sudah ada (baik sengaja maupun tidak sengaja), WAJIB melaporkan hal ini secara eksplisit ke user sebelum melanjutkan — jangan biarkan regresi guardrail terjadi diam-diam.
-5. Dokumentasi (README, SKILL.md) HARUS selalu mencerminkan perilaku guardrail yang sebenarnya ada di kode. Jika ada perbedaan antara apa yang didokumentasikan dan apa yang benar-benar terjadi di kode, itu dianggap sebagai bug dan harus diperbaiki di kedua sisi (kode dan dokumentasi) secara konsisten.
+Any new tool or modification to an existing tool MUST preserve the following guardrail principles, without exception:
+1. Any action that writes, modifies, moves, or deletes files MUST have a dry-run/preview mode as the default.
+2. Actual execution (write/modify/delete) may ONLY occur with an explicit flag like `--apply`, never automatically.
+3. Any claim that guardrails are "already implemented" MUST be accompanied by live-test proof (actual output of running the tool without the apply flag, proving no changes occurred) — not just a statement in README or SKILL.md.
+4. If there is a code change that potentially removes existing guardrails (intentionally or unintentionally), you MUST explicitly report this to the user before proceeding — do not let guardrail regressions happen silently.
+5. Documentation (README, SKILL.md) MUST always reflect the actual guardrail behavior in the code. If there is a discrepancy between what is documented and what actually happens in the code, it is considered a bug and must be fixed consistently on both sides (code and documentation).
 
 
-## Protokol One-Task-One-Time (Pseudocode-First)
+## One-Task-One-Time Protocol (Pseudocode-First)
 
-**Masalah yang Diselesaikan:**
-Proses development sering melebar di tengah jalan — dimulai dari satu task jelas, tapi pelan-pelan agent mulai menambahkan hal lain yang "kelihatan berguna" (refactor tambahan, fitur tambahan, perbaikan lain yang belum diminta) sebelum task awal benar-benar selesai. Ini berbeda dari masalah yang diselesaikan Scope Guardian (yang mengontrol file mana yang boleh disentuh) — protokol ini mengontrol jumlah task aktif dalam satu waktu, dan memastikan ada kontrak yang jelas SEBELUM baris kode pertama ditulis.
+**Problem Solved:**
+The development process often expands mid-way — starting from one clear task, but the agent gradually adds other "seemingly useful" things (extra refactors, additional features, unrelated fixes) before the initial task is fully completed. This is different from the problem solved by Scope Guardian (which controls which files can be touched) — this protocol controls the number of active tasks at any one time, ensuring a clear contract exists BEFORE the first line of code is written.
 
-**Prinsip Utama:**
-Satu task, satu waktu. Pseudocode dulu, kode asli kemudian.
-Sebelum menulis kode nyata (JS, Python, apa pun), agent WAJIB menulis rencana dalam bentuk pseudocode singkat dan mendapat persetujuan eksplisit dari user, BARU melanjutkan ke implementasi asli. Tidak ada kode yang ditulis sebelum pseudocode disetujui.
+**Core Principle:**
+One task at a time. Pseudocode first, actual code later.
+Before writing real code (JS, Python, etc.), the agent MUST write a plan in short pseudocode form and obtain explicit user approval, ONLY THEN proceed to actual implementation. No code is written before the pseudocode is approved.
 
-### Alur Kerja Wajib
+### Mandatory Workflow
 
-**Langkah 1 — Deklarasi Task Tunggal**
-Sebelum memulai pekerjaan apa pun, agent menuliskan SATU task yang akan dikerjakan, dalam format singkat:
-`[TASK] <deskripsi task, satu kalimat>`
+**Step 1 — Single Task Declaration**
+Before starting any work, the agent writes down ONE task to be worked on, in a short format:
+`[TASK] <task description, one sentence>`
 
-Jika user memberikan instruksi yang mengandung LEBIH DARI SATU task sekaligus (misal: "perbaiki bug X, sekalian rapikan Y, dan tambahin fitur Z"), agent WAJIB memecahnya dan bertanya urutan prioritas:
-`[MULTI-TASK DETECTED] Saya lihat ada 3 task berbeda: (1) perbaiki bug X, (2) rapikan Y, (3) tambah fitur Z. Sesuai prinsip one-task-one-time, saya akan kerjakan satu per satu. Mulai dari yang mana?`
-Agent TIDAK BOLEH mengerjakan lebih dari satu task dalam satu siklus kerja, meskipun user memberikannya sekaligus dalam satu pesan.
+If the user provides an instruction containing MORE THAN ONE task at once (e.g.: "fix bug X, also tidy up Y, and add feature Z"), the agent MUST split it and ask for priority order:
+`[MULTI-TASK DETECTED] I see 3 different tasks: (1) fix bug X, (2) tidy up Y, (3) add feature Z. According to the one-task-one-time principle, I will work on them one by one. Which one should we start with?`
+The agent MUST NOT work on more than one task in a single work cycle, even if the user provides them all at once in one message.
 
-**Langkah 2 — Tulis Pseudocode, Bukan Kode Asli**
-Untuk task yang sudah disepakati, agent menuliskan rencana dalam bentuk pseudocode ringkas — logika langkah demi langkah dalam bahasa natural/semi-kode, BUKAN kode final dalam bahasa pemrograman asli. Contoh:
+**Step 2 — Write Pseudocode, Not Actual Code**
+For the agreed task, the agent writes the plan in concise pseudocode form — step-by-step logic in natural/semi-code language, NOT final code in the actual programming language. Example:
 ```text
-[PSEUDOCODE] Fix bug filter PDF Data Guru
+[PSEUDOCODE] Fix PDF filter bug in Data Guru
 
 FUNCTION generatePdf(guruList):
-  IF guruList kosong:
-    tampilkan alert "data kosong"
+  IF guruList is empty:
+    show alert "data is empty"
     STOP
-  buat dokumen PDF dari guruList
-  convert dokumen ke blob (bukan datauristring)
-  tampilkan di modal
+  create PDF document from guruList
+  convert document to blob (not datauristring)
+  display in modal
 
 FUNCTION handleCloseModal():
-  revoke object URL blob sebelumnya
-  tutup modal
+  revoke previous blob object URL
+  close modal
 ```
-Pseudocode ini HARUS:
-- Singkat (idealnya di bawah 15 baris untuk task kecil-menengah)
-- Fokus pada logika/alur, bukan sintaks detail bahasa pemrograman
-- Mencakup edge case yang relevan (kondisi kosong, error, dll) secara eksplisit
+This pseudocode MUST be:
+- Concise (ideally under 15 lines for small-medium tasks)
+- Focused on logic/flow, not detailed language syntax
+- Explicitly cover relevant edge cases (empty states, errors, etc.)
 
-**Langkah 3 — Tunggu Persetujuan Sebelum Kode Asli**
-Setelah pseudocode ditulis, agent WAJIB berhenti dan menunggu konfirmasi user:
-`Apakah alur ini sudah sesuai? Jika ya, saya akan lanjut menulis kode aslinya.`
-Agent TIDAK BOLEH menulis kode asli (real implementation) sebelum user menyetujui pseudocode. Jika user meminta perubahan pada pseudocode, agent merevisi pseudocode dulu, bukan langsung lompat ke kode dengan revisi yang belum disetujui bentuk logikanya.
+**Step 3 — Wait for Approval Before Actual Code**
+After the pseudocode is written, the agent MUST stop and wait for user confirmation:
+`Does this flow look good? If yes, I will proceed to write the actual code.`
+The agent MUST NOT write the actual code (real implementation) before the user approves the pseudocode. If the user requests changes to the pseudocode, the agent revises the pseudocode first, rather than immediately jumping to code with an unapproved logic revision.
 
-**Langkah 4 — Implementasi Sesuai Pseudocode yang Disetujui**
-Setelah disetujui, agent menulis kode asli yang mengikuti struktur logika yang sudah ada di pseudocode — tidak menambah langkah/logika baru yang tidak ada di pseudocode tanpa melaporkannya dulu.
+**Step 4 — Implementation According to Approved Pseudocode**
+Once approved, the agent writes the actual code following the logical structure already present in the pseudocode — do not add new steps/logic not present in the pseudocode without reporting it first.
 
-Jika saat implementasi agent menyadari ada kebutuhan tambahan yang tidak tercakup di pseudocode (misal: ternyata butuh import baru, atau ada edge case yang terlewat), agent WAJIB melaporkan itu sebagai penyesuaian kecil sebelum melanjutkan, bukan diam-diam menambahkannya:
-`[PENYESUAIAN] Saat implementasi, saya sadar perlu menambahkan <hal>. Ini di luar pseudocode awal. Lanjutkan dengan penyesuaian ini?`
+If during implementation the agent realizes there is an additional need not covered in the pseudocode (e.g.: turns out a new import is needed, or an edge case was missed), the agent MUST report it as a minor adjustment before proceeding, rather than silently adding it:
+`[ADJUSTMENT] During implementation, I realized I need to add <thing>. This is outside the initial pseudocode. Shall I proceed with this adjustment?`
 
-**Langkah 5 — Task Selesai, Tutup Siklus**
-Setelah kode diterapkan dan diverifikasi, task dianggap selesai. Agent TIDAK melanjutkan ke task berikutnya secara otomatis — agent menunggu instruksi baru dari user untuk task selanjutnya, meskipun ada beberapa task yang tadinya di-declare di Langkah 1 (multi-task terdeteksi).
+**Step 5 — Task Completed, Close Cycle**
+Once the code is applied and verified, the task is considered complete. The agent DOES NOT automatically move on to the next task — the agent waits for new instructions from the user for the next task, even if there were multiple tasks initially declared in Step 1 (multi-task detected).
 
-### Kaitan dengan Mekanisme yang Sudah Ada
-- **Scope Guardian** tetap berlaku di Langkah 4 (implementasi) — file yang disentuh selama implementasi tetap harus melalui validasi `scope_check.py`.
-- `PLAN.md` mencatat pseudocode yang disetujui sebagai bagian dari log task, sehingga ada jejak tertulis dari rencana ke implementasi.
-- Protokol ini berlaku SEBELUM Scope Guardian aktif secara teknis — pseudocode-first mencegah melebarnya rencana, Scope Guardian mencegah melebarnya file yang disentuh. Keduanya saling melengkapi, bukan saling menggantikan.
+### Relation to Existing Mechanisms
+- **Scope Guardian** remains active in Step 4 (implementation) — files touched during implementation must still pass `scope_check.py` validation.
+- `PLAN.md` logs the approved pseudocode as part of the task log, maintaining a written trail from plan to implementation.
+- This protocol applies BEFORE Scope Guardian is technically active — pseudocode-first prevents the plan from expanding, Scope Guardian prevents the touched files from expanding. Both complement each other, rather than replacing one another.
 
-### Pengecualian
-Untuk task yang sangat kecil dan tidak ambigu (misal: mengubah satu warna CSS, memperbaiki typo), langkah pseudocode boleh dilewati — cukup langsung eksekusi dengan laporan singkat seperti biasa. Pseudocode-first ini wajib untuk task yang melibatkan logika (function baru, perubahan alur, penanganan state, dll), bukan untuk perubahan kosmetik sepele.
-Jika agent tidak yakin apakah suatu task cukup kecil untuk dilewati, WAJIB memilih jalur pseudocode — lebih baik satu langkah ekstra yang ternyata tidak perlu, daripada task melebar tanpa kontrak yang jelas.
+### Exceptions
+For very small and unambiguous tasks (e.g.: changing a CSS color, fixing a typo), the pseudocode step may be skipped — simply execute directly with a short report as usual. Pseudocode-first is mandatory for tasks involving logic (new functions, flow changes, state handling, etc.), not for trivial cosmetic changes.
+If the agent is unsure whether a task is small enough to skip, it MUST default to the pseudocode path — better one extra unnecessary step than a task expanding without a clear contract.
