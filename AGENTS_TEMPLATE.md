@@ -1,4 +1,4 @@
-# Project Rules (CBT Master - 10-Pillars Ecosystem)
+# Project Rules (CBT Master - Snowline Agent Tools)
 
 - Before creating a new function, always define all variables that will be used first (to avoid *ReferenceError* or variables that have not been *destructured*).
 
@@ -166,7 +166,7 @@ To maintain high code quality while remaining effortless for the user, the agent
 Dilarang keras menggunakan istilah promosional atau berlebihan dalam laporan, dokumentasi (README, SKILL.md, komentar kode), maupun percakapan dengan user, termasuk namun tidak terbatas pada:
 - "enterprise-grade", "enterprise-level", "mid-tier and enterprise-level projects"
 - "high-performance", "revolusioner", "revolusi"
-- "God-tier", "10-Pillars Ecosystem", atau penamaan sejenis yang terdengar seperti branding produk komersial
+- "God-tier", "Snowline Agent Tools", atau penamaan sejenis yang terdengar seperti branding produk komersial
 - Superlatif tanpa bukti terukur ("luar biasa", "sempurna", "canggih", "profesional", "mutakhir")
 - Framing yang membesar-besarkan skala/kepentingan proyek personal sebagai sesuatu yang setara sistem produksi skala besar
 
