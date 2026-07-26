@@ -3,6 +3,9 @@ import sys
 import argparse
 import re
 import shutil
+import subprocess
+import tempfile
+import ast
 import json
 from datetime import datetime
 
@@ -39,6 +42,73 @@ def find_project_root(start_path):
         if parent == current:
             return os.path.abspath(start_path)
         current = parent
+
+def validate_syntax(filepath, content):
+    ext = os.path.splitext(filepath)[1].lower()
+    
+    if ext == '.py':
+        try:
+            ast.parse(content)
+            return True, None
+        except SyntaxError as e:
+            return False, f"Python Syntax Error: {e.msg} at line {e.lineno}"
+            
+    elif ext in ['.js', '.jsx', '.ts', '.tsx']:
+        def check_brackets(text):
+            stack = []
+            pairs = {')': '(', '}': '{', ']': '['}
+            lines = text.split('\n')
+            for i, line in enumerate(lines):
+                for char in line:
+                    if char in '({[':
+                        stack.append((char, i+1))
+                    elif char in ')}]':
+                        if not stack:
+                            return False, f"Unmatched closing bracket '{char}' at line {i+1}"
+                        top_char, _ = stack.pop()
+                        if top_char != pairs[char]:
+                            return False, f"Mismatched bracket '{char}' at line {i+1}, expected closing for '{top_char}'"
+            if stack:
+                top_char, line = stack.pop()
+                return False, f"Unclosed bracket '{top_char}' opened at line {line}"
+            return True, None
+
+        # Cek ketersediaan Node.js
+        node_available = False
+        try:
+            subprocess.run(['node', '-v'], capture_output=True, check=True)
+            node_available = True
+        except Exception:
+            pass
+            
+        # Gunakan node --check hanya untuk murni JS (karena node tidak mengerti JSX)
+        if node_available and ext == '.js':
+            with tempfile.NamedTemporaryFile(suffix='.js', delete=False, mode='w', encoding='utf-8') as f:
+                f.write(content)
+                temp_path = f.name
+            
+            try:
+                result = subprocess.run(['node', '--check', temp_path], capture_output=True, text=True)
+                os.unlink(temp_path)
+                if result.returncode != 0:
+                    # Kalau node error karena JSX tag (biasanya di React JS), fallback ke bracket check
+                    if "Unexpected token '<'" in result.stderr or "SyntaxError" in result.stderr:
+                        is_valid, err = check_brackets(content)
+                        if not is_valid:
+                            return False, err
+                        return True, "[WARN] Validasi JS fallback ke bracket-balancing dasar."
+                    return False, f"Node.js Syntax Error:\n{result.stderr.strip()}"
+                return True, None
+            except Exception as e:
+                os.unlink(temp_path)
+                return False, f"Failed to run node --check: {e}"
+        else:
+            is_valid, err = check_brackets(content)
+            if not is_valid:
+                return False, err
+            return True, "[WARN] Validasi menggunakan bracket-balancing dasar (bukan full syntax check)."
+            
+    return True, "[WARN] Tipe file tidak dikenali untuk validasi syntax, pengecekan dilewati."
 
 def get_args():
     parser = argparse.ArgumentParser(description="Smart Replace (Pure Python Edition)")
@@ -152,7 +222,7 @@ def main():
                 print(f"[WARN] Found {count} matches in {rel_path}")
                 pending_writes.append((filepath, new_content))
 
-    print(f"\\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
+    print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
     
     # Calculate risk
     is_logic = False
@@ -175,23 +245,37 @@ def main():
         return
         
     if not (args.apply or args.apply_validated):
-        print("\\n[DRY RUN] Ini hanya simulasi. Gunakan --apply untuk mengeksekusi.")
+        print("\n[DRY RUN] Ini hanya simulasi. Gunakan --apply untuk mengeksekusi.")
         if risk_level in ["Medium", "High"]:
             print(f"[BLOCKED] Karena risiko {risk_level}, Anda HARUS menggunakan --apply-validated setelah memastikan aman.")
         sys.exit(0)
         
     if risk_level in ["Medium", "High"] and not args.apply_validated:
-        print(f"\\n[BLOCKED] Risiko modifikasi adalah {risk_level}.")
-        print("Anda HARUS memvalidasi ulang (misal: cek linter/syntax) sebelum mengeksekusi.")
-        print("Gunakan --apply-validated jika Anda sudah 100% yakin.")
+        print(f"\n[BLOCKED] Risiko terdeteksi sebagai {risk_level}.")
+        print("Eksekusi dengan --apply DITOLAK secara sistem untuk mencegah kerusakan.")
+        print("Anda WAJIB menjalankan linter/syntax check secara lokal terlebih dahulu.")
+        print("Jika sudah aman, jalankan ulang menggunakan flag --apply-validated")
         sys.exit(1)
+    else:
+        # Validasi sintaks sebelum menulis ke disk jika menggunakan apply-validated
+        print("\n[INFO] Melakukan validasi syntax pada file yang akan diubah...")
+        for fp, new_content in pending_writes:
+            is_valid, msg = validate_syntax(fp, new_content)
+            if not is_valid:
+                print(f"\n[BLOCKED] Syntax validation failed in {os.path.relpath(fp, args.target_dir)}")
+                print(msg)
+                print("Eksekusi DIBATALKAN. Tidak ada file yang diubah.")
+                sys.exit(1)
+            elif msg:
+                print(f"  - {os.path.relpath(fp, args.target_dir)}: {msg}")
+        print("[OK] Validasi syntax lolos.")
         
     for filepath, new_content in pending_writes:
         backup_path = backup_file(filepath, backup_dir)
-        with open(filepath, 'w', encoding='utf-8', newline='\\n') as f:
+        with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
             f.write(new_content)
             
-    print(f"\\n[SUCCESS] Berhasil memodifikasi {file_count} file. Backup tersimpan di {backup_dir}")
+    print(f"\n[SUCCESS] Berhasil memodifikasi {file_count} file. Backup tersimpan di {backup_dir}")
 
 if __name__ == '__main__':
     main()
