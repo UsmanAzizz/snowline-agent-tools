@@ -9,6 +9,7 @@ setup(
     include_package_data=True,
     entry_points={
         "console_scripts": [
+            "snowline=snowline_toolkit.cli:main",
             "snowline-init=snowline_toolkit.cli:main",
         ],
     },
