@@ -153,7 +153,10 @@ def main():
     if not args.apply:
         print(f"\n[RISK] {risk_label}")
         print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
-        print('"Berdasarkan hasil dry-run di atas, tolong jalankan ulang perintah tersebut dengan menambahkan flag --apply untuk menerapkan perubahannya secara aman."')
+        if risk_label.startswith("Low"):
+            print('"Berdasarkan hasil dry-run di atas (Risk: Low), tolong langsung jalankan ulang perintah tersebut dengan menambahkan flag --apply."')
+        else:
+            print('"Berdasarkan hasil dry-run di atas (Risk: Medium/High), Anda WAJIB memvalidasi syntax atau menjalankan linter terlebih dahulu sebelum melakukan --apply. Jika terbukti aman, baru terapkan perubahannya."')
     else:
         print(f"\n[INFO] Perubahan telah diterapkan ke {file_count} file. Backup tersimpan di: {backup_dir}")
 
