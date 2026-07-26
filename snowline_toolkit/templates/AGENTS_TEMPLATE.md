@@ -337,7 +337,7 @@ When the user types CONTINUE in any session (whether the same session or a new c
 ### Behavior of "KILL" Command
 When the user types KILL (in any message, no specific format needed), the agent MUST:
 1. **Stop completely** from any ongoing execution.
-2. **Delete all state files** related to the current task from the project root (`PLAN.md`, `task_state.json`, `scope_lock.json`, and any implementation artifacts) without archiving them to `plan_archive/`. The task is considered aborted.
+2. **Delete all state files** related to the current task from the project root (`PLAN.md`, `task_state.json`, `scope_lock.json`, `session_cache.json`, and any implementation artifacts) without archiving them to `plan_archive/`. The task is considered aborted.
 3. **Reply to the user with EXACTLY ONE short line of confirmation, nothing more:**
    `[KILLED] Semua plan dan task saat ini telah dihapus. Siap menerima instruksi baru.`
 

@@ -1,6 +1,8 @@
 import os
 import sys
 import argparse
+import json
+import hashlib
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -61,6 +63,48 @@ def search_files(directory, keyword, extensions):
                 
     return results, scanned, skipped
 
+def get_project_root(start_path):
+    current = os.path.abspath(start_path)
+    while True:
+        if os.path.exists(os.path.join(current, 'package.json')) or os.path.exists(os.path.join(current, '.git')):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return os.path.abspath(start_path)
+        current = parent
+
+def load_cache(cache_file):
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_cache(cache_file, data):
+    try:
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+    except Exception:
+        pass
+
+def get_dir_signature(directory, extensions):
+    mtimes = []
+    for root, dirs, files in os.walk(directory):
+        dirs[:] = [d for d in dirs if d not in DEFAULT_EXCLUDES]
+        for file in files:
+            if extensions and not any(file.endswith(ext) for ext in extensions):
+                continue
+            filepath = os.path.join(root, file)
+            try:
+                if os.path.getsize(filepath) <= MAX_FILE_SIZE:
+                    mtimes.append(str(os.path.getmtime(filepath)))
+            except Exception:
+                pass
+    return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()
+
 def main():
     parser = argparse.ArgumentParser(description="Smart Code Finder - Find code with context (Token Efficient)")
     parser.add_argument("target_dir", help="Directory to scan")
@@ -70,7 +114,38 @@ def main():
 
     extensions = [ext.strip() for ext in args.ext.split(",")] if args.ext else []
     
-    results, scanned, skipped = search_files(args.target_dir, args.keyword, extensions)
+    project_root = get_project_root(args.target_dir)
+    cache_file = os.path.join(project_root, '.agents', 'session_cache.json')
+    cache_data = load_cache(cache_file)
+    
+    dir_signature = get_dir_signature(args.target_dir, extensions)
+    cache_key = f"search_{hashlib.md5((args.target_dir + args.keyword + ''.join(extensions)).encode()).hexdigest()}"
+    
+    if cache_key in cache_data:
+        cached_entry = cache_data[cache_key]
+        if cached_entry.get('signature') == dir_signature:
+            print("[INFO] Menggunakan hasil cache dari session_cache.json (tidak ada file yang berubah)")
+            results = cached_entry['results']
+            scanned = cached_entry['scanned']
+            skipped = cached_entry['skipped']
+        else:
+            results, scanned, skipped = search_files(args.target_dir, args.keyword, extensions)
+            cache_data[cache_key] = {
+                'signature': dir_signature,
+                'results': results,
+                'scanned': scanned,
+                'skipped': skipped
+            }
+            save_cache(cache_file, cache_data)
+    else:
+        results, scanned, skipped = search_files(args.target_dir, args.keyword, extensions)
+        cache_data[cache_key] = {
+            'signature': dir_signature,
+            'results': results,
+            'scanned': scanned,
+            'skipped': skipped
+        }
+        save_cache(cache_file, cache_data)
     
     if not results:
         print(f"[OK] Keyword '{args.keyword}' not found in {scanned} files.")
