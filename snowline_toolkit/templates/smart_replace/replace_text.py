@@ -43,6 +43,51 @@ def find_project_root(start_path):
 
 def get_args():
     parser = argparse.ArgumentParser(description="Smart Replace (Pure Python Edition)")
+import os
+import sys
+import argparse
+import re
+import shutil
+from datetime import datetime
+
+# Force UTF-8 encoding for Windows terminal
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
+DEFAULT_EXCLUDES = {'.git', 'node_modules', '.history', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents'}
+MAX_FILE_SIZE = 500 * 1024 # 500 KB
+
+import json
+
+def check_task_state():
+    state_file = os.path.join(os.getcwd(), '.agents', 'task_state.json')
+    if not os.path.exists(state_file):
+        return
+        
+    try:
+        with open(state_file, 'r', encoding='utf-8') as f:
+            state = json.load(f)
+    except Exception:
+        return
+        
+    if state.get('phase') == 'pseudocode_pending':
+        print("[BLOCKED] Pseudocode untuk task ini belum disetujui user.")
+        print(f"Task: {state.get('task', 'Unknown')}")
+        print("Minta user approve pseudocode dulu sebelum --apply bisa dijalankan.")
+        sys.exit(1)
+
+def find_project_root(start_path):
+    current = os.path.abspath(start_path)
+    while True:
+        if os.path.exists(os.path.join(current, 'package.json')) or os.path.exists(os.path.join(current, '.git')):
+            return current
+        parent = os.path.dirname(current)
+        if parent == current:
+            return os.path.abspath(start_path)
+        current = parent
+
+def get_args():
+    parser = argparse.ArgumentParser(description="Smart Replace (Pure Python Edition)")
     parser.add_argument("target_dir", help="Target directory (absolute path)")
     parser.add_argument("search_string", help="String or pattern to search for")
     parser.add_argument("replace_string", nargs="?", default="", help="String to replace with (or empty if using --replacement-file)")
@@ -50,7 +95,8 @@ def get_args():
     parser.add_argument("--ext", help="Comma-separated extensions to include (e.g. .js,.jsx)", default="")
     parser.add_argument("--regex", action="store_true", help="Treat search_string as a regular expression")
     parser.add_argument("--whole-word", action="store_true", help="Match whole words only")
-    parser.add_argument("--apply", action="store_true", help="Actually modify the files")
+    parser.add_argument("--apply", action="store_true", help="Actually modify the files (Low risk only)")
+    parser.add_argument("--apply-validated", action="store_true", help="Actually modify the files (Bypass Medium/High risk block)")
     return parser.parse_args()
 
 def backup_file(filepath, backup_dir):
@@ -90,7 +136,7 @@ def main():
         sys.exit(1)
         
     backup_dir = None
-    if args.apply:
+    if args.apply or args.apply_validated:
         check_task_state()
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         project_root = find_project_root(args.target_dir)
@@ -99,6 +145,7 @@ def main():
     match_count = 0
     file_count = 0
     scanned_files = 0
+    pending_writes = []
     
     for root, dirs, files in os.walk(args.target_dir):
         dirs[:] = [d for d in dirs if d not in DEFAULT_EXCLUDES]
@@ -125,11 +172,7 @@ def main():
                 
                 rel_path = os.path.relpath(filepath, args.target_dir)
                 print(f"[WARN] Found {count} matches in {rel_path}")
-                
-                if args.apply:
-                    backup_file(filepath, backup_dir)
-                    with open(filepath, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
+                pending_writes.append((filepath, new_content))
 
     print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
     
@@ -150,14 +193,28 @@ def main():
     else:
         risk_label = "Low — single file, cosmetic change"
         
-    if not args.apply:
+    is_modifying = args.apply or args.apply_validated
+    
+    if not is_modifying:
         print(f"\n[RISK] {risk_label}")
         print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
         if risk_label.startswith("Low"):
-            print('"Berdasarkan hasil dry-run di atas (Risk: Low), tolong langsung jalankan ulang perintah tersebut dengan menambahkan flag --apply."')
+            print(f'"Berdasarkan hasil dry-run di atas (Risk: Low), tolong langsung jalankan ulang perintah tersebut dengan menambahkan flag --apply."')
         else:
-            print('"Berdasarkan hasil dry-run di atas (Risk: Medium/High), Anda WAJIB memvalidasi syntax atau menjalankan linter terlebih dahulu sebelum melakukan --apply. Jika terbukti aman, baru terapkan perubahannya."')
+            print(f'"Berdasarkan hasil dry-run di atas (Risk: {risk_label}), Anda WAJIB memvalidasi syntax atau menjalankan linter terlebih dahulu sebelum melakukan --apply. Jika terbukti aman, baru terapkan perubahannya menggunakan flag --apply-validated."')
     else:
+        if risk_label.startswith("Medium") or risk_label.startswith("High"):
+            if not args.apply_validated:
+                print(f"\n[BLOCKED] Risiko terdeteksi sebagai {risk_label.split('—')[0].strip()}.")
+                print("Eksekusi dengan --apply DITOLAK secara sistem untuk mencegah kerusakan.")
+                print("Anda WAJIB menjalankan linter/syntax check secara lokal terlebih dahulu.")
+                print("Jika sudah aman, jalankan ulang menggunakan flag --apply-validated")
+                sys.exit(1)
+                
+        for filepath, new_content in pending_writes:
+            backup_file(filepath, backup_dir)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(new_content)
         print(f"\n[INFO] Perubahan telah diterapkan ke {file_count} file. Backup tersimpan di: {backup_dir}")
 
 if __name__ == "__main__":
