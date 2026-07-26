@@ -132,7 +132,26 @@ def main():
                         f.write(new_content)
 
     print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
+    
+    # Calculate risk
+    is_logic = False
+    if len(args.replace_string) > 50 or len(args.search_string) > 50:
+        is_logic = True
+    if any(kw in args.replace_string or kw in args.search_string for kw in ['function', 'class', '=>', 'return', 'import ', 'export ']):
+        is_logic = True
+        
+    if file_count > 5:
+        risk_label = "High — multiple files (>5)"
+    elif file_count > 1 or is_logic:
+        if file_count > 1:
+            risk_label = f"Medium — {file_count} files"
+        else:
+            risk_label = "Medium — single file, logic change"
+    else:
+        risk_label = "Low — single file, cosmetic change"
+        
     if not args.apply:
+        print(f"\n[RISK] {risk_label}")
         print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
         print('"Berdasarkan hasil dry-run di atas, tolong jalankan ulang perintah tersebut dengan menambahkan flag --apply untuk menerapkan perubahannya secara aman."')
     else:
