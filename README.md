@@ -37,14 +37,14 @@ The main goal of this project is to **save LLM token usage** by preventing the A
 
 ## 🏛️ Core Principles
 
-1. **Simple & Portable:** 100% pure Python (`os`, `re`, `json`). No `node_modules` required, no external executors like `ripgrep` needed. Just copy the scripts to your project and run them.
+1. **Simple & Portable:** 100% pure Python (`os`, `re`, `json`). Requires Python 3.x to be installed, but NO heavy dependencies like `node_modules` or external executors like `ripgrep` are needed. Just copy the scripts to your project and run them.
 2. **Token Efficient:** Terminal outputs are extremely concise. No useless long logs, only displaying crucial insights (`[FAIL]`, `[WARN]`) to prevent the AI from exhausting its context memory.
 3. **AI Prompt Bridge:** Each Python script doesn't just print data; it also returns a ready-to-use prompt sentence at the very last line, so users can instantly copy it to guide the AI.
 4. **Protection & Dry-Run:** Scripts that modify files MUST feature a dry-run preview mode by default and force the use of an `--apply` argument before actually altering files on disk.
 
 ---
 
-## 🛠️ The Arsenal (13 Core Tools)
+## 🛠️ The Arsenal (14 Core Tools)
 
 The ecosystem is divided into three major categories: **Search & Modify**, **Audit & Analyze**, and **Workflow Helpers**.
 
@@ -86,26 +86,30 @@ The ecosystem is divided into three major categories: **Search & Modify**, **Aud
 - **Function:** The Knowledge Catalog builder. 
 - **Why it's better:** Automatically generates architectural maps inside `.agents/knowledge/` to give agents instant context.
 
-#### 9. Smart Tree Viewer (`smart_tree/scripts/tree_viewer.py`)
+#### 9. Smart Tree Viewer (`smart_tree/scripts/tree_viewer.py`) [⚠️ UNVERIFIED - Pending Security Audit]
 - **Function:** The compact directory mapper.
 - **Why it's better:** Generates a `.gitignore`-aware visual directory tree, avoiding the verbosity of standard `ls` or JSON-based directory listing tools.
 
-#### 10. Database Extractor (`db_extractor/scripts/extractor.py`)
+#### 10. Database Extractor (`db_extractor/scripts/extractor.py`) [⚠️ UNVERIFIED - Pending Security Audit]
 - **Function:** Database Schema Extractor.
 - **Why it's better:** Safely parses `.env` to connect to DBs (MySQL/MariaDB) or statically analyzes code for NoSQL schemas, providing full table/column context without running raw SQL queries manually.
+
+#### 11. Scope Guardian v2 (`scope_guardian/scripts/scope_check.py`)
+- **Function:** Hybrid File Validation.
+- **Why it's better:** Strictly prevents the AI agent from accidentally modifying files outside the context of the current task by validating against `scope_lock.json`. Proven highly effective in live tests (`[ALLOWED]`/`[BLOCKED]`).
 
 ### Category 3: Workflow Helpers
 *These tools assist the AI when actively writing or debugging code.*
 
-#### 11. Crash Decoder (`crash_decoder/decoder.py`)
+#### 12. Crash Decoder (`crash_decoder/decoder.py`)
 - **Function:** The Error Trace Analyzer.
 - **Why it's better:** Parses massive terminal crash logs, filters out irrelevant `node_modules` noise, and pinpoints the exact file and line in your source code that caused the crash.
 
-#### 12. Auto-Scaffolder (`auto_scaffolder/scaffolder.py`)
+#### 13. Auto-Scaffolder (`auto_scaffolder/scaffolder.py`)
 - **Function:** The Pattern Generator. 
 - **Why it's better:** Generates (requires --apply to write) boilerplate files for React components or API routes following the project's standards.
 
-#### 13. Impact Analyzer (`impact_analyzer/analyzer.py`)
+#### 14. Impact Analyzer (`impact_analyzer/analyzer.py`)
 - **Function:** Dependency Graph / Impact Predictor.
 - **Why it's better:** Before modifying or deleting a core component, this tool traces reverse-imports up to 3 levels deep to tell the AI EXACTLY which files will break if the target file is changed.
 
@@ -120,7 +124,7 @@ For human users, the easiest way to use the ecosystem is via the central dashboa
 ```bash
 python run_all.py
 ```
-This will launch a CLI menu where you can select and run any of the 10 tools interactively.
+This will launch a CLI menu where you can select and run any of the 14 tools interactively.
 
 ### AI Agent Workflow (For AI)
 Place these folders inside your project's workspace customizations directory (e.g., `.agents/skills/` at the root of your project). 
