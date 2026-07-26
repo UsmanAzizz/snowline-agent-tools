@@ -273,19 +273,19 @@ The agent MUST NOT write the actual code (real implementation) before the user a
 **Step 4 — Implementation According to Approved Plan**
 Once approved, the agent writes the actual code following the logical structure already present in the plan — do not add new steps/logic not present in the plan without reporting it first.
 
-If during implementation the agent realizes there is an additional need not covered in the pseudocode (e.g.: turns out a new import is needed, or an edge case was missed), the agent MUST report it as a minor adjustment before proceeding, rather than silently adding it:
-`[ADJUSTMENT] During implementation, I realized I need to add <thing>. This is outside the initial pseudocode. Shall I proceed with this adjustment?`
+If during implementation the agent realizes there is an additional need not covered in the plan (e.g.: turns out a new import is needed, or an edge case was missed), the agent MUST report it as a minor adjustment before proceeding, rather than silently adding it:
+`[ADJUSTMENT] During implementation, I realized I need to add <thing>. This is outside the initial plan. Shall I proceed with this adjustment?`
 
 **Step 5 — Task Completed, Close Cycle**
 Once the code is applied and verified, the task is considered complete. The agent DOES NOT automatically move on to the next task — the agent waits for new instructions from the user for the next task, even if there were multiple tasks initially declared in Step 1 (multi-task detected).
 
 ### Relation to Existing Mechanisms
 - **Scope Guardian** remains active in Step 4 (implementation) — files touched during implementation must still pass `scope_check.py` validation.
-- `PLAN.md` logs the approved pseudocode as part of the task log, maintaining a written trail from plan to implementation.
-- This protocol applies BEFORE Scope Guardian is technically active — pseudocode-first prevents the plan from expanding, Scope Guardian prevents the touched files from expanding. Both complement each other, rather than replacing one another.
+- `PLAN.md` logs the approved plan as part of the task log, maintaining a written trail from plan to implementation.
+- This protocol applies BEFORE Scope Guardian is technically active — plan-first prevents the plan from expanding, Scope Guardian prevents the touched files from expanding. Both complement each other, rather than replacing one another.
 
 ### The Micro-Task Exception (Fast Track Protocol)
-For very small and unambiguous tasks (Micro Tasks), the agent is **PERMITTED** to bypass the creation of `PLAN.md`, `scope_lock.json`, and pseudocode approval. The agent may execute the changes directly and provide a brief report.
+For very small and unambiguous tasks (Micro Tasks), the agent is **PERMITTED** to bypass the creation of `PLAN.md`, `scope_lock.json`, and plan approval. The agent may execute the changes directly and provide a brief report.
 
 **Specific Criteria for Permitted Micro Tasks:**
 1. **Minor Comments/Deletions:** Commenting out or deleting 1-3 lines of code.
@@ -305,7 +305,7 @@ For very small and unambiguous tasks (Micro Tasks), the agent is **PERMITTED** t
 - If the user confirms it is a Micro Task, the agent **MUST execute the task AND immediately add that task category to the Micro Task list above (in AGENTS.md)** so it becomes a standard in the future.
 
 **File Limits for Micro Tasks:**
-Although Micro Tasks are exempt from `PLAN.md`, `scope_lock.json`, and formal pseudocode, the agent **MUST ONLY touch files that are explicitly mentioned or clearly implied** by the user's instruction. If the agent feels the need to inspect/modify OTHER files outside of that (including for reasons like "cleaning up while at it" or "for consistency"), this automatically is **NO LONGER considered a Micro Task** — the agent MUST stop and ask the user first, or revert to the full protocol (`PLAN.md` + pseudocode) if it turns out to be more complex than initially expected.
+Although Micro Tasks are exempt from `PLAN.md`, `scope_lock.json`, and formal plan, the agent **MUST ONLY touch files that are explicitly mentioned or clearly implied** by the user's instruction. If the agent feels the need to inspect/modify OTHER files outside of that (including for reasons like "cleaning up while at it" or "for consistency"), this automatically is **NO LONGER considered a Micro Task** — the agent MUST stop and ask the user first, or revert to the full protocol (`PLAN.md` + plan approval) if it turns out to be more complex than initially expected.
 
 ## END, CONTINUE & KILL Command — Exit, Resume, and Abort Mechanism
 
@@ -317,7 +317,7 @@ When the user types END (in any message, no specific format needed), the agent M
 1. **Stop completely** from any ongoing execution — no new tool calls, no code writing/modifying, no follow-up questions of any kind.
 2. **Update the state files without asking the user for details:**
    - Update the active `PLAN.md` with a brief closing entry: label the current task status as `PAUSED` (not completed, not cancelled — a safe default that assumes nothing).
-   - Update `task_state.json` (if there is a task waiting for pseudocode approval) — save the exact condition as last seen, and add a `"paused_at": "<timestamp>"` field.
+   - Update `task_state.json` (if there is a task waiting for plan approval) — save the exact condition as last seen, and add a `"paused_at": "<timestamp>"` field.
    - DO NOT archive these files into `plan_archive/` — leave them in the project root, as the task is not necessarily finished.
    - Log a brief state summary into `PLAN.md`, including:
      - The task currently being worked on
@@ -340,7 +340,7 @@ When the user types CONTINUE in any session (whether the same session or a new c
    Lanjutkan dari sini, atau ada perubahan arahan?
    ```
 3. **Wait for user confirmation.** Do not immediately execute anything until the user confirms whether to proceed as originally planned or change direction — this is critical because the user might need time to recall the context before deciding.
-4. **After user confirmation,** update the status in `PLAN.md`/`task_state.json` from `PAUSED` back to the appropriate active status (e.g., `pseudocode_pending`, `approved`, etc. depending on the applicable protocol), and resume work as usual.
+4. **After user confirmation,** update the status in `PLAN.md`/`task_state.json` from `PAUSED` back to the appropriate active status (e.g., `plan_pending`, `approved`, etc. depending on the applicable protocol), and resume work as usual.
 
 ### Key Principles
 - **END never fails or delays** — no matter what is happening, as soon as the user types END, the agent stops immediately. There is no condition that makes the agent "finish this step first before stopping".
