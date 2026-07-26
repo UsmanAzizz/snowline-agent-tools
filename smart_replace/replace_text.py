@@ -92,7 +92,7 @@ def validate_syntax(filepath, content):
                 os.unlink(temp_path)
                 if result.returncode != 0:
                     # Kalau node error karena JSX tag (biasanya di React JS), fallback ke bracket check
-                    if "Unexpected token '<'" in result.stderr or "SyntaxError" in result.stderr:
+                    if "Unexpected token '<'" in result.stderr:
                         is_valid, err = check_brackets(content)
                         if not is_valid:
                             return False, err
