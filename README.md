@@ -39,7 +39,7 @@ The main goal of this project is to **save LLM token usage** by preventing the A
 
 ## 🏛️ Core Principles
 
-1. **Simple & Portable:** 100% pure Python (`os`, `re`, `json`). Requires Python 3.x to be installed, but NO heavy dependencies like `node_modules` or external executors like `ripgrep` are needed. Just copy the scripts to your project and run them.
+1. **Simple & Portable:** 100% pure Python (`os`, `re`, `json`), with the *only* exception being the Database Extractor which requires `pymysql`. Requires Python 3.x to be installed, but NO heavy dependencies like `node_modules` or external executors like `ripgrep` are needed. Just copy the scripts to your project and run them.
 2. **Token Efficient:** Terminal outputs are extremely concise. No useless long logs, only displaying crucial insights (`[FAIL]`, `[WARN]`) to prevent the AI from exhausting its context memory.
 3. **AI Prompt Bridge:** Each Python script doesn't just print data; it also returns a ready-to-use prompt sentence at the very last line, so users can instantly copy it to guide the AI.
 4. **Protection & Dry-Run:** Scripts that modify files MUST feature a dry-run preview mode by default and force the use of an `--apply` argument before actually altering files on disk.
@@ -88,13 +88,15 @@ The ecosystem is divided into three major categories: **Search & Modify**, **Aud
 - **Function:** The Knowledge Catalog builder. 
 - **Why it's better:** Automatically generates architectural maps inside `.agents/knowledge/` to give agents instant context.
 
-#### 9. Smart Tree Viewer (`smart_tree/scripts/tree_viewer.py`) [⚠️ UNVERIFIED - Pending Security Audit]
+#### 9. Smart Tree Viewer (`smart_tree/scripts/tree_viewer.py`)
 - **Function:** The compact directory mapper.
 - **Why it's better:** Generates a `.gitignore`-aware visual directory tree, avoiding the verbosity of standard `ls` or JSON-based directory listing tools.
 
-#### 10. Database Extractor (`db_extractor/scripts/extractor.py`) [⚠️ UNVERIFIED - Pending Security Audit]
+#### 10. Database Extractor (`db_extractor/scripts/extractor.py`)
+- **Dependency:** Requires `pymysql` (not pure standard library — install via `pip install pymysql`).
 - **Function:** Database Schema Extractor.
 - **Why it's better:** Safely parses `.env` to connect to DBs (MySQL/MariaDB) or statically analyzes code for NoSQL schemas, providing full table/column context without running raw SQL queries manually.
+- **Security Warning:** The extracted schema may contain sensitive column names (e.g. `password`, `token`). Do not paste this output into public AI chats or store it in publicly accessible documentation without masking sensitive columns first.
 
 #### 11. Scope Guardian v2 (`scope_guardian/scripts/scope_check.py`)
 - **Function:** Hybrid File Validation.
