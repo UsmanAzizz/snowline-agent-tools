@@ -38,6 +38,7 @@ def check_scope(target_file):
     else:
         risk_label = "Low — single file, cosmetic scope"
     
+
     # 1. Check exact matches
     for allowed in allowed_files:
         if target_file.endswith(allowed) or allowed.endswith(target_file) or target_file == allowed:
