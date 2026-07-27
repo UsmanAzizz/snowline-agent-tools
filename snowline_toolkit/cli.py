@@ -4,6 +4,7 @@ import argparse
 import filecmp
 from datetime import datetime
 from pathlib import Path
+import sysconfig
 
 def is_symlink_or_junction(path):
     if not os.path.exists(path):
@@ -19,6 +20,53 @@ def is_symlink_or_junction(path):
     except AttributeError:
         pass
     return False
+
+def check_and_update_path():
+    if os.name != 'nt':
+        return
+    
+    scripts_path = sysconfig.get_path('scripts')
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0, winreg.KEY_READ | winreg.KEY_WRITE)
+        current_path, _ = winreg.QueryValueEx(key, "Path")
+        
+        if scripts_path.lower() not in current_path.lower():
+            print(f"\n[INFO] Menambahkan {scripts_path} ke User PATH...")
+            new_path = f"{scripts_path};{current_path}"
+            winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_path)
+            print("[SUCCESS] PATH berhasil diupdate. Harap RESTART terminal Anda agar perintah 'snowline' dikenali tanpa awalan.")
+        winreg.CloseKey(key)
+    except Exception as e:
+        print(f"[WARN] Gagal mengecek/mengupdate PATH otomatis: {e}")
+
+def check_and_scaffold_agents_md(dry_run: bool):
+    cwd = Path(os.getcwd())
+    agents_md = cwd / ".agents" / "AGENTS.md"
+    template = Path(__file__).parent / "templates" / "AGENTS_TEMPLATE.md"
+    
+    if not template.exists():
+        return
+
+    needs_update = False
+    if not agents_md.exists():
+        needs_update = True
+    else:
+        try:
+            with open(agents_md, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                if len(lines) < 10:
+                    needs_update = True
+        except:
+            needs_update = True
+            
+    if needs_update:
+        if dry_run:
+            print(f"[DRY-RUN] Would auto-scaffold {agents_md.relative_to(cwd)} (file missing or too short)")
+        else:
+            agents_md.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(template, agents_md)
+            print(f"[INFO] Auto-scaffolded {agents_md.relative_to(cwd)} from template.")
 
 def init_snowline(dry_run: bool = False):
     current_dir = Path(__file__).parent
@@ -76,6 +124,8 @@ def init_snowline(dry_run: bool = False):
         print(f"\n[DRY-RUN] Summary: Would create {dir_count} directories and {file_count} files.")
     else:
         print(f"\n[SUCCESS] Snowline initialized successfully! ({file_count} files, {dir_count} directories)")
+        
+    check_and_scaffold_agents_md(dry_run)
 
 def update_snowline(dry_run: bool = False):
     target_dir = Path(os.getcwd()) / ".agents" / "skills"
@@ -209,6 +259,8 @@ def uninstall_snowline(dry_run: bool = False):
     print("\n[SUCCESS] Snowline uninstalled successfully.")
 
 def main():
+    check_and_update_path()
+    
     parser = argparse.ArgumentParser(description="Manage Snowline Agent Ecosystem in the current project.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
