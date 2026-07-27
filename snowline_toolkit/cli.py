@@ -43,6 +43,15 @@ def check_and_update_path(dry_run: bool):
                 if ans.lower() == 'y':
                     new_path = f"{scripts_path};{current_path}"
                     winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_path)
+                    
+                    try:
+                        import ctypes
+                        HWND_BROADCAST = 0xFFFF
+                        WM_SETTINGCHANGE = 0x001A
+                        ctypes.windll.user32.SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, "Environment", 0x0002, 1000, None)
+                    except:
+                        pass
+                        
                     print("[SUCCESS] PATH berhasil diupdate. Harap RESTART terminal Anda agar perintah 'snowline' dikenali tanpa awalan.")
                 else:
                     print("[INFO] Skipped PATH modification. You must add it manually.")
