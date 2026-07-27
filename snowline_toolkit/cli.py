@@ -30,8 +30,10 @@ def check_and_update_path(dry_run: bool):
         import winreg
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0, winreg.KEY_READ | winreg.KEY_WRITE)
         current_path, _ = winreg.QueryValueEx(key, "Path")
+        normalized_target = os.path.normpath(scripts_path).lower()
+        normalized_paths = [os.path.normpath(p.strip()).lower() for p in current_path.split(';') if p.strip()]
         
-        if scripts_path.lower() not in current_path.lower():
+        if normalized_target not in normalized_paths:
             if dry_run:
                 print(f"[DRY-RUN] Would prompt to add '{scripts_path}' to your User PATH Registry.")
             else:
