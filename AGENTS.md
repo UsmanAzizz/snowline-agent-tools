@@ -1,4 +1,4 @@
-﻿# Agent Rules Template
+# Agent Rules Template
 
 ## 🔗 Auto-Check Symlink for Skill Tools
 
@@ -27,7 +27,8 @@ When starting a session in any project, evaluate the completeness of the \.agent
 4. **\PLAN.md\**: Live progress tracker in the project root.
 
 **Action Flow:**
-1. Check the project root for these 4 components.
-2. If any are missing, ask the user using this format:
+1. Check the project root for these 4 components. 
+   - **CRITICAL**: For `AGENTS.md` and `PLAN.md`, DO NOT just check if the file exists. You MUST check its contents (e.g. using Selective Reader or `view_file`). If the file has fewer than 10 lines or only contains default boilerplate, you MUST treat it as MISSING/INCOMPLETE.
+2. If any are missing or incomplete, ask the user using this format:
    > [INFO] Ekosistem .agents di project ini belum lengkap. Ingin saya setup semuanya (Symlink Tools, Aturan Global, Peta Arsitektur, dan Tracker) sekarang?
 3. Once the user approves, automatically create the folders, build the symlink, run Context Mapper to generate the knowledge files, and scaffold the \PLAN.md\ and \AGENTS.md\ files.
