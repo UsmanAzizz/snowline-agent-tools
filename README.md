@@ -10,26 +10,38 @@ To strictly prevent Supply-Chain Attacks, this toolkit does NOT support automate
 
 To use these tools in your project, install the package directly from GitHub using `pip`, then run the initializer:
 
-1. **Install via PIP:**
+1. **Clone the repository:**
    ```bash
-   pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git
+   git clone https://github.com/UsmanAzizz/snowline-agent-tools.git
+   cd snowline-agent-tools
    ```
 
-2. **Initialize in your project:**
-   Run the initialization command. By default, it runs a **dry-run** to show you what files will be created without modifying your disk:
-   ```bash
-   snowline-init
+2. **Run the Installer:**
+   This installer will automatically install the tools via `pip` and properly register the `snowline` command to your environment `PATH` (on Windows).
+   
+   **For Windows (PowerShell):**
+   ```powershell
+   .\install.ps1
    ```
-   > [!NOTE]
-   > If you get a "command not found" error due to your Python Scripts PATH, you can use `python -m snowline_toolkit.cli` instead.
+   *(Note: Remember to restart your terminal after this if it added a new PATH variable).*
 
-3. **Apply the changes:**
+   **For Linux/Mac:**
+   ```bash
+   bash install.sh
+   ```
+
+3. **Initialize in your project:**
+   Navigate back to your project directory and run the initialization command. Since this is your first time and your PATH might not be fully updated yet in the current terminal, use the Python module directly. By default, it runs a **dry-run** to show you what files will be created without modifying your disk:
+   ```bash
+   python -m snowline_toolkit.cli init
+   ```
+   *(Note: This command will also automatically register `snowline` to your PATH. After restarting your terminal, you can just type `snowline`).*
+
+4. **Apply the changes:**
    Once you've verified the dry-run output, apply the changes to safely copy the tools into your `.agents/skills/` directory:
    ```bash
-   snowline-init --apply
+   python -m snowline_toolkit.cli init --apply
    ```
-   > [!NOTE]
-   > Alternatively, you can use `python -m snowline_toolkit.cli --apply` if `snowline-init` is not recognized.
 
 ---
 
