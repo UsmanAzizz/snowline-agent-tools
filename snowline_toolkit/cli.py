@@ -291,10 +291,13 @@ def main():
     elif args.command == "uninstall":
         uninstall_snowline(dry_run=not args.apply)
     else:
-        if unknown and unknown[0] == "--apply":
-            init_snowline(dry_run=False)
-        else:
-            init_snowline(dry_run=not args.apply)
+        is_apply = False
+        if hasattr(args, 'apply'):
+            is_apply = args.apply
+        elif unknown and "--apply" in unknown:
+            is_apply = True
+            
+        init_snowline(dry_run=not is_apply)
 
 if __name__ == "__main__":
     main()
