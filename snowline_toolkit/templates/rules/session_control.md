@@ -45,3 +45,15 @@ When the user types KILL (in any message, no specific format needed), the agent 
 3. **Reply to the user with EXACTLY ONE short line of confirmation, nothing more:**
    `[KILLED] Semua plan dan task saat ini telah dihapus. Siap menerima instruksi baru.`
 
+
+
+## Task Closure (Mandatory Verification)
+Setiap kali agen melaporkan bahwa sebuah tugas utama telah selesai secara keseluruhan (menggunakan tag **🔵 [DONE]** final, bukan laporan progres parsial), agen WAJIB melakukan penutupan status (Task Closure) dalam langkah eksekusi yang sama, dengan aturan:
+1. Perbarui file PLAN.md menjadi status [COMPLETED].
+2. Pindahkan (arsipkan) PLAN.md ke dalam folder plan_archive/PLAN_<date>_<task_name>.md.
+3. Hapus file 	ask_state.json dari direktori *root*.
+
+Sebagai mekanisme pengingat *anti-lupa*, agen **WAJIB** menyertakan *checklist* penutupan ini di akhir laporan [DONE] final tersebut:
+- [x] Status PLAN.md diupdate ke completed
+- [x] PLAN.md dipindahkan ke plan_archive/
+- [x] 	ask_state.json dihapus

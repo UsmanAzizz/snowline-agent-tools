@@ -1,2 +1,3 @@
 [console_scripts]
+snowline = snowline_toolkit.cli:main
 snowline-init = snowline_toolkit.cli:main

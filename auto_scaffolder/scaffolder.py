@@ -173,7 +173,7 @@ def generate_scaffold(file_type, name, target_dir, apply_mode):
         print("--- Content Preview ---")
         print(content)
         print("=" * 50)
-        print("\nY' PROMPT UNTUK AI (Copy-Paste ini):")
+        print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
         print(f'"Pratinjau berhasil. Silakan jalankan ulang perintah dengan tambahan flag --apply untuk membuat file {filename}."')
     else:
         print(f"[INFO] Risk terdeteksi sebagai {risk_label}")

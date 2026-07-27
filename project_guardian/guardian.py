@@ -4,6 +4,8 @@ import sys
 import json
 import subprocess
 import argparse
+import hashlib
+import time
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -11,30 +13,23 @@ if sys.stdout.encoding != 'utf-8':
 exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history'}
 js_py_exts = {'.js', '.jsx', '.ts', '.tsx', '.py'}
 MAX_FILE_SIZE = 500 * 1024
-
 target_dir = os.getcwd()
 
-total_fails = 0
-total_warns = 0
+def get_dir_signature():
+    mtimes = []
+    for root, dirs, files in os.walk(target_dir):
+        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        for f in files:
+            filepath = os.path.join(root, f)
+            try:
+                if os.path.getsize(filepath) <= MAX_FILE_SIZE:
+                    mtimes.append(str(os.path.getmtime(filepath)))
+            except Exception:
+                pass
+    return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()
 
-def print_fail(msg, summary_mode):
-    global total_fails
-    total_fails += 1
-    if not summary_mode:
-        print(f"[FAIL] {msg}")
-
-def print_warn(msg, summary_mode):
-    global total_warns
-    total_warns += 1
-    if not summary_mode:
-        print(f"[WARN] {msg}")
-
-def print_info(msg, summary_mode):
-    if not summary_mode:
-        print(f"[INFO] {msg}")
-
-def scan_secrets(summary_mode):
-    if not summary_mode: print("\n--- MODULE 1: SECRET SCANNER ---")
+def scan_secrets():
+    fails = []
     secret_patterns = [
         r'(?i)(password\s*[:=]\s*[\'"].+[\'"])',
         r'(?i)(api_key\s*[:=]\s*[\'"].+[\'"])',
@@ -43,50 +38,47 @@ def scan_secrets(summary_mode):
         r'(mysql://.+)',
         r'(Bearer\s+[A-Za-z0-9\-\._~+/]+=*)'
     ]
-    compiled_patterns = [re.compile(p) for p in secret_patterns]
-    
+    compiled = [re.compile(p) for p in secret_patterns]
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
             if file.startswith('.env'): continue
             filepath = os.path.join(root, file)
             if os.path.getsize(filepath) > MAX_FILE_SIZE: continue
-            
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     for line_num, line in enumerate(f, 1):
-                        for pattern in compiled_patterns:
+                        for pattern in compiled:
                             if pattern.search(line):
                                 rel_path = os.path.relpath(filepath, target_dir)
-                                print_fail(f"Potential credential leak in {rel_path} line {line_num}", summary_mode)
-            except UnicodeDecodeError:
-                pass
+                                fails.append(f"Potential credential leak in {rel_path} line {line_num}")
+            except UnicodeDecodeError: pass
+    return fails
 
-def check_env_gitignore(summary_mode):
-    if not summary_mode: print("\n--- MODULE 2: ENV & GITIGNORE VERIFIER ---")
+def check_env_gitignore():
+    fails = []
+    warns = []
     gitignore_path = os.path.join(target_dir, '.gitignore')
-    ignored_lines = set()
+    ignored = set()
     if os.path.exists(gitignore_path):
         with open(gitignore_path, 'r', encoding='utf-8') as f:
-            ignored_lines = set(line.strip() for line in f if line.strip() and not line.startswith('#'))
+            ignored = set(line.strip() for line in f if line.strip() and not line.startswith('#'))
     
-    env_files = [f for f in os.listdir(target_dir) if f.startswith('.env') and os.path.isfile(os.path.join(target_dir, f))]
-    for env_file in env_files:
-        if env_file == '.env.example': continue
-        if env_file not in ignored_lines and f"/{env_file}" not in ignored_lines and "*.env" not in ignored_lines and ".env*" not in ignored_lines:
-            print_fail(f"File {env_file} is missing from .gitignore!", summary_mode)
+    for f in os.listdir(target_dir):
+        if f.startswith('.env') and os.path.isfile(os.path.join(target_dir, f)) and f != '.env.example':
+            if f not in ignored and f"/{f}" not in ignored and "*.env" not in ignored and ".env*" not in ignored:
+                fails.append(f"File {f} is missing from .gitignore!")
     
-    env_example_path = os.path.join(target_dir, '.env.example')
-    example_keys = set()
-    if os.path.exists(env_example_path):
-        with open(env_example_path, 'r', encoding='utf-8') as f:
+    env_ex = os.path.join(target_dir, '.env.example')
+    ex_keys = set()
+    if os.path.exists(env_ex):
+        with open(env_ex, 'r', encoding='utf-8') as f:
             for line in f:
                 if '=' in line and not line.startswith('#'):
-                    key = line.split('=')[0].strip()
-                    example_keys.add(key)
+                    ex_keys.add(line.split('=')[0].strip())
                     
     used_keys = set()
-    process_env_pattern = re.compile(r'process\.env\.([A-Za-z0-9_]+)')
+    penv_pattern = re.compile(r'process\.env\.([A-Za-z0-9_]+)')
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
@@ -96,16 +88,16 @@ def check_env_gitignore(summary_mode):
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     for line in f:
-                        for m in process_env_pattern.findall(line):
-                            used_keys.add(m)
+                        for m in penv_pattern.findall(line): used_keys.add(m)
             except: pass
             
     for key in used_keys:
-        if key not in example_keys and key != 'NODE_ENV':
-            print_warn(f"process.env.{key} is used, but missing from .env.example", summary_mode)
+        if key not in ex_keys and key != 'NODE_ENV':
+            warns.append(f"process.env.{key} is used, but missing from .env.example")
+    return fails, warns
 
-def check_physical_imports(summary_mode):
-    if not summary_mode: print("\n--- MODULE 3: PHYSICAL IMPORT CHECKER ---")
+def check_physical_imports():
+    warns = []
     import_pattern = re.compile(r'(?:import\s+.*?from\s+|require\()[\'"]([^\'"]+)[\'"]')
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
@@ -117,33 +109,33 @@ def check_physical_imports(summary_mode):
                 with open(filepath, 'r', encoding='utf-8') as f:
                     for line_num, line in enumerate(f, 1):
                         for match in import_pattern.findall(line):
-                            import_path = match
-                            if import_path.startswith('.'):
+                            if match.startswith('.'):
                                 dir_path = os.path.dirname(filepath)
-                                target_p = os.path.normpath(os.path.join(dir_path, import_path))
+                                target_p = os.path.normpath(os.path.join(dir_path, match))
                                 found = False
                                 for suffix in ['', '.js', '.jsx', '.ts', '.tsx', '/index.js', '/index.jsx']:
                                     if os.path.exists(target_p + suffix):
                                         found = True
                                         break
                                 if not found:
-                                    rel_source = os.path.relpath(filepath, target_dir)
-                                    print_warn(f"Relative import '{import_path}' at {rel_source}:{line_num} does not exist physically!", summary_mode)
+                                    rel = os.path.relpath(filepath, target_dir)
+                                    warns.append(f"Relative import '{match}' at {rel}:{line_num} does not exist physically!")
             except: pass
+    return warns
 
-def check_dependencies(summary_mode):
-    if not summary_mode: print("\n--- MODULE 4: DEPENDENCIES & UNUSED PACKAGES ---")
-    package_json_path = os.path.join(target_dir, 'package.json')
-    if not os.path.exists(package_json_path):
-        return
+def check_dependencies():
+    warns = []
+    fails = []
+    pkg_path = os.path.join(target_dir, 'package.json')
+    if not os.path.exists(pkg_path): return warns, fails
         
     try:
-        with open(package_json_path, 'r', encoding='utf-8') as f:
+        with open(pkg_path, 'r', encoding='utf-8') as f:
             pkg = json.load(f)
-    except: return
+    except: return warns, fails
         
     deps = list(pkg.get('dependencies', {}).keys())
-    used_deps = set()
+    used = set()
     import_pattern = re.compile(r'(?:import\s+.*?from\s+|require\()[\'"]([^\'"]+)[\'"]')
     
     for root, dirs, files in os.walk(target_dir):
@@ -159,16 +151,18 @@ def check_dependencies(summary_mode):
                             pkg_name = match.split('/')[0]
                             if pkg_name.startswith('@'):
                                 parts = match.split('/')
-                                if len(parts) > 1:
-                                    pkg_name = f"{parts[0]}/{parts[1]}"
-                            used_deps.add(pkg_name)
+                                if len(parts) > 1: pkg_name = f"{parts[0]}/{parts[1]}"
+                            used.add(pkg_name)
             except: pass
             
     for dep in deps:
-        if dep not in used_deps and not dep.startswith('@vite') and not dep.startswith('@babel') and not dep.startswith('react'):
-            print_warn(f"Package '{dep}' is installed but appears unused.", summary_mode)
+        if dep not in used and not dep.startswith('@vite') and not dep.startswith('@babel') and not dep.startswith('react'):
+            warns.append(f"Package '{dep}' is installed but appears unused.")
+            
+    return warns, fails
 
-    if not summary_mode: print("\nRunning npm audit (this may take a while)...")
+def run_npm_audit():
+    fails = []
     try:
         result = subprocess.run('npm audit --json', shell=True, capture_output=True, text=True, check=False, timeout=15)
         try:
@@ -177,22 +171,87 @@ def check_dependencies(summary_mode):
             high = vulns.get('high', 0)
             critical = vulns.get('critical', 0)
             if high > 0 or critical > 0:
-                print_fail(f"npm audit detected {high} HIGH and {critical} CRITICAL vulnerabilities!", summary_mode)
+                fails.append(f"npm audit detected {high} HIGH and {critical} CRITICAL vulnerabilities!")
         except: pass
     except: pass
+    return fails
+
+def get_npm_audit_signature():
+    pkg_lock = os.path.join(target_dir, 'package-lock.json')
+    mtime = os.path.getmtime(pkg_lock) if os.path.exists(pkg_lock) else 0
+    return f"{mtime}_{time.time() // 86400}"
+
+def print_section(title, fails, warns, summary_mode):
+    if not summary_mode:
+        print(f"\n--- {title} ---")
+        for f in fails: print(f"[FAIL] {f}")
+        for w in warns: print(f"[WARN] {w}")
 
 def main():
     parser = argparse.ArgumentParser(description="Project Guardian")
     parser.add_argument("--summary", action="store_true", help="Only show final score")
     args = parser.parse_args()
-
-    if not args.summary:
-        print("🛡️ PROJECT GUARDIAN AUDITOR 🛡️")
+    
+    global target_dir
+    target_dir = os.path.abspath(os.getcwd())
+    cache_file = os.path.join(target_dir, '.agents', 'session_cache.json')
+    dir_sig = get_dir_signature()
+    cache_key = f"guardian_{hashlib.md5(target_dir.encode()).hexdigest()}"
+    audit_sig = get_npm_audit_signature()
+    
+    cache_data = {}
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f: cache_data = json.load(f)
+        except: pass
         
-    scan_secrets(args.summary)
-    check_env_gitignore(args.summary)
-    check_physical_imports(args.summary)
-    check_dependencies(args.summary)
+    cached_data = cache_data.get(cache_key, {})
+    
+    if cached_data.get('signature') == dir_sig:
+        print("[INFO] Menggunakan hasil cache untuk scanning file (tidak ada file berubah)")
+        sec_fails = cached_data.get('sec_fails', [])
+        env_fails, env_warns = cached_data.get('env_fails', []), cached_data.get('env_warns', [])
+        imp_warns = cached_data.get('imp_warns', [])
+        dep_warns, dep_fails = cached_data.get('dep_warns', []), cached_data.get('dep_fails', [])
+    else:
+        sec_fails = scan_secrets()
+        env_fails, env_warns = check_env_gitignore()
+        imp_warns = check_physical_imports()
+        dep_warns, dep_fails = check_dependencies()
+        cached_data.update({
+            'signature': dir_sig,
+            'sec_fails': sec_fails, 'env_fails': env_fails, 'env_warns': env_warns,
+            'imp_warns': imp_warns, 'dep_warns': dep_warns, 'dep_fails': dep_fails
+        })
+        
+    if cached_data.get('audit_signature') == audit_sig:
+        print("[INFO] Menggunakan hasil cache untuk npm audit (< 24 jam dan package-lock sama)")
+        audit_fails = cached_data.get('audit_fails', [])
+    else:
+        if not args.summary: print("\nRunning npm audit (this may take a while)...")
+        audit_fails = run_npm_audit()
+        cached_data.update({
+            'audit_signature': audit_sig,
+            'audit_fails': audit_fails
+        })
+        
+    cache_data[cache_key] = cached_data
+    try:
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        with open(cache_file, 'w', encoding='utf-8') as f: json.dump(cache_data, f, indent=2)
+    except: pass
+    
+    if not args.summary: print("🛡️ PROJECT GUARDIAN AUDITOR 🛡️")
+    
+    print_section("MODULE 1: SECRET SCANNER", sec_fails, [], args.summary)
+    print_section("MODULE 2: ENV & GITIGNORE VERIFIER", env_fails, env_warns, args.summary)
+    print_section("MODULE 3: PHYSICAL IMPORT CHECKER", [], imp_warns, args.summary)
+    
+    all_dep_fails = dep_fails + audit_fails
+    print_section("MODULE 4: DEPENDENCIES & UNUSED PACKAGES", all_dep_fails, dep_warns, args.summary)
+    
+    total_fails = len(sec_fails) + len(env_fails) + len(all_dep_fails)
+    total_warns = len(env_warns) + len(imp_warns) + len(dep_warns)
     
     if args.summary:
         print(f"🛡️ RINGKASAN GUARDIAN: 🔴 {total_fails} FAIL | 🟡 {total_warns} WARN | 🟢 Sektor lainnya Aman.")

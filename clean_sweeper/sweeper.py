@@ -1,12 +1,27 @@
 import os
 import re
 import sys
+import json
+import hashlib
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-MAX_FILE_SIZE = 500 * 1024 # 500 KB
+MAX_FILE_SIZE = 500 * 1024
 ignore_dirs = {'node_modules', '.git', 'build', 'dist', 'uploads', 'public', '.vscode', '.history', 'quarantine', '.native_browser', '.exambro_android', '.plan', '.skills', '.backup_replace', '.agents'}
+
+def get_dir_signature(target):
+    mtimes = []
+    for root, dirs, files in os.walk(target):
+        dirs[:] = [d for d in dirs if d not in ignore_dirs]
+        for f in files:
+            filepath = os.path.join(root, f)
+            try:
+                if os.path.getsize(filepath) <= MAX_FILE_SIZE:
+                    mtimes.append(str(os.path.getmtime(filepath)))
+            except Exception:
+                pass
+    return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()
 
 def sweep(target):
     residue_files = []
@@ -61,8 +76,39 @@ def main():
         print("[FAIL] Usage: python sweeper.py <target_directory>")
         sys.exit(1)
     
-    target = sys.argv[1]
-    residue_files, todo_count, comment_blocks, scanned_files = sweep(target)
+    target = os.path.abspath(sys.argv[1])
+    cache_file = os.path.join(target, '.agents', 'session_cache.json')
+    dir_sig = get_dir_signature(target)
+    cache_key = f"sweeper_{hashlib.md5(target.encode()).hexdigest()}"
+    
+    cache_data = {}
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                cache_data = json.load(f)
+        except: pass
+        
+    if cache_key in cache_data and cache_data[cache_key].get('signature') == dir_sig:
+        print("[INFO] Menggunakan hasil cache dari session_cache.json (tidak ada file yang berubah)")
+        cached = cache_data[cache_key]
+        residue_files = cached['residue_files']
+        todo_count = cached['todo_count']
+        comment_blocks = cached['comment_blocks']
+        scanned_files = cached['scanned_files']
+    else:
+        residue_files, todo_count, comment_blocks, scanned_files = sweep(target)
+        cache_data[cache_key] = {
+            'signature': dir_sig,
+            'residue_files': residue_files,
+            'todo_count': todo_count,
+            'comment_blocks': comment_blocks,
+            'scanned_files': scanned_files
+        }
+        try:
+            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+            with open(cache_file, 'w', encoding='utf-8') as f:
+                json.dump(cache_data, f, indent=2)
+        except: pass
     
     print("🧹 CLEAN SWEEPER REPORT")
     print("=" * 50)
