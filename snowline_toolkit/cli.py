@@ -21,7 +21,7 @@ def is_symlink_or_junction(path):
         pass
     return False
 
-def check_and_update_path():
+def check_and_update_path(dry_run: bool):
     if os.name != 'nt':
         return
     
@@ -32,10 +32,18 @@ def check_and_update_path():
         current_path, _ = winreg.QueryValueEx(key, "Path")
         
         if scripts_path.lower() not in current_path.lower():
-            print(f"\n[INFO] Menambahkan {scripts_path} ke User PATH...")
-            new_path = f"{scripts_path};{current_path}"
-            winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_path)
-            print("[SUCCESS] PATH berhasil diupdate. Harap RESTART terminal Anda agar perintah 'snowline' dikenali tanpa awalan.")
+            if dry_run:
+                print(f"[DRY-RUN] Would prompt to add '{scripts_path}' to your User PATH Registry.")
+            else:
+                print(f"\n[WARN] The directory '{scripts_path}' is NOT in your User PATH.")
+                print("Without this, the 'snowline' command will not be recognized by your terminal.")
+                ans = input("Do you want to automatically add it to your User PATH Registry now? (y/n): ")
+                if ans.lower() == 'y':
+                    new_path = f"{scripts_path};{current_path}"
+                    winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, new_path)
+                    print("[SUCCESS] PATH berhasil diupdate. Harap RESTART terminal Anda agar perintah 'snowline' dikenali tanpa awalan.")
+                else:
+                    print("[INFO] Skipped PATH modification. You must add it manually.")
         winreg.CloseKey(key)
     except Exception as e:
         print(f"[WARN] Gagal mengecek/mengupdate PATH otomatis: {e}")
@@ -126,6 +134,7 @@ def init_snowline(dry_run: bool = False):
         print(f"\n[SUCCESS] Snowline initialized successfully! ({file_count} files, {dir_count} directories)")
         
     check_and_scaffold_agents_md(dry_run)
+    check_and_update_path(dry_run)
 
 def update_snowline(dry_run: bool = False):
     target_dir = Path(os.getcwd()) / ".agents" / "skills"
@@ -259,8 +268,6 @@ def uninstall_snowline(dry_run: bool = False):
     print("\n[SUCCESS] Snowline uninstalled successfully.")
 
 def main():
-    check_and_update_path()
-    
     parser = argparse.ArgumentParser(description="Manage Snowline Agent Ecosystem in the current project.")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
