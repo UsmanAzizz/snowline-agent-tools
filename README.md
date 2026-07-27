@@ -10,34 +10,19 @@ To strictly prevent Supply-Chain Attacks, this toolkit does NOT support automate
 
 To use these tools in your project, install the package directly from GitHub using `pip`, then run the initializer:
 
-1. **Clone the repository:**
+1. **Install via PIP:**
    ```bash
-   git clone https://github.com/UsmanAzizz/snowline-agent-tools.git
-   cd snowline-agent-tools
+   pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git
    ```
 
-2. **Run the Installer:**
-   This installer will automatically install the tools via `pip` and properly register the `snowline` command to your environment `PATH` (on Windows).
-   
-   **For Windows (PowerShell):**
-   ```powershell
-   .\install.ps1
-   ```
-   *(Note: Remember to restart your terminal after this if it added a new PATH variable).*
-
-   **For Linux/Mac:**
-   ```bash
-   bash install.sh
-   ```
-
-3. **Initialize in your project:**
+2. **Initialize in your project:**
    Navigate back to your project directory and run the initialization command. Since this is your first time and your PATH might not be fully updated yet in the current terminal, use the Python module directly. By default, it runs a **dry-run** to show you what files will be created without modifying your disk:
    ```bash
    python -m snowline_toolkit.cli init
    ```
    *(Note: This command will also automatically register `snowline` to your PATH. After restarting your terminal, you can just type `snowline`).*
 
-4. **Apply the changes:**
+3. **Apply the changes:**
    Once you've verified the dry-run output, apply the changes to safely copy the tools into your `.agents/skills/` directory:
    ```bash
    python -m snowline_toolkit.cli init --apply
