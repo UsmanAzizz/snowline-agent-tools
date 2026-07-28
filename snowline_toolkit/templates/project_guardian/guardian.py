@@ -4,6 +4,8 @@ import sys
 import json
 import subprocess
 import argparse
+import hashlib
+import time
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -11,82 +13,97 @@ if sys.stdout.encoding != 'utf-8':
 exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history'}
 js_py_exts = {'.js', '.jsx', '.ts', '.tsx', '.py'}
 MAX_FILE_SIZE = 500 * 1024
-
 target_dir = os.getcwd()
 
-total_fails = 0
-total_warns = 0
+# Severity levels
+SEVERITY = {
+    'CRITICAL': 'CRITICAL',  # Security vulnerabilities, exposed credentials
+    'HIGH': 'HIGH',          # Missing .gitignore, broken imports
+    'MEDIUM': 'MEDIUM',      # Unused packages, missing env keys
+    'LOW': 'LOW',            # Minor issues
+    'INFO': 'INFO'           # Informational only
+}
 
-def print_fail(msg, summary_mode):
-    global total_fails
-    total_fails += 1
-    if not summary_mode:
-        print(f"[FAIL] {msg}")
+def get_dir_signature():
+    mtimes = []
+    for root, dirs, files in os.walk(target_dir):
+        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        for f in files:
+            filepath = os.path.join(root, f)
+            try:
+                if os.path.getsize(filepath) <= MAX_FILE_SIZE:
+                    mtimes.append(str(os.path.getmtime(filepath)))
+            except Exception:
+                pass
+    return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()
 
-def print_warn(msg, summary_mode):
-    global total_warns
-    total_warns += 1
-    if not summary_mode:
-        print(f"[WARN] {msg}")
-
-def print_info(msg, summary_mode):
-    if not summary_mode:
-        print(f"[INFO] {msg}")
-
-def scan_secrets(summary_mode):
-    if not summary_mode: print("\n--- MODULE 1: SECRET SCANNER ---")
+def scan_secrets():
+    """Scan for exposed credentials and secrets."""
+    findings = []
     secret_patterns = [
-        r'(?i)(password\s*[:=]\s*[\'"].+[\'"])',
-        r'(?i)(api_key\s*[:=]\s*[\'"].+[\'"])',
-        r'(?i)(secret\s*[:=]\s*[\'"].+[\'"])',
-        r'(mongodb\+srv://.+)',
-        r'(mysql://.+)',
-        r'(Bearer\s+[A-Za-z0-9\-\._~+/]+=*)'
+        (r'(?i)(password\s*[:=]\s*[\'"].+[\'"])', 'Hardcoded password'),
+        (r'(?i)(api_key\s*[:=]\s*[\'"].+[\'"])', 'Hardcoded API key'),
+        (r'(?i)(secret\s*[:=]\s*[\'"].+[\'"])', 'Hardcoded secret'),
+        (r'(mongodb\+srv://.+)', 'MongoDB connection string'),
+        (r'(mysql://.+)', 'MySQL connection string'),
+        (r'(Bearer\s+[A-Za-z0-9\-\._~+/]+=*)', 'Bearer token')
     ]
-    compiled_patterns = [re.compile(p) for p in secret_patterns]
-    
+    compiled = [(re.compile(p), desc) for p, desc in secret_patterns]
+
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
             if file.startswith('.env'): continue
             filepath = os.path.join(root, file)
             if os.path.getsize(filepath) > MAX_FILE_SIZE: continue
-            
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     for line_num, line in enumerate(f, 1):
-                        for pattern in compiled_patterns:
+                        for pattern, desc in compiled:
                             if pattern.search(line):
                                 rel_path = os.path.relpath(filepath, target_dir)
-                                print_fail(f"Potential credential leak in {rel_path} line {line_num}", summary_mode)
-            except UnicodeDecodeError:
-                pass
+                                findings.append({
+                                    'severity': 'CRITICAL',
+                                    'module': 'SECRET_SCANNER',
+                                    'file': rel_path,
+                                    'line': line_num,
+                                    'issue': desc,
+                                    'snippet': line.strip()[:100]
+                                })
+            except UnicodeDecodeError: pass
+    return findings
 
-def check_env_gitignore(summary_mode):
-    if not summary_mode: print("\n--- MODULE 2: ENV & GITIGNORE VERIFIER ---")
+def check_env_gitignore():
+    """Check .gitignore coverage for env files."""
+    fails = []
+    warns = []
+
     gitignore_path = os.path.join(target_dir, '.gitignore')
-    ignored_lines = set()
+    ignored = set()
     if os.path.exists(gitignore_path):
         with open(gitignore_path, 'r', encoding='utf-8') as f:
-            ignored_lines = set(line.strip() for line in f if line.strip() and not line.startswith('#'))
-    
-    env_files = [f for f in os.listdir(target_dir) if f.startswith('.env') and os.path.isfile(os.path.join(target_dir, f))]
-    for env_file in env_files:
-        if env_file == '.env.example': continue
-        if env_file not in ignored_lines and f"/{env_file}" not in ignored_lines and "*.env" not in ignored_lines and ".env*" not in ignored_lines:
-            print_fail(f"File {env_file} is missing from .gitignore!", summary_mode)
-    
-    env_example_path = os.path.join(target_dir, '.env.example')
-    example_keys = set()
-    if os.path.exists(env_example_path):
-        with open(env_example_path, 'r', encoding='utf-8') as f:
+            ignored = set(line.strip() for line in f if line.strip() and not line.startswith('#'))
+
+    for f in os.listdir(target_dir):
+        if f.startswith('.env') and os.path.isfile(os.path.join(target_dir, f)) and f != '.env.example':
+            if f not in ignored and f"/{f}" not in ignored and "*.env" not in ignored and ".env*" not in ignored:
+                fails.append({
+                    'severity': 'HIGH',
+                    'module': 'ENV_GITIGNORE',
+                    'file': f,
+                    'issue': f'File {f} is missing from .gitignore'
+                })
+
+    env_ex = os.path.join(target_dir, '.env.example')
+    ex_keys = set()
+    if os.path.exists(env_ex):
+        with open(env_ex, 'r', encoding='utf-8') as f:
             for line in f:
                 if '=' in line and not line.startswith('#'):
-                    key = line.split('=')[0].strip()
-                    example_keys.add(key)
-                    
+                    ex_keys.add(line.split('=')[0].strip())
+
     used_keys = set()
-    process_env_pattern = re.compile(r'process\.env\.([A-Za-z0-9_]+)')
+    penv_pattern = re.compile(r'process\.env\.([A-Za-z0-9_]+)')
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
@@ -96,17 +113,24 @@ def check_env_gitignore(summary_mode):
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     for line in f:
-                        for m in process_env_pattern.findall(line):
-                            used_keys.add(m)
+                        for m in penv_pattern.findall(line): used_keys.add(m)
             except: pass
-            
-    for key in used_keys:
-        if key not in example_keys and key != 'NODE_ENV':
-            print_warn(f"process.env.{key} is used, but missing from .env.example", summary_mode)
 
-def check_physical_imports(summary_mode):
-    if not summary_mode: print("\n--- MODULE 3: PHYSICAL IMPORT CHECKER ---")
+    for key in used_keys:
+        if key not in ex_keys and key != 'NODE_ENV':
+            warns.append({
+                'severity': 'MEDIUM',
+                'module': 'ENV_KEYS',
+                'file': '.env.example',
+                'issue': f'process.env.{key} is used but missing from .env.example'
+            })
+    return fails, warns
+
+def check_physical_imports():
+    """Check for broken relative imports."""
+    findings = []
     import_pattern = re.compile(r'(?:import\s+.*?from\s+|require\()[\'"]([^\'"]+)[\'"]')
+
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
@@ -117,35 +141,44 @@ def check_physical_imports(summary_mode):
                 with open(filepath, 'r', encoding='utf-8') as f:
                     for line_num, line in enumerate(f, 1):
                         for match in import_pattern.findall(line):
-                            import_path = match
-                            if import_path.startswith('.'):
+                            if match.startswith('.'):
                                 dir_path = os.path.dirname(filepath)
-                                target_p = os.path.normpath(os.path.join(dir_path, import_path))
+                                target_p = os.path.normpath(os.path.join(dir_path, match))
                                 found = False
                                 for suffix in ['', '.js', '.jsx', '.ts', '.tsx', '/index.js', '/index.jsx']:
                                     if os.path.exists(target_p + suffix):
                                         found = True
                                         break
                                 if not found:
-                                    rel_source = os.path.relpath(filepath, target_dir)
-                                    print_warn(f"Relative import '{import_path}' at {rel_source}:{line_num} does not exist physically!", summary_mode)
+                                    rel = os.path.relpath(filepath, target_dir)
+                                    findings.append({
+                                        'severity': 'HIGH',
+                                        'module': 'PHYSICAL_IMPORT',
+                                        'file': rel,
+                                        'line': line_num,
+                                        'issue': f"Import '{match}' does not exist",
+                                        'snippet': line.strip()[:100]
+                                    })
             except: pass
+    return findings
 
-def check_dependencies(summary_mode):
-    if not summary_mode: print("\n--- MODULE 4: DEPENDENCIES & UNUSED PACKAGES ---")
-    package_json_path = os.path.join(target_dir, 'package.json')
-    if not os.path.exists(package_json_path):
-        return
-        
+def check_dependencies():
+    """Check for unused packages."""
+    warns = []
+    fails = []
+
+    pkg_path = os.path.join(target_dir, 'package.json')
+    if not os.path.exists(pkg_path): return warns, fails
+
     try:
-        with open(package_json_path, 'r', encoding='utf-8') as f:
+        with open(pkg_path, 'r', encoding='utf-8') as f:
             pkg = json.load(f)
-    except: return
-        
+    except: return warns, fails
+
     deps = list(pkg.get('dependencies', {}).keys())
-    used_deps = set()
+    used = set()
     import_pattern = re.compile(r'(?:import\s+.*?from\s+|require\()[\'"]([^\'"]+)[\'"]')
-    
+
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
@@ -159,48 +192,174 @@ def check_dependencies(summary_mode):
                             pkg_name = match.split('/')[0]
                             if pkg_name.startswith('@'):
                                 parts = match.split('/')
-                                if len(parts) > 1:
-                                    pkg_name = f"{parts[0]}/{parts[1]}"
-                            used_deps.add(pkg_name)
+                                if len(parts) > 1: pkg_name = f"{parts[0]}/{parts[1]}"
+                            used.add(pkg_name)
             except: pass
-            
-    for dep in deps:
-        if dep not in used_deps and not dep.startswith('@vite') and not dep.startswith('@babel') and not dep.startswith('react'):
-            print_warn(f"Package '{dep}' is installed but appears unused.", summary_mode)
 
-    if not summary_mode: print("\nRunning npm audit (this may take a while)...")
+    for dep in deps:
+        if dep not in used and not dep.startswith('@vite') and not dep.startswith('@babel') and not dep.startswith('react'):
+            warns.append({
+                'severity': 'LOW',
+                'module': 'UNUSED_PACKAGE',
+                'file': 'package.json',
+                'issue': f"Package '{dep}' is installed but appears unused"
+            })
+    return warns, fails
+
+def run_npm_audit():
+    """Run npm audit for security vulnerabilities."""
+    findings = []
     try:
-        result = subprocess.run('npm audit --json', shell=True, capture_output=True, text=True, check=False, timeout=15)
+        result = subprocess.run('npm audit --json', shell=True, capture_output=True, text=True, check=False, timeout=30)
         try:
             audit_data = json.loads(result.stdout)
             vulns = audit_data.get('metadata', {}).get('vulnerabilities', {})
             high = vulns.get('high', 0)
             critical = vulns.get('critical', 0)
-            if high > 0 or critical > 0:
-                print_fail(f"npm audit detected {high} HIGH and {critical} CRITICAL vulnerabilities!", summary_mode)
+            if critical > 0:
+                findings.append({
+                    'severity': 'CRITICAL',
+                    'module': 'NPM_AUDIT',
+                    'file': 'package.json',
+                    'issue': f'npm audit detected {critical} CRITICAL vulnerabilities'
+                })
+            if high > 0:
+                findings.append({
+                    'severity': 'HIGH',
+                    'module': 'NPM_AUDIT',
+                    'file': 'package.json',
+                    'issue': f'npm audit detected {high} HIGH vulnerabilities'
+                })
         except: pass
     except: pass
+    return findings
+
+def get_npm_audit_signature():
+    pkg_lock = os.path.join(target_dir, 'package-lock.json')
+    mtime = os.path.getmtime(pkg_lock) if os.path.exists(pkg_lock) else 0
+    return f"{mtime}_{time.time() // 86400}"
+
+def print_human_output(all_findings, total_fails, total_warns):
+    """Print human-readable output."""
+    print("\n--- MODULE 1: SECRET SCANNER ---")
+    for f in all_findings.get('SECRET_SCANNER', []):
+        print(f"[CRITICAL] {f['file']}:{f['line']} - {f['issue']}")
+
+    print("\n--- MODULE 2: ENV & GITIGNORE ---")
+    for f in all_findings.get('ENV_GITIGNORE', []):
+        print(f"[HIGH] {f['file']} - {f['issue']}")
+
+    print("\n--- MODULE 3: PHYSICAL IMPORTS ---")
+    for f in all_findings.get('PHYSICAL_IMPORT', []):
+        print(f"[HIGH] {f['file']}:{f['line']} - {f['issue']}")
+
+    print("\n--- MODULE 4: DEPENDENCIES ---")
+    for f in all_findings.get('NPM_AUDIT', []):
+        severity_tag = 'CRITICAL' if f['severity'] == 'CRITICAL' else 'HIGH'
+        print(f"[{severity_tag}] {f['issue']}")
+    for w in all_findings.get('UNUSED_PACKAGE', []):
+        print(f"[LOW] {w['issue']}")
+
+    print("\n" + "=" * 60)
+    print(f"RINGKASAN: CRITICAL={all_findings.get('CRITICAL_COUNT', 0)} | HIGH={all_findings.get('HIGH_COUNT', 0)} | MEDIUM={all_findings.get('MEDIUM_COUNT', 0)} | LOW={all_findings.get('LOW_COUNT', 0)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Project Guardian")
+    parser = argparse.ArgumentParser(description="Project Guardian - Security & Health Auditor")
     parser.add_argument("--summary", action="store_true", help="Only show final score")
+    parser.add_argument("--json", action="store_true", help="Output as JSON (machine-readable)")
     args = parser.parse_args()
 
-    if not args.summary:
-        print("🛡️ PROJECT GUARDIAN AUDITOR 🛡️")
-        
-    scan_secrets(args.summary)
-    check_env_gitignore(args.summary)
-    check_physical_imports(args.summary)
-    check_dependencies(args.summary)
-    
-    if args.summary:
-        print(f"🛡️ RINGKASAN GUARDIAN: 🔴 {total_fails} FAIL | 🟡 {total_warns} WARN | 🟢 Sektor lainnya Aman.")
+    global target_dir
+    target_dir = os.path.abspath(os.getcwd())
+    cache_file = os.path.join(target_dir, '.agents', 'session_cache.json')
+    dir_sig = get_dir_signature()
+    cache_key = f"guardian_{hashlib.md5(target_dir.encode()).hexdigest()}"
+    audit_sig = get_npm_audit_signature()
+
+    cache_data = {}
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, 'r', encoding='utf-8') as f: cache_data = json.load(f)
+        except: pass
+
+    cached_data = cache_data.get(cache_key, {})
+
+    # Run scans
+    if cached_data.get('signature') == dir_sig:
+        sec_findings = cached_data.get('sec_findings', [])
+        env_fails, env_warns = cached_data.get('env_fails', []), cached_data.get('env_warns', [])
+        imp_findings = cached_data.get('imp_findings', [])
+        dep_warns, dep_fails = cached_data.get('dep_warns', []), cached_data.get('dep_fails', [])
     else:
-        print("\n" + "=" * 60)
-        print(f"🛡️ RINGKASAN: 🔴 {total_fails} FAIL | 🟡 {total_warns} WARN | 🟢 Sektor lainnya Aman.")
-        print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
-        print('"Tolong perbaiki semua temuan [FAIL] di atas (khususnya .gitignore dan env). Untuk [WARN], abaikan jika itu adalah dummy data atau file test."')
+        sec_findings = scan_secrets()
+        env_fails, env_warns = check_env_gitignore()
+        imp_findings = check_physical_imports()
+        dep_warns, dep_fails = check_dependencies()
+        cached_data.update({
+            'signature': dir_sig,
+            'sec_findings': sec_findings, 'env_fails': env_fails, 'env_warns': env_warns,
+            'imp_findings': imp_findings, 'dep_warns': dep_warns, 'dep_fails': dep_fails
+        })
+
+    if cached_data.get('audit_signature') == audit_sig:
+        audit_findings = cached_data.get('audit_findings', [])
+    else:
+        if not args.summary and not args.json: print("\nRunning npm audit (this may take a while)...")
+        audit_findings = run_npm_audit()
+        cached_data.update({'audit_signature': audit_sig, 'audit_findings': audit_findings})
+
+    cache_data[cache_key] = cached_data
+    try:
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        with open(cache_file, 'w', encoding='utf-8') as f: json.dump(cache_data, f, indent=2)
+    except: pass
+
+    # Build all findings with counts
+    all_findings = {
+        'SECRET_SCANNER': sec_findings,
+        'ENV_GITIGNORE': env_fails,
+        'ENV_KEYS': env_warns,
+        'PHYSICAL_IMPORT': imp_findings,
+        'NPM_AUDIT': audit_findings,
+        'UNUSED_PACKAGE': dep_warns,
+        'DEP_INSTALL': dep_fails,
+        'CRITICAL_COUNT': len(sec_findings) + len([f for f in audit_findings if f['severity'] == 'CRITICAL']),
+        'HIGH_COUNT': len(env_fails) + len(imp_findings) + len([f for f in audit_findings if f['severity'] == 'HIGH']),
+        'MEDIUM_COUNT': len(env_warns),
+        'LOW_COUNT': len(dep_warns),
+    }
+
+    total_fails = all_findings['CRITICAL_COUNT'] + all_findings['HIGH_COUNT']
+    total_warns = all_findings['MEDIUM_COUNT'] + all_findings['LOW_COUNT']
+
+    if args.json:
+        # JSON output (machine-readable)
+        result = {
+            'status': 'FAIL' if total_fails > 0 else 'PASS',
+            'summary': {
+                'critical': all_findings['CRITICAL_COUNT'],
+                'high': all_findings['HIGH_COUNT'],
+                'medium': all_findings['MEDIUM_COUNT'],
+                'low': all_findings['LOW_COUNT'],
+                'total_issues': total_fails + total_warns
+            },
+            'modules': {
+                'secret_scanner': sec_findings,
+                'env_gitignore': env_fails,
+                'env_keys': env_warns,
+                'physical_import': imp_findings,
+                'npm_audit': audit_findings,
+                'unused_packages': dep_warns
+            }
+        }
+        print(json.dumps(result, indent=2))
+    elif args.summary:
+        print(f"GUARDIAN SUMMARY: CRITICAL={all_findings['CRITICAL_COUNT']} | HIGH={all_findings['HIGH_COUNT']} | MEDIUM={all_findings['MEDIUM_COUNT']} | LOW={all_findings['LOW_COUNT']}")
+    else:
+        print("GUARDIAN AUDITOR")
+        print_human_output(all_findings, total_fails, total_warns)
+        print("\n💡 PROMPT:")
+        print('"Fix all CRITICAL and HIGH severity issues first."')
 
 if __name__ == '__main__':
     main()

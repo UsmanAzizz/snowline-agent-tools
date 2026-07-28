@@ -29,6 +29,13 @@ snowline_toolkit/templates/import_fixer/fixer.py
 snowline_toolkit/templates/plan_tracker/PLAN_TEMPLATE.md
 snowline_toolkit/templates/project_guardian/SKILL.md
 snowline_toolkit/templates/project_guardian/guardian.py
+snowline_toolkit/templates/rules/communication.md
+snowline_toolkit/templates/rules/guardrail_compliance.md
+snowline_toolkit/templates/rules/plan_first.md
+snowline_toolkit/templates/rules/scope_guardian.md
+snowline_toolkit/templates/rules/session_control.md
+snowline_toolkit/templates/rules/tech_lead_disciplines.md
+snowline_toolkit/templates/rules/tool_usage.md
 snowline_toolkit/templates/scope_guardian/SKILL.md
 snowline_toolkit/templates/scope_guardian/scripts/scope_check.py
 snowline_toolkit/templates/selective_reader/SKILL.md
