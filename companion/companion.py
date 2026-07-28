@@ -1,30 +1,26 @@
 """
-AGENTIC COMPANION LAYER
-========================
-A thin layer that walks with the agent through every phase:
-Reasoning → Thinking → Preparing → Executing → Finishing
+AGENTIC COMPANION LAYER v2
+==============================
+Full prototype that walks with agent through all phases.
 
 Concept:
 - Agent = Hunter (powerful, free to hunt)
 - Companion = Chain (keeps agent safe, no overflow)
-- "No restrict, but no overflow"
 
-The companion is NOT:
-- A replacement for the agent
-- A complex AI system
-- A blocker that stops everything
-
-The companion IS:
-- A watcher at every phase
-- A validator for security and scope
-- A thin layer that adds safety without adding friction
+Phases:
+1. REASONING - Understanding user intent
+2. THINKING - Planning steps
+3. PREPARING - Selecting tools
+4. EXECUTING - Running actions
+5. FINISHING - Delivering results
 """
 
 import os
 import sys
 import json
-from typing import Dict, List, Optional, Any
-from dataclasses import dataclass, field
+import re
+from typing import Dict, List, Optional, Any, Tuple
+from dataclasses import dataclass
 
 # Force UTF-8
 if sys.stdout.encoding != 'utf-8':
@@ -32,21 +28,17 @@ if sys.stdout.encoding != 'utf-8':
 
 
 # ============================================================
-# PHASES - Agent workflow phases
+# DATA CLASSES
 # ============================================================
 
 class Phase:
-    """Agent workflow phases that companion walks through."""
-    REASONING = "reasoning"    # Understanding user intent
-    THINKING = "thinking"       # Planning steps
-    PREPARING = "preparing"     # Selecting tools
-    EXECUTING = "executing"   # Running actions
-    FINISHING = "finishing"    # Delivering results
+    """Agent workflow phases."""
+    REASONING = "reasoning"
+    THINKING = "thinking"
+    PREPARING = "preparing"
+    EXECUTING = "executing"
+    FINISHING = "finishing"
 
-
-# ============================================================
-# VALIDATORS - Companion checks
-# ============================================================
 
 @dataclass
 class ValidationResult:
@@ -56,18 +48,271 @@ class ValidationResult:
     details: Optional[Dict[str, Any]] = None
 
     def __str__(self):
-        if self.status == "safe":
-            return f"[SAFE] {self.message}"
-        elif self.status == "warning":
-            return f"[WARNING] {self.message}"
-        else:
-            return f"[BLOCKED] {self.message}"
+        prefix = {"safe": "[SAFE]", "warning": "[WARNING]", "blocked": "[BLOCKED]"}[self.status]
+        return f"{prefix} {self.message}"
 
+
+@dataclass
+class IntentAnalysis:
+    """Result of intent analysis."""
+    clarity: str  # "clear", "ambiguous", "vague"
+    intent_type: str  # "single_action", "multi_action", "question", "unknown"
+    keywords: List[str]
+    ambiguity_notes: str = ""
+    suggested_clarification: str = ""
+
+
+@dataclass
+class Step:
+    """A planned step in execution."""
+    order: int
+    action: str
+    tool: str
+    params: str
+    reason: str
+    is_safe: bool = True
+    overflow_risk: str = "low"
+
+
+# ============================================================
+# INTENT ANALYZER
+# ============================================================
+
+class IntentAnalyzer:
+    """
+    Analyzes user input to determine clarity and intent type.
+
+    Companion Layer 1: Smart Translator foundation
+    """
+
+    # Intent patterns
+    SINGLE_ACTION = [
+        r'cek\s+(keamanan|struktur|scope|file)',
+        r'cari\s+\w+',
+        r'ganti\s+\w+\s+jadi\s+\w+',
+        r'baca\s+\w+',
+        r'fix|perbaiki|bug',
+        r'delete|hapus|buat\s+file',
+    ]
+
+    MULTI_ACTION = [
+        r', terus|dan|setelah itu',
+        r'setelah\s+',
+        r'lalu',
+        r'analisa.*generate',
+        r'cek.*report',
+    ]
+
+    QUESTION = [
+        r'^apa\b',
+        r'^bagaimana\b',
+        r'^kenapa\b',
+        r'^berapa\b',
+        r'apa itu',
+        r'tolong jelaskan',
+    ]
+
+    VAGUE = [
+        r'^cek\b',
+        r'^bantu',
+        r'^lihat',
+        r'^apa aja',
+        r'semua',
+    ]
+
+    def analyze(self, user_input: str) -> IntentAnalysis:
+        """
+        Analyze user input for clarity and intent type.
+        """
+        input_lower = user_input.lower()
+
+        # Extract keywords
+        keywords = []
+        keyword_patterns = [
+            'keamanan', 'security', 'audit',
+            'cari', 'find', 'search',
+            'ganti', 'replace', 'ubah',
+            'baca', 'read', 'file',
+            'struktur', 'tree', 'map',
+            'scope', 'area',
+            'bug', 'error', 'fix',
+            'cleanup', 'bersihkan',
+            'generate', 'buat', 'create',
+        ]
+
+        for kw in keyword_patterns:
+            if kw in input_lower:
+                keywords.append(kw)
+
+        # Determine clarity
+        clarity = "clear"
+        ambiguity_notes = ""
+        suggested_clarification = ""
+
+        if any(re.search(p, input_lower) for p in self.VAGUE):
+            clarity = "vague"
+            ambiguity_notes = "Input terlalu umum"
+            suggested_clarification = "Spesifikasikan apa yang mau dicek/dilakukan"
+
+        # Check for multi-action
+        intent_type = "single_action"
+        if any(re.search(p, user_input) for p in self.MULTI_ACTION):
+            intent_type = "multi_action"
+
+        # Check for question
+        if any(re.search(p, user_input, re.IGNORECASE) for p in self.QUESTION):
+            intent_type = "question"
+
+        # Check for ambiguity
+        if len(keywords) == 0:
+            clarity = "ambiguous"
+            ambiguity_notes = "Tidak ada keyword yang dikenali"
+            suggested_clarification = "Gunakan kata kunci: cek keamanan, cari kode, ganti text, dll"
+
+        return IntentAnalysis(
+            clarity=clarity,
+            intent_type=intent_type,
+            keywords=keywords,
+            ambiguity_notes=ambiguity_notes,
+            suggested_clarification=suggested_clarification
+        )
+
+
+# ============================================================
+# TOOL SELECTOR
+# ============================================================
+
+class ToolSelector:
+    """
+    Selects appropriate tools based on intent.
+
+    Companion Layer 1: Smart Translator
+    """
+
+    # Tool mapping based on keywords
+    TOOL_MAP = {
+        # Security
+        "keamanan": ("project_guardian", "--summary", "Security audit"),
+        "security": ("project_guardian", "--summary", "Security check"),
+        "audit": ("project_guardian", "--summary", "Project audit"),
+        "vulnerability": ("project_guardian", "", "Vulnerability scan"),
+
+        # Search
+        "cari": ("smart_search", "<keyword>", "Code search"),
+        "find": ("smart_search", "<keyword>", "Find code"),
+        "search": ("smart_search", "<keyword>", "Search operation"),
+        "where is": ("smart_search", "<target>", "Locate code"),
+
+        # File reading
+        "baca": ("selective_reader", "<filepath>", "File reading"),
+        "read": ("selective_reader", "<filepath>", "Read file"),
+        "file": ("selective_reader", "<filepath>", "File content"),
+        "toc": ("selective_reader", "<filepath>", "Extract TOC"),
+
+        # Structure
+        "struktur": ("smart_tree", ". <depth>", "Directory structure"),
+        "tree": ("smart_tree", ". <depth>", "Tree view"),
+        "map": ("context_mapper", "--apply", "Build knowledge map"),
+        "directory": ("smart_tree", ". <depth>", "Folder structure"),
+
+        # Replace
+        "ganti": ("smart_replace", "<old> <new> --apply", "Text replacement"),
+        "replace": ("smart_replace", "<old> <new> --apply", "Replace operation"),
+        "ubah": ("smart_replace", "<old> <new> --apply", "Modify text"),
+
+        # Cleanup
+        "bersihkan": ("clean_sweeper", ".", "Project cleanup"),
+        "cleanup": ("clean_sweeper", ".", "Tech debt scan"),
+        "residu": ("clean_sweeper", ".", "Find residue"),
+        "garbage": ("clean_sweeper", ".", "Scan garbage"),
+
+        # Scope
+        "scope": ("scope_guardian", "<filepath>", "Check scope"),
+        "area": ("scope_guardian", "<filepath>", "Validate area"),
+
+        # Analysis
+        "analisa": ("deep_analyzer", ". --json", "Project analysis"),
+        "impact": ("impact_analyzer", "<file> .", "Impact analysis"),
+
+        # Generate
+        "generate": ("auto_scaffolder", "<type> <name> --apply", "Generate code"),
+        "buat": ("auto_scaffolder", "<type> <name> --apply", "Create new"),
+        "create": ("auto_scaffolder", "<type> <name> --apply", "Generate boilerplate"),
+
+        # Error
+        "error": ("crash_decoder", "<logfile>", "Decode error"),
+        "crash": ("crash_decoder", "<logfile>", "Crash analysis"),
+        "debug": ("crash_decoder", "<logfile>", "Debug log"),
+        "log": ("crash_decoder", "<logfile>", "Parse logs"),
+
+        # Health
+        "kesehatan": ("project_guardian", "--summary", "Health check"),
+        "health": ("project_guardian", "--summary", "Project health"),
+    }
+
+    def select_tools(self, intent: str, keywords: List[str]) -> List[Step]:
+        """
+        Select appropriate tools based on keywords.
+
+        Returns list of steps with order.
+        """
+        steps = []
+        order = 1
+
+        # Priority order for tool selection
+        priority_keywords = [
+            "keamanan", "security", "vulnerability",
+            "cari", "find", "search",
+            "ganti", "replace", "ubah",
+            "baca", "read", "file",
+            "struktur", "tree", "map",
+            "scope", "area",
+            "bersihkan", "cleanup", "residu",
+            "analisa", "impact",
+            "generate", "buat", "create",
+            "error", "crash", "debug",
+        ]
+
+        # Process keywords in priority order
+        for keyword in priority_keywords:
+            if keyword in intent.lower():
+                tool_info = self.TOOL_MAP.get(keyword)
+                if tool_info:
+                    tool, params, reason = tool_info
+
+                    # Check if tool already added
+                    existing = [s.tool for s in steps]
+                    if tool not in existing:
+                        steps.append(Step(
+                            order=order,
+                            action=reason,
+                            tool=tool,
+                            params=params,
+                            reason=f"'{keyword}' detected"
+                        ))
+                        order += 1
+
+        # Add context tools if multi-action
+        if "analisa" in intent.lower() or "report" in intent.lower():
+            if "clean_sweeper" not in [s.tool for s in steps]:
+                steps.append(Step(
+                    order=order,
+                    action="Tech debt scan",
+                    tool="clean_sweeper",
+                    params=".",
+                    reason="Part of analysis"
+                ))
+
+        return steps
+
+
+# ============================================================
+# SCOPE VALIDATOR
+# ============================================================
 
 class ScopeValidator:
     """
     Validates if actions are within scope.
-    Based on scope_guardian concept.
     """
 
     def __init__(self, project_root: str):
@@ -91,15 +336,13 @@ class ScopeValidator:
                 pass
 
     def validate(self, file_path: str) -> ValidationResult:
-        """
-        Check if a file operation is within scope.
+        """Check if file operation is within scope."""
+        if not self.current_task:  # No scope defined
+            return ValidationResult(
+                status="warning",
+                message="No scope defined. Define with scope_lock.json"
+            )
 
-        Returns:
-        - safe: File is in allowed scope
-        - warning: File is near scope boundary
-        - blocked: File is completely out of scope
-        """
-        # Normalize path
         file_path = file_path.replace('\\', '/')
 
         # Check exact matches
@@ -108,7 +351,7 @@ class ScopeValidator:
             if file_path.endswith(allowed) or allowed.endswith(file_path) or file_path == allowed:
                 return ValidationResult(
                     status="safe",
-                    message=f"File '{os.path.basename(file_path)}' is within scope for task: {self.current_task}"
+                    message=f"File within scope: {self.current_task}"
                 )
 
         # Check pattern matches
@@ -117,75 +360,89 @@ class ScopeValidator:
             if fnmatch.fnmatch(file_path, pattern):
                 return ValidationResult(
                     status="safe",
-                    message=f"File matches allowed pattern '{pattern}'"
+                    message=f"File matches allowed pattern"
                 )
 
-        # No match found - BLOCKED
+        # Out of scope
         return ValidationResult(
             status="blocked",
-            message=f"File '{file_path}' is OUT OF SCOPE",
+            message=f"OUT OF SCOPE for: {self.current_task}",
             details={
-                "task": self.current_task,
                 "allowed_files": self.allowed_files,
                 "allowed_patterns": self.allowed_patterns
             }
         )
 
+    def set_scope(self, task: str, allowed_files: List[str], patterns: List[str] = None):
+        """Manually set scope."""
+        self.current_task = task
+        self.allowed_files = allowed_files
+        self.allowed_patterns = patterns or []
+
+
+# ============================================================
+# SECURITY VALIDATOR
+# ============================================================
 
 class SecurityValidator:
     """
-    Quick security checks based on project_guardian patterns.
+    Quick security checks.
     """
 
-    # Sensitive patterns that need attention
     SENSITIVE_PATTERNS = [
-        ("password", "Hardcoded password detected"),
-        ("api_key", "API key in code detected"),
-        ("secret", "Secret token detected"),
-        ("Bearer ", "Exposed bearer token"),
-        (".env", ".env file reference"),
+        ("password", "Hardcoded password"),
+        ("api_key", "API key detected"),
+        ("secret", "Secret token"),
+        ("Bearer ", "Bearer token"),
     ]
 
-    def validate_file(self, file_path: str, content: str = None) -> ValidationResult:
-        """
-        Quick check if file contains sensitive data.
+    DANGEROUS_ACTIONS = [
+        "delete",
+        "rm ",
+        "rmdir",
+        "DROP TABLE",
+        "DROP DATABASE",
+    ]
 
-        Note: This is a quick check. Full scan uses project_guardian.
-        """
-        # Check filename first (faster)
+    def validate_file(self, file_path: str) -> ValidationResult:
+        """Check file for security concerns."""
         filename = os.path.basename(file_path).lower()
 
+        # Check for sensitive files
         if filename == '.env' and 'example' not in filename:
             return ValidationResult(
                 status="warning",
                 message=".env file detected (may contain secrets)"
             )
 
-        # Check for suspicious extensions
-        suspicious_extensions = ['.env', '.key', '.pem', '.p12']
+        suspicious_extensions = ['.env', '.key', '.pem', '.p12', '.password']
         for ext in suspicious_extensions:
             if filename.endswith(ext):
                 return ValidationResult(
                     status="warning",
-                    message=f"Sensitive file type detected: {ext}"
+                    message=f"Sensitive file type: {ext}"
                 )
-
-        # Check content if provided
-        if content:
-            for pattern, message in self.SENSITIVE_PATTERNS:
-                if pattern in content:
-                    # Check if it's a real exposure or just code mentioning it
-                    if 'password' in content.lower() and ('example' in content.lower() or 'dummy' in content.lower()):
-                        continue  # Probably a test/example
-                    return ValidationResult(
-                        status="warning",
-                        message=message,
-                        details={"pattern": pattern}
-                    )
 
         return ValidationResult(
             status="safe",
-            message="No immediate security concerns detected"
+            message="No immediate security concerns"
+        )
+
+    def validate_action(self, action: str) -> ValidationResult:
+        """Check if action is dangerous."""
+        action_lower = action.lower()
+
+        for danger in self.DANGEROUS_ACTIONS:
+            if danger in action_lower:
+                return ValidationResult(
+                    status="blocked",
+                    message=f"Dangerous action detected: {danger}",
+                    details={"action": action}
+                )
+
+        return ValidationResult(
+            status="safe",
+            message="Action appears safe"
         )
 
 
@@ -197,181 +454,294 @@ class AgenticCompanion:
     """
     The Chain that walks with the agent.
 
-    Role:
-    - Watches agent at every phase
-    - Validates actions
-    - Alerts if overflow detected
-    - Keeps agent safe without restricting
-
     Usage:
         companion = AgenticCompanion(project_root)
 
-        # Agent starts reasoning
-        companion.observe(Phase.REASONING, {"intent": "fix bug"})
+        # Agent receives user input
+        intent_analysis = companion.analyze_intent(user_input)
+        if intent_analysis.clarity == "vague":
+            companion.ask_clarification(intent_analysis)
 
-        # Agent wants to execute something
-        result = companion.check_execute(file_path="src/bug.js")
-        if result.status == "blocked":
-            companion.alert("Cannot proceed: out of scope")
+        # Agent plans execution
+        steps = companion.plan_execution(intent_analysis)
+
+        # Agent executes each step
+        for step in steps:
+            companion.prepare(step)
+            companion.check_safe(step)
+            companion.execute(step)
+
+        # Agent finishes
+        companion.finish()
     """
 
     def __init__(self, project_root: str = None):
         self.project_root = project_root or os.getcwd()
         self.scope_validator = ScopeValidator(self.project_root)
         self.security_validator = SecurityValidator()
+        self.intent_analyzer = IntentAnalyzer()
+        self.tool_selector = ToolSelector()
 
-        # Phase tracking
+        # State
         self.current_phase: str = None
-        self.phase_history: List[Dict] = []
+        self.current_intent: str = ""
+        self.current_steps: List[Step] = []
+        self.observations: List[Dict] = []
+        self.alerts: List[Dict] = []
 
-        # Observation logs
-        self.observations: List[str] = []
+    # --------------------------------------------------------
+    # PHASE 1: REASONING
+    # --------------------------------------------------------
 
-    def observe(self, phase: str, context: Dict[str, Any]):
+    def analyze_intent(self, user_input: str) -> IntentAnalysis:
         """
-        Agent reports what it's doing at current phase.
-        Companion simply observes and logs.
+        PHASE 1: Analyze user intent.
+        Is the request clear? What does user want?
         """
-        self.current_phase = phase
-        observation = f"[{phase.upper()}] {context}"
-        self.observations.append(observation)
+        self.current_phase = Phase.REASONING
+        self.current_intent = user_input
+
+        result = self.intent_analyzer.analyze(user_input)
+
+        self.observations.append({
+            "phase": Phase.REASONING,
+            "input": user_input,
+            "result": {
+                "clarity": result.clarity,
+                "intent_type": result.intent_type,
+                "keywords": result.keywords
+            }
+        })
+
+        return result
+
+    def ask_clarification(self, intent: IntentAnalysis) -> str:
+        """
+        Generate clarification question if intent is vague.
+        """
+        if intent.clarity in ["vague", "ambiguous"]:
+            return f"Konfirmasi: {intent.suggested_clarification}. Contoh: 'cek keamanan project' atau 'cari bug di login'."
+        return ""
+
+    # --------------------------------------------------------
+    # PHASE 2: THINKING
+    # --------------------------------------------------------
+
+    def plan_execution(self, intent: IntentAnalysis) -> List[Step]:
+        """
+        PHASE 2: Plan execution steps.
+        What tools should be used? In what order?
+        """
+        self.current_phase = Phase.THINKING
+
+        steps = self.tool_selector.select_tools(
+            self.current_intent,
+            intent.keywords
+        )
+
+        self.current_steps = steps
+
+        self.observations.append({
+            "phase": Phase.THINKING,
+            "steps_planned": len(steps),
+            "tools": [s.tool for s in steps]
+        })
+
+        return steps
+
+    def validate_plan(self, steps: List[Step]) -> ValidationResult:
+        """
+        Validate if the plan is reasonable.
+        """
+        if not steps:
+            return ValidationResult(
+                status="warning",
+                message="No tools selected. Intent may need clarification."
+            )
+
+        if len(steps) > 5:
+            return ValidationResult(
+                status="warning",
+                message=f"Plan has {len(steps)} steps. Consider breaking into smaller tasks."
+            )
+
+        return ValidationResult(
+            status="safe",
+            message=f"Plan looks reasonable: {len(steps)} steps"
+        )
+
+    # --------------------------------------------------------
+    # PHASE 3: PREPARING
+    # --------------------------------------------------------
+
+    def prepare_step(self, step: Step) -> Dict:
+        """
+        PHASE 3: Prepare for step execution.
+        What parameters are needed?
+        """
+        self.current_phase = Phase.PREPARING
 
         return {
-            "status": "observed",
-            "phase": phase,
-            "companion_says": "I'm with you."
+            "ready": True,
+            "tool": step.tool,
+            "command": f"python .agents/skills/{step.tool}/script.py {step.params}",
+            "companion_says": f"Ready to execute: {step.action} with {step.tool}"
         }
 
-    def check_execute(self, action: str, target: str = None, context: str = None) -> ValidationResult:
+    def get_command(self, step: Step) -> str:
         """
-        Agent asks: "Can I do this action?"
+        Get the actual command to execute.
+        """
+        # Map tool to actual script path
+        script_map = {
+            "smart_search": "smart_search/code_finder.py",
+            "smart_replace": "smart_replace/replace_text.py",
+            "selective_reader": "selective_reader/reader.py",
+            "project_guardian": "project_guardian/guardian.py",
+            "clean_sweeper": "clean_sweeper/sweeper.py",
+            "deep_analyzer": "deep_analyzer/analyzer.py",
+            "smart_tree": "smart_tree/scripts/tree_viewer.py",
+            "scope_guardian": "scope_guardian/scripts/scope_check.py",
+            "impact_analyzer": "impact_analyzer/analyzer.py",
+            "crash_decoder": "crash_decoder/decoder.py",
+            "auto_scaffolder": "auto_scaffolder/scaffolder.py",
+            "context_mapper": "context_mapper/context_mapper.py",
+        }
 
-        Companion checks:
-        1. Is target within scope?
-        2. Any security concerns?
+        script = script_map.get(step.tool, f"{step.tool}/main.py")
+        return f"python .agents/skills/{script} {step.params}"
+
+    # --------------------------------------------------------
+    # PHASE 4: EXECUTING
+    # --------------------------------------------------------
+
+    def validate_execution(self, step: Step, target: str = None) -> ValidationResult:
         """
+        PHASE 4: Validate if execution is safe.
+        Check scope and security.
+        """
+        self.current_phase = Phase.EXECUTING
+
         results = []
+
+        # Check action safety
+        action_result = self.security_validator.validate_action(step.action)
+        results.append(action_result)
 
         # Check scope if target provided
         if target:
             scope_result = self.scope_validator.validate(target)
             results.append(scope_result)
 
-            # Also check security
-            if scope_result.status == "safe":
-                security_result = self.security_validator.validate_file(target)
-                results.append(security_result)
+            # Check file security
+            file_result = self.security_validator.validate_file(target)
+            results.append(file_result)
 
         # Determine overall status
         blocked = [r for r in results if r.status == "blocked"]
         warnings = [r for r in results if r.status == "warning"]
 
         if blocked:
-            return blocked[0]  # Return first block
+            return blocked[0]
         elif warnings:
-            return warnings[0]  # Return first warning
+            return warnings[0]
         else:
             return ValidationResult(
                 status="safe",
-                message=f"Action '{action}' approved. Proceed."
+                message=f"Execution approved: {step.action}"
             )
 
-    def alert(self, message: str, details: Dict = None):
+    def alert(self, message: str, details: Dict = None) -> Dict:
         """
-        Companion raises an alert.
-        Used when agent is about to overflow.
+        Raise an alert when overflow is detected.
         """
-        return {
+        alert = {
             "status": "alert",
+            "type": "overflow_warning",
             "message": message,
-            "companion_says": f"⚠️ {message}",
-            "details": details
+            "phase": self.current_phase,
+            "companion_says": f"⚠️ {message}"
         }
 
-    def guide(self, intent: str) -> List[Dict]:
+        if details:
+            alert["details"] = details
+
+        self.alerts.append(alert)
+        return alert
+
+    # --------------------------------------------------------
+    # PHASE 5: FINISHING
+    # --------------------------------------------------------
+
+    def validate_output(self, output: str, step: Step) -> ValidationResult:
         """
-        Given a user intent, companion suggests steps/tools.
-
-        This is the "Smart Translator" capability.
+        PHASE 5: Validate output quality.
         """
-        suggestions = []
+        self.current_phase = Phase.FINISHING
 
-        # Simple rule-based suggestions
-        intent_lower = intent.lower()
+        # Basic checks
+        if not output or len(output.strip()) == 0:
+            return ValidationResult(
+                status="warning",
+                message="Output is empty. Task may not have completed."
+            )
 
-        if any(word in intent_lower for word in ['keamanan', 'security', 'audit', 'vulnerability']):
-            suggestions.append({
-                "step": 1,
-                "action": "Security audit",
-                "tool": "project_guardian",
-                "suggested_params": "--summary",
-                "reason": "Security check detected"
-            })
+        if "error" in output.lower() and "no matches" not in output.lower():
+            return ValidationResult(
+                status="warning",
+                message="Output contains errors. Review may be needed."
+            )
 
-        if any(word in intent_lower for word in ['cari', 'find', 'search', 'where is']):
-            # Extract keyword if possible
-            suggestions.append({
-                "step": 2,
-                "action": "Search code",
-                "tool": "smart_search",
-                "suggested_params": "<keyword>",
-                "reason": "Search operation detected"
-            })
+        return ValidationResult(
+            status="safe",
+            message=f"Step {step.order} completed successfully"
+        )
 
-        if any(word in intent_lower for word in ['struktur', 'map', 'tree', 'directory']):
-            suggestions.append({
-                "step": 3,
-                "action": "Map directory structure",
-                "tool": "smart_tree",
-                "suggested_params": ". <depth>",
-                "reason": "Structure visualization detected"
-            })
+    def finish(self) -> Dict:
+        """
+        Complete execution and summarize.
+        """
+        self.current_phase = Phase.FINISHING
 
-        if any(word in intent_lower for word in ['baca', 'read', 'file', 'content']):
-            suggestions.append({
-                "step": 4,
-                "action": "Extract file TOC",
-                "tool": "selective_reader",
-                "suggested_params": "<filepath>",
-                "reason": "File reading detected"
-            })
-
-        if any(word in intent_lower for word in ['ganti', 'replace', 'ubah']):
-            suggestions.append({
-                "step": 5,
-                "action": "Replace text",
-                "tool": "smart_replace",
-                "suggested_params": "<search> <replace> --apply",
-                "reason": "Replace operation detected"
-            })
-
-        return suggestions
-
-    def get_status(self) -> Dict:
-        """Get companion status."""
         return {
-            "current_phase": self.current_phase,
-            "observations_count": len(self.observations),
-            "scope_loaded": bool(self.scope_validator.current_task),
-            "project_root": self.project_root
+            "status": "complete",
+            "total_steps": len(self.current_steps),
+            "steps_completed": len([o for o in self.observations if o["phase"] == Phase.EXECUTING]),
+            "alerts_raised": len(self.alerts),
+            "companion_says": "Execution complete. All steps within safe bounds."
+        }
+
+    # --------------------------------------------------------
+    # SUMMARY
+    # --------------------------------------------------------
+
+    def get_session_summary(self) -> Dict:
+        """Get summary of entire companion session."""
+        return {
+            "intent": self.current_intent,
+            "clarity": self.intent_analyzer.analyze(self.current_intent).clarity if self.current_intent else "unknown",
+            "steps_planned": len(self.current_steps),
+            "steps": [s.tool for s in self.current_steps],
+            "alerts": len(self.alerts),
+            "observations": len(self.observations)
         }
 
 
 # ============================================================
-# QUICK INTERFACE - Simple functions for agent use
+# QUICK INTERFACE
 # ============================================================
 
-def quick_guide(intent: str) -> List[Dict]:
-    """Quick guide from user intent."""
+def analyze_input(user_input: str) -> IntentAnalysis:
+    """Quick intent analysis."""
     companion = AgenticCompanion()
-    return companion.guide(intent)
+    return companion.analyze_intent(user_input)
 
 
-def quick_check(action: str, target: str = None) -> str:
-    """Quick check if action is safe."""
+def plan_steps(user_input: str) -> List[Step]:
+    """Quick step planning."""
     companion = AgenticCompanion()
-    result = companion.check_execute(action, target)
-    return str(result)
+    intent = companion.analyze_intent(user_input)
+    return companion.plan_execution(intent)
 
 
 # ============================================================
@@ -380,23 +750,53 @@ def quick_check(action: str, target: str = None) -> str:
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("AGENTIC COMPANION LAYER - Quick Test")
+    print("AGENTIC COMPANION v2 - Full Test")
     print("=" * 60)
 
     companion = AgenticCompanion()
 
-    print("\n1. STATUS:")
-    print(json.dumps(companion.get_status(), indent=2))
+    # Test cases
+    test_cases = [
+        "cek keamanan project",
+        "cari bug di login",
+        "ganti handleSubmit jadi handleFormSubmit",
+        "analisa project, terus generate report",
+        "cek",  # vague
+        "apa itu React?",  # question
+    ]
 
-    print("\n2. GUIDE - 'cek keamanan project':")
-    suggestions = companion.guide("cek keamanan project")
-    for s in suggestions:
-        print(f"   Step {s['step']}: {s['tool']} - {s['reason']}")
+    for i, test_input in enumerate(test_cases, 1):
+        print(f"\n{'='*60}")
+        print(f"TEST {i}: '{test_input}'")
+        print("-" * 60)
 
-    print("\n3. CHECK - Action 'delete file':")
-    result = companion.check_execute("delete file", "src/test.js")
-    print(f"   {result}")
+        # PHASE 1: Reasoning
+        intent = companion.analyze_intent(test_input)
+        print(f"  [REASONING] Clarity: {intent.clarity}")
+        print(f"  [REASONING] Type: {intent.intent_type}")
+        print(f"  [REASONING] Keywords: {intent.keywords}")
 
-    print("\n" + "=" * 60)
-    print("Companion ready. Agent can proceed.")
+        if intent.clarity == "vague":
+            print(f"  [REASONING] Clarification: {companion.ask_clarification(intent)}")
+
+        # PHASE 2: Thinking
+        steps = companion.plan_execution(intent)
+        print(f"  [THINKING] Steps planned: {len(steps)}")
+
+        for step in steps:
+            cmd = companion.get_command(step)
+            print(f"    Step {step.order}: {step.tool} -> {cmd}")
+
+        plan_validation = companion.validate_plan(steps)
+        print(f"  [THINKING] Plan validation: {plan_validation}")
+
+        # PHASE 4: Validate execution
+        if steps:
+            first_step = steps[0]
+            execution_check = companion.validate_execution(first_step)
+            print(f"  [EXECUTING] First step validation: {execution_check}")
+
+    print(f"\n{'='*60}")
+    print("SESSION SUMMARY:")
+    print(json.dumps(companion.get_session_summary(), indent=2))
     print("=" * 60)
