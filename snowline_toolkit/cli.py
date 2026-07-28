@@ -83,9 +83,16 @@ def check_and_scaffold_agents_md(dry_run: bool):
         if dry_run:
             print(f"[DRY-RUN] Would auto-scaffold {agents_md.relative_to(cwd)} (file missing or too short)")
         else:
-            agents_md.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(template, agents_md)
-            print(f"[INFO] Auto-scaffolded {agents_md.relative_to(cwd)} from template.")
+            reason = "missing" if not agents_md.exists() else "too short (< 10 lines)"
+            print(f"\n[WARN] The file {agents_md.relative_to(cwd)} is {reason}.")
+            print("This file is required to enforce project rules and guardrails.")
+            ans = input(f"Do you want to automatically scaffold it from the template? (y/n): ")
+            if ans.lower() == 'y':
+                agents_md.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(template, agents_md)
+                print(f"[INFO] Auto-scaffolded {agents_md.relative_to(cwd)} from template.")
+            else:
+                print(f"[INFO] Skipped scaffolding {agents_md.relative_to(cwd)}.")
 
 def init_snowline(dry_run: bool = False):
     current_dir = Path(__file__).parent
