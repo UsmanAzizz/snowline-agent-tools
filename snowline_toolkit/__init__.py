@@ -7,7 +7,6 @@ import sys
 import sysconfig
 from pathlib import Path
 import winreg
-import subprocess
 
 __version__ = "1.0.5"
 
@@ -31,46 +30,88 @@ except Exception:
 if _scripts not in os.environ.get('PATH', ''):
     os.environ['PATH'] = _scripts + os.pathsep + os.environ.get('PATH', '')
 
-# 3. Update PowerShell profile for instant and future access
-def _update_ps_profile():
-    """Update PowerShell profile to add Scripts to PATH"""
-    profiles = [
+# 3. Update profiles for instant access
+def _update_profiles():
+    """Update PowerShell and Bash profiles to add Scripts to PATH"""
+
+    # PowerShell profiles
+    ps_profiles = [
         Path.home() / 'Documents' / 'PowerShell' / 'Microsoft.PowerShell_profile.ps1',
         Path.home() / 'Documents' / 'WindowsPowerShell' / 'Microsoft.PowerShell_profile.ps1',
     ]
 
-    # Use raw string to avoid escape issues
-    scripts_escaped = _scripts.replace('\\', '\\\\')
-    add_line = f'$env:PATH = "{scripts_escaped};$env:PATH"'
-    marker = "# SNOWLINE_PATH_AUTO"
+    # Bash profile (for Git Bash, WSL, etc.)
+    bash_profiles = [
+        Path.home() / '.bashrc',
+        Path.home() / '.bash_profile',
+        Path.home() / '.zshrc',
+    ]
 
-    for profile in profiles:
+    scripts_escaped = _scripts.replace('\\', '\\\\')
+    ps_add_line = f'$env:PATH = "{scripts_escaped};$env:PATH"'
+    bash_add_line = f'export PATH="{_scripts}:$PATH"'
+    ps_marker = "# SNOWLINE_PATH_AUTO"
+    bash_marker = "# SNOWLINE_PATH_AUTO"
+
+    # Update PowerShell profiles
+    for profile in ps_profiles:
         try:
             profile.parent.mkdir(parents=True, exist_ok=True)
             content = ""
             if profile.exists():
                 content = profile.read_text(encoding='utf-8')
 
-            # Check if already configured
             if scripts_escaped.replace('\\\\', '\\') in content:
                 continue
 
-            # Add snowline PATH block
-            new_content = f"# SNOWLINE_PATH_AUTO\n{add_line}\n\n"
-            if marker in content:
-                # Update existing block
+            new_content = f"# SNOWLINE_PATH_AUTO\n{ps_add_line}\n\n"
+            if ps_marker in content:
                 lines = content.split('\n')
                 result = []
-                skip_until_next_hash = False
+                skip_block = False
                 for line in lines:
-                    if line.strip() == marker:
-                        skip_until_next_hash = True
+                    if line.strip() == ps_marker:
+                        skip_block = True
                         result.append(new_content)
-                    elif skip_until_next_hash and line.startswith('# '):
-                        skip_until_next_hash = False
-                    if not skip_until_next_hash or not line.startswith('#'):
-                        if line.strip() != marker:
-                            result.append(line)
+                    elif skip_block and (line.startswith('# ') or line.strip() == ''):
+                        skip_block = False
+                    if not skip_block:
+                        result.append(line)
+                content = '\n'.join(result)
+            else:
+                content = new_content + content
+
+            profile.write_text(content, encoding='utf-8')
+        except Exception:
+            pass
+
+    # Update Bash profiles
+    for profile in bash_profiles:
+        try:
+            profile.parent.mkdir(parents=True, exist_ok=True)
+            content = ""
+            if profile.exists():
+                content = profile.read_text(encoding='utf-8')
+
+            if _scripts in content:
+                continue
+
+            new_content = f"# SNOWLINE_PATH_AUTO\nexport PATH=\"{_scripts}:$PATH\"\n\n"
+
+            if bash_marker in content:
+                lines = content.split('\n')
+                result = []
+                skip_block = False
+                for line in lines:
+                    if line.strip() == bash_marker:
+                        skip_block = True
+                        result.append(new_content)
+                    elif skip_block and line.startswith('export PATH='):
+                        continue
+                    elif skip_block and (line.startswith('# ') or line.strip() == ''):
+                        skip_block = False
+                    if not skip_block:
+                        result.append(line)
                 content = '\n'.join(result)
             else:
                 content = new_content + content
@@ -90,8 +131,8 @@ try:
         winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, user_path + ";" + _scripts)
         winreg.CloseKey(key)
 
-        # Update PowerShell profile
-        _update_ps_profile()
+        # Update all profiles
+        _update_profiles()
 
         # Broadcast change to all windows
         try:
@@ -104,18 +145,14 @@ try:
 except Exception:
     pass
 
-# 5. For instant access in current PowerShell session: run reload command
-# This is picked up by cli.py to inform user
-if os.environ.get('PSModulePath'):
-    # We're likely in PowerShell, try to update current session
-    try:
-        # Read registry PATH and set it
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
-        user_path, _ = winreg.QueryValueEx(key, "Path")
-        winreg.CloseKey(key)
-        os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
-    except Exception:
-        pass
+# 5. Read PATH from registry for current session
+try:
+    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
+    user_path, _ = winreg.QueryValueEx(key, "Path")
+    winreg.CloseKey(key)
+    os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
+except Exception:
+    pass
 
 # Auto-run main() if called directly
 if __name__ == '__main__':
