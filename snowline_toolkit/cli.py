@@ -7,6 +7,9 @@ from datetime import datetime
 from pathlib import Path
 import sysconfig
 
+# Trigger PATH update on import
+import snowline_toolkit
+
 def show_path():
     scripts = sysconfig.get_path('scripts')
     python_exe = sys.executable
