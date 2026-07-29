@@ -299,21 +299,17 @@ def main():
     uninstall_parser.add_argument("--apply", action="store_true", help="Apply changes to disk.")
 
     args, unknown = parser.parse_known_args()
-    
+
+    # Default to init if no subcommand specified
+    if args.command is None:
+        args.command = "init"
+
     if args.command == "init":
-        init_snowline(dry_run=not args.apply)
+        init_snowline(dry_run=not getattr(args, 'apply', False))
     elif args.command == "update":
-        update_snowline(dry_run=not args.apply)
+        update_snowline(dry_run=not getattr(args, 'apply', False))
     elif args.command == "uninstall":
-        uninstall_snowline(dry_run=not args.apply)
-    else:
-        is_apply = False
-        if hasattr(args, 'apply'):
-            is_apply = args.apply
-        elif unknown and "--apply" in unknown:
-            is_apply = True
-            
-        init_snowline(dry_run=not is_apply)
+        uninstall_snowline(dry_run=not getattr(args, 'apply', False))
 
 if __name__ == "__main__":
     main()
