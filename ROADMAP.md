@@ -1,30 +1,22 @@
-# ❄️ Snowline Agent Tools - Roadmap
+# Snowline Agent Tools - Roadmap
 
-## 🎯 Mission
+## Mission
 
-> "While others race to burn tokens, we prevent the waste."
+> "Prevent token waste in AI agent workflows."
 
-**Hunter = Agent** (powerful, free to hunt)
-**Chain = Companion** (keeps agent safe, no overflow)
-
-```
-Agent is free to hunt...
-But companion walks with at every step.
-If agent goes too far, chain pulls back.
-No restrict, but no overflow.
-```
+Focus: Portable efficiency across AI platforms (Gemini, Claude, etc.), not vendor-specific optimization. Pure Python, minimal external dependencies.
 
 ---
 
-## 📦 Current State (v3)
+## Current State (v4.4)
 
-### Tools (14 Core)
+### Core Tools (14)
 | Tool | Purpose |
 |------|---------|
-| smart_search | Find code with 5-line context |
-| smart_replace | Safe find-and-replace with backup |
+| smart_search | Find code with context |
+| smart_replace | Find-and-replace with backup |
 | selective_reader | TOC extractor for large files |
-| project_guardian | Security & health auditor |
+| project_guardian | Security auditor |
 | clean_sweeper | Tech debt scanner |
 | deep_analyzer | Project profiler |
 | smart_tree | Directory visualizer |
@@ -36,79 +28,89 @@ No restrict, but no overflow.
 | import_fixer | Import path fixer |
 | db_extractor | Database schema extractor |
 
-### Companion Layer (v3)
+### Context Management Tools (4)
+| Tool | Purpose |
+|------|---------|
+| token_budget | Token usage monitor |
+| context_curator | Context noise filter |
+| output_formatter | JSON formatter |
+| decision_validator | Risk assessor |
+
+### Companion Layer (v4.4)
 | Phase | Function | Status |
 |-------|---------|--------|
-| 1. REASONING | Intent analysis | ✅ |
-| 2. THINKING | Tool planning | ✅ |
-| 3. PREPARING | Command generation | ✅ |
-| 4. EXECUTING | Scope/security validation | ✅ |
-| 5. FINISHING | Output validation | ✅ |
+| 1. REASONING | Intent analysis | done |
+| 2. THINKING | Tool planning | done |
+| 3. PREPARING | Command generation | done |
+| 4. EXECUTING | Tool execution | done |
+| 5. VALIDATING | Output validation | done |
 
-**Vocabulary: 170+ keywords** (Indonesian + English)
-
----
-
-## 📋 Roadmap
-
-### TASK 1: Companion Core Enhancement ⭐ PRIORITY
-
-#### 1.1 Fix Vocabulary Gaps
-- [ ] Add "refactor" keyword -> smart_replace
-- [ ] Add "export", "excel" keywords
-- [ ] Add "PDF", "report" handling
-- [ ] Add "import", "module" keywords
-- [ ] Test edge cases
-
-#### 1.2 Learning Loop
-- [ ] Track usage patterns
-- [ ] Store tool selection history
-- [ ] Suggest based on past success
-- [ ] Build `~/.companion_memory.json`
-
-#### 1.3 Execution Engine
-- [ ] Run commands via subprocess
-- [ ] Parse JSON output automatically
-- [ ] Return structured results to agent
-- [ ] Handle errors gracefully
+### Safety
+| Feature | Status |
+|---------|--------|
+| Approval required for file-modifying tools | done |
+| Preview command without --apply | done |
+| Project-scoped memory | done |
 
 ---
 
-### TASK 2: Tool Expansion
+## Roadmap
+
+### TASK 1: Companion Core Enhancement - COMPLETED
+
+#### 1.1 Vocabulary Gaps - DONE
+- [x] Add "refactor" keyword
+- [x] Add "export", "excel" handling (clarification)
+- [x] Add "PDF", "report" handling (clarification)
+- [x] Multi-word keyword support
+- [x] Blocking logic for clarification
+
+#### 1.2 Learning Loop - DONE
+- [x] Track usage patterns
+- [x] Store history in .agents/memory.json
+- [x] Suggest based on past success
+
+#### 1.3 Execution Engine - DONE
+- [x] Run commands via subprocess
+- [x] Return structured results
+- [x] Handle errors gracefully
+
+---
+
+### TASK 2: Tool Expansion - COMPLETED
 
 #### 2.1 New Tools
-- [ ] `token_budget_tracker` - Monitor token usage
-- [ ] `context_curator` - Filter noise from context
-- [ ] `output_formatter` - Format JSON to readable
-- [ ] `decision_validator` - Validate decisions
+- [x] token_budget - Token usage tracker
+- [x] context_curator - Context noise filter
+- [x] output_formatter - JSON formatter
+- [x] decision_validator - Risk assessor
 
 #### 2.2 Tool Integration
-- [ ] Connect new tools to companion
-- [ ] Add keywords mapping
-- [ ] Document usage patterns
+- [x] Connect to companion
+- [x] Add keywords mapping
+- [x] Test integration
 
 ---
 
-### TASK 3: Agent Integration
+### TASK 3: Agent Integration - IN PROGRESS
 
 #### 3.1 Gemini Integration
-- [ ] Create companion.py as callable module
-- [ ] Test with Gemini CLI
+- [ ] Create callable module for Gemini CLI
+- [ ] Test with Gemini
 - [ ] Document prompt integration
 
-#### 3.2 Claude Integration
-- [ ] Create .claude/skills/ companion
-- [ ] Test with Claude Code
-- [ ] Document usage
+#### 3.2 Claude Integration - DONE
+- [x] Create .claude/skills/ companion
+- [x] SKILL.md created
 
-#### 3.3 Universal Adapter
-- [ ] Create simple API interface
-- [ ] HTTP/JSON endpoint option
-- [ ] Documentation for any AI
+#### 3.3 Universal Adapter - DONE
+- [x] HTTP/JSON API (api.py)
+- [x] CLI interface (cli.py)
+- [x] Python module (__init__.py)
 
 ---
 
-### TASK 4: Documentation & Polish
+### TASK 4: Documentation - PENDING
 
 #### 4.1 User Guide
 - [ ] Quick start guide
@@ -121,88 +123,62 @@ No restrict, but no overflow.
 - [ ] Architecture overview
 
 #### 4.3 README Update
-- [ ] Vision statement
 - [ ] Quick demo
 - [ ] Contributing guide
 
 ---
 
-### TASK 5: Testing & Validation
+### TASK 5: Testing & Validation - PENDING
 
 #### 5.1 Unit Tests
 - [ ] Test vocabulary matching
 - [ ] Test tool selection logic
 - [ ] Test validation flows
-- [ ] Add pytest coverage
 
 #### 5.2 Integration Tests
 - [ ] Test with real projects
 - [ ] Test agent scenarios
-- [ ] Performance benchmarks
 
 #### 5.3 User Testing
-- [ ] Get feedback from users
-- [ ] Iterate based on feedback
+- [ ] Get feedback
 - [ ] Document real-world usage
 
 ---
 
-## 📅 Suggested Timeline
+## Timeline
 
 ```
-Week 1: TASK 1 (Companion Enhancement)
-├── 1.1 Fix vocabulary (1-2 days)
-├── 1.2 Learning Loop (2-3 days)
-└── 1.3 Execution Engine (2-3 days)
-
-Week 2: TASK 3 (Agent Integration)
-├── 3.1 Gemini (2 days)
-├── 3.2 Claude (2 days)
-└── 3.3 Universal Adapter (1 day)
-
-Week 3: TASK 2 (Tool Expansion)
-├── 2.1 Build 4 new tools (3-4 days)
-└── 2.2 Integration (2 days)
-
-Week 4: TASK 4 & 5 (Documentation & Testing)
-├── 4.1-4.3 Docs (2 days)
-└── 5.1-5.3 Testing (3 days)
+Week 1-2: TASK 3.1 (Gemini Integration)
+Week 3: TASK 4 (Documentation)
+Week 4: TASK 5 (Testing)
 ```
 
 ---
 
-## 🔥 Quick Wins (Next Session)
-
-1. Fix vocabulary gaps (1.1)
-2. Test execution with real command
-3. Demo full workflow
-
----
-
-## 📁 Target File Structure
+## File Structure
 
 ```
 snowline-agent-tools/
-├── companion/
-│   ├── companion.py          # Core
-│   ├── vocabulary.py         # 170+ keywords
-│   ├── memory.py            # Learning loop
-│   ├── executor.py          # Run commands
-│   └── README.md
-├── tools/
-│   └── [14 existing tools]
-├── docs/
-│   ├── QUICKSTART.md
-│   ├── ARCHITECTURE.md
-│   └── VOCABULARY.md
+├── companion/                    # Companion Layer v4.4
+│   ├── companion_core.py        # Intent analysis, planning
+│   ├── memory.py               # Learning loop
+│   ├── executor.py             # Command execution
+│   ├── tool_registry.py        # Tool definitions
+│   ├── api.py                  # HTTP/JSON API
+│   ├── cli.py                  # CLI interface
+│   └── __init__.py             # Python module
+├── .claude/skills/             # Claude Code integration
+│   └── companion/
+│       └── SKILL.md
+├── .agents/                    # Project-scoped data
+│   └── memory.json             # Learning history
+├── tools/                       # 18 tools
 └── tests/
-    ├── unit/
-    └── integration/
 ```
 
 ---
 
-## 🎯 Success Metrics
+## Success Metrics
 
 | Metric | Target |
 |--------|--------|
@@ -210,15 +186,6 @@ snowline-agent-tools/
 | Tool selection confidence | 95%+ |
 | Vocabulary coverage | 200+ keywords |
 | Agent integration | 3+ providers |
-| User satisfaction | 8+/10 |
-
----
-
-## 💡 Philosophy
-
-> "We don't build tools. We build partners."
-> 
-> "Agents that are used to brute-force will feel inferior, because without realizing it, they're training the agentic companion to hunt."
 
 ---
 

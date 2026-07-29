@@ -6,8 +6,13 @@ Takes planned steps and executes them.
 
 import subprocess
 import json
+import sys
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+
+# Ensure UTF-8 output
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 
 @dataclass
@@ -55,6 +60,11 @@ class Executor:
             "crash_decoder": "crash_decoder/decoder.py",
             "auto_scaffolder": "auto_scaffolder/scaffolder.py",
             "context_mapper": "context_mapper/context_mapper.py",
+            # New tools (Task 2.2)
+            "token_budget": "../tools/token_budget.py",
+            "context_curator": "../tools/context_curator.py",
+            "output_formatter": "../tools/output_formatter.py",
+            "decision_validator": "../tools/decision_validator.py",
         }
 
         script = script_map.get(step.tool)
@@ -84,6 +94,8 @@ class Executor:
                 shell=True,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',  # FIX: explicit UTF-8 encoding
+                errors='replace',   # FIX: replace invalid characters
                 timeout=30,
                 cwd=self.project_root
             )
@@ -131,7 +143,11 @@ class Executor:
 def execute_command(cmd: str, cwd: str = ".") -> Dict[str, Any]:
     """Quick execute shell command."""
     executor = Executor(cwd)
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, cwd=cwd, timeout=30)
+    result = subprocess.run(
+        cmd, shell=True, capture_output=True, text=True,
+        encoding='utf-8', errors='replace',  # FIX: explicit UTF-8 encoding
+        cwd=cwd, timeout=30
+    )
     return {
         "success": result.returncode == 0,
         "stdout": result.stdout,

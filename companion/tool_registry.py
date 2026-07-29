@@ -12,6 +12,8 @@ Format:
 - use_cases: Kapan tool ini dipakai
 """
 
+from typing import List
+
 TOOL_REGISTRY = {
     # ===========================================
     # SEARCH & MODIFY
@@ -313,6 +315,94 @@ TOOL_REGISTRY = {
             "Write database queries"
         ],
         "companion_keywords": ["database", "schema", "table", "columns", "db"]
+    },
+
+    # ===========================================
+    # CONTEXT MANAGEMENT (NEW)
+    # ===========================================
+
+    "token_budget": {
+        "name": "Token Budget Tracker",
+        "description": "Monitor approximate token usage per session. Estimates based on character count.",
+        "command": "python tools/token_budget.py [--status|--reset]",
+        "inputs": {
+            "required": [],
+            "optional": ["--status", "--reset"]
+        },
+        "outputs": {
+            "format": "Budget status JSON",
+            "example": '{"budget_used": 45000, "budget_limit": 200000, "budget_used_pct": 22}'
+        },
+        "safety": "safe",
+        "use_cases": [
+            "Track token usage per session",
+            "Prevent budget overflow",
+            "Optimize token efficiency"
+        ],
+        "companion_keywords": ["token", "budget", "usage", "limit", "efficiency", "kuota"]
+    },
+
+    "context_curator": {
+        "name": "Context Noise Filter",
+        "description": "Filter noise dari context. Remove irrelevant imports, comments, whitespace. Keep only relevant code.",
+        "command": "python tools/context_curator.py <input_text>",
+        "inputs": {
+            "required": ["text"],
+            "optional": []
+        },
+        "outputs": {
+            "format": "Cleaned text dengan noise removed",
+            "example": "Kept: 45 lines\nRemoved: 12 noise lines"
+        },
+        "safety": "safe",
+        "use_cases": [
+            "Reduce context before sending to LLM",
+            "Filter irrelevant code blocks",
+            "Focus on relevant logic"
+        ],
+        "companion_keywords": ["bersihkan context", "filter noise", "reduce context", "hemat token", "clean code"]
+    },
+
+    "output_formatter": {
+        "name": "Output Formatter",
+        "description": "Format JSON/text output ke readable format (tables, markdown).",
+        "command": "python tools/output_formatter.py <json_text> [--format table|tree]",
+        "inputs": {
+            "required": ["text"],
+            "optional": ["--format"]
+        },
+        "outputs": {
+            "format": "Formatted markdown table atau tree",
+            "example": "| Key | Value |\n|---|---|\n| name | value |"
+        },
+        "safety": "safe",
+        "use_cases": [
+            "Format JSON output to readable",
+            "Create tables from data",
+            "Present results clearly"
+        ],
+        "companion_keywords": ["format", "table", "json to table", "readable", "tampilkan"]
+    },
+
+    "decision_validator": {
+        "name": "Decision Validator",
+        "description": "Validate decisions sebelum execution. Check risk level dan scope safety.",
+        "command": "python tools/decision_validator.py <action> [--target <path>]",
+        "inputs": {
+            "required": ["action"],
+            "optional": ["--target"]
+        },
+        "outputs": {
+            "format": "Risk assessment dengan verdict",
+            "example": "[MEDIUM] caution\nScope: in-project\nSuggestion: proceed with care"
+        },
+        "safety": "safe",
+        "use_cases": [
+            "Validate dangerous operations",
+            "Check scope before execution",
+            "Risk assessment untuk refactor"
+        ],
+        "companion_keywords": ["validasi", "cek risk", "aman", "dangerous", "safety check", "verifikasi"]
     }
 }
 

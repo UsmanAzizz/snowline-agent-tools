@@ -28,7 +28,7 @@ class OutputFormatter:
             sep_row = "| " + " | ".join(["---"] * len(headers)) + " |"
             table_rows = [header_row, sep_row]
             for item in data[:10]:
-                row = "| " + " | ".join(str(item.get(h, "") for h in headers)
+                row = "| " + " | ".join(str(item.get(h, "")) for h in headers)
                 table_rows.append(row)
             return "\n".join(table_rows)
 
@@ -41,3 +41,17 @@ class OutputFormatter:
         if fmt == "table":
             return OutputFormatter.json_to_table(text)
         return text
+
+
+# CLI interface
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) > 1:
+        text = sys.argv[1]
+        fmt = sys.argv[2] if len(sys.argv) > 2 else "auto"
+        print(OutputFormatter.format(text, fmt))
+    else:
+        # Read from stdin
+        text = sys.stdin.read()
+        if text.strip():
+            print(OutputFormatter.format(text))

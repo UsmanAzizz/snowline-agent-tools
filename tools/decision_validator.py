@@ -75,3 +75,17 @@ def validate(action: str, target: str = "") -> str:
     dv = DecisionValidator()
     result = dv.validate(action, target)
     return str(result)
+
+
+# CLI interface
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) > 1:
+        action = sys.argv[1]
+        target = sys.argv[3] if len(sys.argv) > 3 and sys.argv[2] == "--target" else ""
+        validator = DecisionValidator()
+        result = validator.validate(action, target)
+        print(f"[{result.risk.upper()}] {result.verdict}")
+        print(f"Scope: {result.scope}")
+    else:
+        print("Usage: decision_validator.py <action> [--target <path>]")

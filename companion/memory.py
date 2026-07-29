@@ -8,6 +8,9 @@ Concept:
 - Next time similar intent appears, suggest based on history
 - Track success/failure of tool selections
 - Learn from patterns
+
+Location: Project-scoped (stored in .agents/memory.json)
+NOT in home directory to avoid cross-project pollution.
 """
 
 import os
@@ -16,7 +19,11 @@ import time
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
-MEMORY_FILE = os.path.expanduser("~/.snowline_memory.json")
+# Project-scoped location: .agents/memory.json
+# NOT in ~/.snowline_memory.json (home directory)
+_COMPION_DIR = os.path.dirname(os.path.abspath(__file__))
+_MEMORY_DIR = os.path.join(_COMPION_DIR, '..', '.agents')
+MEMORY_FILE = os.path.join(_MEMORY_DIR, 'memory.json')
 
 @dataclass
 class UsageEntry:

@@ -88,7 +88,7 @@ class ContextCurator:
     def score(self, text: str) -> Dict:
         """Score context quality."""
         lines = text.split("\n")
-        relevant = sum(1 for l in lines if any(k in l for k in RELEVANT_KEYWORDS)
+        relevant = sum(1 for l in lines if any(k in l for k in RELEVANT_KEYWORDS))
         return {
             "lines": len(lines),
             "relevant": relevant,
@@ -100,3 +100,12 @@ class ContextCurator:
 def curate(text: str) -> str:
     curator = ContextCurator()
     return curator.clean(text)
+
+
+# CLI interface
+if __name__ == "__main__":
+    import sys
+    text = sys.stdin.read()
+    if text.strip():
+        result = curate(text)
+        print(result)

@@ -63,7 +63,7 @@ class TokenBudget:
             "requests": len(self.usage_log),
             "budget_used": total,
             "budget_limit": self.budget_limit,
-            "budget_used_pct": min(100, int(total / self.budget_limit * 100),
+            "budget_used_pct": min(100, int(total / self.budget_limit * 100)),
             "budget_remaining": max(0, self.budget_limit - total),
             "status": "ok" if total < self.budget_warning else "warning" if total < self.budget_limit else "critical"
         }
@@ -77,3 +77,31 @@ class TokenBudget:
 def track(input_text: str, output_text: str = "") -> TokenEstimate:
     tracker = TokenBudget()
     return tracker.record(input_text, output_text)
+
+
+# CLI interface
+if __name__ == "__main__":
+    import sys
+    tracker = TokenBudget()
+
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--status":
+            print(json.dumps(tracker.status(), indent=2))
+        elif sys.argv[1] == "--reset":
+            tracker.reset()
+            print("Budget reset!")
+        elif sys.argv[1] == "--record":
+            if len(sys.argv) > 2:
+                text = sys.argv[2]
+                result = tracker.record(text)
+                print(json.dumps({
+                    "input_chars": result.input_chars,
+                    "estimated_tokens": result.estimated_tokens,
+                    "timestamp": result.timestamp
+                }, indent=2))
+            else:
+                print("Usage: token_budget.py --record <text>")
+        else:
+            print("Usage: token_budget.py [--status|--reset|--record <text>]")
+    else:
+        print("Usage: token_budget.py [--status|--reset|--record <text>]")

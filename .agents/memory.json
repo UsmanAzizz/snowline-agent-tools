@@ -1,0 +1,14 @@
+{
+  "entries": [
+    {
+      "timestamp": "2026-07-29",
+      "intent": "test",
+      "keywords": [
+        "test"
+      ],
+      "tool_selected": "smart_search",
+      "success": true,
+      "notes": ""
+    }
+  ]
+}
