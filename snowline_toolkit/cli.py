@@ -34,35 +34,56 @@ class Colors:
     DIM = '\033[2m'
     RESET = '\033[0m'
 
+    # ASCII fallback for Windows terminals without Unicode support
+    CHECK = '+'
+    INFO = 'i'
+    WARN = '!'
+    ERROR = 'x'
+
+
+def safe_print(text):
+    """Print with UTF-8 encoding, fallback to ASCII on Windows."""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        # Replace Unicode chars with ASCII fallbacks
+        replacements = {
+            '✓': '[+]', '✗': '[x]', 'ℹ': '[i]', '⚠': '[!]',
+            '•': '-', '→': '->', '...': '...'
+        }
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        print(text)
+
 
 def print_header(text):
-    print(f"\n{Colors.CYAN}{Colors.BOLD}{'=' * 50}{Colors.RESET}")
-    print(f"{Colors.CYAN}{Colors.BOLD}  {text}{Colors.RESET}")
-    print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 50}{Colors.RESET}\n")
+    safe_print(f"\n{Colors.CYAN}{Colors.BOLD}{'=' * 50}{Colors.RESET}")
+    safe_print(f"{Colors.CYAN}{Colors.BOLD}  {text}{Colors.RESET}")
+    safe_print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 50}{Colors.RESET}\n")
 
 
 def print_success(text):
-    print(f"{Colors.GREEN}✓ {text}{Colors.RESET}")
+    safe_print(f"{Colors.GREEN}{Colors.CHECK} {text}{Colors.RESET}")
 
 
 def print_info(text):
-    print(f"{Colors.CYAN}ℹ {text}{Colors.RESET}")
+    safe_print(f"{Colors.CYAN}{Colors.INFO} {text}{Colors.RESET}")
 
 
 def print_warning(text):
-    print(f"{Colors.YELLOW}⚠ {text}{Colors.RESET}")
+    safe_print(f"{Colors.YELLOW}{Colors.WARN} {text}{Colors.RESET}")
 
 
 def print_error(text):
-    print(f"{Colors.RED}✗ {text}{Colors.RESET}")
+    safe_print(f"{Colors.RED}{Colors.ERROR} {text}{Colors.RESET}")
 
 
 def print_section(text):
-    print(f"\n{Colors.BOLD}{text}{Colors.RESET}")
+    safe_print(f"\n{Colors.BOLD}{text}{Colors.RESET}")
 
 
 def print_list_item(text, indent=2):
-    print(f"{' ' * indent}• {text}")
+    safe_print(f"{' ' * indent}{Colors.DIM}*{Colors.RESET} {text}")
 
 
 def init(dry=True):
@@ -108,14 +129,14 @@ def init(dry=True):
 
     if dry:
         print_section("Preview (Dry Run)")
-        print("The following files will be created:")
-        print()
+        safe_print("The following files will be created:")
+        safe_print("")
 
-        print(f"{Colors.BOLD}Configuration Files:{Colors.RESET}")
+        safe_print(f"{Colors.BOLD}Configuration Files:{Colors.RESET}")
         for name in root_files:
             print_list_item(name)
 
-        print(f"\n{Colors.BOLD}Skills ({len(skill_files)}):{Colors.RESET}")
+        safe_print(f"\n{Colors.BOLD}Skills ({len(skill_files)}):{Colors.RESET}")
         skill_categories = {}
         for f in skill_files:
             rel = str(f.relative_to(templates))
@@ -129,12 +150,12 @@ def init(dry=True):
             for f in skill_categories[category][:3]:
                 if len(skill_categories[category]) > 3 and f == skill_categories[category][2]:
                     remaining = len(skill_categories[category]) - 3
-                    print(f"{' ' * 6}... and {remaining} more")
+                    safe_print(f"{' ' * 6}... and {remaining} more")
                     break
                 print_list_item(f.split('/')[-1], indent=6)
 
-        print()
-        print(f"{Colors.DIM}Run with --apply to install{Colors.RESET}")
+        safe_print("")
+        safe_print(f"{Colors.DIM}Run with --apply to install{Colors.RESET}")
         return
 
     # Install
@@ -175,12 +196,12 @@ def init(dry=True):
     # Progress bar for skills
     total = len(created_skills) + len(skipped_skills)
     for i, skill in enumerate(created_skills, 1):
-        print(f"  {Colors.GREEN}✓{Colors.RESET} {skill}", end="\r")
+        safe_print(f"  {Colors.GREEN}{Colors.CHECK}{Colors.RESET} {skill}", end="\r")
 
     print()
     print_section("Installation Complete!")
 
-    print(f"{Colors.BOLD}Summary:{Colors.RESET}")
+    safe_print(f"{Colors.BOLD}Summary:{Colors.RESET}")
     print_success(f"Created {len(created_root)} config files")
     print_success(f"Installed {len(created_skills)} skills")
     if skipped_root:
@@ -189,12 +210,12 @@ def init(dry=True):
         print_info(f"Skipped {len(skipped_skills)} existing skills")
 
     print()
-    print(f"{Colors.BOLD}Next Steps:{Colors.RESET}")
+    safe_print(f"{Colors.BOLD}Next Steps:{Colors.RESET}")
     print_list_item("Review .agents/agents.md for agent rules")
     print_list_item("Update .agents/project_context.md with your project info")
     print_list_item("Run 'snowline update' to sync new skills later")
 
-    print(f"\n{Colors.DIM}Location: {root}{Colors.RESET}\n")
+    safe_print(f"\n{Colors.DIM}Location: {root}{Colors.RESET}\n")
 
 
 def update():
@@ -230,20 +251,20 @@ def update():
         return
 
     if new_files:
-        print(f"\n{Colors.BOLD}New Skills:{Colors.RESET}")
+        safe_print(f"\n{Colors.BOLD}New Skills:{Colors.RESET}")
         for f in new_files[:5]:
             print_list_item(str(f))
         if len(new_files) > 5:
-            print(f"  {Colors.DIM}... and {len(new_files) - 5} more{Colors.RESET}")
+            safe_print(f"  {Colors.DIM}... and {len(new_files) - 5} more{Colors.RESET}")
 
     if modified_files:
-        print(f"\n{Colors.BOLD}Modified Skills:{Colors.RESET}")
+        safe_print(f"\n{Colors.BOLD}Modified Skills:{Colors.RESET}")
         for f in modified_files[:5]:
             print_list_item(str(f))
         if len(modified_files) > 5:
-            print(f"  {Colors.DIM}... and {len(modified_files) - 5} more{Colors.RESET}")
+            safe_print(f"  {Colors.DIM}... and {len(modified_files) - 5} more{Colors.RESET}")
 
-    print(f"\n{Colors.DIM}Run 'snowline uninstall' then 'snowline init --apply' to reinstall{Colors.RESET}\n")
+    safe_print(f"\n{Colors.DIM}Run 'snowline uninstall' then 'snowline init --apply' to reinstall{Colors.RESET}\n")
 
 
 def uninstall():
@@ -262,7 +283,7 @@ def uninstall():
     print_warning(f"This will remove {skill_count} skill files from {skills_dir}")
     print_info("Configuration files (agents.md, memory.json, project_context.md) will be kept")
     print()
-    print(f"{Colors.DIM}Use 'del .agents' manually to remove everything{Colors.RESET}\n")
+    safe_print(f"{Colors.DIM}Use 'del .agents' manually to remove everything{Colors.RESET}\n")
 
     # Note: Auto-removal disabled for safety
 
@@ -272,13 +293,13 @@ def show_path():
     python_exe = sys.executable
 
     print_header("Snowline - Path Information")
-    print(f"{Colors.BOLD}Python:{Colors.RESET} {python_exe}")
-    print(f"{Colors.BOLD}Scripts:{Colors.RESET} {scripts}")
-    print()
-    print(f"{Colors.BOLD}To use 'snowline' command directly:{Colors.RESET}")
-    print(f"  Add to PATH: {scripts}")
-    print()
-    print(f"{Colors.DIM}Alternative: Use 'python -m snowline_toolkit.cli'{Colors.RESET}\n")
+    safe_print(f"{Colors.BOLD}Python:{Colors.RESET} {python_exe}")
+    safe_print(f"{Colors.BOLD}Scripts:{Colors.RESET} {scripts}")
+    safe_print("")
+    safe_print(f"{Colors.BOLD}To use 'snowline' command directly:{Colors.RESET}")
+    safe_print(f"  Add to PATH: {scripts}")
+    safe_print("")
+    safe_print(f"{Colors.DIM}Alternative: Use 'python -m snowline_toolkit.cli'{Colors.RESET}\n")
 
 
 def main():
@@ -307,15 +328,15 @@ def main():
         show_path()
     else:
         print_header("Snowline Agent Tools")
-        print(f"{Colors.BOLD}Version:{Colors.RESET} 1.0.5")
-        print()
-        print(f"{Colors.BOLD}Commands:{Colors.RESET}")
+        safe_print(f"{Colors.BOLD}Version:{Colors.RESET} 1.0.5")
+        safe_print("")
+        safe_print(f"{Colors.BOLD}Commands:{Colors.RESET}")
         print_list_item("init --apply  - Install skills to .agents folder")
         print_list_item("update        - Check for new/modified skills")
         print_list_item("path          - Show installation paths")
         print_list_item("uninstall     - Remove installed skills")
-        print()
-        print(f"{Colors.DIM}Run 'snowline <command> --help' for more info{Colors.RESET}\n")
+        safe_print("")
+        safe_print(f"{Colors.DIM}Run 'snowline <command> --help' for more info{Colors.RESET}\n")
 
 
 if __name__ == "__main__":
