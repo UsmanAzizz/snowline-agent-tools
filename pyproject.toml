@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snowline-agent-tools"
+version = "1.0.4"
+description = "Portable agent tools for coding assistants."
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.setuptools.packages.find]
+include = ["snowline_toolkit"]
+
+[tool.setuptools.package-data]
+snowline_toolkit = ["py.typed", "templates/**/*"]
