@@ -43,16 +43,10 @@ def init(dry=True):
     files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
     print("[Init] .agents")
 
-    # Root files to create
+    # Root files to create (content from templates)
+    agents_template = templates / "AGENTS_TEMPLATE.md"
     root_files = {
-        "agents.md": f"""# Agents Configuration
-
-## Active Skills
-- Use `skills/` folder for skill configurations
-
-## Project Context
-See `project_context.md` for current project details.
-""",
+        "agents.md": agents_template.read_text(encoding="utf-8") if agents_template.exists() else "# Agents Configuration\n",
         "memory.json": """{
   "version": "1.0",
   "context": {},
