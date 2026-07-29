@@ -6,5 +6,5 @@ setup(
     description="Portable agent tools for coding assistants.",
     packages=find_packages(),
     include_package_data=True,
-    package_data={"snowline_toolkit": ["py.typed"]},
+    package_data={"snowline_toolkit": ["py.typed", "templates/**/*"]},
 )
