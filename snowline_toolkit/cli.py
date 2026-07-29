@@ -7,22 +7,21 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 import sysconfig
+import winreg
 
 # Trigger PATH update on import
 import snowline_toolkit
 
-# Try to load PATH in current shell (for instant access without restart)
-if os.environ.get('SNOWLINE_PATH_LOADED') != '1':
-    os.environ['SNOWLINE_PATH_LOADED'] = '1'
-    scripts = sysconfig.get_path('scripts')
-    # Try to update current PowerShell session's PATH
-    try:
-        subprocess.run(
-            f'$env:PATH = "{scripts};$env:PATH"',
-            shell=True, executable=None
-        )
-    except Exception:
-        pass
+# Ensure Scripts folder is in PATH for this process (read from registry)
+_scripts = sysconfig.get_path('scripts')
+try:
+    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
+    user_path, _ = winreg.QueryValueEx(key, "Path")
+    winreg.CloseKey(key)
+    # Set PATH from registry (includes any new additions)
+    os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
+except Exception:
+    pass
 
 def show_path():
     scripts = sysconfig.get_path('scripts')

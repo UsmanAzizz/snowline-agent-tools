@@ -1,11 +1,12 @@
 @echo off
 REM Snowline Agent Tools - CLI Wrapper
-REM Runs the snowline CLI without needing PATH setup
+REM Auto-adds Scripts to PATH and runs CLI
 
-REM Use py launcher if available (handles multiple Python versions)
-where py >nul 2>&1
-if %errorlevel%==0 (
-    py -m snowline_toolkit.cli %*
-) else (
-    python -m snowline_toolkit.cli %*
-)
+REM Get Scripts path from Python
+for /f "delims=" %%P in ('python -c "import sysconfig; print(sysconfig.get_path(\'scripts\'))"') do set "SNOWLINE_SCRIPTS=%%P"
+
+REM Add to PATH for this cmd session
+set "PATH=%SNOWLINE_SCRIPTS%;%PATH%"
+
+REM Run the CLI
+python -m snowline_toolkit.cli %*
