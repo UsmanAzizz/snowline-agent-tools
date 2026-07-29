@@ -101,7 +101,7 @@ def init(dry=True):
     # Count files
     skill_files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
 
-    # Root files
+    # Root files (PROJECT_CONTEXT.md is NOT created - it's the historical one from git)
     agents_template = templates / "AGENTS_TEMPLATE.md"
     root_files = {
         "agents.md": agents_template.read_text(encoding="utf-8") if agents_template.exists() else "# Agents Configuration\n",
@@ -111,7 +111,7 @@ def init(dry=True):
   "history": []
 }
 """,
-        "project_context.md": """# Project Context
+        "PROJECT_NOTES.md": """# Project Notes
 
 ## Current Project
 > Add project details here
@@ -212,7 +212,7 @@ def init(dry=True):
     print()
     safe_print(f"{Colors.BOLD}Next Steps:{Colors.RESET}")
     print_list_item("Review .agents/agents.md for agent rules")
-    print_list_item("Update .agents/project_context.md with your project info")
+    print_list_item("Update .agents/PROJECT_NOTES.md with your project info")
     print_list_item("Run 'snowline update' to sync new skills later")
 
     safe_print(f"\n{Colors.DIM}Location: {root}{Colors.RESET}\n")
@@ -281,7 +281,7 @@ def uninstall():
     skill_count = len([f for f in skills_dir.rglob("*") if f.is_file()])
 
     print_warning(f"This will remove {skill_count} skill files from {skills_dir}")
-    print_info("Configuration files (agents.md, memory.json, project_context.md) will be kept")
+    print_info("Configuration files (agents.md, memory.json, PROJECT_NOTES.md) will be kept")
     print()
     safe_print(f"{Colors.DIM}Use 'del .agents' manually to remove everything{Colors.RESET}\n")
 
