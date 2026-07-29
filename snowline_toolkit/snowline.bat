@@ -1,10 +1,11 @@
 @echo off
-REM Snowline Agent Tools
-REM Direct wrapper that finds Python and runs the CLI module
+REM Snowline Agent Tools - CLI Wrapper
+REM Runs the snowline CLI without needing PATH setup
 
-for %%P in (python python3) do (
-    %%P -m snowline_toolkit.cli %*
-    if not errorlevel 1 goto :eof
+REM Use py launcher if available (handles multiple Python versions)
+where py >nul 2>&1
+if %errorlevel%==0 (
+    py -m snowline_toolkit.cli %*
+) else (
+    python -m snowline_toolkit.cli %*
 )
-echo [ERROR] Python not found. Please install Python 3.7+
-exit /b 1
