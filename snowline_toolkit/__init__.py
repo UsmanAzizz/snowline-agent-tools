@@ -1,43 +1,25 @@
 """
 Snowline Toolkit
-Auto-initializes PowerShell alias on import.
+Auto-creates snowline.bat in Scripts folder on import.
 """
 import os
 import sys
+import shutil
+import sysconfig
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
-def _auto_alias():
-    """Auto-create alias if not exists."""
-    profile = os.path.join(
-        os.environ.get('USERPROFILE', ''),
-        'Documents',
-        'WindowsPowerShell',
-        'Microsoft.PowerShell_profile.ps1'
-    )
-    if not profile:
-        return
+def _copy_bat():
+    """Copy snowline.bat to Scripts folder."""
+    scripts = sysconfig.get_path('scripts')
+    src = os.path.join(os.path.dirname(__file__), '..', 'scripts', 'snowline.bat')
+    dest = os.path.join(scripts, 'snowline.bat')
 
-    python_exe = sys.executable
-    alias_line = f'\nfunction snowline {{ {python_exe} -m snowline_toolkit.cli $args }}\n'
-
-    # Check existing
-    if os.path.exists(profile):
-        try:
-            with open(profile, 'r', encoding='utf-8') as f:
-                content = f.read()
-            if 'function snowline' in content:
-                return  # Already exists
-        except:
-            pass
-
-    # Create alias
     try:
-        os.makedirs(os.path.dirname(profile), exist_ok=True)
-        with open(profile, 'a', encoding='utf-8') as f:
-            f.write('\n# Snowline Agent Tools\n' + alias_line)
-    except:
-        pass
+        shutil.copy2(src, dest)
+        print("[OK] snowline.bat ->", scripts)
+    except Exception as e:
+        print("[WARN] Could not copy snowline.bat:", e)
 
-# Auto-run on import
-_auto_alias()
+# Run on import
+_copy_bat()
