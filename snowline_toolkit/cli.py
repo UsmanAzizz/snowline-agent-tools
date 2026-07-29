@@ -60,7 +60,8 @@ See `project_context.md` for current project details.
         print("[Dry] Run with --apply")
         return
 
-    # Create root files
+    # Create root directory and files
+    root.mkdir(parents=True, exist_ok=True)
     for name, content in root_files.items():
         dest = root / name
         if not dest.exists():
