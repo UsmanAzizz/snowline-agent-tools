@@ -12,7 +12,6 @@ companion/tool_registry.py
 snowline_agent_tools.egg-info/PKG-INFO
 snowline_agent_tools.egg-info/SOURCES.txt
 snowline_agent_tools.egg-info/dependency_links.txt
-snowline_agent_tools.egg-info/entry_points.txt
 snowline_agent_tools.egg-info/top_level.txt
 snowline_toolkit/__init__.py
 snowline_toolkit/cli.py
@@ -24,8 +23,6 @@ snowline_toolkit/templates/clean_sweeper/sweeper.py
 snowline_toolkit/templates/companion/README.md
 snowline_toolkit/templates/companion/companion.py
 snowline_toolkit/templates/companion/tool_registry.py
-snowline_toolkit/templates/companion/__pycache__/companion.cpython-314.pyc
-snowline_toolkit/templates/companion/__pycache__/tool_registry.cpython-314.pyc
 snowline_toolkit/templates/context_mapper/SKILL.md
 snowline_toolkit/templates/context_mapper/context_mapper.py
 snowline_toolkit/templates/crash_decoder/SKILL.md
