@@ -12,6 +12,7 @@ quarantine/
 plan_archive/
 /PLAN.md
 scratch/
+.agents/
 
 # OS generated files
 .DS_Store
