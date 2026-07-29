@@ -1,58 +1,8 @@
 # CLAUDE.md
 
-## Aturan Bootstrapping (Self-Improvement Safety)
+Aturan kerja lengkap untuk project ini ada di `.agents/AGENTS.md`.
+Baca file itu dan seluruh isi `.agents/rules/` sebelum memulai pekerjaan apa pun.
 
-### Konteks
-Proyek ini unik karena tools yang dibangun di sini (smart_search, project_guardian, scope_guardian, dll) juga dipakai untuk mengaudit dan memperbaiki proyek ini sendiri. Ini disebut **bootstrapping/self-hosting** — tapi punya risiko: kalau sebuah tool punya bug, tool itu bisa gagal mendeteksi masalah pada dirinya sendiri, karena "mata" yang dipakai untuk memeriksa itu sendiri yang rusak.
-
----
-
-### Aturan Wajib Saat Tool Memeriksa Dirinya Sendiri
-
-#### 1. Jangan Validasi dengan Tool yang Sama
-
-Jangan pernah memvalidasi perubahan pada suatu tool **HANYA** dengan tool itu sendiri.
-
-**Contoh:**
-- Memperbaiki bug di `smart_search` → jangan cuma jalankan `smart_search` lagi untuk "membuktikan" perbaikannya benar
-- Gunakan verifikasi independen: baca kode secara langsung (`view_file`), atau jalankan Python/perintah dasar yang tidak bergantung pada tool yang sedang diperbaiki
-
-#### 2. Curigai Bug di Companion/Orchestrator
-
-Kalau menemukan bug di companion/orchestrator (`companion_core.py`, `executor.py`, dll) yang bertugas **MEMANGGIL tool lain**:
-
-- Curigai juga apakah bug yang sama membuat **SEMUA laporan sebelumnya dari companion itu tidak bisa dipercaya**
-- Jangan asumsikan "cuma bug ini doang" — audit ulang klaim-klaim sebelumnya yang bergantung pada komponen yang baru ditemukan rusak
-
-#### 3. Live-Test di Lingkungan Bersih
-
-Untuk perubahan pada tool inti (bukan fitur baru, tapi **perbaikan bug**):
-
-- Wajib live-test di folder/environment **BARU** yang belum pernah dipakai sebelumnya
-- Tujuannya: supaya tidak ada cache atau state lama yang menyamarkan hasil
-- Contoh: bug `safe_print` yang sempat lolos karena versi lama masih ter-cache
-
-#### 4. Laporkan Keraguan
-
-Kalau ragu apakah suatu perbaikan benar-benar bekerja karena tool yang dipakai untuk verifikasi adalah bagian dari **sistem yang sama** yang sedang diperbaiki:
-
-- **WAJIB** laporkan keraguan itu secara eksplisit ke user
-- Jangan klaim "sudah terverifikasi" kalau verifikasinya berasal dari komponen yang blind spot-nya belum bisa ditentukan bersih
-
----
-
-### Prinsip Inti
-
-> **Sistem tidak bisa 100% memverifikasi dirinya sendiri tanpa pengawasan dari luar.**
-
-Kalau Claude Code sedang memperbaiki tool yang **JUGA** dipakai untuk bekerja di project ini, akui keterbatasan itu ke user, jangan berpura-pura hasil verifikasi internal itu setara dengan pengecekan independen dari luar.
-
----
-
-## Disiplin Kerja (Nagih Bukti)
-
-Lihat `.agents/PROJECT_CONTEXT.md` untuk prinsip kerja lengkap.
-
----
-
-*Last Updated: 2026-07-29*
+Dokumen ini sengaja singkat — semua aturan operasional sudah
+terpusat di .agents/ agar konsisten dipakai baik oleh Gemini/Antigravity
+maupun Claude Code, tanpa dua sumber kebenaran yang bisa berbeda.
