@@ -41,10 +41,10 @@ class Colors:
     ERROR = 'x'
 
 
-def safe_print(text):
+def safe_print(text, end="\n"):
     """Print with UTF-8 encoding, fallback to ASCII on Windows."""
     try:
-        print(text)
+        print(text, end=end)
     except UnicodeEncodeError:
         # Replace Unicode chars with ASCII fallbacks
         replacements = {
