@@ -2,6 +2,13 @@ LICENSE
 MANIFEST.in
 README.md
 setup.py
+companion/__init__.py
+companion/api.py
+companion/cli.py
+companion/companion_core.py
+companion/executor.py
+companion/memory.py
+companion/tool_registry.py
 snowline_agent_tools.egg-info/PKG-INFO
 snowline_agent_tools.egg-info/SOURCES.txt
 snowline_agent_tools.egg-info/dependency_links.txt
@@ -14,6 +21,11 @@ snowline_toolkit/templates/auto_scaffolder/SKILL.md
 snowline_toolkit/templates/auto_scaffolder/scaffolder.py
 snowline_toolkit/templates/clean_sweeper/SKILL.md
 snowline_toolkit/templates/clean_sweeper/sweeper.py
+snowline_toolkit/templates/companion/README.md
+snowline_toolkit/templates/companion/companion.py
+snowline_toolkit/templates/companion/tool_registry.py
+snowline_toolkit/templates/companion/__pycache__/companion.cpython-314.pyc
+snowline_toolkit/templates/companion/__pycache__/tool_registry.cpython-314.pyc
 snowline_toolkit/templates/context_mapper/SKILL.md
 snowline_toolkit/templates/context_mapper/context_mapper.py
 snowline_toolkit/templates/crash_decoder/SKILL.md
@@ -46,3 +58,6 @@ snowline_toolkit/templates/smart_search/SKILL.md
 snowline_toolkit/templates/smart_search/code_finder.py
 snowline_toolkit/templates/smart_tree/SKILL.md
 snowline_toolkit/templates/smart_tree/scripts/tree_viewer.py
+snowline_toolkit/templates/tree_gen/tree_gen.py
+tests/test_scope_guardian.py
+tests/test_tree_gen.py
