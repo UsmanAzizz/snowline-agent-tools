@@ -16,20 +16,58 @@ def show_path():
 
 def init(dry=True):
     templates = Path(__file__).parent / "templates"
-    target = Path.cwd() / ".agents" / "skills"
+    root = Path.cwd() / ".agents"
+    target = root / "skills"
 
     if not templates.exists():
         print("[Error] Templates not found")
         return
 
     files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
-    print("[Init] .agents/skills")
-    print(f"[{len(files)} files")
+    print("[Init] .agents")
+
+    # Root files to create
+    root_files = {
+        "agents.md": f"""# Agents Configuration
+
+## Active Skills
+- Use `skills/` folder for skill configurations
+
+## Project Context
+See `project_context.md` for current project details.
+""",
+        "memory.json": """{
+  "version": "1.0",
+  "context": {},
+  "history": []
+}
+""",
+        "project_context.md": """# Project Context
+
+## Current Project
+> Add project details here
+
+## Goals
+- [ ]
+
+## Notes
+> Additional notes
+"""
+    }
 
     if dry:
+        print(f"[Dry] {len(files)} skill files, {len(root_files)} root files")
         print("[Dry] Run with --apply")
         return
 
+    # Create root files
+    for name, content in root_files.items():
+        dest = root / name
+        if not dest.exists():
+            dest.write_text(content, encoding="utf-8")
+            print(f"  + {name}")
+
+    # Copy skill templates
     copied = 0
     for f in files:
         rel = f.relative_to(templates)
@@ -37,10 +75,10 @@ def init(dry=True):
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(f, dest)
         copied += 1
-        print(f"  {copied}/{len(files)} {rel}", end="\r")
+        print(f"  + skills/{rel}", end="\r")
 
     print()
-    print(f"[OK] {copied} files")
+    print(f"[OK] {len(root_files)} root + {copied} skill files")
 
 def update():
     target = Path.cwd() / ".agents" / "skills"
