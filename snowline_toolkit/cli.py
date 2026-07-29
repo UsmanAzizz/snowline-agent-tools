@@ -3,12 +3,26 @@ import shutil
 import argparse
 import filecmp
 import sys
+import subprocess
 from datetime import datetime
 from pathlib import Path
 import sysconfig
 
 # Trigger PATH update on import
 import snowline_toolkit
+
+# Try to load PATH in current shell (for instant access without restart)
+if os.environ.get('SNOWLINE_PATH_LOADED') != '1':
+    os.environ['SNOWLINE_PATH_LOADED'] = '1'
+    scripts = sysconfig.get_path('scripts')
+    # Try to update current PowerShell session's PATH
+    try:
+        subprocess.run(
+            f'$env:PATH = "{scripts};$env:PATH"',
+            shell=True, executable=None
+        )
+    except Exception:
+        pass
 
 def show_path():
     scripts = sysconfig.get_path('scripts')
