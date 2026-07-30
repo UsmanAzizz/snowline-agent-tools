@@ -1,5 +1,5 @@
 """
-AGENTIC COMPANION v4.3 - FULLY TESTED
+AGENTIC COMPANION v5.0 - FULLY TESTED
 =====================================
 - Fixed vocabulary logic
 - Multi-word keyword support

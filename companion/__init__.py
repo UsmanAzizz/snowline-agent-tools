@@ -1,96 +1,122 @@
-"""
-COMPANION - Python Module Interface
-===================================
-Simple import interface untuk companion.
+﻿"""
+COMPANION - Python Module Interface v5.0
+=========================================
+Phase 3: Pure data processor, agent makes decisions.
 
 Usage:
-    from companion import Companion
+    from companion import analyze_intent, AnalyzeResult
 
-    c = Companion()
-    r = c.analyze("cari import axios")
-    r = c.plan("cari axios")
-
-CLI:
-    python companion/cli.py --input "cari axios"
+    result = analyze_intent("cari import axios")
+    print(result.confidence_level)  # "HIGH"
+    print(result.single_tool.name)  # "smart_search"
 """
 
 import sys
 import os
 
 # Ensure UTF-8
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stdout.encoding != '"'"'utf-8'"'"':
+    sys.stdout.reconfigure(encoding='"'"'utf-8'"'"')
 
 # Add parent directory to path
 _parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _parent_dir not in sys.path:
     sys.path.insert(0, _parent_dir)
 
-# Import from companion_core
-from companion.companion_core import (
+# Import new v5.0 from companion_v2
+from companion.companion_v2 import (
+    AnalyzeResult,
+    ToolMatch,
     analyze_intent,
-    plan_steps,
-    build_execution_command,
+    extract_entities,
+    TOOL_REGISTRY,
+    CLARIFICATION_TRIGGERS,
     needs_approval,
-    TOOL_KEYWORDS,
-    NEEDS_CLARIFICATION
 )
 
+# Import legacy from companion_core for backward compatibility
+from companion.companion_core import (
+    IntentResult,
+    Step,
+    plan_steps,
+    build_execution_command,
+    get_command,
+    get_params,
+    learn,
+    recall,
+    memory_stats,
+    memory,
+)
 
-# Simple companion interface
+# Agent Decision Matrix (for reference)
+def get_agent_action(result):
+    """Determine agent action based on AnalyzeResult.
+    
+    | Confidence | Specificity | Agent Action |
+    |------------|-------------|--------------|
+    | HIGH       | high        | EXECUTE      |
+    | HIGH       | medium/low  | KONFIRMASI   |
+    | MEDIUM     | any         | KONFIRMASI   |
+    | LOW        | any         | CLARIFY      |
+    | NONE       | any         | CLARIFY      |
+    """
+    if result.confidence_level == "HIGH" and result.specificity == "high":
+        return "EXECUTE"
+    elif result.confidence_level in ("HIGH", "MEDIUM"):
+        return "KONFIRMASI"
+    else:
+        return "CLARIFY"
+
+
+# Simple companion interface (backward compatible)
 class Companion:
     """Simple interface untuk companion layer."""
 
     def __init__(self, project_root=".agents/skills"):
         self.project_root = project_root
 
-    def analyze(self, user_input: str) -> dict:
-        """Analyze user input."""
-        intent = analyze_intent(user_input)
-        return {
-            "clarity": intent.clarity,
-            "intent_type": intent.intent_type,
-            "keywords": intent.keywords,
-            "needs_clarification": intent.needs_clarification,
-            "clarification_msg": intent.clarification_msg
-        }
+    def analyze(self, user_input):
+        """Analyze user input (v5.0 - returns AnalyzeResult)."""
+        return analyze_intent(user_input)
 
-    def plan(self, user_input: str) -> list:
-        """Plan steps based on intent."""
-        intent = analyze_intent(user_input)
-        steps = plan_steps(user_input, intent)
-        result = []
-        for s in steps:
-            result.append({
+    def plan(self, user_input):
+        """Plan steps based on intent (legacy compatibility)."""
+        result = analyze_intent(user_input)
+        steps = plan_steps(user_input, result)
+        return [
+            {
                 "tool": s.tool,
                 "params": s.params,
                 "reason": s.reason,
                 "needs_approval": needs_approval(s.tool),
-                "command": build_execution_command(s, approved=False) if s.tool != "NEEDS_CLARIFICATION" else None
-            })
-        return result
+                "command": get_command(s) if s.tool != "NEEDS_CLARIFICATION" else None
+            }
+            for s in steps
+        ]
 
-    def run(self, user_input: str, approved: bool = False) -> dict:
-        """Full workflow with approval check.
-
-        Args:
-            user_input: User's intent
-            approved: True when user confirmed (for tools that need approval
-        """
-        intent = analyze_intent(user_input)
-        steps = plan_steps(user_input, intent)
+    def run(self, user_input, approved=False):
+        """Full workflow with approval check (legacy compatibility)."""
+        result = analyze_intent(user_input)
+        steps = plan_steps(user_input, result)
 
         if not steps:
-            return {"intent": intent.__dict__, "steps": [], "tool": None, "command": None}
+            return {
+                "input": result.input,
+                "confidence": result.confidence_level,
+                "specificity": result.specificity,
+                "tool": None,
+                "command": None
+            }
 
         step = steps[0]
         tool = step.tool
 
         if needs_approval(tool) and not approved:
-            # Tool needs approval - return preview only
-            preview_cmd = build_execution_command(step, approved=False)
+            preview_cmd = get_command(step)
             return {
-                "intent": intent.__dict__,
+                "input": result.input,
+                "confidence": result.confidence_level,
+                "specificity": result.specificity,
                 "steps": [{"tool": tool, "command": preview_cmd}],
                 "tool": tool,
                 "command": preview_cmd,
@@ -98,10 +124,11 @@ class Companion:
                 "needs_approval": True
             }
 
-        # Approved or no approval needed - execute
         exec_cmd = build_execution_command(step, approved=approved)
         return {
-            "intent": intent.__dict__,
+            "input": result.input,
+            "confidence": result.confidence_level,
+            "specificity": result.specificity,
             "steps": [{"tool": tool, "command": exec_cmd}],
             "tool": tool,
             "command": exec_cmd,
@@ -114,16 +141,22 @@ companion = Companion()
 
 
 # Quick functions
-def analyze(input_str: str) -> dict:
+def analyze(input_str):
     """Quick analyze."""
     return companion.analyze(input_str)
 
 
-def plan(input_str: str) -> list:
+def plan(input_str):
     """Quick plan."""
     return companion.plan(input_str)
 
 
-def run(input_str: str, approved: bool = False) -> dict:
+def run(input_str, approved=False):
     """Quick run with optional approval."""
     return companion.run(input_str, approved=approved)
+
+
+def action(input_str):
+    """Get agent action for input."""
+    result = analyze_intent(input_str)
+    return get_agent_action(result)
