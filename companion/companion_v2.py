@@ -60,11 +60,12 @@ CLARIFICATION_TRIGGERS = {
 
 def extract_entities(text):
     entities = []
-    camel = re.findall(r"[A-Z][a-z]+(?:[A-Z][a-z]+)+", text)
-    entities.extend(camel)
-    quoted = re.findall(r'["\']([^"\']+)["\']', text)
-    entities.extend(quoted)
-    return list(set(entities))
+    # PascalCase: HandleSubmit
+    entities.extend(re.findall(r'[A-Z][a-z]+', text))
+    # Remove duplicates and short words
+    entities = list(set([e for e in entities if len(e) > 2]))
+    return entities
+
 
 def analyze_intent(user_input):
     text = user_input.lower()
