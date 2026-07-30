@@ -64,10 +64,13 @@ TOOL_KEYWORDS = {
         "generate", "generate", "buat", "bikin", "create", "new", "tambah", "add", "instance", "scaffolding", "tambah component"
     ],
     "crash_decoder": [
-        "error", "bug", "crash", "debug", "log", "trace", "gagal", "failed", "masalah", "issue", "exception", "perbaiki"
+        "error", "bug", "crash", "debug", "log", "trace", "gagal", "failed", "masalah", "issue", "exception", "perbaiki", "repair", "reparasi"
     ],
     "impact_analyzer": [
         "impact", "dampak", "effect", "affected", "depend", "dependency", "terkait", "relasi", "pemakaian"
+    ],
+    "db_extractor": [
+        "schema", "extract schema", "database", "db", "tabel", "struktur database"
     ],
     "project_guardian": [
         "keamanan", "security", "audit", "vulnerability", "amankan", "proteksi", "credential", "password", "token", "secret", "auth", "encryption"
@@ -147,7 +150,7 @@ def plan_steps(user_input: str, intent: IntentResult) -> List[Step]:
         "project_guardian", "smart_search", "smart_replace",
         "selective_reader", "smart_tree", "scope_guardian",
         "clean_sweeper", "deep_analyzer", "auto_scaffolder",
-        "crash_decoder", "impact_analyzer"
+        "crash_decoder", "impact_analyzer", "db_extractor"
     ]
 
     for tool in tool_priority:
