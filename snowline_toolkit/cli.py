@@ -87,6 +87,22 @@ def print_list_item(text, indent=2):
 
 
 def init(dry=True):
+    # Check if already installed - suggest update
+    existing_count = 0
+    skills_dir = Path.cwd() / ".agents" / "skills"
+    if skills_dir.exists():
+        existing_count = len([f for f in skills_dir.rglob("*") if f.is_file() and not f.name.endswith(".pyc")])
+    
+    if existing_count > 0 and not dry:
+        print_info(f"Found {existing_count} existing skills")
+        print()
+        print_warning("Skills already installed!")
+        print_info("To update, run: snowline update --apply")
+        print_info("To reinstall, run: snowline uninstall --apply first")
+        print()
+        safe_print(f"{Colors.DIM}Use --apply to install anyway{Colors.RESET}")
+        return
+
     templates = Path(__file__).parent / "templates"
     root = Path.cwd() / ".agents"
     target = root / "skills"
