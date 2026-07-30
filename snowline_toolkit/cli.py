@@ -392,9 +392,9 @@ def main():
     if args.command == "init":
         init(dry=not args.apply)
     elif args.command == "update":
-        update()
+        update(apply=args.apply)
     elif args.command == "uninstall":
-        uninstall()
+        uninstall(apply=args.apply)
     elif args.command == "path":
         show_path()
     else:
