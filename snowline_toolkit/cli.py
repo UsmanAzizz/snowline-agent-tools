@@ -218,11 +218,11 @@ def init(dry=True):
     safe_print(f"\n{Colors.DIM}Location: {root}{Colors.RESET}\n")
 
 
-def update():
+def update(apply=False):
     root = Path.cwd() / ".agents"
     target = root / "skills"
 
-    print_header("Snowline Agent Tools - Updater")
+    print_header("Snowline Update")
 
     if not target.exists():
         print_error("No skills found!")
@@ -230,62 +230,115 @@ def update():
         return
 
     templates = Path(__file__).parent / "templates"
+    
+    # Protected files
+    PROTECTED = {
+        "memory.json",
+        "PROJECT_CONTEXT.md",
+        "PROJECT_NOTES.md",
+        "CURRENT_STATE.md",
+        "scope_lock.json",
+        "agents.md",
+    }
+
     skill_files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
 
-    # Check status
     new_files = []
     modified_files = []
+    
     for f in skill_files:
-        rel = f.relative_to(templates)
+        rel = str(f.relative_to(templates))
+        if rel in PROTECTED:
+            continue
         dest = target / rel
         if not dest.exists():
-            new_files.append(rel)
+            new_files.append((f, rel))
         elif f.stat().st_mtime > dest.stat().st_mtime:
-            modified_files.append(rel)
+            modified_files.append((f, rel))
 
-    print_info(f"Current skills: {len([f for f in target.rglob('*') if f.is_file()])}")
-    print_info(f"Available updates: {len(new_files)} new, {len(modified_files)} modified")
-
+    total_current = len([f for f in target.rglob("*") if f.is_file()])
+    
+    print_info(f"Current skills: {total_current}")
+    
     if not new_files and not modified_files:
         print_success("All skills are up to date!")
         return
 
-    if new_files:
-        safe_print(f"\n{Colors.BOLD}New Skills:{Colors.RESET}")
-        for f in new_files[:5]:
-            print_list_item(str(f))
-        if len(new_files) > 5:
-            safe_print(f"  {Colors.DIM}... and {len(new_files) - 5} more{Colors.RESET}")
+    print_info(f"Available: {len(new_files)} new, {len(modified_files)} modified")
 
-    if modified_files:
-        safe_print(f"\n{Colors.BOLD}Modified Skills:{Colors.RESET}")
-        for f in modified_files[:5]:
-            print_list_item(str(f))
-        if len(modified_files) > 5:
-            safe_print(f"  {Colors.DIM}... and {len(modified_files) - 5} more{Colors.RESET}")
+    if not apply:
+        print_section("Changes to be applied:")
+        
+        for _, rel in new_files[:10]:
+            print_list_item(f"[NEW] {rel}")
+        if len(new_files) > 10:
+            print_info(f"... and {len(new_files) - 10} more new files")
+        
+        for _, rel in modified_files[:10]:
+            print_list_item(f"[UPDATE] {rel}")
+        if len(modified_files) > 10:
+            print_info(f"... and {len(modified_files) - 10} more modified files")
+        
+        print()
+        safe_print(f"Run {Colors.BOLD}snowline update --apply{Colors.RESET} to apply changes")
+        return
 
-    safe_print(f"\n{Colors.DIM}Run 'snowline uninstall' then 'snowline init --apply' to reinstall{Colors.RESET}\n")
+    print_section("Applying updates...")
+    
+    created = 0
+    updated = 0
+    
+    for src, rel in new_files:
+        dest = target / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dest)
+        safe_print(f"  {Colors.GREEN}+{Colors.RESET} {rel}")
+        created += 1
+
+    for src, rel in modified_files:
+        dest = target / rel
+        shutil.copy2(src, dest)
+        safe_print(f"  {Colors.YELLOW}~{Colors.RESET} {rel}")
+        updated += 1
+
+    print()
+    print_success(f"Updated: {created} new, {updated} modified")
 
 
-def uninstall():
+def uninstall(apply=False):
     root = Path.cwd() / ".agents"
     skills_dir = root / "skills"
 
-    print_header("Snowline Agent Tools - Uninstaller")
+    print_header("Snowline Uninstall")
 
     if not skills_dir.exists():
         print_info("No skills found to remove")
         return
 
-    # Count files
-    skill_count = len([f for f in skills_dir.rglob("*") if f.is_file()])
+    skill_files = [f for f in skills_dir.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
+    skill_count = len(skill_files)
 
-    print_warning(f"This will remove {skill_count} skill files from {skills_dir}")
-    print_info("Configuration files (agents.md, memory.json, PROJECT_NOTES.md) will be kept")
+    if not apply:
+        print_warning(f"Will remove {skill_count} skill files from {skills_dir}")
+        print_info("Configuration files will be kept")
+        print()
+        safe_print(f"Run {Colors.BOLD}snowline uninstall --apply{Colors.RESET} to confirm")
+        return
+
+    removed = 0
+    for f in skill_files:
+        try:
+            f.unlink()
+            removed += 1
+        except Exception as e:
+            safe_print(f"  {Colors.RED}x{Colors.RESET} {f.relative_to(skills_dir)}: {e}")
+
+    for d in sorted(skills_dir.rglob("*"), reverse=True):
+        if d.is_dir() and not list(d.iterdir()):
+            d.rmdir()
+
     print()
-    safe_print(f"{Colors.DIM}Use 'del .agents' manually to remove everything{Colors.RESET}\n")
-
-    # Note: Auto-removal disabled for safety
+    print_success(f"Removed {removed} skill files")
 
 
 def show_path():
@@ -312,8 +365,10 @@ def main():
     p_init = subparsers.add_parser("init", help="Initialize .agents folder with skills")
     p_init.add_argument("--apply", action="store_true", help="Apply installation")
 
-    subparsers.add_parser("update", help="Check for skill updates")
-    subparsers.add_parser("uninstall", help="Remove installed skills")
+    p_update = subparsers.add_parser("update", help="Check for skill updates")
+    p_update.add_argument("--apply", action="store_true", help="Apply updates")
+    p_uninstall = subparsers.add_parser("uninstall", help="Remove installed skills")
+    p_uninstall.add_argument("--apply", action="store_true", help="Apply uninstall")
     subparsers.add_parser("path", help="Show installation paths")
 
     args = parser.parse_args()

@@ -158,3 +158,21 @@ except Exception:
 if __name__ == '__main__':
     from .cli import main
     main()
+
+# Check if already installed during pip install
+def _check_reinstall():
+    """Suggest update after pip install if already installed."""
+    import os
+    # Only run during pip install context
+    if not any('pip' in arg for arg in sys.argv):
+        return
+    
+    skills_dir = Path.cwd() / ".agents" / "skills"
+    if skills_dir.exists() and (skills_dir / "deep_analyzer").exists():
+        skill_count = len([f for f in skills_dir.rglob("*.py") if f.suffix == ".py"])
+        print("")
+        print("[INFO] Snowline already installed (" + str(skill_count) + " tools)")
+        print("[INFO] Run 'snowline update --apply' to update tools")
+        print("")
+
+_check_reinstall()
