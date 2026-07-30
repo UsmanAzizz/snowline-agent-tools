@@ -4,13 +4,14 @@ COMPANION - Python Module Interface
 Simple import interface untuk companion.
 
 Usage:
-    from companion import analyze_intent, plan_steps, get_command
+    from companion import Companion
 
-    intent = analyze_intent("cari import axios")
-    steps = plan_steps("cari import axios", intent)
+    c = Companion()
+    r = c.analyze("cari import axios")
+    r = c.plan("cari axios")
 
 CLI:
-    python companion/cli.py --input "cari import axios"
+    python companion/cli.py --input "cari axios"
 """
 
 import sys
@@ -29,7 +30,8 @@ if _parent_dir not in sys.path:
 from companion.companion_core import (
     analyze_intent,
     plan_steps,
-    get_command,
+    build_execution_command,
+    needs_approval,
     TOOL_KEYWORDS,
     NEEDS_CLARIFICATION
 )
@@ -57,26 +59,53 @@ class Companion:
         """Plan steps based on intent."""
         intent = analyze_intent(user_input)
         steps = plan_steps(user_input, intent)
-        return [
-            {
+        result = []
+        for s in steps:
+            result.append({
                 "tool": s.tool,
                 "params": s.params,
                 "reason": s.reason,
-                "needs_clarify": s.needs_clarify,
-                "clarify_note": s.clarify_note,
-                "command": get_command(s) if not s.needs_clarify else None
-            }
-            for s in steps
-        ]
+                "needs_approval": needs_approval(s.tool),
+                "command": build_execution_command(s, approved=False) if s.tool != "NEEDS_CLARIFICATION" else None
+            })
+        return result
 
-    def run(self, user_input: str) -> dict:
-        """Full workflow: analyze + plan."""
-        steps = self.plan(user_input)
+    def run(self, user_input: str, approved: bool = False) -> dict:
+        """Full workflow with approval check.
+
+        Args:
+            user_input: User's intent
+            approved: True when user confirmed (for tools that need approval
+        """
+        intent = analyze_intent(user_input)
+        steps = plan_steps(user_input, intent)
+
+        if not steps:
+            return {"intent": intent.__dict__, "steps": [], "tool": None, "command": None}
+
+        step = steps[0]
+        tool = step.tool
+
+        if needs_approval(tool) and not approved:
+            # Tool needs approval - return preview only
+            preview_cmd = build_execution_command(step, approved=False)
+            return {
+                "intent": intent.__dict__,
+                "steps": [{"tool": tool, "command": preview_cmd}],
+                "tool": tool,
+                "command": preview_cmd,
+                "approved": False,
+                "needs_approval": True
+            }
+
+        # Approved or no approval needed - execute
+        exec_cmd = build_execution_command(step, approved=approved)
         return {
-            "intent": self.analyze(user_input),
-            "steps": steps,
-            "tool": steps[0]["tool"] if steps else None,
-            "command": steps[0]["command"] if steps else None
+            "intent": intent.__dict__,
+            "steps": [{"tool": tool, "command": exec_cmd}],
+            "tool": tool,
+            "command": exec_cmd,
+            "approved": approved
         }
 
 
@@ -95,6 +124,6 @@ def plan(input_str: str) -> list:
     return companion.plan(input_str)
 
 
-def run(input_str: str) -> dict:
-    """Quick run."""
-    return companion.run(input_str)
+def run(input_str: str, approved: bool = False) -> dict:
+    """Quick run with optional approval."""
+    return companion.run(input_str, approved=approved)
