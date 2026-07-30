@@ -61,7 +61,7 @@ TOOL_KEYWORDS = {
         "analisa", "analyze", "overview", "ringkasan", "summary", "statistik", "diagnosa", "evaluasi", "inventori"
     ],
     "auto_scaffolder": [
-        "generate", "generate", "buat", "create", "new", "tambah", "add", "instance", "scaffolding", "tambah component"
+        "generate", "generate", "buat", "bikin", "create", "new", "tambah", "add", "instance", "scaffolding", "tambah component"
     ],
     "crash_decoder": [
         "error", "bug", "crash", "debug", "log", "trace", "gagal", "failed", "masalah", "issue", "exception", "perbaiki"
