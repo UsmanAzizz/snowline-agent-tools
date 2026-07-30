@@ -215,13 +215,23 @@ def init(dry=True):
     # Copy skill templates
     created_skills = []
     skipped_skills = []
+    updated_skills = []
+    
+    # Files that should ALWAYS be updated
+    ALWAYS_UPDATE = {'SKILL.md', 'companion.py', '__init__.py'}
+    
     for f in skill_files:
         rel = f.relative_to(templates)
         dest = target / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
-        if not dest.exists():
+        
+        # Always copy SKILL.md, always copy new files
+        if not dest.exists() or f.name in ALWAYS_UPDATE:
             shutil.copy2(f, dest)
-            created_skills.append(str(rel))
+            if not dest.exists():
+                created_skills.append(str(rel))
+            else:
+                updated_skills.append(str(rel))
         else:
             skipped_skills.append(str(rel))
 
@@ -235,7 +245,7 @@ def init(dry=True):
 
     safe_print(f"{Colors.BOLD}Summary:{Colors.RESET}")
     print_success(f"Created {len(created_root)} config files")
-    print_success(f"Installed {len(created_skills)} skills")
+    print_success(f"Installed {len(created_skills)} skills, updated {len(updated_skills)}")
     if skipped_root:
         print_info(f"Skipped {len(skipped_root)} existing config files")
     if skipped_skills:
