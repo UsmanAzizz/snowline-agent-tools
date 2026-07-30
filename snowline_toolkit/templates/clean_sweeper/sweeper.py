@@ -11,6 +11,26 @@ if sys.stdout.encoding != 'utf-8':
 MAX_FILE_SIZE = 500 * 1024
 ignore_dirs = {'node_modules', '.git', 'build', 'dist', 'uploads', 'public', '.vscode', '.history', 'quarantine', '.native_browser', '.exambro_android', '.plan', '.skills', '.backup_replace', '.agents'}
 
+def clean_cache(cache_data):
+    """Remove entries where scanned folder no longer exists or too old."""
+    import time
+    MAX_AGE_DAYS = 7
+    before = len(cache_data)
+    now = time.time()
+    removed = []
+    for key, entry in list(cache_data.items()):
+        target = entry.get('target', '')
+        mtime = entry.get('mtime', 0)
+        if target and not os.path.exists(target):
+            removed.append(key)
+        elif mtime and float(mtime) > 0:
+            age_days = (now - float(mtime)) / 86400
+            if age_days > MAX_AGE_DAYS:
+                removed.append(key)
+    for k in removed:
+        del cache_data[k]
+    return len(removed)
+
 def get_dir_signature(target):
     mtimes = []
     for root, dirs, files in os.walk(target):
@@ -154,6 +174,7 @@ def main():
                 cache_data = json.load(f)
         except: pass
 
+    clean_cache(cache_data)
     if cache_key in cache_data and cache_data[cache_key].get('signature') == dir_sig:
         print("[INFO] Menggunakan hasil cache dari session_cache.json (tidak ada file yang berubah)")
         cached = cache_data[cache_key]

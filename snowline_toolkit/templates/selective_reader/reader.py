@@ -50,6 +50,35 @@ def load_cache(cache_file):
             pass
     return {}
 
+def clean_cache(cache_data, project_root):
+    """Remove entries where source file no longer exists or is too old."""
+    import time
+    MAX_AGE_DAYS = 7  # Entry older than 7 days auto-expire
+
+    before = len(cache_data)
+    now = time.time()
+    cleaned_keys = []
+
+    for key, entry in list(cache_data.items()):
+        filepath = entry.get('file', '')
+        mtime = entry.get('mtime', 0)
+
+        # Remove if file doesn't exist
+        if filepath and not os.path.exists(filepath):
+            cleaned_keys.append(key)
+            continue
+
+        # Remove if entry too old (7 days)
+        if mtime:
+            age_days = (now - float(mtime)) / 86400
+            if age_days > MAX_AGE_DAYS:
+                cleaned_keys.append(key)
+
+    for key in cleaned_keys:
+        del cache_data[key]
+
+    return len(cleaned_keys), before - len(cache_data)
+
 def save_cache(cache_file, data):
     try:
         os.makedirs(os.path.dirname(cache_file), exist_ok=True)
@@ -110,6 +139,11 @@ def main():
     project_root = get_project_root(filepath)
     cache_file = os.path.join(project_root, '.agents', 'session_cache.json')
     cache_data = load_cache(cache_file)
+
+    # Clean expired entries (file deleted or too old)
+    removed, delta = clean_cache(cache_data, project_root)
+    if removed > 0:
+        save_cache(cache_file, cache_data)
 
     file_mtime = str(os.path.getmtime(filepath))
     cache_key = f"reader_{hashlib.md5(filepath.encode()).hexdigest()}"
