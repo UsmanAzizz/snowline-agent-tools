@@ -86,6 +86,22 @@ def print_list_item(text, indent=2):
     safe_print(f"{' ' * indent}{Colors.DIM}*{Colors.RESET} {text}")
 
 
+
+def _clear_pip_cache():
+    """Clear pip build cache."""
+    import tempfile, shutil, glob
+    patterns = [
+        tempfile.gettempdir() + "/pip-req-build-*",
+        tempfile.gettempdir() + "/pip-ephem-wheel-cache-*",
+    ]
+    for p in patterns:
+        for d in glob.glob(p):
+            try:
+                shutil.rmtree(d, ignore_errors=True)
+            except:
+                pass
+
+
 def init(dry=True):
     # Check if already installed - suggest update
     existing_count = 0
@@ -235,6 +251,7 @@ def init(dry=True):
 
 
 def update(apply=False):
+    _clear_pip_cache()
     root = Path.cwd() / ".agents"
     target = root / "skills"
 
@@ -322,6 +339,7 @@ def update(apply=False):
 
 
 def uninstall(apply=False):
+    _clear_pip_cache()
     root = Path.cwd() / ".agents"
     skills_dir = root / "skills"
 
