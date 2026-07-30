@@ -120,28 +120,37 @@ def _update_profiles():
         except Exception:
             pass
 
-# 4. Update Windows registry PATH for future terminals
+# 4. Update Windows registry PATH for future terminals (with consent)
 try:
     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
     user_path, _ = winreg.QueryValueEx(key, "Path")
     winreg.CloseKey(key)
 
     if _scripts not in user_path:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_WRITE)
-        winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, user_path + ";" + _scripts)
-        winreg.CloseKey(key)
+        print("")
+        print("[?] Add Python Scripts folder to Windows PATH? (Y/n)")
+        response = input().strip().lower()
+        
+        if response == "" or response == "y":
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_WRITE)
+            winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, user_path + ";" + _scripts)
+            winreg.CloseKey(key)
 
-        # Update all profiles
-        _update_profiles()
+            # Update all profiles
+            _update_profiles()
 
-        # Broadcast change to all windows
-        try:
-            import ctypes
-            HWND_BROADCAST = 0xFFFF
-            WM_SETTINGCHANGE = 0x1A
-            ctypes.windll.user32.SendMessageW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, "Environment")
-        except Exception:
-            pass
+            # Broadcast change to all windows
+            try:
+                import ctypes
+                HWND_BROADCAST = 0xFFFF
+                WM_SETTINGCHANGE = 0x1A
+                ctypes.windll.user32.SendMessageW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, "Environment")
+            except Exception:
+                pass
+            
+            print("[+] PATH updated!")
+        else:
+            print("[*] PATH update skipped. Run 'snowline -h' after manually adding to PATH.")
 except Exception:
     pass
 
