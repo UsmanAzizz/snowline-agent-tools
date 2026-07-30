@@ -6,7 +6,41 @@ Copy paste ke Gemini:
 
 ## Snowline Agent Tools
 
-Saya menggunakan **snowline-agent-tools** untuk efisiensi. Tolong familiar dengan tools ini.
+Saya menggunakan **snowline-agent-tools** untuk efisiensi.
+
+### CRITICAL: Always Use Companion First
+
+**Sebelum memanggil script tool manapun, JALANKAN INI DAHULU:**
+
+```python
+python -c "from companion import analyze_intent; print(analyze_intent('<instruksi user>'))"
+```
+
+Contoh:
+```
+User: "cari fungsi handleSubmit"
+→ python -c "from companion import analyze_intent; print(analyze_intent('cari fungsi handleSubmit'))"
+→ Baca hasilnya
+→ Baru eksekusi tool yang disarankan
+```
+
+### Companion Output Format
+
+AnalyzeResult:
+- keywords: list kata kunci terdeteksi
+- confidence_level: HIGH/MEDIUM/LOW/NONE
+- specificity: high/medium/low
+- single_tool: tool yang disarankan
+- needs_clarification: perlu tanya user
+
+### Agent Decision Matrix
+
+| Confidence | Action |
+|------------|--------|
+| HIGH | Execute tool |
+| MEDIUM | Konfirmasi ke user |
+| LOW | Tanya clarify |
+| NONE | Cannot proceed |
 
 ### Available Tools
 
@@ -23,29 +57,27 @@ Saya menggunakan **snowline-agent-tools** untuk efisiensi. Tolong familiar denga
 
 ### Rules
 
-1. Gunakan tools di atas jika sesuai dengan task
-2. Untuk modifikasi file, **tanya konfirmasi** sebelum gunakan `--apply`
-3. Preview dulu, baru apply setelah user setujui
+1. **SELALU panggil companion dulu** sebelum execute tool
+2. Gunakan tools di atas jika sesuai dengan task
+3. Untuk modifikasi file, **tanya konfirmasi** sebelum gunakan `--apply`
+4. Preview dulu, baru apply setelah user setujui
 
 ### Examples
 
-**Cari:**
+**Cari (dengan companion):**
 ```
-"cari semua handleSubmit"
+User: "cari semua handleSubmit"
+→ Companion analyze first
 → python .agents/skills/smart_search/code_finder.py . "handleSubmit"
 ```
 
-**Replace:**
+**Replace (dengan companion):**
 ```
-"ganti submit jadi handleSubmit"
+User: "ganti submit jadi handleSubmit"
+→ Companion analyze first
+→ Konfirmasi user
 → python .agents/skills/smart_replace/replace_text.py submit handleSubmit
 (WAIT for confirmation, baru tambahkan --apply)
-```
-
-**Audit Security:**
-```
-"cek keamanan project"
-→ python .agents/skills/project_guardian/guardian.py --summary
 ```
 
 ---

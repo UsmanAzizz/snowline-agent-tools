@@ -2,90 +2,76 @@
 
 ## Description
 
-The **Companion** skill is an agentic layer that helps Claude Code work more efficiently by:
-- Understanding user intent and selecting the right tool
-- Preventing token waste through focused tools
-- Learning from past interactions
-- Validating decisions before execution
+The **Companion** is a data processor that analyzes user intent and provides tool recommendations.
 
-## Usage
+## CRITICAL: Always Call Companion FIRST
 
-When the user describes what they want to do, use the companion to:
+**Before executing ANY tool, ALWAYS run this first:**
 
-```
-companion.analyze("user request here")
-companion.plan_steps()
-companion.get_command()
+```python
+python -c "from companion import analyze_intent; print(analyze_intent('<user instruction>'))"
 ```
 
-## Integration
-
-Add to your CLAUDE.md or project:
-
-```markdown
-## Companion Skill
-
-Before executing any task, use the Companion to analyze intent:
-
-1. Analyze: `python .claude/skills/companion/cli.py --input "<user request>"`
-2. Plan: Review suggested tool
-3. Execute: Run the suggested command
-4. Learn: Companion records the selection for future use
+Example workflow:
 ```
+User: "cari fungsi handleSubmit"
+1. Run: python -c "from companion import analyze_intent; print(analyze_intent('cari fungsi handleSubmit'))"
+2. Read the AnalyzeResult:
+   - keywords: ["cari"]
+   - confidence_level: HIGH
+   - single_tool: smart_search
+3. Execute the suggested tool
+```
+
+## Agent Decision Matrix
+
+| Confidence | Specificity | Action |
+|------------|-------------|--------|
+| HIGH | high | EXECUTE (mandatory) |
+| HIGH | medium | KONFIRMASI |
+| MEDIUM | any | KONFIRMASI |
+| LOW | any | CLARIFY |
+| NONE | any | CLARIFY |
 
 ## Available Tools
 
 | Tool | Purpose | Keywords |
 |------|---------|----------|
-| smart_search | Find code with context | cari, find, search, import |
+| smart_search | Find code with context | cari, find, search |
 | smart_replace | Safe find & replace | ganti, replace, refactor |
-| selective_reader | Read large files (TOC) | baca, read, lihat |
-| project_guardian | Security auditor | keamanan, security, audit |
-| clean_sweeper | Tech debt scanner | bersihkan, cleanup, garbage |
-| deep_analyzer | Project profiler | analisa, analyze, tech stack |
-| crash_decoder | Error parser | error, bug, crash, debug |
-| auto_scaffolder | Boilerplate generator | generate, create, new |
-| token_budget | Token usage tracker | token budget, usage |
-| context_curator | Context noise filter | bersihkan context |
-| output_formatter | JSON formatter | format, table |
-| decision_validator | Risk assessor | validasi, safety check |
+| selective_reader | Read large files (TOC) | baca, read |
+| project_guardian | Security auditor | keamanan, security |
+| clean_sweeper | Tech debt scanner | bersihkan, cleanup |
+| deep_analyzer | Project profiler | analisa, analyze |
+| crash_decoder | Error parser | error, bug, crash |
+| scope_guardian | Scope validator | scope |
+
+## Usage
+
+```python
+from companion import analyze_intent, get_agent_action
+
+result = analyze_intent("cari import axios")
+print(result.keywords)
+print(result.confidence_level)
+print(result.single_tool.name if result.single_tool else None)
+print(get_agent_action(result))  # EXECUTE/KONFIRMASI/CLARIFY
+```
 
 ## Example
 
 User: "cari semua import axios"
 
 ```
-companion.analyze("cari semua import axios")
--> smart_search
-```
-
-User: "refactor handleSubmit jadi handleFormSubmit"
-
-```
-companion.analyze("refactor handleSubmit")
--> smart_replace
-command: python .agents/skills/smart_replace/replace_text.py <old> <new> --apply
+1. Analyze: analyze_intent("cari semua import axios")
+   → confidence_level: HIGH
+   → single_tool: smart_search
+   
+2. Execute: python .agents/skills/smart_search/code_finder.py . "import axios"
 ```
 
 ## Memory
 
-The companion learns from your usage:
-- Records tool selections in `~/.snowline_memory.json`
+Companion learns from usage:
+- Records tool selections in `.agents/memory.json`
 - Suggests tools based on past success
-- 70% confidence threshold for suggestions
-
-## CLI Commands
-
-```bash
-# Analyze intent
-python companion/cli.py --input "cari import axios"
-
-# List tools
-python companion/cli.py --list-tools
-
-# Memory stats
-python companion/cli.py --stats
-
-# Interactive mode
-python companion/cli.py --interactive
-```
