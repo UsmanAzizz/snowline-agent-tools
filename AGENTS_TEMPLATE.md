@@ -9,7 +9,14 @@ python .agents/skills/companion.py "<instruksi user>"
 ```
 
 Baca hasilnya. Gunakan sebagai referensi tool mana yang dipanggil.
-Ini berlaku untuk SEMUA instruksi, termasuk yang terlihat sederhana.
+Ini berlaku untuk SEMUA instruksi kerja teknis, termasuk yang terlihat sederhana.
+
+**Pengecualian — JANGAN panggil companion untuk:**
+1. Sapaan/basa-basi ("hai", "halo", "terima kasih", dll) — balas natural langsung, tidak perlu analisis intent.
+2. Pengecekan ekosistem project di awal sesi (lihat bagian "Auto-Setup Project Essentials" di bawah) — itu proses tersendiri yang jalan independen, tidak lewat companion.
+3. Pertanyaan yang murni percakapan (bukan instruksi kerja), misal user bertanya soal status/opini, bukan minta eksekusi tool.
+
+Jika ragu apakah sebuah pesan itu instruksi kerja atau sekadar percakapan, pakai heuristik sederhana: apakah menjawabnya butuh menyentuh file/kode project? Jika ya, panggil companion dulu. Jika tidak, jawab langsung.
 
 **Sebelum membuat fungsi baru:**
 Definisi semua variabel yang akan digunakan terlebih dahulu (untuk menghindari *ReferenceError* atau variabel yang belum di-*destructure*).
@@ -127,3 +134,24 @@ Setelah user setuju:
 - Pakai format tag: [TASK], [DONE], [WARN], [INFO]
 - Bahasa Indonesia, lugas, tanpa hype
 - ⚠️ WAJIB laporkan error yang diatasi sendiri
+
+---
+
+## 🔍 Bukti Live-Test WAJIB Mentah, Bukan Ringkasan
+
+Setiap kali melaporkan hasil live-test atau eksekusi command, WAJIB tampilkan:
+
+1. **Command asli** yang dijalankan, persis apa adanya
+2. **Output literal** yang keluar di terminal, TIDAK BOLEH diringkas, dipotong, atau diganti placeholder seperti "[Output: ALL]" atau "Test passed ✅"
+3. Jika output panjang, tetap tampilkan SELURUHNYA — panjang bukan alasan untuk meringkas
+
+**Yang DILARANG:**
+- Tabel ringkasan ("Step 1: ✅ Success") sebagai pengganti output asli
+- Placeholder yang menjanjikan bukti tapi tidak menunjukkannya
+- Kalimat "Test berhasil" tanpa command dan output asli
+
+**Yang BOLEH:**
+- Ringkasan/tabel BOLEH ditambahkan SETELAH output mentah, BUKAN MENGGANTIKAN output mentah
+- User harus bisa baca sendiri apa yangbenar-benar terjadi di terminal
+
+**Prinsip:** ringkasan/tabel adalah TAMBAHAN, BUKAN PENGGANTI bukti mentah.

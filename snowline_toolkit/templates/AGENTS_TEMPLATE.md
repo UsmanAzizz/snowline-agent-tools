@@ -134,3 +134,24 @@ Setelah user setuju:
 - Pakai format tag: [TASK], [DONE], [WARN], [INFO]
 - Bahasa Indonesia, lugas, tanpa hype
 - ⚠️ WAJIB laporkan error yang diatasi sendiri
+
+---
+
+## 🔍 Bukti Live-Test WAJIB Mentah, Bukan Ringkasan
+
+Setiap kali melaporkan hasil live-test atau eksekusi command, WAJIB tampilkan:
+
+1. **Command asli** yang dijalankan, persis apa adanya
+2. **Output literal** yang keluar di terminal, TIDAK BOLEH diringkas, dipotong, atau diganti placeholder seperti "[Output: ALL]" atau "Test passed ✅"
+3. Jika output panjang, tetap tampilkan SELURUHNYA — panjang bukan alasan untuk meringkas
+
+**Yang DILARANG:**
+- Tabel ringkasan ("Step 1: ✅ Success") sebagai pengganti output asli
+- Placeholder yang menjanjikan bukti tapi tidak menunjukkannya
+- Kalimat "Test berhasil" tanpa command dan output asli
+
+**Yang BOLEH:**
+- Ringkasan/tabel BOLEH ditambahkan SETELAH output mentah, BUKAN MENGGANTIKAN output mentah
+- User harus bisa baca sendiri apa yangbenar-benar terjadi di terminal
+
+**Prinsip:** ringkasan/tabel adalah TAMBAHAN, BUKAN PENGGANTI bukti mentah.
