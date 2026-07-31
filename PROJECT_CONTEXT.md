@@ -56,6 +56,38 @@ NOT in GEMINI_PROMPT.md or separate files.
 
 ---
 
+### Insiden: pip Cache Menyebabkan Fix Tidak Kepakai
+
+**Masalah:**
+- Fix sudah di-push ke GitHub
+- User melaporkan hasil install masih versi lama
+- Template di local pip cache tidak ter-update
+
+**Kronologi:**
+1. Push fix ke GitHub
+2. `pip install git+...` → pakai cache lokal
+3. Template lama dari cache ter-install
+4. User dapat agents.md versi lama
+
+**Solusi WAJIB setiap kali ada fix:**
+```bash
+pip uninstall snowline-toolkit -y
+pip cache purge
+pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --no-cache-dir
+```
+
+**Catatan:**
+- `pip cache purge` menghapus cache pip secara keseluruhan
+- `--no-cache-dir` mencegah pip menyimpan download baru ke cache
+- Ini harus dilakukan SETIAP KALI ada fix yang mempengaruhi template
+
+**Pola yang sama dengan safe_print:**
+- Fix sudah push → masih error di user
+- Penyebab: pip cache
+- Solusi: purge + --no-cache-dir
+
+---
+
 ## Arsitektur Companion
 
 ### Alur Decision-Making
