@@ -188,6 +188,54 @@ CLARIFICATION_TRIGGERS = {
     "diagram": ["diagram", "flowchart", "uml", "sequence"],
 }
 
+# ============================================================
+# PROJECT CONTEXT LOADING (session-cached)
+# ============================================================
+
+# Session cache: {path: (mtime, content)}
+_CONTEXT_CACHE: Dict[str, tuple] = {}
+_CONTEXT_CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+def load_project_context() -> str:
+    """Load PROJECT_STRUCTURE.md from context_mapper output.
+
+    Returns empty string if file not found (no error).
+    Cached for 5 minutes to avoid repeated disk reads per session.
+    """
+    # Search for PROJECT_STRUCTURE.md
+    search_paths = [
+        '.agents/knowledge/PROJECT_STRUCTURE.md',
+        '.agents/PROJECT_STRUCTURE.md',
+        'PROJECT_STRUCTURE.md',
+    ]
+    for path in search_paths:
+        if os.path.isfile(path):
+            try:
+                current_mtime = os.path.getmtime(path)
+                cached = _CONTEXT_CACHE.get(path)
+
+                # Return cached if within TTL and mtime unchanged
+                if cached:
+                    cached_mtime, cached_content = cached
+                    if current_mtime == cached_mtime:
+                        return cached_content
+
+                # Read and cache
+                content = open(path, encoding='utf-8').read()
+                _CONTEXT_CACHE[path] = (current_mtime, content)
+                return content
+            except Exception:
+                pass
+    return ""
+
+
+def entity_in_context(entity: str, context: str) -> bool:
+    """Check if entity appears in project context."""
+    if not context:
+        return False
+    return entity.lower() in context.lower()
+
 
 # ============================================================
 # ENTITY EXTRACTION
@@ -292,6 +340,9 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
     keywords_found = []
     tool_matches = []
 
+    # Load project context for entity validation
+    project_context = load_project_context()
+
     # Check clarification triggers
     needs_clarify = False
     clarify_note = None
@@ -317,7 +368,7 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
     # Extract entities (use ORIGINAL input)
     entities = extract_entities(user_input)
 
-    # Determine specificity
+    # Determine specificity — boost when entities are confirmed in project context
     specificity = "low"
     if len(entities) >= 1 and len(tool_matches) >= 1:
         specificity = "high"
@@ -325,6 +376,14 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
         specificity = "high"
     elif len(entities) >= 1 or len(tool_matches) >= 1:
         specificity = "medium"
+
+    # Boost specificity when extracted entities appear in project context
+    if project_context:
+        matched_entities = [e for e in entities if entity_in_context(e, project_context)]
+        if matched_entities:
+            # Found entity matches in project context — upgrade to high if not already
+            if specificity != "high":
+                specificity = "high"
 
     # Determine confidence
     if not tool_matches:
