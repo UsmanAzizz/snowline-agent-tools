@@ -154,7 +154,14 @@ try:
 except Exception:
     pass
 
-# 5. Read PATH from registry for current session
+# 5. Auto-add companion.py to PYTHONPATH for all projects
+_companion_script = Path(__file__).parent / "templates" / "companion.py"
+if _companion_script.exists():
+    _companion_dir = str(_companion_script.parent)
+    if _companion_dir not in sys.path:
+        sys.path.insert(0, _companion_dir)
+
+# 6. Read PATH from registry for current session
 try:
     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
     user_path, _ = winreg.QueryValueEx(key, "Path")
