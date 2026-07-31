@@ -1,8 +1,70 @@
 # Project Rules (Snowline Agent Ecosystem)
 
-- Sebelum membuat fungsi baru, selalu definisikan semua variabel yang akan digunakan terlebih dahulu (untuk menghindari *ReferenceError* atau variabel yang belum di-*destructure*).
+## ⚡ ATURAN WAJIB NOMOR 1 — PANGGIL COMPANION DULU
 
-## 🛑 DAFTAR TOOLS INTI (MANDATORY)
+Sebelum memanggil tool/script apa pun (search, replace, analyze, dll),
+WAJIB jalankan dulu:
+```
+python -c "from companion import analyze_intent; print(analyze_intent('<instruksi user>'))"
+```
+
+Baca hasilnya. Gunakan sebagai referensi tool mana yang dipanggil.
+Ini berlaku untuk SEMUA instruksi, termasuk yang terlihat sederhana.
+
+**Sebelum membuat fungsi baru:**
+Definisi semua variabel yang akan digunakan terlebih dahulu (untuk menghindari *ReferenceError* atau variabel yang belum di-*destructure*).
+
+---
+
+## ⚠️ TRANSPARANSI WAJIB — LAPORKAN ERROR
+
+Setiap kali eksekusi tool/mekanisme gagal dan berhasil diatasi sendiri,
+WAJIB dilaporkan ke user secara singkat.
+
+**Format:**
+```
+[INFO] companion sempat gagal karena ModuleNotFoundError, sudah diatasi otomatis, lanjut ke hasil
+```
+
+**Contoh error yang WAJIB dilaporkan:**
+- Import/dependency errors yang diatasi sendiri
+- Path resolution errors yang berhasil diperbaiki
+- Timeout/retry yang berhasil setelah percobaan kedua
+- Fallback mechanism yang terpakai
+
+**PRINSIP: Jangan sembunyikan proses troubleshooting demi "efisiensi" — transparansi adalah inti ekosistem ini.**
+
+---
+
+## ✅ TOOLS INI TIDAK PERLU IZIN (LANGSUNG JALAN)
+
+Tool analytical/read-only berikut TIDAK PERLU konfirmasi:
+- `deep_analyzer` / `impact_analyzer` — analisa project
+- `smart_search` — cari kode
+- `selective_reader` — baca file
+- `smart_tree` — lihat struktur folder
+- `scope_guardian` / `scope_check.py` — cek scope
+- `project_guardian` / `guardian.py` — audit keamanan
+- `crash_decoder` / `decoder.py` — debug crash
+- `token_budget`, `context_curator`, `output_formatter` — context management
+
+**LANGSUNG JALAN. TIDAK PERLU TUNGGU APPROVAL.**
+
+---
+
+## 🔒 TOOLS INI MEMBUTUHKAN IZIN (DENGAN --apply)
+
+Hanya tool yang MEMODIFIKASI file yang butuh persetujuan:
+- `smart_replace --apply` — edit masal
+- `auto_scaffolder --apply` — buat file baru
+- `context_mapper --apply` — buat dokumentasi
+- `import_fixer --apply` — fix import paths
+
+**BARU JALAN SETELAH USER SETUJU.**
+
+---
+
+## 📋 Tools Inti (MANDATORY)
 
 Anda DILARANG KERAS menggunakan tool bawaan (seperti grep_search, cat, ls) jika ada tool custom Snowline yang lebih hemat token.
 1. **Memulai Sesi**: deep_analyzer/analyzer.py
@@ -15,14 +77,8 @@ Anda DILARANG KERAS menggunakan tool bawaan (seperti grep_search, cat, ls) jika 
 8. **Buat File Baru**: auto_scaffolder/scaffolder.py <type> <name>
 9. **Fix Import**: import_fixer/fixer.py <file> <import_string>
 
-## 🟢 Aturan Universal (Selalu Berlaku Tanpa Syarat)
-
-## ðŸŸ¢ Fast-Track Analytics (No Confirmation Needed)
-For any Python tools that are strictly **Read-Only / Analytical** (such as `deep_analyzer`, `impact_analyzer`, `smart_search`, `selective_reader`, and `scope_check.py`), you are **FULLY AUTHORIZED** to execute them immediately in the background without asking for the user's permission. Do not wait for user approval or create a `PLAN.md` entry just to read or analyze files. You only need to ask for permission when executing modifying/write tools (e.g., `replace_text.py --apply`).
-
-
-
 ## Live Progress Tracker (PLAN.md)
+
 - **MANDATORY**: For every significant task, you MUST maintain a `PLAN.md` file in the root directory.
 - **Execution Rules**:
   1. APPEND ONLY. Do not rewrite the whole file just to add a log entry.
@@ -30,17 +86,23 @@ For any Python tools that are strictly **Read-Only / Analytical** (such as `deep
   3. **CRITICAL**: Before executing any command that MODIFIES files (like replace_text.py --apply), write your intended action in the "Waiting for User Approval" section and STOP for user approval.
   4. Once a task is fully completed, archive the file to `plan_archive/PLAN_<date>_<task_name>.md`.
 
+## Aturan Inti
 
+**1. Tool Usage:**
+- Gunakan tools Snowline untuk search/modify, bukan tool bawaan AI
+- ✅ Analytical/read-only tools = LANGSUNG JALAN (tidak perlu izin)
+- 🔒 Write tools (replace, scaffold, mapper, fixer) = BUTUH IZIN dengan --apply
 
+**2. Plan First:**
+- Satu task dalam satu waktu
+- Tulis plan, dapat approval, baru eksekusi untuk WRITE tools
+- READ tools tidak perlu plan
 
-## 📁 INDEKS MODUL ATURAN KHUSUS
+**3. Scope Guardian:**
+- Cek scope file sebelum modifikasi
+- Jangan modify di luar scope task
 
-Silakan BACA file-file di bawah ini (menggunakan tool view_file pada .agents/rules/...) HANYA JIKA tugas Anda berkaitan dengan topik tersebut:
-
-- **rules/scope_guardian.md** : Baca ini jika Anda akan melakukan modifikasi file (Aturan Scope Lock).
-- **rules/plan_first.md** : Baca ini sebelum mengeksekusi multi-langkah atau modifikasi (One-Task-One-Time).
-- **rules/tool_usage.md** : Baca ini untuk aturan ketat penggunaan tool modifikasi dan pencarian.
-- **rules/communication.md** : Baca ini untuk format Tag laporan, Mode Komunikasi, dan Anti-Hype.
-- **rules/session_control.md** : Baca ini untuk mekanisme END, CONTINUE, KILL, dan Caching.
-- **rules/guardrail_compliance.md** : Baca ini JIKA Anda diminta membuat/mengubah skrip tool baru.
-- **rules/tech_lead_disciplines.md** : Baca ini untuk panduan investigasi bug dan implicit grilling.
+**4. Communication:**
+- Pakai format tag: [TASK], [DONE], [WARN], [INFO]
+- Bahasa Indonesia, lugas, tanpa hype
+- ⚠️ WAJIB laporkan error yang diatasi sendiri
