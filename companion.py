@@ -233,6 +233,56 @@ def extract_entities(text: str) -> List[str]:
 
 
 # ============================================================
+# SHOULD GRILL (Phase 4 - Simple Detection)
+# ============================================================
+
+def should_grill(result: AnalyzeResult) -> dict:
+    """
+    Deteksi sederhana apakah instruksi butuh grilling.
+
+    Returns:
+        dict dengan:
+        - needs_grilling: bool
+        - reason: str (penjelasan kenapa)
+    """
+    # Micro Task criteria:
+    # HIGH confidence + HIGH specificity = langsung eksekusi
+    if result.confidence_level == "HIGH" and result.specificity == "high":
+        return {
+            "needs_grilling": False,
+            "reason": "Micro Task - specific dan confident, langsung eksekusi"
+        }
+
+    # Specific entity + high specificity = Micro Task ( MESKIPUN MEDIUM confidence)
+    if len(result.entities) >= 1 and result.specificity == "high":
+        return {
+            "needs_grilling": False,
+            "reason": "Micro Task - specific entity detected"
+        }
+
+    # MEDIUM/LOW confidence without specific entity = perlu clarify
+    if result.confidence_level in ("MEDIUM", "LOW", "NONE"):
+        return {
+            "needs_grilling": True,
+            "reason": f"Confidence {result.confidence_level} - perlu clarify"
+        }
+
+    # Long instruction without entities = ambiguous
+    words = result.input.split()
+    if len(words) > 15 and len(result.entities) == 0:
+        return {
+            "needs_grilling": True,
+            "reason": "Instruction >15 words without specific entity"
+        }
+
+    # Default: grilling needed for non-trivial tasks
+    return {
+        "needs_grilling": True,
+        "reason": "Ambiguous intent"
+    }
+
+
+# ============================================================
 # ANALYZE INTENT
 # ============================================================
 
@@ -354,6 +404,7 @@ def main():
         return
 
     result = analyze_intent(user_input)
+    grill = should_grill(result)
 
     print(f"\n{'='*60}")
     print(f"COMPANION v5.0 - ANALYSIS RESULT")
@@ -364,6 +415,10 @@ def main():
     print(f"Specificity: {result.specificity}")
     print(f"Confidence: {result.confidence_level}")
     print(f"Action: {get_agent_action(result)}")
+    print(f"")
+    print(f"Grilling Check:")
+    print(f"  needs_grilling: {grill['needs_grilling']}")
+    print(f"  reason: {grill['reason']}")
 
     if result.single_tool:
         print(f"\nTool: {result.single_tool.name}")
