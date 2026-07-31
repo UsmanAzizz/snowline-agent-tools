@@ -155,3 +155,5 @@ Setiap kali melaporkan hasil live-test atau eksekusi command, WAJIB tampilkan:
 - User harus bisa baca sendiri apa yangbenar-benar terjadi di terminal
 
 **Prinsip:** ringkasan/tabel adalah TAMBAHAN, BUKAN PENGGANTI bukti mentah.
+
+**Scope aturan ini:** Hanya berlaku SAAT AI MEMBANGUN/MEMPERBAIKI tools/companion/ekosistem snowline ITU SENDIRI (development mode). Saat tools dipakai sebagai alat bantu di project lain, cukup hasil ringkas natural.
