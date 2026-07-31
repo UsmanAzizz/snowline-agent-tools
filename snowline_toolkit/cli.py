@@ -70,7 +70,7 @@ def print_info(text):
     safe_print(f"{Colors.CYAN}{Colors.INFO} {text}{Colors.RESET}")
 
 
-def print_warning(text):
+def print_warninging(text):
     safe_print(f"{Colors.YELLOW}{Colors.WARN} {text}{Colors.RESET}")
 
 
@@ -112,7 +112,7 @@ def init(dry=True):
     if existing_count > 0 and not dry:
         print_info(f"Found {existing_count} existing skills")
         print()
-        print_warning("Skills already installed!")
+        print_warninginging("Skills already installed!")
         print_info("To update, run: snowline update --apply")
         print_info("To reinstall, run: snowline uninstall --apply first")
         print()
@@ -273,22 +273,30 @@ def update(apply=False):
         return
 
     templates = Path(__file__).parent / "templates"
-    
-    # Protected files
+
+    # Check for agents.md update (root file, not in skills/)
+    agents_template = templates / "AGENTS_TEMPLATE.md"
+    agents_dest = target.parent / "agents.md"
+    agents_md_modified = False
+    if agents_template.exists() and agents_dest.exists():
+        if agents_template.stat().st_mtime > agents_dest.stat().st_mtime:
+            agents_md_modified = True
+
+    # Protected files (will NOT be auto-updated)
     PROTECTED = {
         "memory.json",
         "PROJECT_CONTEXT.md",
         "PROJECT_NOTES.md",
         "CURRENT_STATE.md",
         "scope_lock.json",
-        "agents.md",
+        # NOTE: agents.md NOT protected - follows timestamp logic like other files
     }
 
     skill_files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
 
     new_files = []
     modified_files = []
-    
+
     for f in skill_files:
         rel = str(f.relative_to(templates))
         if rel in PROTECTED:
@@ -303,7 +311,7 @@ def update(apply=False):
     
     print_info(f"Current skills: {total_current}")
     
-    if not new_files and not modified_files:
+    if not new_files and not modified_files and not agents_md_modified:
         print_success("All skills are up to date!")
         return
 
@@ -322,6 +330,13 @@ def update(apply=False):
         if len(modified_files) > 10:
             print_info(f"... and {len(modified_files) - 10} more modified files")
         
+        # Warning for agents.md
+        if agents_md_modified:
+            print()
+            print_warninging("[WARN] agents.md akan diperbarui!")
+            print_warninging("Jika Anda sudah edit manual, backup dulu sebelum lanjut.")
+            print_warninging("Contoh: copy .agents/agents.md ke .agents/agents.md.bak")
+        
         print()
         safe_print(f"Run {Colors.BOLD}snowline update --apply{Colors.RESET} to apply changes")
         return
@@ -339,10 +354,25 @@ def update(apply=False):
         created += 1
 
     for src, rel in modified_files:
+        # Special warning for agents.md - user may have custom edits
+        if rel == "agents.md":
+            print()
+            print_warninging("[WARN] agents.md akan diperbarui!")
+            print_warninging("Jika Anda sudah edit manual, backup dulu sebelum lanjut.")
+            print_warninging("Contoh: copy .agents/agents.md ke .agents/agents.md.bak")
+            print()
         dest = target / rel
         shutil.copy2(src, dest)
         safe_print(f"  {Colors.YELLOW}~{Colors.RESET} {rel}")
         updated += 1
+
+    # Update agents.md if needed
+    if agents_md_modified:
+        print()
+        print_warninging("[WARN] agents.md akan diperbarui dari template")
+        dest = agents_dest
+        shutil.copy2(agents_template, dest)
+        safe_print(f"  {Colors.YELLOW}~{Colors.RESET} agents.md")
 
     print()
     print_success(f"Updated: {created} new, {updated} modified")
@@ -363,7 +393,7 @@ def uninstall(apply=False):
     skill_count = len(skill_files)
 
     if not apply:
-        print_warning(f"Will remove {skill_count} skill files from {skills_dir}")
+        print_warninginging(f"Will remove {skill_count} skill files from {skills_dir}")
         print_info("Configuration files will be kept")
         print()
         safe_print(f"Run {Colors.BOLD}snowline uninstall --apply{Colors.RESET} to confirm")
