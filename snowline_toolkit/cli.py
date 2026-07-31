@@ -530,6 +530,7 @@ def status():
     if installed_commit == remote_commit:
         print()
         print_success("Sudah menggunakan versi terbaru.")
+        safe_print(f"{Colors.DIM}  (hanya valid di titik waktu ini - cek lagi jika ada commit baru setelahnya){Colors.RESET}")
     else:
         print()
         print_warninging("Ada versi lebih baru tersedia!")
