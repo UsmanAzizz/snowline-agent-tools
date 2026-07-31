@@ -4,38 +4,84 @@ COMPANION v5.0 - SINGLE FILE
 Pure data processor for agent tool routing.
 Agent makes decisions, companion provides structured data.
 
-Usage:
-    python companion.py "cari axios"
-    from companion import analyze_intent
+Usage (from project root with .agents/skills/companion.py):
+    python .agents/skills/companion.py "cari axios"
+    python -c "import sys; sys.path.insert(0, '.agents/skills'); from companion import analyze_intent"
 
-Auto-discovers module path - works from any directory.
+Or use companion_cli() for automatic path detection:
+    python .agents/skills/companion.py --analyze "cari axios"
 """
 
 import sys
 import os
+import json
 import re
-from dataclasses import dataclass
-from typing import List, Optional, Dict
+from datetime import datetime
 
 # ============================================================
-# AUTO-DISCOVERY PATH
+# AUTO-DISCOVERY - Make 'from companion import' work
 # ============================================================
 
-_companion_file = os.path.abspath(__file__)
-_companion_dir = os.path.dirname(_companion_file)
+def _auto_import():
+    """Auto-detect and import companion module.
 
-# Add companion directory to path
-if _companion_dir not in sys.path:
-    sys.path.insert(0, _companion_dir)
+    This allows 'from companion import' to work from any directory
+    by automatically finding .agents/skills/companion.py and loading it.
+    """
+    # Check if already loaded
+    if 'companion' in sys.modules:
+        return True
+
+    # Search for companion.py
+    search_dirs = [
+        '.agents/skills',
+        '.agents/skills/companion',
+        'skills',
+        'skills/companion',
+    ]
+
+    # Also search parent directories
+    cwd = os.getcwd()
+    for i in range(4):  # Up to 4 levels up
+        for d in search_dirs:
+            candidate = os.path.join(cwd, d)
+            companion_file = os.path.join(candidate, 'companion.py')
+            if os.path.isfile(companion_file):
+                if candidate not in sys.path:
+                    sys.path.insert(0, candidate)
+                return True
+        cwd = os.path.dirname(cwd)
+        if not cwd or cwd == '/':
+            break
+
+    return False
+
+# Run auto-import
+_auto_import()
+
+# If we're being imported as a module, reload from detected path
+if __name__ != '__main__':
+    try:
+        import companion as _mod
+        # Re-export everything from the detected module
+        for _name in dir(_mod):
+            if not _name.startswith('_') and _name not in globals():
+                globals()[_name] = getattr(_mod, _name)
+    except (ImportError, ModuleNotFoundError):
+        pass
 
 # Ensure UTF-8
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-
 # ============================================================
 # DATA STRUCTURES
 # ============================================================
+
+from dataclasses import dataclass
+from typing import List, Optional, Dict
+import re
+
 
 @dataclass
 class ToolMatch:
@@ -64,7 +110,6 @@ class AnalyzeResult:
 # ============================================================
 
 TOOL_REGISTRY = {
-    # Search & Modify
     "smart_search": {
         "keywords": ["cari", "find", "search", "locate", "ketemu", "where", "grep", "import", "module", "dependencies"],
         "confidence": "medium",
@@ -78,7 +123,6 @@ TOOL_REGISTRY = {
         "command": "python .agents/skills/smart_replace/replace_text.py <old> <new> [--apply]",
         "needs_approval": True
     },
-    # Read & Navigate
     "selective_reader": {
         "keywords": ["baca", "read", "lihat", "view", "show", "check", "inspect", "dokumentasi"],
         "confidence": "medium",
@@ -97,7 +141,6 @@ TOOL_REGISTRY = {
         "safety": "safe",
         "command": "python .agents/skills/scope_guardian/scripts/scope_check.py <filepath>"
     },
-    # Analyze & Audit
     "deep_analyzer": {
         "keywords": ["analisa", "analyze", "overview", "ringkasan", "summary", "statistik", "diagnosa", "evaluasi", "inventori"],
         "confidence": "high",
@@ -105,7 +148,7 @@ TOOL_REGISTRY = {
         "command": "python .agents/skills/deep_analyzer/analyzer.py . --json"
     },
     "project_guardian": {
-        "keywords": ["keamanan", "security", "audit", "vulnerability", "amankan", "proteksi", "credential", "password", "secret", "auth", "encryption", "credential_token"],
+        "keywords": ["keamanan", "security", "audit", "vulnerability", "amankan", "proteksi", "credential", "password", "secret", "auth", "encryption"],
         "confidence": "high",
         "safety": "safe",
         "command": "python .agents/skills/project_guardian/guardian.py --summary"
@@ -122,7 +165,6 @@ TOOL_REGISTRY = {
         "safety": "safe",
         "command": "python .agents/skills/crash_decoder/decoder.py <logfile>"
     },
-    # Clean & Generate
     "clean_sweeper": {
         "keywords": ["bersih", "bersihkan", "cleanup", "clean", "hapus", "delete", "buang", "sampah", "residu", "garbage", "unused", "backup", "archive", "temporary", "tmp", "beresin", "rapikan"],
         "confidence": "medium",
@@ -138,10 +180,8 @@ TOOL_REGISTRY = {
     },
 }
 
-# Tools that need approval
 APPROVAL_REQUIRED = {"smart_replace", "auto_scaffolder", "context_mapper", "import_fixer"}
 
-# Clarification triggers
 CLARIFICATION_TRIGGERS = {
     "export": ["export", "eksport", "excel", "xlsx", "csv", "spreadsheet"],
     "pdf": ["pdf", "laporan", "report", "cetakan"],
@@ -157,9 +197,17 @@ def extract_entities(text: str) -> List[str]:
     """Extract entities like function names, file paths, etc."""
     entities = []
 
-    # Extract CamelCase (function/class names)
-    camel = re.findall(r'\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b', text)
-    entities.extend(camel)
+    # Extract CamelCase (PascalCase)
+    camel_upper = re.findall(r'\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b', text)
+    entities.extend(camel_upper)
+
+    # Extract camelCase (starts lowercase)
+    camel_lower = re.findall(r'\b[a-z]+(?:[A-Z][a-zA-Z]*)+', text)
+    entities.extend(camel_lower)
+
+    # Extract snake_case
+    snake = re.findall(r'\b[a-z]+(?:_[a-z]+)+\b', text)
+    entities.extend(snake)
 
     # Extract quoted strings
     quoted = re.findall(r'["\']([^"\']+)["\']', text)
@@ -169,7 +217,19 @@ def extract_entities(text: str) -> List[str]:
     vars_with_sign = re.findall(r'[$%][\w]+', text)
     entities.extend(vars_with_sign)
 
-    return list(set(entities))
+    # Extract React hooks
+    hooks = re.findall(r'use[A-Z]\w+', text)
+    entities.extend(hooks)
+
+    # Deduplicate
+    seen = set()
+    result = []
+    for e in entities:
+        if e not in seen and len(e) > 2:
+            seen.add(e)
+            result.append(e)
+
+    return result
 
 
 # ============================================================
@@ -177,20 +237,16 @@ def extract_entities(text: str) -> List[str]:
 # ============================================================
 
 def analyze_intent(user_input: str) -> AnalyzeResult:
-    """Analyze user intent and return structured data.
-
-    Pure data processor - does NOT make decisions.
-    Agent decides what to do based on this data.
-    """
+    """Analyze user intent and return structured data."""
     text = user_input.lower()
     keywords_found = []
     tool_matches = []
 
-    # Check for clarification triggers
+    # Check clarification triggers
     needs_clarify = False
     clarify_note = None
-    for trigger, trigger_keywords in CLARIFICATION_TRIGGERS.items():
-        for kw in trigger_keywords:
+    for trigger, trigger_kws in CLARIFICATION_TRIGGERS.items():
+        for kw in trigger_kws:
             if kw in text:
                 needs_clarify = True
                 clarify_note = f"Tool for '{trigger}' not available. Use manual approach."
@@ -208,17 +264,19 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
                 })
                 break
 
-    # Extract entities
-    entities = extract_entities(text)
+    # Extract entities (use ORIGINAL input)
+    entities = extract_entities(user_input)
 
-    # Determine specificity (how specific is the input)
+    # Determine specificity
     specificity = "low"
-    if len(entities) >= 2 or len(keywords_found) >= 2:
+    if len(entities) >= 1 and len(tool_matches) >= 1:
         specificity = "high"
-    elif len(entities) >= 1 or len(keywords_found) >= 1:
+    elif len(entities) >= 2:
+        specificity = "high"
+    elif len(entities) >= 1 or len(tool_matches) >= 1:
         specificity = "medium"
 
-    # Determine confidence level
+    # Determine confidence
     if not tool_matches:
         confidence_level = "NONE"
     elif len(tool_matches) == 1 and tool_matches[0]["confidence"] == "high":
@@ -233,13 +291,13 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
     # Build single_tool
     single_tool = None
     if tool_matches and not needs_clarify:
-        best_match = tool_matches[0]
-        tool_name = best_match["tool"]
+        best = tool_matches[0]
+        tool_name = best["tool"]
         tool_info = TOOL_REGISTRY[tool_name]
         single_tool = ToolMatch(
             name=tool_name,
             confidence=tool_info["confidence"],
-            reason=f"Matched: {best_match['keyword']}",
+            reason=f"Matched: {best['keyword']}",
             command_template=tool_info["command"],
             safety=tool_info["safety"]
         )
@@ -258,19 +316,14 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
 
 
 # ============================================================
-# UTILITY FUNCTIONS
+# UTILITY
 # ============================================================
 
 def needs_approval(tool: str) -> bool:
-    """Check if tool requires approval."""
     return tool in APPROVAL_REQUIRED
 
 
 def get_agent_action(result: AnalyzeResult) -> str:
-    """Determine agent action based on AnalyzeResult.
-
-    Decision matrix for agent to follow.
-    """
     if result.needs_clarification:
         return "CLARIFY"
     if result.confidence_level == "HIGH" and result.specificity == "high":
@@ -282,15 +335,23 @@ def get_agent_action(result: AnalyzeResult) -> str:
 
 
 # ============================================================
-# CLI INTERFACE
+# CLI
 # ============================================================
 
 def main():
-    """CLI interface for companion."""
-    if len(sys.argv) > 1:
-        user_input = " ".join(sys.argv[1:])
-    else:
-        user_input = input("Enter instruction: ")
+    """CLI interface."""
+    import argparse
+    parser = argparse.ArgumentParser(description='Companion v5.0 - Intent Analyzer')
+    parser.add_argument('input', nargs='*', help='Input text to analyze')
+    parser.add_argument('--analyze', '-a', help='Analyze input text')
+    args = parser.parse_args()
+
+    user_input = args.analyze or ' '.join(args.input)
+
+    if not user_input:
+        print("Usage: python companion.py 'your instruction'")
+        print("   or: python companion.py --analyze 'your instruction'")
+        return
 
     result = analyze_intent(user_input)
 
@@ -317,5 +378,154 @@ def main():
     print(f"{'='*60}\n")
 
 
+# ============================================================
+# TASK LOCK (Phase 4 - Basic Read/Write Only)
+# ============================================================
+
+TASK_LOCK_FILE = '.agents/task_lock.json'
+
+def load_task_lock():
+    """Load task_lock.json from current directory."""
+    if not os.path.exists(TASK_LOCK_FILE):
+        return None
+    try:
+        with open(TASK_LOCK_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return None
+
+
+def save_task_lock(data):
+    """Save task_lock.json to current directory."""
+    # Ensure .agents directory exists
+    os.makedirs('.agents', exist_ok=True)
+    with open(TASK_LOCK_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    return True
+
+
+def start_task_lock(task_id: str, user_intent: str):
+    """Start a new task lock."""
+    data = {
+        "task_id": task_id,
+        "user_intent_raw": user_intent,
+        "clarified_understanding": "",
+        "level_target": 3,
+        "grilling_log": [],
+        "plan_summary": "",
+        "status": "clarifying",
+        "created_at": str(datetime.now())
+    }
+    save_task_lock(data)
+    return data
+
+
+def add_grilling_qa(question: str, answer: str):
+    """Add a Q&A pair to the grilling log."""
+    data = load_task_lock()
+    if not data:
+        return None
+    data['grilling_log'].append({
+        "question": question,
+        "answer": answer,
+        "timestamp": str(datetime.now())
+    })
+    save_task_lock(data)
+    return data
+
+
+def update_task_lock(**kwargs):
+    """Update task_lock fields."""
+    data = load_task_lock()
+    if not data:
+        return None
+    for key, value in kwargs.items():
+        if key in data:
+            data[key] = value
+    save_task_lock(data)
+    return data
+
+
+def end_task_lock():
+    """Delete task_lock.json (task complete)."""
+    if os.path.exists(TASK_LOCK_FILE):
+        os.remove(TASK_LOCK_FILE)
+    return True
+
+
+def get_task_status():
+    """Get current task status."""
+    data = load_task_lock()
+    if not data:
+        return {"status": "no_active_task"}
+    return data
+
+
+# ============================================================
+# CLI Commands for task_lock
+# ============================================================
+
+def task_lock_cli(args):
+    """CLI interface for task_lock commands."""
+    import argparse
+    parser = argparse.ArgumentParser(description='Task Lock Manager')
+    sub = parser.add_subparsers(dest='cmd')
+
+    # start <task_id> <user_intent>
+    p = sub.add_parser('start', help='Start new task lock')
+    p.add_argument('task_id')
+    p.add_argument('user_intent', nargs='+')
+
+    # add <q> <a>
+    p = sub.add_parser('add', help='Add Q&A to grilling log')
+    p.add_argument('question')
+    p.add_argument('answer')
+
+    # update <key>=<value>
+    p = sub.add_parser('update', help='Update field')
+    p.add_argument('field')
+    p.add_argument('value')
+
+    # status
+    sub.add_parser('status', help='Show current task status')
+
+    # end
+    sub.add_parser('end', help='End current task')
+
+    args = parser.parse_args(args)
+
+    if args.cmd == 'start':
+        intent = ' '.join(args.user_intent)
+        result = start_task_lock(args.task_id, intent)
+        print(f"✅ Task started: {args.task_id}")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'add':
+        result = add_grilling_qa(args.question, args.answer)
+        print(f"✅ Q&A added")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'update':
+        result = update_task_lock(**{args.field: args.value})
+        print(f"✅ Updated {args.field}")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'status':
+        result = get_task_status()
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'end':
+        end_task_lock()
+        print("✅ Task ended, lock removed")
+
+    else:
+        parser.print_help()
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "task":
+        task_lock_cli(sys.argv[2:])
+    else:
+        main()
+

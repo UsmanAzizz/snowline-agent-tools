@@ -1,7 +1,0 @@
-Metadata-Version: 2.4
-Name: snowline-agent-tools
-Version: 1.0.3
-Summary: Portable agent tools for coding assistants.
-License-File: LICENSE
-Dynamic: license-file
-Dynamic: summary

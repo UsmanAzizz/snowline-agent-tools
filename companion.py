@@ -14,6 +14,9 @@ Or use companion_cli() for automatic path detection:
 
 import sys
 import os
+import json
+import re
+from datetime import datetime
 
 # ============================================================
 # AUTO-DISCOVERY - Make 'from companion import' work
@@ -375,5 +378,154 @@ def main():
     print(f"{'='*60}\n")
 
 
+# ============================================================
+# TASK LOCK (Phase 4 - Basic Read/Write Only)
+# ============================================================
+
+TASK_LOCK_FILE = '.agents/task_lock.json'
+
+def load_task_lock():
+    """Load task_lock.json from current directory."""
+    if not os.path.exists(TASK_LOCK_FILE):
+        return None
+    try:
+        with open(TASK_LOCK_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return None
+
+
+def save_task_lock(data):
+    """Save task_lock.json to current directory."""
+    # Ensure .agents directory exists
+    os.makedirs('.agents', exist_ok=True)
+    with open(TASK_LOCK_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    return True
+
+
+def start_task_lock(task_id: str, user_intent: str):
+    """Start a new task lock."""
+    data = {
+        "task_id": task_id,
+        "user_intent_raw": user_intent,
+        "clarified_understanding": "",
+        "level_target": 3,
+        "grilling_log": [],
+        "plan_summary": "",
+        "status": "clarifying",
+        "created_at": str(datetime.now())
+    }
+    save_task_lock(data)
+    return data
+
+
+def add_grilling_qa(question: str, answer: str):
+    """Add a Q&A pair to the grilling log."""
+    data = load_task_lock()
+    if not data:
+        return None
+    data['grilling_log'].append({
+        "question": question,
+        "answer": answer,
+        "timestamp": str(datetime.now())
+    })
+    save_task_lock(data)
+    return data
+
+
+def update_task_lock(**kwargs):
+    """Update task_lock fields."""
+    data = load_task_lock()
+    if not data:
+        return None
+    for key, value in kwargs.items():
+        if key in data:
+            data[key] = value
+    save_task_lock(data)
+    return data
+
+
+def end_task_lock():
+    """Delete task_lock.json (task complete)."""
+    if os.path.exists(TASK_LOCK_FILE):
+        os.remove(TASK_LOCK_FILE)
+    return True
+
+
+def get_task_status():
+    """Get current task status."""
+    data = load_task_lock()
+    if not data:
+        return {"status": "no_active_task"}
+    return data
+
+
+# ============================================================
+# CLI Commands for task_lock
+# ============================================================
+
+def task_lock_cli(args):
+    """CLI interface for task_lock commands."""
+    import argparse
+    parser = argparse.ArgumentParser(description='Task Lock Manager')
+    sub = parser.add_subparsers(dest='cmd')
+
+    # start <task_id> <user_intent>
+    p = sub.add_parser('start', help='Start new task lock')
+    p.add_argument('task_id')
+    p.add_argument('user_intent', nargs='+')
+
+    # add <q> <a>
+    p = sub.add_parser('add', help='Add Q&A to grilling log')
+    p.add_argument('question')
+    p.add_argument('answer')
+
+    # update <key>=<value>
+    p = sub.add_parser('update', help='Update field')
+    p.add_argument('field')
+    p.add_argument('value')
+
+    # status
+    sub.add_parser('status', help='Show current task status')
+
+    # end
+    sub.add_parser('end', help='End current task')
+
+    args = parser.parse_args(args)
+
+    if args.cmd == 'start':
+        intent = ' '.join(args.user_intent)
+        result = start_task_lock(args.task_id, intent)
+        print(f"✅ Task started: {args.task_id}")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'add':
+        result = add_grilling_qa(args.question, args.answer)
+        print(f"✅ Q&A added")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'update':
+        result = update_task_lock(**{args.field: args.value})
+        print(f"✅ Updated {args.field}")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'status':
+        result = get_task_status()
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'end':
+        end_task_lock()
+        print("✅ Task ended, lock removed")
+
+    else:
+        parser.print_help()
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "task":
+        task_lock_cli(sys.argv[2:])
+    else:
+        main()
+
