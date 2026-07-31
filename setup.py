@@ -1,4 +1,24 @@
 from setuptools import setup, find_packages
+from setuptools.command.install import install
+
+
+class PostInstallMessage(install):
+    """Print a short welcome message after installation completes."""
+    def run(self):
+        install.run(self)
+        print()
+        print("=" * 50)
+        print("  Snowline Agent Tools installed")
+        print("=" * 50)
+        print("Next step:")
+        print("  snowline init --apply")
+        print("  (or: python -m snowline_toolkit.cli init --apply)")
+        print()
+        print("This creates .agents/ in your project with:")
+        print("  - 14 tools + companion intent analyzer")
+        print("  - agents.md (behavior rules read by your AI agent)")
+        print()
+
 
 setup(
     name="snowline-agent-tools",
@@ -14,4 +34,5 @@ setup(
     },
     package_data={"snowline_toolkit": ["py.typed", "snowline.bat", "templates/**/*"]},
     python_requires=">=3.7",
+    cmdclass={"install": PostInstallMessage},
 )
