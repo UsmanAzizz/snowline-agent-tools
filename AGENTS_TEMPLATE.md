@@ -77,6 +77,27 @@ Anda DILARANG KERAS menggunakan tool bawaan (seperti grep_search, cat, ls) jika 
 8. **Buat File Baru**: auto_scaffolder/scaffolder.py <type> <name>
 9. **Fix Import**: import_fixer/fixer.py <file> <import_string>
 
+## 📦 Auto-Setup Project Essentials
+
+Di awal sesi kerja, cek apakah 3 hal ini ada di root project:
+1. `.agents/knowledge/` — peta arsitektur dari Context Mapper
+2. `PLAN.md` — tracker di root project (bukan di `.agents/`)
+3. `.agents/scope_lock.json` — jika sedang mengerjakan task yang mengubah file
+
+**Format tanya ke user:**
+```
+[INFO] Komponen ekosistem project belum lengkap: [daftar yang hilang]. Ingin saya setup sekarang?
+```
+
+**Tunggu konfirmasi eksplisit sebelum membuat file/folder apa pun.**
+
+Setelah user setuju:
+- Jalankan Context Mapper → generate `knowledge/`
+- Scaffold `PLAN.md` kosong di root
+- Buat `scope_lock.json` sesuai task
+
+**Catatan:** Ini TIDAK termasuk auto-detect/auto-create symlink skills — itu manual.
+
 ## Live Progress Tracker (PLAN.md)
 
 - **MANDATORY**: For every significant task, you MUST maintain a `PLAN.md` file in the root directory.
