@@ -139,7 +139,7 @@ def init(dry=True):
     if existing_count > 0 and not dry:
         print_info(f"Found {existing_count} existing skills")
         print()
-        print_warninginging("Skills already installed!")
+        print_warninging("Skills already installed!")
         print_info("To update, run: snowline update --apply")
         print_info("To reinstall, run: snowline uninstall --apply first")
         print()
@@ -437,7 +437,7 @@ def uninstall(apply=False):
     skill_count = len(skill_files)
 
     if not apply:
-        print_warninginging(f"Will remove {skill_count} skill files from {skills_dir}")
+        print_warninging(f"Will remove {skill_count} skill files from {skills_dir}")
         print_info("Configuration files will be kept")
         print()
         safe_print(f"Run {Colors.BOLD}snowline uninstall --apply{Colors.RESET} to confirm")
