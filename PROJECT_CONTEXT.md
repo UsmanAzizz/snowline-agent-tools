@@ -73,18 +73,19 @@ NOT in GEMINI_PROMPT.md or separate files.
 ```bash
 pip uninstall snowline-toolkit -y
 pip cache purge
-pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --no-cache-dir
+pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-reinstall --no-cache-dir
 ```
 
-**Catatan:**
-- `pip cache purge` menghapus cache pip secara keseluruhan
-- `--no-cache-dir` mencegah pip menyimpan download baru ke cache
-- Ini harus dilakukan SETIAP KALI ada fix yang mempengaruhi template
+**Catatan CRITICAL:**
+- `--no-cache-dir` SAJA tidak cukup
+- `--force-reinstall` WAJIB untuk memastikan package di-overwrite
+- pip install biasa (tanpa --force-reinstall) tidak selalu menimpa package yang sudah terinstal
+- Ini yang menyebabkan fix tidak kepakai meski sudah push
 
 **Pola yang sama dengan safe_print:**
 - Fix sudah push → masih error di user
-- Penyebab: pip cache
-- Solusi: purge + --no-cache-dir
+- Penyebab: pip install tidak menimpa package existing
+- Solusi: purge + force-reinstall + no-cache-dir
 
 ---
 
