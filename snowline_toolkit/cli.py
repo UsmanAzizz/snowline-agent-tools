@@ -5,10 +5,37 @@ import os
 import shutil
 import argparse
 import sys
+import hashlib
 from datetime import datetime
 from pathlib import Path
 import sysconfig
 import winreg
+
+# ============================================================
+# Hash Functions for agents.md baseline tracking
+# ============================================================
+
+def save_agents_md_hash(file_path: Path):
+    """Save SHA256 hash of agents.md to baseline file."""
+    baseline_file = file_path.parent / ".agents_md_baseline_hash"
+    if file_path.exists():
+        hash_val = hashlib.sha256(file_path.read_bytes()).hexdigest()[:16]
+        baseline_file.write_text(hash_val)
+
+def load_agents_md_baseline(file_path: Path) -> str:
+    """Load saved baseline hash, return empty string if not exists."""
+    baseline_file = file_path.parent / ".agents_md_baseline_hash"
+    if baseline_file.exists():
+        return baseline_file.read_text().strip()
+    return ""
+
+def current_agents_md_hash(file_path: Path) -> str:
+    """Calculate current SHA256 hash (first 16 chars)."""
+    if file_path.exists():
+        return hashlib.sha256(file_path.read_bytes()).hexdigest()[:16]
+    return ""
+
+# Trigger PATH update on import
 
 # Trigger PATH update on import
 import snowline_toolkit
@@ -212,6 +239,11 @@ def init(dry=True):
     for name in skipped_root:
         print_info(f"Skipped {name} (already exists)")
 
+    # Save baseline hash for agents.md (so we know if user edited it)
+    agents_dest = root / "agents.md"
+    if agents_dest.exists():
+        save_agents_md_hash(agents_dest)
+
     # Copy skill templates
     created_skills = []
     skipped_skills = []
@@ -366,13 +398,25 @@ def update(apply=False):
         safe_print(f"  {Colors.YELLOW}~{Colors.RESET} {rel}")
         updated += 1
 
-    # Update agents.md if needed
+    # Update agents.md if template is newer
     if agents_md_modified:
-        print()
-        print_warninging("[WARN] agents.md akan diperbarui dari template")
-        dest = agents_dest
-        shutil.copy2(agents_template, dest)
-        safe_print(f"  {Colors.YELLOW}~{Colors.RESET} agents.md")
+        agents_dest = target.parent / "agents.md"
+        baseline_hash = load_agents_md_baseline(agents_dest)
+        current_hash = current_agents_md_hash(agents_dest)
+
+        if baseline_hash and current_hash != baseline_hash:
+            # User edited - auto-backup first
+            backup_dir = target.parent.parent / ".backup_replace"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_file = backup_dir / f"agents_md_{ts}.md"
+            shutil.copy2(agents_dest, backup_file)
+            print_info(f"[AUTO-BACKUP] {backup_file.name}")
+
+        # Overwrite with template
+        shutil.copy2(agents_template, agents_dest)
+        save_agents_md_hash(agents_dest)
+        print_info(f"Updated: agents.md")
 
     print()
     print_success(f"Updated: {created} new, {updated} modified")
