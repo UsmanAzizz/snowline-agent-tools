@@ -1,516 +1,645 @@
 """
-Snowline CLI - Agent Tools Installer
+COMPANION v5.0 - SINGLE FILE
+=============================
+Pure data processor for agent tool routing.
+Agent makes decisions, companion provides structured data.
+
+Usage (from project root with .agents/skills/companion.py):
+    python .agents/skills/companion.py "cari axios"
+    python -c "import sys; sys.path.insert(0, '.agents/skills'); from companion import analyze_intent"
+
+Or use companion_cli() for automatic path detection:
+    python .agents/skills/companion.py --analyze "cari axios"
 """
-import os
-import shutil
-import argparse
+
 import sys
-import hashlib
+import os
+import json
+import re
 from datetime import datetime
-from pathlib import Path
-import sysconfig
-import winreg
 
 # ============================================================
-# Hash Functions for agents.md baseline tracking
+# AUTO-DISCOVERY - Make 'from companion import' work
 # ============================================================
 
-def save_agents_md_hash(file_path: Path):
-    """Save SHA256 hash of agents.md to baseline file."""
-    baseline_file = file_path.parent / ".agents_md_baseline_hash"
-    if file_path.exists():
-        hash_val = hashlib.sha256(file_path.read_bytes()).hexdigest()[:16]
-        baseline_file.write_text(hash_val)
+def _auto_import():
+    """Auto-detect and import companion module.
 
-def load_agents_md_baseline(file_path: Path) -> str:
-    """Load saved baseline hash, return empty string if not exists."""
-    baseline_file = file_path.parent / ".agents_md_baseline_hash"
-    if baseline_file.exists():
-        return baseline_file.read_text().strip()
-    return ""
+    This allows 'from companion import' to work from any directory
+    by automatically finding .agents/skills/companion.py and loading it.
+    """
+    # Check if already loaded
+    if 'companion' in sys.modules:
+        return True
 
-def current_agents_md_hash(file_path: Path) -> str:
-    """Calculate current SHA256 hash (first 16 chars)."""
-    if file_path.exists():
-        return hashlib.sha256(file_path.read_bytes()).hexdigest()[:16]
-    return ""
-
-# Trigger PATH update on import
-
-# Trigger PATH update on import
-import snowline_toolkit
-
-# Ensure Scripts folder is in PATH for this process (read from registry)
-_scripts = sysconfig.get_path('scripts')
-try:
-    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
-    user_path, _ = winreg.QueryValueEx(key, "Path")
-    winreg.CloseKey(key)
-    os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
-except Exception:
-    pass
-
-
-# ANSI colors for terminal
-class Colors:
-    CYAN = '\033[96m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    DIM = '\033[2m'
-    RESET = '\033[0m'
-
-    # ASCII fallback for Windows terminals without Unicode support
-    CHECK = '+'
-    INFO = 'i'
-    WARN = '!'
-    ERROR = 'x'
-
-
-def safe_print(text, end="\n"):
-    """Print with UTF-8 encoding, fallback to ASCII on Windows."""
-    try:
-        print(text, end=end)
-    except UnicodeEncodeError:
-        # Replace Unicode chars with ASCII fallbacks
-        replacements = {
-            '✓': '[+]', '✗': '[x]', 'ℹ': '[i]', '⚠': '[!]',
-            '•': '-', '→': '->', '...': '...'
-        }
-        for old, new in replacements.items():
-            text = text.replace(old, new)
-        print(text)
-
-
-def print_header(text):
-    safe_print(f"\n{Colors.CYAN}{Colors.BOLD}{'=' * 50}{Colors.RESET}")
-    safe_print(f"{Colors.CYAN}{Colors.BOLD}  {text}{Colors.RESET}")
-    safe_print(f"{Colors.CYAN}{Colors.BOLD}{'=' * 50}{Colors.RESET}\n")
-
-
-def print_success(text):
-    safe_print(f"{Colors.GREEN}{Colors.CHECK} {text}{Colors.RESET}")
-
-
-def print_info(text):
-    safe_print(f"{Colors.CYAN}{Colors.INFO} {text}{Colors.RESET}")
-
-
-def print_warninging(text):
-    safe_print(f"{Colors.YELLOW}{Colors.WARN} {text}{Colors.RESET}")
-
-
-def print_error(text):
-    safe_print(f"{Colors.RED}{Colors.ERROR} {text}{Colors.RESET}")
-
-
-def print_section(text):
-    safe_print(f"\n{Colors.BOLD}{text}{Colors.RESET}")
-
-
-def print_list_item(text, indent=2):
-    safe_print(f"{' ' * indent}{Colors.DIM}*{Colors.RESET} {text}")
-
-
-
-def _clear_pip_cache():
-    """Clear pip build cache."""
-    import tempfile, shutil, glob
-    patterns = [
-        tempfile.gettempdir() + "/pip-req-build-*",
-        tempfile.gettempdir() + "/pip-ephem-wheel-cache-*",
+    # Search for companion.py
+    search_dirs = [
+        '.agents/skills',
+        '.agents/skills/companion',
+        'skills',
+        'skills/companion',
     ]
-    for p in patterns:
-        for d in glob.glob(p):
-            try:
-                shutil.rmtree(d, ignore_errors=True)
-            except:
-                pass
+
+    # Also search parent directories
+    cwd = os.getcwd()
+    for i in range(4):  # Up to 4 levels up
+        for d in search_dirs:
+            candidate = os.path.join(cwd, d)
+            companion_file = os.path.join(candidate, 'companion.py')
+            if os.path.isfile(companion_file):
+                if candidate not in sys.path:
+                    sys.path.insert(0, candidate)
+                return True
+        cwd = os.path.dirname(cwd)
+        if not cwd or cwd == '/':
+            break
+
+    return False
+
+# Run auto-import
+_auto_import()
+
+# If we're being imported as a module, reload from detected path
+if __name__ != '__main__':
+    try:
+        import companion as _mod
+        # Re-export everything from the detected module
+        for _name in dir(_mod):
+            if not _name.startswith('_') and _name not in globals():
+                globals()[_name] = getattr(_mod, _name)
+    except (ImportError, ModuleNotFoundError):
+        pass
+
+# Ensure UTF-8
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
+# ============================================================
+# DATA STRUCTURES
+# ============================================================
+
+from dataclasses import dataclass
+from typing import List, Optional, Dict
+import re
 
 
-def init(dry=True):
-    # Check if already installed - suggest update
-    existing_count = 0
-    skills_dir = Path.cwd() / ".agents" / "skills"
-    if skills_dir.exists():
-        existing_count = len([f for f in skills_dir.rglob("*") if f.is_file() and not f.name.endswith(".pyc")])
-    
-    if existing_count > 0 and not dry:
-        print_info(f"Found {existing_count} existing skills")
-        print()
-        print_warninginging("Skills already installed!")
-        print_info("To update, run: snowline update --apply")
-        print_info("To reinstall, run: snowline uninstall --apply first")
-        print()
-        safe_print(f"{Colors.DIM}Use --apply to install anyway{Colors.RESET}")
-        return
+@dataclass
+class ToolMatch:
+    name: str
+    confidence: str  # "high" | "medium" | "low"
+    reason: str
+    command_template: str
+    safety: str  # "safe" | "moderate"
 
-    templates = Path(__file__).parent / "templates"
-    root = Path.cwd() / ".agents"
-    target = root / "skills"
 
-    print_header("Snowline Agent Tools - Installer")
+@dataclass
+class AnalyzeResult:
+    input: str
+    keywords: List[str]
+    entities: List[str]
+    specificity: str  # "high" | "medium" | "low"
+    confidence_level: str  # "HIGH" | "MEDIUM" | "LOW" | "NONE"
+    single_tool: Optional[ToolMatch] = None
+    sequential_steps: List[ToolMatch] = None
+    needs_clarification: bool = False
+    clarification_note: Optional[str] = None
 
-    if not templates.exists():
-        print_error("Templates folder not found!")
-        print_info(f"Expected at: {templates}")
-        return
 
-    # Count files
-    skill_files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
+# ============================================================
+# TOOL REGISTRY
+# ============================================================
 
-    # Root files (PROJECT_CONTEXT.md is NOT created - it's the historical one from git)
-    agents_template = templates / "AGENTS_TEMPLATE.md"
-    root_files = {
-        "agents.md": agents_template.read_text(encoding="utf-8") if agents_template.exists() else "# Agents Configuration\n",
-        "memory.json": """{
-  "version": "1.0",
-  "context": {},
-  "history": []
+TOOL_REGISTRY = {
+    "smart_search": {
+        "keywords": ["cari", "find", "search", "locate", "ketemu", "where", "grep", "import", "module", "dependencies"],
+        "confidence": "medium",
+        "safety": "safe",
+        "command": "python .agents/skills/smart_search/code_finder.py <dir> <keyword>"
+    },
+    "smart_replace": {
+        "keywords": ["ganti", "replace", "tukar", "ubah", "change", "modify", "edit", "rename", "refactor", "konversi", "convert", "migration"],
+        "confidence": "high",
+        "safety": "moderate",
+        "command": "python .agents/skills/smart_replace/replace_text.py <old> <new> [--apply]",
+        "needs_approval": True
+    },
+    "selective_reader": {
+        "keywords": ["baca", "read", "lihat", "view", "show", "check", "inspect", "dokumentasi"],
+        "confidence": "medium",
+        "safety": "safe",
+        "command": "python .agents/skills/selective_reader/reader.py <filepath>"
+    },
+    "smart_tree": {
+        "keywords": ["struktur", "tree", "map", "folder", "direktori", "arsitektur", "layout"],
+        "confidence": "medium",
+        "safety": "safe",
+        "command": "python .agents/skills/smart_tree/scripts/tree_viewer.py . <depth>"
+    },
+    "scope_guardian": {
+        "keywords": ["scope", "area", "batass", "batasan", "limits", "di area", "seluruh"],
+        "confidence": "medium",
+        "safety": "safe",
+        "command": "python .agents/skills/scope_guardian/scripts/scope_check.py <filepath>"
+    },
+    "deep_analyzer": {
+        "keywords": ["analisa", "analyze", "overview", "ringkasan", "summary", "statistik", "diagnosa", "evaluasi", "inventori"],
+        "confidence": "high",
+        "safety": "safe",
+        "command": "python .agents/skills/deep_analyzer/analyzer.py . --json"
+    },
+    "project_guardian": {
+        "keywords": ["keamanan", "security", "audit", "vulnerability", "amankan", "proteksi", "credential", "password", "secret", "auth", "encryption"],
+        "confidence": "high",
+        "safety": "safe",
+        "command": "python .agents/skills/project_guardian/guardian.py --summary"
+    },
+    "impact_analyzer": {
+        "keywords": ["impact", "dampak", "effect", "affected", "depend", "dependency", "terkait", "relasi", "pemakaian"],
+        "confidence": "medium",
+        "safety": "safe",
+        "command": "python .agents/skills/impact_analyzer/analyzer.py <file> ."
+    },
+    "crash_decoder": {
+        "keywords": ["error", "bug", "crash", "debug", "log", "trace", "gagal", "failed", "masalah", "issue", "exception", "perbaiki"],
+        "confidence": "high",
+        "safety": "safe",
+        "command": "python .agents/skills/crash_decoder/decoder.py <logfile>"
+    },
+    "clean_sweeper": {
+        "keywords": ["bersih", "bersihkan", "cleanup", "clean", "hapus", "delete", "buang", "sampah", "residu", "garbage", "unused", "backup", "archive", "temporary", "tmp", "beresin", "rapikan"],
+        "confidence": "medium",
+        "safety": "safe",
+        "command": "python .agents/skills/clean_sweeper/sweeper.py ."
+    },
+    "auto_scaffolder": {
+        "keywords": ["generate", "generate", "buat", "create", "new", "tambah", "add", "instance", "scaffolding", "tambah component"],
+        "confidence": "high",
+        "safety": "moderate",
+        "command": "python .agents/skills/auto_scaffolder/scaffolder.py <type> <name> [--apply]",
+        "needs_approval": True
+    },
 }
-""",
-        "PROJECT_NOTES.md": """# Project Notes
 
-## Current Project
-> Add project details here
+APPROVAL_REQUIRED = {"smart_replace", "auto_scaffolder", "context_mapper", "import_fixer"}
 
-## Goals
-- [ ]
+CLARIFICATION_TRIGGERS = {
+    "export": ["export", "eksport", "excel", "xlsx", "csv", "spreadsheet"],
+    "pdf": ["pdf", "laporan", "report", "cetakan"],
+    "diagram": ["diagram", "flowchart", "uml", "sequence"],
+}
 
-## Notes
-> Additional notes
-"""
+# ============================================================
+# PROJECT CONTEXT LOADING (session-cached)
+# ============================================================
+
+# Session cache: {path: (mtime, content)}
+_CONTEXT_CACHE: Dict[str, tuple] = {}
+_CONTEXT_CACHE_TTL_SECONDS = 300  # 5 minutes
+
+
+def load_project_context() -> str:
+    """Load PROJECT_STRUCTURE.md from context_mapper output.
+
+    Returns empty string if file not found (no error).
+    Cached for 5 minutes to avoid repeated disk reads per session.
+    """
+    # Search for PROJECT_STRUCTURE.md
+    search_paths = [
+        '.agents/knowledge/PROJECT_STRUCTURE.md',
+        '.agents/PROJECT_STRUCTURE.md',
+        'PROJECT_STRUCTURE.md',
+    ]
+    for path in search_paths:
+        if os.path.isfile(path):
+            try:
+                current_mtime = os.path.getmtime(path)
+                cached = _CONTEXT_CACHE.get(path)
+
+                # Return cached if within TTL and mtime unchanged
+                if cached:
+                    cached_mtime, cached_content = cached
+                    if current_mtime == cached_mtime:
+                        return cached_content
+
+                # Read and cache
+                content = open(path, encoding='utf-8').read()
+                _CONTEXT_CACHE[path] = (current_mtime, content)
+                return content
+            except Exception:
+                pass
+    return ""
+
+
+def entity_in_context(entity: str, context: str) -> bool:
+    """Check if entity appears in project context."""
+    if not context:
+        return False
+    return entity.lower() in context.lower()
+
+
+# ============================================================
+# ENTITY EXTRACTION
+# ============================================================
+
+def extract_entities(text: str) -> List[str]:
+    """Extract entities like function names, file paths, etc."""
+    entities = []
+
+    # Extract CamelCase (PascalCase)
+    camel_upper = re.findall(r'\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b', text)
+    entities.extend(camel_upper)
+
+    # Extract camelCase (starts lowercase)
+    camel_lower = re.findall(r'\b[a-z]+(?:[A-Z][a-zA-Z]*)+', text)
+    entities.extend(camel_lower)
+
+    # Extract snake_case
+    snake = re.findall(r'\b[a-z]+(?:_[a-z]+)+\b', text)
+    entities.extend(snake)
+
+    # Extract quoted strings
+    quoted = re.findall(r'["\']([^"\']+)["\']', text)
+    entities.extend(quoted)
+
+    # Extract variables with $ or %
+    vars_with_sign = re.findall(r'[$%][\w]+', text)
+    entities.extend(vars_with_sign)
+
+    # Extract React hooks
+    hooks = re.findall(r'use[A-Z]\w+', text)
+    entities.extend(hooks)
+
+    # Deduplicate
+    seen = set()
+    result = []
+    for e in entities:
+        if e not in seen and len(e) > 2:
+            seen.add(e)
+            result.append(e)
+
+    return result
+
+
+# ============================================================
+# SHOULD GRILL (Phase 4 - Simple Detection)
+# ============================================================
+
+def should_grill(result: AnalyzeResult) -> dict:
+    """
+    Deteksi sederhana apakah instruksi butuh grilling.
+
+    Returns:
+        dict dengan:
+        - needs_grilling: bool
+        - reason: str (penjelasan kenapa)
+    """
+    # Micro Task criteria:
+    # HIGH confidence + HIGH specificity = langsung eksekusi
+    if result.confidence_level == "HIGH" and result.specificity == "high":
+        return {
+            "needs_grilling": False,
+            "reason": "Micro Task - specific dan confident, langsung eksekusi"
+        }
+
+    # Specific entity + high specificity = Micro Task ( MESKIPUN MEDIUM confidence)
+    if len(result.entities) >= 1 and result.specificity == "high":
+        return {
+            "needs_grilling": False,
+            "reason": "Micro Task - specific entity detected"
+        }
+
+    # MEDIUM/LOW confidence without specific entity = perlu clarify
+    if result.confidence_level in ("MEDIUM", "LOW", "NONE"):
+        return {
+            "needs_grilling": True,
+            "reason": f"Confidence {result.confidence_level} - perlu clarify"
+        }
+
+    # Long instruction without entities = ambiguous
+    words = result.input.split()
+    if len(words) > 15 and len(result.entities) == 0:
+        return {
+            "needs_grilling": True,
+            "reason": "Instruction >15 words without specific entity"
+        }
+
+    # Default: grilling needed for non-trivial tasks
+    return {
+        "needs_grilling": True,
+        "reason": "Ambiguous intent"
     }
 
-    print_info(f"Target directory: {root}")
-    print_info(f"Installing: {len(skill_files)} skills, {len(root_files)} configuration files")
 
-    if dry:
-        print_section("Preview (Dry Run)")
-        safe_print("The following files will be created:")
-        safe_print("")
+# ============================================================
+# ANALYZE INTENT
+# ============================================================
 
-        safe_print(f"{Colors.BOLD}Configuration Files:{Colors.RESET}")
-        for name in root_files:
-            print_list_item(name)
+def analyze_intent(user_input: str) -> AnalyzeResult:
+    """Analyze user intent and return structured data."""
+    text = user_input.lower()
+    keywords_found = []
+    tool_matches = []
 
-        safe_print(f"\n{Colors.BOLD}Skills ({len(skill_files)}):{Colors.RESET}")
-        skill_categories = {}
-        for f in skill_files:
-            rel = str(f.relative_to(templates))
-            category = rel.split('/')[0] if '/' in rel else 'root'
-            if category not in skill_categories:
-                skill_categories[category] = []
-            skill_categories[category].append(rel)
+    # Load project context for entity validation
+    project_context = load_project_context()
 
-        for category in sorted(skill_categories.keys()):
-            print_list_item(f"{Colors.DIM}{category}{Colors.RESET}")
-            for f in skill_categories[category][:3]:
-                if len(skill_categories[category]) > 3 and f == skill_categories[category][2]:
-                    remaining = len(skill_categories[category]) - 3
-                    safe_print(f"{' ' * 6}... and {remaining} more")
-                    break
-                print_list_item(f.split('/')[-1], indent=6)
+    # Check clarification triggers
+    needs_clarify = False
+    clarify_note = None
+    for trigger, trigger_kws in CLARIFICATION_TRIGGERS.items():
+        for kw in trigger_kws:
+            if kw in text:
+                needs_clarify = True
+                clarify_note = f"Tool for '{trigger}' not available. Use manual approach."
+                break
 
-        safe_print("")
-        safe_print(f"{Colors.DIM}Run with --apply to install{Colors.RESET}")
-        return
+    # Match keywords to tools
+    for tool_name, tool_info in TOOL_REGISTRY.items():
+        for kw in tool_info["keywords"]:
+            if kw in text:
+                keywords_found.append(kw)
+                tool_matches.append({
+                    "tool": tool_name,
+                    "keyword": kw,
+                    "confidence": tool_info["confidence"]
+                })
+                break
 
-    # Install
-    print_section("Installing...")
+    # Extract entities (use ORIGINAL input)
+    entities = extract_entities(user_input)
 
-    # Create root directory
-    root.mkdir(parents=True, exist_ok=True)
+    # Determine specificity — boost when entities are confirmed in project context
+    specificity = "low"
+    if len(entities) >= 1 and len(tool_matches) >= 1:
+        specificity = "high"
+    elif len(entities) >= 2:
+        specificity = "high"
+    elif len(entities) >= 1 or len(tool_matches) >= 1:
+        specificity = "medium"
 
-    # Create root files
-    created_root = []
-    skipped_root = []
-    for name, content in root_files.items():
-        dest = root / name
-        if not dest.exists():
-            dest.write_text(content, encoding="utf-8")
-            created_root.append(name)
-        else:
-            skipped_root.append(name)
+    # Boost specificity when extracted entities appear in project context
+    if project_context:
+        matched_entities = [e for e in entities if entity_in_context(e, project_context)]
+        if matched_entities:
+            # Found entity matches in project context — upgrade to high if not already
+            if specificity != "high":
+                specificity = "high"
 
-    for name in created_root:
-        print_success(f"Created {name}")
-    for name in skipped_root:
-        print_info(f"Skipped {name} (already exists)")
+    # Determine confidence
+    if not tool_matches:
+        confidence_level = "NONE"
+    elif len(tool_matches) == 1 and tool_matches[0]["confidence"] == "high":
+        confidence_level = "HIGH"
+    elif len(tool_matches) >= 2:
+        confidence_level = "HIGH"
+    elif len(tool_matches) == 1:
+        confidence_level = "MEDIUM"
+    else:
+        confidence_level = "LOW"
 
-    # Save baseline hash for agents.md (so we know if user edited it)
-    agents_dest = root / "agents.md"
-    if agents_dest.exists():
-        save_agents_md_hash(agents_dest)
+    # Build single_tool
+    single_tool = None
+    if tool_matches and not needs_clarify:
+        best = tool_matches[0]
+        tool_name = best["tool"]
+        tool_info = TOOL_REGISTRY[tool_name]
+        single_tool = ToolMatch(
+            name=tool_name,
+            confidence=tool_info["confidence"],
+            reason=f"Matched: {best['keyword']}",
+            command_template=tool_info["command"],
+            safety=tool_info["safety"]
+        )
 
-    # Copy skill templates
-    created_skills = []
-    skipped_skills = []
-    updated_skills = []
-    
-    # Files that should ALWAYS be updated
-    ALWAYS_UPDATE = {'SKILL.md', 'companion.py', '__init__.py'}
-    
-    for f in skill_files:
-        rel = f.relative_to(templates)
-        dest = target / rel
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Always copy SKILL.md, always copy new files
-        if not dest.exists() or f.name in ALWAYS_UPDATE:
-            shutil.copy2(f, dest)
-            if not dest.exists():
-                created_skills.append(str(rel))
-            else:
-                updated_skills.append(str(rel))
-        else:
-            skipped_skills.append(str(rel))
-
-    # Progress bar for skills
-    total = len(created_skills) + len(skipped_skills)
-    for i, skill in enumerate(created_skills, 1):
-        safe_print(f"  {Colors.GREEN}{Colors.CHECK}{Colors.RESET} {skill}", end="\r")
-
-    print()
-    print_section("Installation Complete!")
-
-    safe_print(f"{Colors.BOLD}Summary:{Colors.RESET}")
-    print_success(f"Created {len(created_root)} config files")
-    print_success(f"Installed {len(created_skills)} skills, updated {len(updated_skills)}")
-    if skipped_root:
-        print_info(f"Skipped {len(skipped_root)} existing config files")
-    if skipped_skills:
-        print_info(f"Skipped {len(skipped_skills)} existing skills")
-
-    print()
-    safe_print(f"{Colors.BOLD}Next Steps:{Colors.RESET}")
-    print_list_item("Review .agents/agents.md for agent rules")
-    print_list_item("Update .agents/PROJECT_NOTES.md with your project info")
-    print_list_item("Run 'snowline update' to sync new skills later")
-
-    safe_print(f"\n{Colors.DIM}Location: {root}{Colors.RESET}\n")
+    return AnalyzeResult(
+        input=user_input,
+        keywords=keywords_found,
+        entities=entities,
+        specificity=specificity,
+        confidence_level=confidence_level,
+        single_tool=single_tool,
+        sequential_steps=[],
+        needs_clarification=needs_clarify,
+        clarification_note=clarify_note
+    )
 
 
-def update(apply=False):
-    _clear_pip_cache()
-    root = Path.cwd() / ".agents"
-    target = root / "skills"
+# ============================================================
+# UTILITY
+# ============================================================
 
-    print_header("Snowline Update")
-
-    if not target.exists():
-        print_error("No skills found!")
-        print_info("Run 'snowline init --apply' first")
-        return
-
-    templates = Path(__file__).parent / "templates"
-
-    # Check for agents.md update (root file, not in skills/)
-    agents_template = templates / "AGENTS_TEMPLATE.md"
-    agents_dest = target.parent / "agents.md"
-    agents_md_modified = False
-    if agents_template.exists() and agents_dest.exists():
-        if agents_template.stat().st_mtime > agents_dest.stat().st_mtime:
-            agents_md_modified = True
-
-    # Protected files (will NOT be auto-updated)
-    PROTECTED = {
-        "memory.json",
-        "PROJECT_CONTEXT.md",
-        "PROJECT_NOTES.md",
-        "CURRENT_STATE.md",
-        "scope_lock.json",
-        # NOTE: agents.md NOT protected - follows timestamp logic like other files
-    }
-
-    skill_files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
-
-    new_files = []
-    modified_files = []
-
-    for f in skill_files:
-        rel = str(f.relative_to(templates))
-        if rel in PROTECTED:
-            continue
-        dest = target / rel
-        if not dest.exists():
-            new_files.append((f, rel))
-        elif f.stat().st_mtime > dest.stat().st_mtime:
-            modified_files.append((f, rel))
-
-    total_current = len([f for f in target.rglob("*") if f.is_file()])
-    
-    print_info(f"Current skills: {total_current}")
-    
-    if not new_files and not modified_files and not agents_md_modified:
-        print_success("All skills are up to date!")
-        return
-
-    print_info(f"Available: {len(new_files)} new, {len(modified_files)} modified")
-
-    if not apply:
-        print_section("Changes to be applied:")
-        
-        for _, rel in new_files[:10]:
-            print_list_item(f"[NEW] {rel}")
-        if len(new_files) > 10:
-            print_info(f"... and {len(new_files) - 10} more new files")
-        
-        for _, rel in modified_files[:10]:
-            print_list_item(f"[UPDATE] {rel}")
-        if len(modified_files) > 10:
-            print_info(f"... and {len(modified_files) - 10} more modified files")
-        
-        # Warning for agents.md
-        if agents_md_modified:
-            print()
-            print_warninging("[WARN] agents.md akan diperbarui!")
-            print_warninging("Jika Anda sudah edit manual, backup dulu sebelum lanjut.")
-            print_warninging("Contoh: copy .agents/agents.md ke .agents/agents.md.bak")
-        
-        print()
-        safe_print(f"Run {Colors.BOLD}snowline update --apply{Colors.RESET} to apply changes")
-        return
-
-    print_section("Applying updates...")
-    
-    created = 0
-    updated = 0
-    
-    for src, rel in new_files:
-        dest = target / rel
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(src, dest)
-        safe_print(f"  {Colors.GREEN}+{Colors.RESET} {rel}")
-        created += 1
-
-    for src, rel in modified_files:
-        # Special warning for agents.md - user may have custom edits
-        if rel == "agents.md":
-            print()
-            print_warninging("[WARN] agents.md akan diperbarui!")
-            print_warninging("Jika Anda sudah edit manual, backup dulu sebelum lanjut.")
-            print_warninging("Contoh: copy .agents/agents.md ke .agents/agents.md.bak")
-            print()
-        dest = target / rel
-        shutil.copy2(src, dest)
-        safe_print(f"  {Colors.YELLOW}~{Colors.RESET} {rel}")
-        updated += 1
-
-    # Update agents.md if template is newer
-    if agents_md_modified:
-        agents_dest = target.parent / "agents.md"
-        baseline_hash = load_agents_md_baseline(agents_dest)
-        current_hash = current_agents_md_hash(agents_dest)
-
-        if baseline_hash and current_hash != baseline_hash:
-            # User edited - auto-backup first
-            backup_dir = target.parent.parent / ".backup_replace"
-            backup_dir.mkdir(parents=True, exist_ok=True)
-            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_file = backup_dir / f"agents_md_{ts}.md"
-            shutil.copy2(agents_dest, backup_file)
-            print_info(f"[AUTO-BACKUP] {backup_file.name}")
-
-        # Overwrite with template
-        shutil.copy2(agents_template, agents_dest)
-        save_agents_md_hash(agents_dest)
-        print_info(f"Updated: agents.md")
-
-    print()
-    print_success(f"Updated: {created} new, {updated} modified")
+def needs_approval(tool: str) -> bool:
+    return tool in APPROVAL_REQUIRED
 
 
-def uninstall(apply=False):
-    _clear_pip_cache()
-    root = Path.cwd() / ".agents"
-    skills_dir = root / "skills"
-
-    print_header("Snowline Uninstall")
-
-    if not skills_dir.exists():
-        print_info("No skills found to remove")
-        return
-
-    skill_files = [f for f in skills_dir.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
-    skill_count = len(skill_files)
-
-    if not apply:
-        print_warninginging(f"Will remove {skill_count} skill files from {skills_dir}")
-        print_info("Configuration files will be kept")
-        print()
-        safe_print(f"Run {Colors.BOLD}snowline uninstall --apply{Colors.RESET} to confirm")
-        return
-
-    removed = 0
-    for f in skill_files:
-        try:
-            f.unlink()
-            removed += 1
-        except Exception as e:
-            safe_print(f"  {Colors.RED}x{Colors.RESET} {f.relative_to(skills_dir)}: {e}")
-
-    for d in sorted(skills_dir.rglob("*"), reverse=True):
-        if d.is_dir() and not list(d.iterdir()):
-            d.rmdir()
-
-    print()
-    print_success(f"Removed {removed} skill files")
+def get_agent_action(result: AnalyzeResult) -> str:
+    if result.needs_clarification:
+        return "CLARIFY"
+    if result.confidence_level == "HIGH" and result.specificity == "high":
+        return "EXECUTE"
+    elif result.confidence_level in ("HIGH", "MEDIUM"):
+        return "KONFIRMASI"
+    else:
+        return "CLARIFY"
 
 
-def show_path():
-    scripts = sysconfig.get_path('scripts')
-    python_exe = sys.executable
-
-    print_header("Snowline - Path Information")
-    safe_print(f"{Colors.BOLD}Python:{Colors.RESET} {python_exe}")
-    safe_print(f"{Colors.BOLD}Scripts:{Colors.RESET} {scripts}")
-    safe_print("")
-    safe_print(f"{Colors.BOLD}To use 'snowline' command directly:{Colors.RESET}")
-    safe_print(f"  Add to PATH: {scripts}")
-    safe_print("")
-    safe_print(f"{Colors.DIM}Alternative: Use 'python -m snowline_toolkit.cli'{Colors.RESET}\n")
-
+# ============================================================
+# CLI
+# ============================================================
 
 def main():
-    parser = argparse.ArgumentParser(
-        prog="snowline",
-        description="Snowline Agent Tools - Portable tools for AI coding assistants"
-    )
-    subparsers = parser.add_subparsers(dest="command", help="Commands")
-
-    p_init = subparsers.add_parser("init", help="Initialize .agents folder with skills")
-    p_init.add_argument("--apply", action="store_true", help="Apply installation")
-
-    p_update = subparsers.add_parser("update", help="Check for skill updates")
-    p_update.add_argument("--apply", action="store_true", help="Apply updates")
-    p_uninstall = subparsers.add_parser("uninstall", help="Remove installed skills")
-    p_uninstall.add_argument("--apply", action="store_true", help="Apply uninstall")
-    subparsers.add_parser("path", help="Show installation paths")
-
+    """CLI interface."""
+    import argparse
+    parser = argparse.ArgumentParser(description='Companion v5.0 - Intent Analyzer')
+    parser.add_argument('input', nargs='*', help='Input text to analyze')
+    parser.add_argument('--analyze', '-a', help='Analyze input text')
     args = parser.parse_args()
 
-    if args.command == "init":
-        init(dry=not args.apply)
-    elif args.command == "update":
-        update(apply=args.apply)
-    elif args.command == "uninstall":
-        uninstall(apply=args.apply)
-    elif args.command == "path":
-        show_path()
+    user_input = args.analyze or ' '.join(args.input)
+
+    if not user_input:
+        print("Usage: python companion.py 'your instruction'")
+        print("   or: python companion.py --analyze 'your instruction'")
+        return
+
+    result = analyze_intent(user_input)
+    grill = should_grill(result)
+
+    print(f"\n{'='*60}")
+    print(f"COMPANION v5.0 - ANALYSIS RESULT")
+    print(f"{'='*60}")
+    print(f"Input: {result.input}")
+    print(f"Keywords: {result.keywords}")
+    print(f"Entities: {result.entities}")
+    print(f"Specificity: {result.specificity}")
+    print(f"Confidence: {result.confidence_level}")
+    print(f"Action: {get_agent_action(result)}")
+    print(f"")
+    print(f"Grilling Check:")
+    print(f"  needs_grilling: {grill['needs_grilling']}")
+    print(f"  reason: {grill['reason']}")
+
+    if result.single_tool:
+        print(f"\nTool: {result.single_tool.name}")
+        print(f"  Confidence: {result.single_tool.confidence}")
+        print(f"  Reason: {result.single_tool.reason}")
+        print(f"  Safety: {result.single_tool.safety}")
+        print(f"  Command: {result.single_tool.command_template}")
+        print(f"  Needs Approval: {needs_approval(result.single_tool.name)}")
+    elif result.needs_clarification:
+        print(f"\n⚠️ {result.clarification_note}")
+
+    print(f"{'='*60}\n")
+
+
+# ============================================================
+# TASK LOCK (Phase 4 - Basic Read/Write Only)
+# ============================================================
+
+TASK_LOCK_FILE = '.agents/task_lock.json'
+
+def load_task_lock():
+    """Load task_lock.json from current directory."""
+    if not os.path.exists(TASK_LOCK_FILE):
+        return None
+    try:
+        with open(TASK_LOCK_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return None
+
+
+def save_task_lock(data):
+    """Save task_lock.json to current directory."""
+    # Ensure .agents directory exists
+    os.makedirs('.agents', exist_ok=True)
+    with open(TASK_LOCK_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    return True
+
+
+def start_task_lock(task_id: str, user_intent: str):
+    """Start a new task lock."""
+    data = {
+        "task_id": task_id,
+        "user_intent_raw": user_intent,
+        "clarified_understanding": "",
+        "level_target": 3,
+        "grilling_log": [],
+        "plan_summary": "",
+        "status": "clarifying",
+        "created_at": str(datetime.now())
+    }
+    save_task_lock(data)
+    return data
+
+
+def add_grilling_qa(question: str, answer: str):
+    """Add a Q&A pair to the grilling log."""
+    data = load_task_lock()
+    if not data:
+        return None
+    data['grilling_log'].append({
+        "question": question,
+        "answer": answer,
+        "timestamp": str(datetime.now())
+    })
+    save_task_lock(data)
+    return data
+
+
+def update_task_lock(**kwargs):
+    """Update task_lock fields."""
+    data = load_task_lock()
+    if not data:
+        return None
+    for key, value in kwargs.items():
+        if key in data:
+            data[key] = value
+    save_task_lock(data)
+    return data
+
+
+def end_task_lock():
+    """Delete task_lock.json (task complete)."""
+    if os.path.exists(TASK_LOCK_FILE):
+        os.remove(TASK_LOCK_FILE)
+    return True
+
+
+def get_task_status():
+    """Get current task status."""
+    data = load_task_lock()
+    if not data:
+        return {"status": "no_active_task"}
+    return data
+
+
+# ============================================================
+# CLI Commands for task_lock
+# ============================================================
+
+def task_lock_cli(args):
+    """CLI interface for task_lock commands."""
+    import argparse
+    parser = argparse.ArgumentParser(description='Task Lock Manager')
+    sub = parser.add_subparsers(dest='cmd')
+
+    # start <task_id> <user_intent>
+    p = sub.add_parser('start', help='Start new task lock')
+    p.add_argument('task_id')
+    p.add_argument('user_intent', nargs='+')
+
+    # add <q> <a>
+    p = sub.add_parser('add', help='Add Q&A to grilling log')
+    p.add_argument('question')
+    p.add_argument('answer')
+
+    # update <key>=<value>
+    p = sub.add_parser('update', help='Update field')
+    p.add_argument('field')
+    p.add_argument('value')
+
+    # status
+    sub.add_parser('status', help='Show current task status')
+
+    # end
+    sub.add_parser('end', help='End current task')
+
+    args = parser.parse_args(args)
+
+    if args.cmd == 'start':
+        intent = ' '.join(args.user_intent)
+        result = start_task_lock(args.task_id, intent)
+        print(f"✅ Task started: {args.task_id}")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'add':
+        result = add_grilling_qa(args.question, args.answer)
+        print(f"✅ Q&A added")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'update':
+        result = update_task_lock(**{args.field: args.value})
+        print(f"✅ Updated {args.field}")
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'status':
+        result = get_task_status()
+        print(json.dumps(result, indent=2))
+
+    elif args.cmd == 'end':
+        end_task_lock()
+        print("✅ Task ended, lock removed")
+
     else:
-        print_header("Snowline Agent Tools")
-        safe_print(f"{Colors.BOLD}Version:{Colors.RESET} 1.0.5")
-        safe_print("")
-        safe_print(f"{Colors.BOLD}Commands:{Colors.RESET}")
-        print_list_item("init --apply  - Install skills to .agents folder")
-        print_list_item("update        - Check for new/modified skills")
-        print_list_item("path          - Show installation paths")
-        print_list_item("uninstall     - Remove installed skills")
-        safe_print("")
-        safe_print(f"{Colors.DIM}Run 'snowline <command> --help' for more info{Colors.RESET}\n")
+        parser.print_help()
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if len(sys.argv) > 1 and sys.argv[1] == "task":
+        task_lock_cli(sys.argv[2:])
+    else:
+        main()
+
