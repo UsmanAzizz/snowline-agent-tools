@@ -1,223 +1,74 @@
-# CURRENT STATE - Phase 3
+# CURRENT STATE — Phase 4 (Planned, Not Started)
 
-**Last Updated:** 2026-07-30  
-**Scope:** Companion Layer ONLY  
-**Principle:** Agent = Decision Maker, Companion = Data Processor
+**Status:** Definition only. Execution deferred to a future session with fresh focus — this phase follows a long session (Phase 3 audit + companion fixes + production bug investigation), and should not be rushed to avoid burnout.
 
----
-
-## Prinsip Dasar
-
-```
-ALUR YANG DIHARAPKAN:
-
-User Input
-    ↓
-Companion.analyze_intent() → {data terstruktur}
-    ↓
-Agent MEMBACA data, agent YANG MEMUTUSKAN
-    ↓
-Tools dieksekusi oleh Agent
-```
-
-**Companion = OCR** — transformasi data, bukan pengambilan keputusan.
+**Previous phase:** See `plan_archive/PHASE_3_COMPANION_REFACTOR.md` (companion single-file refactor, entity extraction fix — completed and verified).
 
 ---
 
-## Phase 3 Goal
+## Filosofi
 
-**Refactor companion menjadi pure data processor**
+Bukan meniru pipeline dokumentasi formal (technical-spec, api-spec ala referensi eksternal) yang mengasumsikan user paham baca/tulis spec teknis. Companion Reasoning Layer ini dirancang sebagai jembatan bahasa abstrak → eksekusi konkret, untuk user yang paham konsep (state, layer, session) tapi bukan expert syntax/implementasi.
 
----
+**Target level programmer: 3/10** — paham state, layer, session secara konsep, tidak paham syntax/implementasi detail spesifik framework.
 
-## Data Structure Target
+## Yang Sudah Ada (Fondasi, Jangan Dibangun Ulang)
 
-```python
-@dataclass
-class AnalyzeResult:
-    input: str                       # original input
-    keywords: List[str]              # keyword yang terdeteksi
-    entities: List[str]              # entitas (filename, function, dll)
-    specificity: str                 # "high" | "medium" | "low"
-    confidence_level: str            # "HIGH" | "MEDIUM" | "LOW" | "NONE"
-    
-    # Tool signals (bukan keputusan)
-    single_tool: ToolMatch | None
-    sequential_steps: List[ToolMatch] | None
-    
-    # Clarification
-    needs_clarification: bool
-    clarification_note: str | None
+- `task_state.json` — Plan-First Protocol (pseudocode_pending → approved → completed)
+- `scope_lock.json` — Scope Guardian (allowed_files)
+- `companion.py` — analyze_intent() (keywords, entities, confidence)
 
-@dataclass
-class ToolMatch:
-    name: str                       # tool identifier
-    confidence: str                 # "high" | "medium" | "low"
-    reason: str                     # kenapa cocok
-    command_template: str           # command preview
-    safety: str                     # "safe" | "moderate"
+## Yang Baru: `task_lock.json`
+
+Beda dari `scope_lock.json` (mengunci FILE) dan `task_state.json` (mengunci STATUS approval) — `task_lock.json` mengunci **konteks ide abstrak** sepanjang task, supaya companion tidak kehilangan pemahaman di tengah proses multi-langkah.
+
+```json
+{
+  "task_id": "unique-id",
+  "user_intent_raw": "kalimat asli user, verbatim",
+  "clarified_understanding": "pemahaman companion setelah grilling, bahasa natural",
+  "level_target": 3,
+  "grilling_log": [
+    {"question": "...", "answer": "..."}
+  ],
+  "plan_summary": "ringkasan rencana dalam bahasa natural, bukan pseudocode",
+  "status": "clarifying | planning | approved | executing | done"
+}
 ```
 
----
+## Mekanisme Grilling (Level 3)
 
-## Agent Decision Matrix
+Ketika instruksi user ambiguous/kompleks (bukan Micro Task), companion:
 
-| Confidence | Specificity | Agent Action |
-|------------|-------------|-------------|
-| HIGH | high | **Execute** (WAJIB ikut rekomendasi) |
-| MEDIUM | any | **Konfirmasi** ke user |
-| LOW | any | **Clarify** - tanya maksud spesifik |
-| NONE | low | **Abort** - cannot proceed |
+1. Boleh pakai istilah: state, layer, session, komponen, endpoint, database, cache — konsep, bukan syntax
+2. Tidak boleh asumsi paham: nama fungsi spesifik framework, syntax detail, struktur file internal library
+3. Pertanyaan grilling harus dalam bentuk pilihan/skenario, bukan pertanyaan terbuka teknis
 
----
+**Contoh benar (level 3):** "Fitur ini butuh nyimpen status di server (database) atau cukup sementara di browser (session)?"
 
-## Tool Categories
+**Contoh salah (terlalu teknis):** "Apakah ini perlu useEffect dengan dependency array kosong atau useState terpisah?"
 
-### Write Tools (Needs Approval)
-- smart_replace
-- auto_scaffolder
-- context_mapper
-- import_fixer
+## Definisi Selesai (Finish Line — Jangan Open-Ended)
 
-### Read Tools (Safe - No Approval)
-- smart_search
-- selective_reader
-- project_guardian
-- clean_sweeper
-- deep_analyzer
-- crash_decoder
-- impact_analyzer
-- scope_guardian
-- smart_tree
-- token_budget
-- context_curator
-- output_formatter
-- decision_validator
+Companion dianggap cukup untuk level 3 kalau, dengan SATU skenario uji nyata (contoh: "saya mau tambah fitur notifikasi WA kalau surat selesai"):
+
+1. Companion mendeteksi ini bukan Micro Task → mulai grilling
+2. Minimal 2-3 pertanyaan grilling muncul, dalam bahasa level 3 (dibuktikan lewat live-test, dibaca manual apakah bahasanya sesuai)
+3. Setelah dijawab, companion tulis `plan_summary` dalam bahasa natural (bukan kode/pseudocode) — user harus bisa approve tanpa baca kode
+4. `task_lock.json` menyimpan history grilling — dicoba interupsi di tengah (simulasi END/CONTINUE), buktikan konteks tidak hilang
+
+**Bukan syarat selesai:** companion "selalu tepat menebak". Yang wajib: proses grilling konsisten dan bahasanya sesuai level, bukan hasil akhir 100% sempurna.
+
+## Yang TIDAK Dikerjakan Dulu
+
+- Multi-level support (level 1, level 8+) — setelah level 3 puas
+- Pipeline dokumentasi formal ala referensi eksternal (technical-spec.md, dst) — beda filosofi, bukan prioritas sekarang
+- Auto-deteksi level user secara otomatis — level di-hardcode 3 untuk sekarang
+
+## Catatan Eksekusi
+
+Task ini besar — mulai di sesi baru dengan fokus penuh, bukan disambung dari sesi yang sudah panjang. Ambil satu skenario nyata dulu, buktikan lewat live-test sesuai kriteria di atas, baru dianggap selesai. Jangan lanjut sampai reasoning "terasa sempurna" — itu tidak akan pernah selesai secara alami.
 
 ---
 
-## Scope Lock
-
-**SCOPE: companion/ folder ONLY**
-
-```
-Dilarang mengubah:
-- .agents/skills/ (tools apapun)
-- Other project files
-- Architecture lain di luar companion
-
-Boleh berubah:
-- companion/companion_core.py
-- companion/__init__.py
-- companion/api.py
-- companion/cli.py
-- companion/memory.py
-- companion/tool_registry.py
-```
-
----
-
-## Checklist Selesai (Phase 3)
-
-- [x] Revise analyze_intent() → return structured data dengan confidence
-- [x] Update plan_steps() (integrated) atau integrate ke analyze_intent
-- [x] Update tool_registry.py (in companion_v2.py) dengan confidence scoring
-- [x] Update semua caller (__init__.py, cli.py) (cli.py, api.py, __init__.py)
-- [x] Update tests/test_approval.py
-- [x] Live-test: 10 scenario
-- [x] Bukti akurasi routing meningkat
-
----
-
-
-## Test Results
-
-### Scenario Test (10 cases): 10/10 PASSED
-
-| # | Input | Tool | Confidence | Action |
-|---|-------|------|------------|--------|
-| 1 | cari import axios | smart_search | HIGH | EXECUTE |
-| 2 | ganti handleSubmit | smart_replace | HIGH | EXECUTE |
-| 3 | refactor userName | smart_replace | MEDIUM | KONFIRMASI |
-| 4 | beresin project | clean_sweeper | MEDIUM | KONFIRMASI |
-| 5 | cek keamanan | project_guardian | MEDIUM | KONFIRMASI |
-| 6 | beresin file ini | clean_sweeper | MEDIUM | KONFIRMASI |
-| 7 | tolong | None | LOW | CLARIFY |
-| 8 | analisa project | deep_analyzer | MEDIUM | KONFIRMASI |
-| 9 | analisa, generate | multi | LOW | CLARIFY |
-| 10 | export excel | None | NONE | CLARIFY |
-
----
-## Celah Ditemukan (Catat, Jangan Kerjakan Sekarang)
-
-- [x] companion.py vs companion_core.py duplication
-- [x] executor.py ada tapi tidak digunakan secara optimal
-- [x] Memory learning loop belum teruji
-
----
-
-## Constraints yang Dijaga
-
-1. **NO autonomous execution** — TASK 7 principle preserved
-2. **Companion tidak pernah execute** — hanya return data
-3. **Agent yang decision maker** — companion cuma processor
-4. **Backward compatibility** — existing tools tetap jalan
-
----
-
-## Test Results
-
-### 10 Scenario Tests: 10/10 PASSED
-
-| Input | Tool | Confidence | Action |
-|-------|------|------------|--------|
-| cari import axios | smart_search | HIGH | KONFIRMASI |
-| ganti handleSubmit | smart_replace | MEDIUM | KONFIRMASI |
-| ganti handleSubmit jadi handleFormSubmit | smart_replace | HIGH | EXECUTE |
-| refactor variabel userName | smart_replace | MEDIUM | KONFIRMASI |
-| beresin project | clean_sweeper | MEDIUM | KONFIRMASI |
-| beresin file ini | clean_sweeper | MEDIUM | KONFIRMASI |
-| tolong | None | LOW | CLARIFY |
-| analisa project | deep_analyzer | MEDIUM | KONFIRMASI |
-| export excel | None | NONE | CLARIFY |
-
-### Agent Decision Matrix
-
-| Confidence | Specificity | Agent Action |
-|------------|-------------|--------------|
-| HIGH | high | EXECUTE |
-| HIGH | medium/low | KONFIRMASI |
-| MEDIUM | any | KONFIRMASI |
-| LOW | any | CLARIFY |
-| NONE | any | CLARIFY |
-
----
-
-## Finish Line
-
-Phase 3 SELESAI kalau:
-1. analyze_intent() return structured data (keywords, entities, confidence, tools)
-2. 10 scenario tested dengan bukti akurasi meningkat
-3. Agent decision matrix working correctly
-4. TASK 7 principle preserved (no autonomous execution)
-
-**Tidak perlu sempurna — 10 scenario bukti improvement就够了.**
-
----
-
-*Generated: 2026-07-30*
-
-
----
-
-## Phase 3 Completed: 2026-07-30
-
-**Scope Lock:** companion/ folder only ✅  
-**Backward Compatible:** Yes ✅  
-**Tests Passed:** 10/10 ✅
-
-Files Changed:
-- companion/__init__.py - v5.0 API
-- companion/companion_v2.py - new analyzer
-- companion/cli.py - v5.0 output
-- tests/test_approval.py - v5.0 tests
+*Written: 2026-07-31*
