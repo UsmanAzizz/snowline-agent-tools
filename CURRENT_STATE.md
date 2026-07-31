@@ -1,8 +1,54 @@
-# CURRENT STATE — Phase 4 (Planned, Not Started)
+# CURRENT STATE — Phase 4 (In Progress)
 
-**Status:** Definition only. Execution deferred to a future session with fresh focus — this phase follows a long session (Phase 3 audit + companion fixes + production bug investigation), and should not be rushed to avoid burnout.
+**Status:** Basic mechanism implemented. Grilling logic manual (agent writes questions), not auto-generated.
 
-**Previous phase:** See `plan_archive/PHASE_3_COMPANION_REFACTOR.md` (companion single-file refactor, entity extraction fix — completed and verified).
+**Implemented:**
+- `companion.py` v5.0 with task_lock functions
+- `should_grill()` detection
+- `start_task_lock()`, `add_grilling_qa()`, `load_task_lock()`, `update_task_lock()`, `get_task_status()`, `end_task_lock()`
+
+---
+
+## should_grill() Logic (Implemented)
+
+```
+IF entity spesifik terdeteksi AND specificity = high
+   → should_grill = False (Micro Task, langsung eksekusi)
+
+IF confidence = MEDIUM/LOW/NONE
+   → should_grill = True (perlu clarify)
+
+IF instruction >15 words AND no entity
+   → should_grill = True (ambiguous)
+```
+
+**Catatan Penting:**
+- "entity spesifik" = camelCase, PascalCase, snake_case, quoted string, $vars, React hooks
+- Logic ini terlepas dari confidence level — ada entity spesifik = Micro Task
+- Confidence mempengaruhi action (EXECUTE/KONFIRMASI/CLARIFY), bukan grilling decision
+
+---
+
+## should_grill() Live Test Results
+
+```
+"cari fungsi handleSubmit"      → needs_grilling: False (entity detected)
+"tolong optimasi performa..."  → needs_grilling: True  (confidence MEDIUM)
+"ganti handleSubmit jadi onSubmit" → needs_grilling: False (2 entities + HIGH)
+```
+
+---
+
+## Phase 4 Scope (Locked)
+
+**Implemented (DONE):**
+- task_lock.json basic read/write
+- should_grill() detection
+
+**NOT Implemented (Future):**
+- Auto-generate grilling questions (agent writes them manually)
+- plan_summary generation
+- grilling_log persistence across sessions
 
 ---
 
