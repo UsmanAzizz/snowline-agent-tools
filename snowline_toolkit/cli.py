@@ -459,6 +459,86 @@ def uninstall(apply=False):
     print_success(f"Removed {removed} skill files")
 
 
+def status():
+    """Check if newer version is available on GitHub (read-only)."""
+    import subprocess
+    import json
+
+    # Find installed package info
+    installed_commit = None
+    package_info = None
+
+    try:
+        result = subprocess.run(
+            ['pip', 'show', 'snowline-agent-tools'],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if line.startswith('Location:'):
+                    package_info = line.split(':', 1)[1].strip()
+    except Exception:
+        pass
+
+    # Read commit from dist-info/direct_url.json
+    if package_info:
+        import glob
+        dist_info_pattern = os.path.join(package_info, 'snowline_agent_tools-*.dist-info')
+        matches = glob.glob(dist_info_pattern)
+        if matches:
+            direct_url_path = os.path.join(matches[0], 'direct_url.json')
+            if os.path.exists(direct_url_path):
+                try:
+                    with open(direct_url_path, 'r') as f:
+                        data = json.load(f)
+                    vcs_info = data.get('vcs_info', {})
+                    installed_commit = vcs_info.get('commit_id', '')
+                except Exception:
+                    pass
+
+    # Get remote HEAD commit
+    remote_commit = None
+    try:
+        result = subprocess.run(
+            ['git', 'ls-remote', 'https://github.com/UsmanAzizz/snowline-agent-tools.git', 'HEAD'],
+            capture_output=True,
+            text=True,
+            timeout=15
+        )
+        if result.returncode == 0 and result.stdout:
+            remote_commit = result.stdout.split()[0]
+    except Exception:
+        pass
+
+    print_header("Snowline Status")
+
+    if not installed_commit:
+        print_error("Could not determine installed version")
+        print_info("Try reinstalling: pip install --force-reinstall git+https://github.com/UsmanAzizz/snowline-agent-tools.git")
+        return
+
+    print_info(f"Terinstal: commit {installed_commit[:8]}")
+
+    if not remote_commit:
+        print_info("Tidak dapat memeriksa versi terbaru dari GitHub")
+        print_info("Pastikan koneksi internet aktif")
+        return
+
+    print_info(f"Tersedia di GitHub: commit {remote_commit[:8]}")
+
+    if installed_commit == remote_commit:
+        print()
+        print_success("Sudah menggunakan versi terbaru.")
+    else:
+        print()
+        print_warninging("Ada versi lebih baru tersedia!")
+        print()
+        print_info("Untuk update, jalankan:")
+        safe_print(f"  {Colors.BOLD}pip install --force-reinstall --no-cache-dir git+https://github.com/UsmanAzizz/snowline-agent-tools.git{Colors.RESET}")
+        print()
+
+
 def show_path():
     scripts = sysconfig.get_path('scripts')
     python_exe = sys.executable
@@ -488,6 +568,7 @@ def main():
     p_uninstall = subparsers.add_parser("uninstall", help="Remove installed skills")
     p_uninstall.add_argument("--apply", action="store_true", help="Apply uninstall")
     subparsers.add_parser("path", help="Show installation paths")
+    subparsers.add_parser("status", help="Check for newer version on GitHub")
 
     args = parser.parse_args()
 
@@ -499,6 +580,8 @@ def main():
         uninstall(apply=args.apply)
     elif args.command == "path":
         show_path()
+    elif args.command == "status":
+        status()
     else:
         print_header("Snowline Agent Tools")
         safe_print(f"{Colors.BOLD}Version:{Colors.RESET} 1.0.5")
@@ -506,6 +589,7 @@ def main():
         safe_print(f"{Colors.BOLD}Commands:{Colors.RESET}")
         print_list_item("init --apply  - Install skills to .agents folder")
         print_list_item("update        - Check for new/modified skills")
+        print_list_item("status        - Check for newer version on GitHub")
         print_list_item("path          - Show installation paths")
         print_list_item("uninstall     - Remove installed skills")
         safe_print("")
