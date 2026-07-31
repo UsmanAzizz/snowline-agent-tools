@@ -238,6 +238,41 @@ def entity_in_context(entity: str, context: str) -> bool:
 
 
 # ============================================================
+# USER PROFILE (persistent, from memory.json)
+# ============================================================
+
+_MEMORY_CACHE: Dict[str, int] = {}  # path -> user_level, cached per session
+
+
+def load_user_level() -> int:
+    """Load user_level from .agents/memory.json.
+
+    Returns default 3 if file or field not found (no error).
+    Cached per session to avoid repeated disk reads.
+    """
+    memory_path = '.agents/memory.json'
+    if not os.path.isfile(memory_path):
+        return 3
+
+    # Check session cache
+    cached = _MEMORY_CACHE.get(memory_path)
+    if cached is not None:
+        return cached
+
+    try:
+        with open(memory_path, encoding='utf-8') as f:
+            data = json.load(f)
+        level = data.get('user_level', 3)
+        if not isinstance(level, int) or level < 1 or level > 10:
+            level = 3
+        _MEMORY_CACHE[memory_path] = level
+        return level
+    except (json.JSONDecodeError, IOError, KeyError):
+        _MEMORY_CACHE[memory_path] = 3
+        return 3
+
+
+# ============================================================
 # ENTITY EXTRACTION
 # ============================================================
 
@@ -287,12 +322,15 @@ def extract_entities(text: str) -> List[str]:
 def should_grill(result: AnalyzeResult) -> dict:
     """
     Deteksi sederhana apakah instruksi butuh grilling.
+    Bahasa disesuaikan berdasarkan user_level dari memory.json.
 
     Returns:
         dict dengan:
         - needs_grilling: bool
         - reason: str (penjelasan kenapa)
     """
+    user_level = load_user_level()
+
     # Micro Task criteria:
     # HIGH confidence + HIGH specificity = langsung eksekusi
     if result.confidence_level == "HIGH" and result.specificity == "high":
@@ -310,17 +348,30 @@ def should_grill(result: AnalyzeResult) -> dict:
 
     # MEDIUM/LOW confidence without specific entity = perlu clarify
     if result.confidence_level in ("MEDIUM", "LOW", "NONE"):
+        if user_level >= 7:
+            # Technical language for experienced users
+            reason = (
+                f"confidence={result.confidence_level}, specificity={result.specificity} "
+                f"({len(result.entities)} entities extracted) — requires clarification before execution"
+            )
+        else:
+            # Simple language for default/low level
+            reason = f"Confidence {result.confidence_level} - perlu clarify"
         return {
             "needs_grilling": True,
-            "reason": f"Confidence {result.confidence_level} - perlu clarify"
+            "reason": reason
         }
 
     # Long instruction without entities = ambiguous
     words = result.input.split()
     if len(words) > 15 and len(result.entities) == 0:
+        if user_level >= 7:
+            reason = f"instruction length={len(words)} words, 0 entities, confidence={result.confidence_level} — ambiguous scope"
+        else:
+            reason = "Instruction >15 words without specific entity"
         return {
             "needs_grilling": True,
-            "reason": "Instruction >15 words without specific entity"
+            "reason": reason
         }
 
     # Default: grilling needed for non-trivial tasks
