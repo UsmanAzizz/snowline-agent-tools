@@ -88,6 +88,42 @@ pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --no-cach
 
 ---
 
+### Insiden: ModuleNotFoundError untuk companion
+
+**Masalah:**
+- `python -c "from companion import analyze_intent"` → ModuleNotFoundError
+- Companion.py ada di `.agents/skills/companion.py`
+- Tapi tidak bisa di-import dari project root
+
+**Penyebab (Fundamental Python Limitation):**
+```
+python -c "from companion import..."
+    ↓
+Python LIHAT sys.path untuk cari module 'companion'
+    ↓
+companion.py TIDAK ADA di sys.path
+    ↓
+ModuleNotFoundError (SEBELUM kode file dibaca)
+```
+
+Ini BUKAN bug. Python sudah gagal import SEBELUM execute kode file. Tidak ada auto-discovery yang bisa jalan karena kode tidak pernah dieksekusi.
+
+**Solusi: Opsi A (Jalankan sebagai script)**
+```bash
+# Cara yang bekerja:
+python .agents/skills/companion.py "cari axios"
+
+# Bukan import:
+python -c "from companion import..."  # Tidak akan pernah jalan
+```
+
+**Kesimpulan:**
+- Companion auto-discovery tidak mungkin untuk import statement
+- Gunakan `python .agents/skills/companion.py "<input>"` sebagai script
+- AGENTS.md sudah diupdate dengan instruksi ini
+
+---
+
 ## Arsitektur Companion
 
 ### Alur Decision-Making
