@@ -5,7 +5,12 @@
 Sebelum memanggil tool/script apa pun (search, replace, analyze, dll),
 WAJIB jalankan dulu:
 ```
-python -c "from companion import analyze_intent; print(analyze_intent('<instruksi user>'))"
+python .agents/skills/companion.py "<instruksi user>"
+```
+
+Atau import langsung (dari project root):
+```
+python -c "import sys; sys.path.insert(0, '.agents/skills'); from companion import analyze_intent; print(analyze_intent('<instruksi user>'))"
 ```
 
 Baca hasilnya. Gunakan sebagai referensi tool mana yang dipanggil.
