@@ -9,7 +9,14 @@ python .agents/skills/companion.py "<instruksi user>"
 ```
 
 Baca hasilnya. Gunakan sebagai referensi tool mana yang dipanggil.
-Ini berlaku untuk SEMUA instruksi, termasuk yang terlihat sederhana.
+Ini berlaku untuk SEMUA instruksi kerja teknis, termasuk yang terlihat sederhana.
+
+**Pengecualian — JANGAN panggil companion untuk:**
+1. Sapaan/basa-basi ("hai", "halo", "terima kasih", dll) — balas natural langsung, tidak perlu analisis intent.
+2. Pengecekan ekosistem project di awal sesi (lihat bagian "Auto-Setup Project Essentials" di bawah) — itu proses tersendiri yang jalan independen, tidak lewat companion.
+3. Pertanyaan yang murni percakapan (bukan instruksi kerja), misal user bertanya soal status/opini, bukan minta eksekusi tool.
+
+Jika ragu apakah sebuah pesan itu instruksi kerja atau sekadar percakapan, pakai heuristik sederhana: apakah menjawabnya butuh menyentuh file/kode project? Jika ya, panggil companion dulu. Jika tidak, jawab langsung.
 
 **Sebelum membuat fungsi baru:**
 Definisi semua variabel yang akan digunakan terlebih dahulu (untuk menghindari *ReferenceError* atau variabel yang belum di-*destructure*).
