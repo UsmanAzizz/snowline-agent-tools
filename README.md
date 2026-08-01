@@ -40,7 +40,7 @@ pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-r
 
 After installation, `.agents/agents.md` is created in your project root. This file instructs the AI agent (Gemini, Claude Code, etc.) working in your project to:
 
-1. Call `companion.py` first to analyze user intent before picking a tool
+1. Call `companion_cli.py` first to analyze user intent before picking a tool
 2. Use read-only tools (search, analyze) without asking for confirmation
 3. Require explicit approval before running write tools with `--apply`
 4. Report transparently when a tool execution fails and is self-recovered, instead of hiding the troubleshooting process
@@ -52,7 +52,7 @@ This file is the actual behavior contract read by the AI agent — not just docu
 A lightweight intent analyzer that reads user instructions and suggests which tool to use, without making the final decision itself (the calling AI agent decides).
 
 ```bash
-python .agents/skills/companion.py "cari fungsi handleSubmit"
+python .agents/skills/companion_cli.py "cari fungsi handleSubmit"
 ```
 
 Returns structured data: detected keywords, entities (e.g. function names in camelCase/PascalCase), confidence level, and a suggested tool with its command template.

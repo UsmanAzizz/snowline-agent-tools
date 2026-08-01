@@ -5,7 +5,7 @@
 Sebelum memanggil tool/script apa pun (search, replace, analyze, dll),
 WAJIB jalankan dulu:
 ```
-python .agents/skills/companion.py "<instruksi user>"
+python .agents/skills/companion_cli.py "<instruksi user>"
 ```
 
 Baca hasilnya. Gunakan sebagai referensi tool mana yang dipanggil.
@@ -130,7 +130,16 @@ Setelah user setuju:
 - Cek scope file sebelum modifikasi
 - Jangan modify di luar scope task
 
-**4. Communication:**
+**4. Task Lock untuk Refactoring/Ops Berskala Besar:**
+- Jika task menyentuh LEBIH DARI 3 file sekaligus (hapus/buat/modifikasi), WAJIB mulai task_lock terlebih dahulu:
+  ```
+  python .agents/skills/companion_cli.py task start <task_id> "<deskripsi>"
+  ```
+- Task lock WAJIB dimulai SEBELUM operasi filesystem apa pun (Bash rm, Write, Edit), bukan sesudahnya
+- Ini bukan opsional - bahkan jika plan sudah jelas, task_lock menciptakan jejak persetujuan yang tidak bergantung ke memori sesi
+- Tidak ada pengecualian: "tapi plan sudah jelas" bukan alasan untuk skip task start
+
+**5. Communication:**
 - Pakai format tag: [TASK], [DONE], [WARN], [INFO]
 - Bahasa Indonesia, lugas, tanpa hype
 - ⚠️ WAJIB laporkan error yang diatasi sendiri
@@ -152,8 +161,31 @@ Setiap kali melaporkan hasil live-test atau eksekusi command, WAJIB tampilkan:
 
 **Yang BOLEH:**
 - Ringkasan/tabel BOLEH ditambahkan SETELAH output mentah, BUKAN MENGGANTIKAN output mentah
-- User harus bisa baca sendiri apa yangbenar-benar terjadi di terminal
+- User harus bisa baca sendiri apa yang benar-benar terjadi di terminal
 
 **Prinsip:** ringkasan/tabel adalah TAMBAHAN, BUKAN PENGGANTI bukti mentah.
 
-**Scope aturan ini:** Hanya berlaku SAAT AI MEMBANGUN/MEMPERBAIKI tools/companion/ekosistem snowline ITU SENDIRI (development mode). Saat tools dipakai sebagai alat bantu di project lain, cukup hasil ringkas natural.
+---
+
+### Klaim Harus Spesifik dan Bisa Dipatahkan (Falsifiable), Bukan Menenangkan
+
+Saat menyimpulkan hasil kerja (baik dalam ringkasan maupun laporan), WAJIB pakai angka/fakta konkret yang bisa langsung dicek salah-benarnya — BUKAN kalimat penenang yang terdengar meyakinkan tapi tidak bisa diverifikasi cepat.
+
+**DILARANG (vague, menenangkan, susah dipatahkan):**
+- "Sudah diverifikasi, semua berhasil."
+- "Tool bekerja dengan baik."
+- "Semua OK."
+- "Sudah 100% sinkron."
+
+**WAJIB (spesifik, falsifiable — kalau salah, langsung ketahuan):**
+- "3 dari 3 file terupdate, commit abc123, 0 error."
+- "Diff menunjukkan IDENTICAL antara .agents/skills/companion/ dan snowline_toolkit/templates/companion/."
+- "Field user_level terbaca 7, output berubah sesuai (lihat baris X)."
+
+**Setiap klaim status WAJIB menyertakan tingkat verifikasi eksplisit:**
+- "Selesai — diverifikasi langsung dengan [command/cara verifikasi]."
+- "Selesai — belum diverifikasi ulang, berdasarkan output eksekusi saja." (jujur mengakui belum dicek independen)
+
+Jangan pernah menulis status selesai tanpa salah satu dari dua bentuk di atas.
+
+**Scope aturan ini:** sama seperti aturan Bukti Live-Test di atas — berlaku SAAT AI MEMBANGUN/MEMPERBAIKI tools/companion/ekosistem snowline ITU SENDIRI (development mode). Saat tools dipakai sebagai alat bantu di project lain, cukup hasil ringkas natural.

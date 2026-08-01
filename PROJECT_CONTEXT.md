@@ -91,12 +91,12 @@ pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-r
 
 ### Insiden: ModuleNotFoundError untuk companion
 
-**Masalah:**
+**Masalah (OLD - sebelum modular refactor):**
 - `python -c "from companion import analyze_intent"` → ModuleNotFoundError
-- Companion.py ada di `.agents/skills/companion.py`
-- Tapi tidak bisa di-import dari project root
+- Companion.py ada di `.agents/skills/companion_cli.py`
+- Tidak bisa di-import dari project root
 
-**Penyebab (Fundamental Python Limitation):**
+**Penyebab (Fundamental Python Limitation - still relevant):**
 ```
 python -c "from companion import..."
     ↓
@@ -107,20 +107,23 @@ companion.py TIDAK ADA di sys.path
 ModuleNotFoundError (SEBELUM kode file dibaca)
 ```
 
-Ini BUKAN bug. Python sudah gagal import SEBELUM execute kode file. Tidak ada auto-discovery yang bisa jalan karena kode tidak pernah dieksekusi.
+Ini BUKAN bug. Python sudah gagal import SEBELUM execute kode file.
 
-**Solusi: Opsi A (Jalankan sebagai script)**
+**Solusi: CLI delegate via subprocess**
 ```bash
-# Cara yang bekerja:
-python .agents/skills/companion.py "cari axios"
+# CLI works from root:
+python companion.py "cari axios"
+python .agents/skills/companion_cli.py "cari axios"
+companion.bat "cari axios"
 
-# Bukan import:
-python -c "from companion import..."  # Tidak akan pernah jalan
+# Import requires path setup:
+python -c "import sys; sys.path.insert(0, '.agents/skills'); from companion import analyze_intent"
 ```
 
 **Kesimpulan:**
-- Companion auto-discovery tidak mungkin untuk import statement
-- Gunakan `python .agents/skills/companion.py "<input>"` sebagai script
+- Companion auto-discovery tidak bisa untuk import statement dari root
+- Logika ada di .agents/skills/companion/ (modular)
+- CLI delegate via subprocess dari companion.py root
 - AGENTS.md sudah diupdate dengan instruksi ini
 
 ---

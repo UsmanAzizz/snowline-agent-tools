@@ -250,7 +250,7 @@ def init(dry=True):
     updated_skills = []
     
     # Files that should ALWAYS be updated
-    ALWAYS_UPDATE = {'SKILL.md', 'companion.py', '__init__.py'}
+    ALWAYS_UPDATE = {'SKILL.md', 'companion_cli.py', '__init__.py', '__main__.py'}
     
     for f in skill_files:
         rel = f.relative_to(templates)
