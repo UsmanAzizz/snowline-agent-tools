@@ -616,7 +616,10 @@ def update_task_lock(**kwargs):
 
 
 def end_task_lock():
-    """Delete task_lock.json (task complete)."""
+    """Append to decision_history, then delete task_lock.json (task complete)."""
+    data = load_task_lock()
+    if data:
+        _append_to_history(data)
     if os.path.exists(TASK_LOCK_FILE):
         os.remove(TASK_LOCK_FILE)
     return True
@@ -628,6 +631,60 @@ def get_task_status():
     if not data:
         return {"status": "no_active_task"}
     return data
+
+
+# ============================================================
+# DECISION HISTORY (persistent reference, never influences decisions automatically)
+# ============================================================
+
+DECISION_HISTORY_FILE = '.agents/decision_history.json'
+MAX_HISTORY_ENTRIES = 20
+
+
+def load_decision_history() -> list:
+    """Load decision_history.json.
+
+    Returns empty list if file not found (no error).
+    This function is for MANUAL reference by the agent only -
+    do NOT use it to auto-skip grilling or auto-decide response_mode.
+    """
+    if not os.path.isfile(DECISION_HISTORY_FILE):
+        return []
+    try:
+        with open(DECISION_HISTORY_FILE, encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return []
+
+
+def save_decision_history(history: list):
+    """Save decision history, trimmed to MAX_HISTORY_ENTRIES."""
+    os.makedirs('.agents', exist_ok=True)
+    # Keep only last 20 entries
+    trimmed = history[-MAX_HISTORY_ENTRIES:]
+    with open(DECISION_HISTORY_FILE, 'w', encoding='utf-8') as f:
+        json.dump(trimmed, f, indent=2, ensure_ascii=False)
+
+
+def _append_to_history(task_data: dict):
+    """Append task summary to decision_history.json before deleting task_lock."""
+    history = load_decision_history()
+    # Summarize intent to a few keywords
+    raw = task_data.get('user_intent_raw', '')
+    words = raw.split()
+    intent_summary = ' '.join(words[:5])
+    if len(words) > 5:
+        intent_summary += '...'
+
+    entry = {
+        "task_id": task_data.get('task_id', ''),
+        "prompt_classification": task_data.get('prompt_classification'),
+        "response_mode": task_data.get('response_mode'),
+        "intent_summary": intent_summary,
+        "completed_at": str(datetime.now())
+    }
+    history.append(entry)
+    save_decision_history(history)
 
 
 # ============================================================
