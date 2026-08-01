@@ -82,6 +82,27 @@ def load_cache(cache_file):
             pass
     return {}
 
+def clean_cache(cache_data, project_root):
+    """Remove entries where source file no longer exists or is too old."""
+    import time
+    MAX_AGE_DAYS = 7
+    before = len(cache_data)
+    now = time.time()
+    cleaned = []
+    for key, entry in list(cache_data.items()):
+        filepath = entry.get('file', '')
+        mtime = entry.get('mtime', 0)
+        if filepath and not os.path.exists(filepath):
+            cleaned.append(key)
+            continue
+        if mtime and float(mtime) > 0:
+            age_days = (now - float(mtime)) / 86400
+            if age_days > MAX_AGE_DAYS:
+                cleaned.append(key)
+    for k in cleaned:
+        del cache_data[k]
+    return len(cleaned), before - len(cache_data)
+
 def save_cache(cache_file, data):
     try:
         os.makedirs(os.path.dirname(cache_file), exist_ok=True)
@@ -178,6 +199,8 @@ def main():
     project_root = get_project_root(args.target_dir)
     cache_file = os.path.join(project_root, '.agents', 'session_cache.json')
     cache_data = load_cache(cache_file)
+    removed, _ = clean_cache(cache_data, project_root)
+    save_cache(cache_file, cache_data)
 
     dir_signature = get_dir_signature(args.target_dir, extensions)
     cache_key = f"search_{hashlib.md5((args.target_dir + args.keyword + ''.join(extensions)).encode()).hexdigest()}"
@@ -226,5 +249,15 @@ def main():
         print("=" * 60)
         print_human(results, args.keyword, scanned, skipped)
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print()
+        print("[TOOL ERROR] Ini bug internal snowline, BUKAN masalah di kode project Anda.")
+        print(f"Error: {type(e).__name__}: {e}")
+        print()
+        print("Traceback (untuk dilaporkan ke developer):")
+        traceback.print_exc()
+        sys.exit(1)
