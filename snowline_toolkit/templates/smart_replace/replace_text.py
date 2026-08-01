@@ -125,7 +125,8 @@ def get_args():
     parser.add_argument("--ext", help="Comma-separated extensions to include (e.g. .js,.jsx)", default="")
     parser.add_argument("--regex", action="store_true", help="Treat search_string as a regular expression")
     parser.add_argument("--fuzzy", action="store_true", help="Allow flexible whitespace/newlines matching (opt-in)")
-    parser.add_argument("--whole-word", action="store_true", help="Match whole words only")
+    parser.add_argument("--whole-word", action="store_true", help="Match whole words only (now the default)")
+    parser.add_argument("--allow-partial-match", action="store_true", help="Allow partial/substring matching (disables word-boundary default)")
     parser.add_argument("--apply", action="store_true", help="Actually modify the files (Low risk only)")
     parser.add_argument("--apply-validated", action="store_true", help="Actually modify the files (Bypass Medium/High risk block)")
     return parser.parse_args()
@@ -159,6 +160,94 @@ def print_diff(filepath, old_content, new_content):
         print(''.join(diff_lines))
     else:
         print(f"--- {rel_path} (content changed - diff unavailable)")
+
+def is_inside_string(line, pos):
+    """Check if position pos in line falls inside a string literal (between unmatched quotes)."""
+    i = 0
+    quote_positions = []
+    while i < len(line):
+        if line[i] == '"' and (i == 0 or line[i-1] != '\\'):
+            quote_positions.append(('"', i))
+        elif line[i] == "'" and (i == 0 or line[i-1] != '\\'):
+            quote_positions.append(("'", i))
+        i += 1
+    open_count = 0
+    for qt, qpos in quote_positions:
+        if qpos < pos:
+            open_count += 1
+        else:
+            break
+    return open_count % 2 == 1
+
+
+def split_code_and_comment(line):
+    """Split a line into code and comment parts. Returns (code_part, comment_part).
+
+    - For JS/TS/JSX: splits on first '//' (not inside a string)
+    - For Python/Shell: splits on first '#' (not inside a string)
+    - Comment part includes leading whitespace, code part does not.
+    """
+    stripped = line.lstrip()
+    leading_ws = line[:len(line) - len(stripped)]
+
+    code_part = stripped
+    comment_part = ""
+
+    # Check for // comment (JS/TS/JSX)
+    if '//' in stripped:
+        idx = stripped.index('//')
+        before = stripped[:idx]
+        # Count unescaped quotes before this position
+        double_q = before.count('"') - before.count('\\"')
+        single_q = before.count("'") - before.count("\\'")
+        if (double_q % 2 == 0) and (single_q % 2 == 0):
+            # Even quotes = outside string = real comment
+            code_part = stripped[:idx]
+            comment_part = leading_ws + stripped[idx:]
+            return code_part, comment_part
+
+    # Check for # comment (Python/Shell)
+    if '#' in stripped:
+        idx = stripped.index('#')
+        before = stripped[:idx]
+        double_q = before.count('"') - before.count('\\"')
+        single_q = before.count("'") - before.count("\\'")
+        if (double_q % 2 == 0) and (single_q % 2 == 0):
+            comment_part = leading_ws + stripped[idx:]
+            code_part = stripped[:idx]
+            return code_part, comment_part
+
+    return code_part, comment_part
+
+
+def safe_substitute_line(regex, replacement, line):
+    """Perform regex substitution on a line, skipping matches inside string literals.
+
+    Returns the modified line (with comment part untouched if present).
+    """
+    if not regex.search(line):
+        return line
+
+    code_part, comment_part = split_code_and_comment(line)
+
+    # Find matches inside code_part and filter out those inside strings
+    new_code = code_part
+    matches = list(regex.finditer(code_part))
+    if matches:
+        # Replace from right to left to preserve positions
+        offset = 0
+        for m in matches:
+            start, end = m.start() + offset, m.end() + offset
+            # Check if this match falls inside a string
+            if is_inside_string(new_code, m.start()):
+                continue  # skip match inside string
+            # Extract and replace this match
+            matched_text = new_code[start:end]
+            new_code = new_code[:start] + replacement + new_code[end:]
+            offset += len(replacement) - (end - start)
+
+    return new_code + comment_part
+
 
 def main():
     args = get_args()
@@ -194,7 +283,7 @@ def main():
     elif not args.regex:
         pattern_str = re.escape(pattern_str)
         
-    if args.whole_word:
+    if args.whole_word or not args.allow_partial_match:
         pattern_str = r'\b' + pattern_str + r'\b'
         
     try:
@@ -243,11 +332,22 @@ def main():
                 
             if regex.search(content):
                 file_count += 1
-                new_content, count = regex.subn(args.replace_string, content)
-                match_count += count
+                # Process line by line, skipping matches inside strings and comments
+                new_lines = []
+                file_match_count = 0
+                for line in content.splitlines(keepends=True):
+                    new_line = safe_substitute_line(regex, args.replace_string, line)
+                    # Count safe matches (code part only)
+                    code_part, comment_part = split_code_and_comment(line)
+                    for m in regex.finditer(code_part):
+                        if not is_inside_string(code_part, m.start()):
+                            file_match_count += 1
+                    new_lines.append(new_line)
+                new_content = ''.join(new_lines)
+                match_count += file_match_count
 
                 rel_path = os.path.relpath(filepath, args.target_dir if os.path.isdir(args.target_dir) else os.path.dirname(args.target_dir))
-                print(f"[WARN] Found {count} matches in {rel_path}")
+                print(f"[WARN] Found {file_match_count} matches in {rel_path}")
                 pending_writes.append((filepath, content, new_content))
 
     print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
