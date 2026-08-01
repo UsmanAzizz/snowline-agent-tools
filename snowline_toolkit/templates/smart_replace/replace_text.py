@@ -311,4 +311,15 @@ def main():
     print(f"\n[SUCCESS] Berhasil memodifikasi {file_count} file. Backup tersimpan di {backup_dir}")
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print()
+        print("[TOOL ERROR] Ini bug internal snowline, BUKAN masalah di kode project Anda.")
+        print(f"Error: {type(e).__name__}: {e}")
+        print()
+        print("Traceback (untuk dilaporkan ke developer):")
+        traceback.print_exc()
+        import sys
+        sys.exit(1)

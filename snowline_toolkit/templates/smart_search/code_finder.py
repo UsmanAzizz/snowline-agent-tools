@@ -249,5 +249,15 @@ def main():
         print("=" * 60)
         print_human(results, args.keyword, scanned, skipped)
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        print()
+        print("[TOOL ERROR] Ini bug internal snowline, BUKAN masalah di kode project Anda.")
+        print(f"Error: {type(e).__name__}: {e}")
+        print()
+        print("Traceback (untuk dilaporkan ke developer):")
+        traceback.print_exc()
+        sys.exit(1)
