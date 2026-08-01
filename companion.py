@@ -574,8 +574,12 @@ def start_task_lock(task_id: str, user_intent: str):
     data = {
         "task_id": task_id,
         "user_intent_raw": user_intent,
+        "prompt_classification": None,       # analytical | reasoning | instruction | feature_request
+        "classification_reasoning": "",      # agent: alasan kenapa klasifikasi itu dipilih
+        "response_mode": None,              # execute | suggest | grill
+        "response_mode_reasoning": "",      # agent: alasan kenapa mode itu dipilih
         "clarified_understanding": "",
-        "level_target": 3,
+        "level_target": load_user_level(),  # dari memory.json, default 3
         "grilling_log": [],
         "plan_summary": "",
         "status": "clarifying",
