@@ -38,12 +38,25 @@ def check_scope(target_file):
     else:
         risk_label = "Low — single file, cosmetic scope"
     
-    # 1. Check exact matches
+
+    # 1. Check exact matches (SECURITY-FIXED: use basename for filename-only, normalized path for path-relative)
     for allowed in allowed_files:
-        if target_file.endswith(allowed) or allowed.endswith(target_file) or target_file == allowed:
-            print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
-            print(f"[RISK] {risk_label}")
-            sys.exit(0)
+        if '/' in allowed or '\\' in allowed:
+            # Path-relative entry: normalize and compare full paths
+            allowed_norm = os.path.normcase(os.path.normpath(allowed))
+            target_norm = os.path.normcase(os.path.normpath(target_file))
+            if target_norm == allowed_norm or target_norm.endswith('/' + allowed_norm):
+                print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
+                print(f"[RISK] {risk_label}")
+                sys.exit(0)
+        else:
+            # Filename-only entry: compare basenames (case-insensitive on Windows)
+            allowed_base = os.path.normcase(allowed)
+            target_base = os.path.normcase(os.path.basename(target_file))
+            if target_base == allowed_base:
+                print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
+                print(f"[RISK] {risk_label}")
+                sys.exit(0)
             
     # 2. Check patterns
     for pattern in allowed_patterns:
