@@ -111,6 +111,14 @@ CLARIFICATION_TRIGGERS = {
     "diagram": ["diagram", "flowchart", "uml", "sequence"],
 }
 
+# Creation verbs: when these appear in input, they signal the user wants to CREATE something new
+# (not just read/analyze/edit existing code). Used to override analysis-only tool matches.
+CREATION_VERBS = [
+    "tambah", "tambahkan",   # Indonesian: add/create
+    "buat", "bikin", "buatin",  # Indonesian: make/create
+    "create",                   # English: create
+]
+
 
 # ============================================================
 # ENTITY EXTRACTION
@@ -224,6 +232,34 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
         confidence_level = "MEDIUM"
     else:
         confidence_level = "LOW"
+
+    # ---- Creation-verb override: defer when user wants to CREATE but only analysis tools matched ----
+    # Define analysis-only tools (tools that READ/ANALYZE code, not CREATE new code)
+    analysis_tools = {
+        "smart_search", "deep_analyzer", "project_guardian",
+        "scope_guardian", "impact_analyzer", "selective_reader",
+        "smart_tree", "crash_decoder", "clean_sweeper",
+        "smart_replace"
+    }
+
+    has_creation_verb = any(cv in text for cv in CREATION_VERBS)
+    matched_tool_names = {m["tool"] for m in tool_matches}
+    # Override: if creation verb present AND only analysis tools matched (not auto_scaffolder)
+    # Note: clean_sweeper is excluded from override because "tambah bersihkan" = "do more cleanup" (not create)
+    has_analysis_only = (
+        matched_tool_names.issubset(analysis_tools) and
+        "auto_scaffolder" not in matched_tool_names and
+        "clean_sweeper" not in matched_tool_names
+    )
+
+    if has_creation_verb and has_analysis_only and not needs_clarify:
+        needs_clarify = True
+        clarify_note = (
+            "Creation verb detected but only analysis tools matched. "
+            "User likely wants to BUILD something new. "
+            "Matched: " + ", ".join(sorted(matched_tool_names)) + ". "
+            "Confirm: add new feature/component, or different intent?"
+        )
 
     # Build single_tool
     single_tool = None
