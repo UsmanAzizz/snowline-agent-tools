@@ -3,7 +3,7 @@ core_intent.py - Intent analysis and entity extraction.
 """
 import re
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 
 @dataclass
@@ -26,6 +26,7 @@ class AnalyzeResult:
     sequential_steps: List = None
     needs_clarification: bool = False
     clarification_note: Optional[str] = None
+    clarification_context: Optional[Dict] = None  # Structured data for multi-tool-match ambiguity
 
 
 # ============================================================
@@ -286,6 +287,35 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
             safety=tool_info["safety"]
         )
 
+    # Build clarification_context for multi_tool_match ambiguity (enriched data for agents)
+    # Populate when clarification is needed AND at least one tool matched.
+    # This exposes ALL matched tools (not just single_tool.first) so agents have complete context.
+    clarification_context = None
+    if needs_clarify and len(tool_matches) >= 1:
+        # Intent signals from creation-verb check
+        creation_verbs_in_input = [cv for cv in CREATION_VERBS if cv in text]
+        clarification_context = {
+            "ambiguity_type": "multi_tool_match" if len(tool_matches) >= 2 else "single_tool_conflict",
+            "reason": clarify_note or "Ambiguous intent",
+            "matched_tools": [
+                {
+                    "name": m["tool"],
+                    "keyword_matched": m["keyword"],
+                    "confidence": m["confidence"]
+                }
+                for m in tool_matches
+            ],
+            "intent_signals": {
+                "has_creation_verb": bool(creation_verbs_in_input),
+                "creation_verbs_detected": creation_verbs_in_input,
+            },
+            "context": {
+                "entity_count": len(entities),
+                "keyword_count": len(keywords_found),
+                "input_word_count": len(user_input.split()),
+            }
+        }
+
     return AnalyzeResult(
         input=user_input,
         keywords=keywords_found,
@@ -295,5 +325,6 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
         single_tool=single_tool,
         sequential_steps=[],
         needs_clarification=needs_clarify,
-        clarification_note=clarify_note
+        clarification_note=clarify_note,
+        clarification_context=clarification_context
     )
