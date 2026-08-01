@@ -144,7 +144,14 @@ Setelah user setuju:
 - Bahasa Indonesia, lugas, tanpa hype
 - ⚠️ WAJIB laporkan error yang diatasi sendiri
 
+**6. Stop on CRITICAL Findings:**
+- Jika `project_guardian` melaporkan severity CRITICAL, AI WAJIB berhenti dan melapor ke user terlebih dahulu SEBELUM melanjutkan task atau instruksi lain apa pun
+- Tidak boleh dilanjutkan tanpa konfirmasi eksplisit dari user, meskipun instruksi asal tidak menyebutkan soal keamanan
+- Contoh: user minta "rapikan kode", hasilnya ada API key di commit history → AI berhenti dan tanya user sebelum lanjut
+
 ---
+
+## Communication
 
 ## 🔍 Bukti Live-Test WAJIB Mentah, Bukan Ringkasan
 
