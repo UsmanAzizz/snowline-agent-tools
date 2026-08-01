@@ -167,6 +167,33 @@ Agent yang MEMUTUSKAN tool apa dipakai.
 
 ---
 
+## Insiden: Template Kehilangan validate_syntax() (2026-08-01)
+
+**Masalah:**
+- Template `snowline_toolkit/templates/smart_replace/replace_text.py` kehilangan `validate_syntax()` sejak commit `e341218` (2026-07-26)
+- File di root `smart_replace/replace_text.py` (281 lines, LENGKAP) tidak pernah di-commit
+- Commit `2927ef9` malah MENAMBAH duplikasi definitions tanpa fitur validasi
+- Project produksi (cbt_master, persuratan_desa) sempat berjalan TANPA syntax validation
+
+**Dampak:**
+- `--apply-validated` bypass risk block TANPA validasi syntax apa pun
+- Tool paling sering dipakai (smart_replace) berjalan tanpa pengaman
+
+**Ditemukan:** 2026-08-01 — saat review Task 7.1 (diff visibility)
+
+**Diperbaiki:** commit `3d505ad` — restorasi validate_syntax + hapus duplikasi
+
+**Verifikasi:**
+- cbt_master: syntax error DITOLAK ✅
+- persuratan_desa: syntax error DITOLAK ✅
+
+**Pelajaran:**
+1. File lokal yang tidak pernah di-commit memberi ilusi keamanan yang tidak genuinely ter-deploy
+2. Template installer satu-satunya source of truth untuk deployment — apapun di luar template tidak ter-deploy
+3. tools/smart_replace/replace_text.py (root, 281 lines) adalah VERSI LOKAL, BUKAN production version
+
+---
+
 ## Dokumentasi Terkait
 
 | File | Fungsi |
@@ -174,4 +201,4 @@ Agent yang MEMUTUSKAN tool apa dipakai.
 | AGENTS.md | Aturan utama (WAJIB dibaca AI) |
 | CLAUDE.md | Pointer ke AGENTS.md |
 | GEMINI_PROMPT.md | Pointer ke AGENTS.md |
-| companion.py | Single-file companion v5.0 |
+| companion/ | Modular companion core (companion_cli.py, core_*.py) |

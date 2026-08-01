@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import ast
+import difflib
 import json
 from datetime import datetime
 
@@ -35,11 +36,15 @@ def check_task_state():
 
 def find_project_root(start_path):
     current = os.path.abspath(start_path)
+    start_drive = os.path.splitdrive(current)[0]
     while True:
         if os.path.exists(os.path.join(current, 'package.json')) or os.path.exists(os.path.join(current, '.git')):
             return current
         parent = os.path.dirname(current)
         if parent == current:
+            return os.path.abspath(start_path)
+        current_drive = os.path.splitdrive(parent)[0]
+        if current_drive != start_drive:
             return os.path.abspath(start_path)
         current = parent
 
@@ -126,11 +131,34 @@ def get_args():
     return parser.parse_args()
 
 def backup_file(filepath, backup_dir):
-    rel_path = os.path.relpath(filepath, os.getcwd())
+    try:
+        rel_path = os.path.relpath(filepath, os.getcwd())
+    except ValueError:
+        rel_path = filepath  # cross-drive path, use absolute
     backup_path = os.path.join(backup_dir, rel_path)
     os.makedirs(os.path.dirname(backup_path), exist_ok=True)
     shutil.copy2(filepath, backup_path)
     return backup_path
+
+
+def print_diff(filepath, old_content, new_content):
+    """Print unified diff for a file change."""
+    try:
+        rel_path = os.path.relpath(filepath, os.getcwd())
+    except ValueError:
+        rel_path = filepath  # cross-drive path
+    diff_lines = list(difflib.unified_diff(
+        old_content.splitlines(keepends=True),
+        new_content.splitlines(keepends=True),
+        fromfile=f'a/{rel_path}',
+        tofile=f'b/{rel_path}',
+        lineterm=''
+    ))
+    if diff_lines:
+        # unified_diff includes --- a/... and +++ b/... headers
+        print(''.join(diff_lines))
+    else:
+        print(f"--- {rel_path} (content changed - diff unavailable)")
 
 def main():
     args = get_args()
@@ -185,7 +213,7 @@ def main():
     match_count = 0
     file_count = 0
     scanned_files = 0
-    pending_writes = []
+    pending_writes = []  # (filepath, old_content, new_content)
     
     # Check if target is a file or directory
     if os.path.isfile(args.target_dir):
@@ -217,10 +245,10 @@ def main():
                 file_count += 1
                 new_content, count = regex.subn(args.replace_string, content)
                 match_count += count
-                
+
                 rel_path = os.path.relpath(filepath, args.target_dir if os.path.isdir(args.target_dir) else os.path.dirname(args.target_dir))
                 print(f"[WARN] Found {count} matches in {rel_path}")
-                pending_writes.append((filepath, new_content))
+                pending_writes.append((filepath, content, new_content))
 
     print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
     
@@ -259,7 +287,7 @@ def main():
     else:
         # Validasi sintaks sebelum menulis ke disk jika menggunakan apply-validated
         print("\n[INFO] Melakukan validasi syntax pada file yang akan diubah...")
-        for fp, new_content in pending_writes:
+        for fp, old_content, new_content in pending_writes:
             is_valid, msg = validate_syntax(fp, new_content)
             if not is_valid:
                 print(f"\n[BLOCKED] Syntax validation failed in {os.path.relpath(fp, args.target_dir)}")
@@ -269,8 +297,13 @@ def main():
             elif msg:
                 print(f"  - {os.path.relpath(fp, args.target_dir)}: {msg}")
         print("[OK] Validasi syntax lolos.")
-        
-    for filepath, new_content in pending_writes:
+
+        # Tampilkan diff untuk setiap file
+        print("\n[DIFF] Perubahan yang akan diterapkan:")
+        for fp, old_content, new_content in pending_writes:
+            print_diff(fp, old_content, new_content)
+
+    for filepath, old_content, new_content in pending_writes:
         backup_path = backup_file(filepath, backup_dir)
         with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
             f.write(new_content)
