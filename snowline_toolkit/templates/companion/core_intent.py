@@ -117,6 +117,7 @@ CREATION_VERBS = [
     "tambah", "tambahkan",   # Indonesian: add/create
     "buat", "bikin", "buatin",  # Indonesian: make/create
     "create",                   # English: create
+    "baru",                     # Indonesian: new (as in "something NEW" / "create new")
 ]
 
 
@@ -251,6 +252,17 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
         "auto_scaffolder" not in matched_tool_names and
         "clean_sweeper" not in matched_tool_names
     )
+
+    # ---- False-positive guard for "baru" (new) ----
+    # "baru" in Indonesian means both "new" (creation) AND "recently" (past tense)
+    # "cari file yang baru diubah" = "find recently modified files" — NOT creation intent
+    # Only suppress "baru" trigger when adjacent to action verbs indicating past/recent actions
+    if " baru" in text:
+        action_adjacent = any(avi in text for avi in [" cari ", " ubah", " ganti", " edit", " modif", " rubah", " di", " yang ", " udah "])
+        if action_adjacent:
+            # "baru" likely means "recently", not "new/create" — remove from check
+            creation_verbs_filtered = [cv for cv in CREATION_VERBS if cv != "baru"]
+            has_creation_verb = any(cv in text for cv in creation_verbs_filtered)
 
     if has_creation_verb and has_analysis_only and not needs_clarify:
         needs_clarify = True
