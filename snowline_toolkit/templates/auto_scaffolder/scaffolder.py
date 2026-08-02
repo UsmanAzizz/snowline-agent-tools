@@ -73,6 +73,18 @@ module.exports = router;
 """
 
 def generate_scaffold(file_type, name, target_dir, apply_mode):
+    # Path traversal check: ensure target_dir is inside project root
+    abs_target = os.path.abspath(target_dir)
+    project_root = os.getcwd()
+
+    if not (abs_target == project_root or abs_target.startswith(project_root + os.sep)):
+        print(f"[BLOCKED] Target directory '{abs_target}' is outside the project root.")
+        print(f"Project root: {project_root}")
+        print("File operations are only allowed within the current project directory.")
+        if apply_mode:
+            sys.exit(1)
+        return
+
     print("🏗️ AUTO-SCAFFOLDER 🏗️")
     print("=" * 60)
     
@@ -117,6 +129,8 @@ def generate_scaffold(file_type, name, target_dir, apply_mode):
             print(f"[FAIL] Error generating file: {e}")
 
 def main():
+    check_task_state()  # Block if pseudocode not approved
+
     if len(sys.argv) < 3:
         print("Usage: python scaffolder.py <react|api> <ComponentName> [target_dir] [--apply]")
         sys.exit(1)
