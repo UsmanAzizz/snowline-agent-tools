@@ -128,7 +128,8 @@ def get_dir_signature(directory, extensions):
             filepath = os.path.join(root, file)
             try:
                 if os.path.getsize(filepath) <= MAX_FILE_SIZE:
-                    mtimes.append(str(os.path.getmtime(filepath)))
+                    rel_path = os.path.relpath(filepath, directory).replace(os.sep, '/')
+                    mtimes.append(f"{rel_path}:{os.path.getmtime(filepath)}")
             except Exception:
                 pass
     return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()

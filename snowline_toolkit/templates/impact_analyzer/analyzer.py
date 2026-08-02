@@ -22,9 +22,9 @@ def find_usages(project_root, target_name):
         re.compile(rf"import\s+(?:\{{[^}}]*}}|[^{{}};\n]+)\s+from\s+{quoted_suffix}"),
         re.compile(rf"import\s+{{[^}}]*}}\s+from\s+{quoted_suffix}"),
         # CommonJS require (exact + suffix): require('./Foo') or require('Foo')
-        re.compile(rf"require\s*\(\s+{quoted_suffix}"),
+        re.compile(rf"require\s*\(\s*{quoted_suffix}"),
         # Dynamic import (exact + suffix): import('./Foo') or import('Foo')
-        re.compile(rf"import\s*\(\s+{quoted_suffix}"),
+        re.compile(rf"import\s*\(\s*{quoted_suffix}"),
         # Export from (exact + suffix)
         re.compile(rf"export\s+.*?\s+from\s+{quoted_suffix}"),
         # Direct bareword import (exact + suffix): import 'Foo' or import './Foo'
@@ -34,7 +34,7 @@ def find_usages(project_root, target_name):
     for root, dirs, files in os.walk(project_root):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
-            if not file.endswith(('.js', '.jsx', '.ts', '.tsx', '.py', '.php'):
+            if not file.endswith(('.js', '.jsx', '.ts', '.tsx', '.py', '.php')):
                 continue
 
             filepath = os.path.join(root, file)

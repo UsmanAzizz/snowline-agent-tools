@@ -12,6 +12,9 @@ if sys.stdout.encoding != 'utf-8':
 
 exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history'}
 js_py_exts = {'.js', '.jsx', '.ts', '.tsx', '.py'}
+test_extensions = ('.test.js', '.test.jsx', '.test.ts', '.test.tsx',
+                   '.spec.js', '.spec.jsx', '.spec.ts', '.spec.tsx', '.test.py')
+test_dir_names = {'__tests__', 'test', 'tests'}
 MAX_FILE_SIZE = 500 * 1024
 target_dir = os.getcwd()
 
@@ -51,9 +54,10 @@ def scan_secrets():
     compiled = [(re.compile(p), desc) for p, desc in secret_patterns]
 
     for root, dirs, files in os.walk(target_dir):
-        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        dirs[:] = [d for d in dirs if d not in exclude_dirs and d not in test_dir_names]
         for file in files:
             if file.startswith('.env'): continue
+            if file.endswith(test_extensions): continue
             filepath = os.path.join(root, file)
             if os.path.getsize(filepath) > MAX_FILE_SIZE: continue
             try:
