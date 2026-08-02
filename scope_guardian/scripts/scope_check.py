@@ -42,13 +42,12 @@ def check_scope(target_file):
     # 1. Check exact matches (SECURITY-FIXED: use basename for filename-only, normalized path for path-relative)
     for allowed in allowed_files:
         if '/' in allowed or '\\' in allowed:
-            # Path-relative entry: normalize and compare full paths
-            # Note: both target_file and allowed already normalized to '/' via .replace('\\', '/') above.
-            # Use normcase ONLY for case-insensitivity (e.g. App.jsx vs app.jsx on Windows).
-            # Do NOT call normpath() here — it re-introduces backslashes on Windows, breaking
-            # the endswith('/' + allowed_norm) check on line 48.
-            allowed_norm = os.path.normcase(allowed)
-            target_norm = os.path.normcase(target_file)
+            # Path-relative entry: compare normalized paths (already forward-slash from .replace() above).
+            # Use .lower() for case-folding ONLY — do NOT use normcase() or normpath() here.
+            # normcase() on Windows also converts '/' to '\\', breaking endswith('/'+allowed_norm).
+            # .lower() only lowercases, preserving forward-slash separators intact.
+            allowed_norm = allowed.lower()
+            target_norm = target_file.lower()
             if target_norm == allowed_norm or target_norm.endswith('/' + allowed_norm):
                 print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
                 print(f"[RISK] {risk_label}")
