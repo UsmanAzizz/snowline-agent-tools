@@ -12,20 +12,29 @@ def find_usages(project_root, target_name):
     usages = set()
     exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine'}
 
-    # Match ONLY import/require/export statements, not incidental word mentions
+    escaped = re.escape(target_name)
+    # Suffix pattern: target name can appear after ./ ../ or folder/ prefixes in quoted paths.
+    # e.g. './Button', '../components/Button', 'utils/Button'
+    quoted_suffix = rf"['\"](?:\.\/|\.\.\/|[^'\"]*/)?{escaped}['\"]"
+
     patterns = [
-        re.compile(rf"import\s+(?:{{[^}}]*}}|[^{{}};\n]+)\s+from\s+['\"]({re.escape(target_name)})['\"]"),
-        re.compile(rf"import\s+{{[^}}]*}}\s+from\s+['\"]({re.escape(target_name)})['\"]"),
-        re.compile(rf"require\s*\(\s*['\"]({re.escape(target_name)})['\"]"),
-        re.compile(rf"import\s*\(\s*['\"]({re.escape(target_name)})['\"]"),
-        re.compile(rf"export\s+.*?\s+from\s+['\"]({re.escape(target_name)})['\"]"),
-        re.compile(rf"import\s+['\"]({re.escape(target_name)})['\"]"),
+        # ES module named import (exact + suffix): import { Foo } from 'Foo' or import Foo from './Foo'
+        re.compile(rf"import\s+(?:\{{[^}}]*}}|[^{{}};\n]+)\s+from\s+{quoted_suffix}"),
+        re.compile(rf"import\s+{{[^}}]*}}\s+from\s+{quoted_suffix}"),
+        # CommonJS require (exact + suffix): require('./Foo') or require('Foo')
+        re.compile(rf"require\s*\(\s+{quoted_suffix}"),
+        # Dynamic import (exact + suffix): import('./Foo') or import('Foo')
+        re.compile(rf"import\s*\(\s+{quoted_suffix}"),
+        # Export from (exact + suffix)
+        re.compile(rf"export\s+.*?\s+from\s+{quoted_suffix}"),
+        # Direct bareword import (exact + suffix): import 'Foo' or import './Foo'
+        re.compile(rf"import\s+{quoted_suffix}"),
     ]
 
     for root, dirs, files in os.walk(project_root):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
         for file in files:
-            if not file.endswith(('.js', '.jsx', '.ts', '.tsx', '.py', '.php')):
+            if not file.endswith(('.js', '.jsx', '.ts', '.tsx', '.py', '.php'):
                 continue
 
             filepath = os.path.join(root, file)
