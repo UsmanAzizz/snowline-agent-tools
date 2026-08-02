@@ -8,6 +8,7 @@ import tempfile
 import ast
 import difflib
 import json
+import fnmatch
 from datetime import datetime
 
 # Force UTF-8 encoding for Windows terminal
@@ -33,6 +34,59 @@ def check_task_state():
         print(f"Task: {state.get('task', 'Unknown')}")
         print("Minta user approve pseudocode dulu sebelum --apply bisa dijalankan.")
         sys.exit(1)
+
+def check_scope(pending_writes):
+    """Block if any file to be modified is outside allowed scope (security gate, fail-closed)."""
+    lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
+
+    # Fail-closed: no lock = BLOCK (security boundary, not workflow gate)
+    if not os.path.exists(lock_file):
+        print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
+        sys.exit(1)
+
+    try:
+        with open(lock_file, 'r', encoding='utf-8') as f:
+            scope_data = json.load(f)
+    except Exception:
+        print("[BLOCKED] Failed to parse scope_lock.json.")
+        sys.exit(1)
+
+    allowed_files = [f.replace('\\', '/') for f in scope_data.get('allowed_files', [])]
+    allowed_patterns = scope_data.get('allowed_patterns', [])
+    task = scope_data.get('task', 'Unknown task')
+
+    for filepath, _, _ in pending_writes:
+        target = filepath.replace('\\', '/')
+        in_scope = False
+
+        # Apply same matching logic as scope_check.py (Task 7 fix):
+        # filename-only entries (no /): basename comparison, case-insensitive
+        # path-relative entries (contain /): exact normalized path comparison
+        for allowed in allowed_files:
+            if '/' not in allowed:
+                # Both filename-only: compare basenames with case normalization
+                if os.path.normcase(os.path.basename(target)) == os.path.normcase(allowed):
+                    in_scope = True
+                    break
+            else:
+                # Path-relative: exact match
+                if target == allowed:
+                    in_scope = True
+                    break
+
+        if not in_scope:
+            for pattern in allowed_patterns:
+                if fnmatch.fnmatch(target, pattern):
+                    in_scope = True
+                    break
+
+        if not in_scope:
+            print(f"[BLOCKED] File is OUT OF SCOPE for the current task.")
+            print(f"Task: {task}")
+            print(f"Target: {filepath}")
+            print(f"Allowed files: {allowed_files}")
+            print(f"Allowed patterns: {allowed_patterns}")
+            sys.exit(1)
 
 def find_project_root(start_path):
     current = os.path.abspath(start_path)
@@ -371,7 +425,10 @@ def main():
     
     if not pending_writes:
         return
-        
+
+    # Fail-closed scope enforcement (security gate, mirrors scope_check.py behavior)
+    check_scope(pending_writes)
+
     if not (args.apply or args.apply_validated):
         print("\n[DRY RUN] Ini hanya simulasi. Gunakan --apply untuk mengeksekusi.")
         if risk_level in ["Medium", "High"]:
