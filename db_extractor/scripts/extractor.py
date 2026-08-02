@@ -10,7 +10,16 @@ def parse_env(env_path):
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, val = line.split('=', 1)
-                    val = val.strip().strip("'\"").split('#')[0].strip()
+                    val = val.strip()
+                    # Quote-aware parsing: preserve # literally inside double/single quotes
+                    if val.startswith('"') and val.endswith('"') and len(val) >= 2:
+                        val = val[1:-1]
+                    elif val.startswith("'") and val.endswith("'") and len(val) >= 2:
+                        val = val[1:-1]
+                    else:
+                        # Unquoted: treat first # as comment delimiter
+                        if '#' in val:
+                            val = val.split('#', 1)[0].strip()
                     config[key.strip()] = val
     return config
 
