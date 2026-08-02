@@ -8,11 +8,19 @@ if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
 def find_usages(project_root, target_name):
-    """Scan all files to find which ones mention target_name"""
+    """Scan all files to find import/require usages of target_name (no false positives from comments/strings)."""
     usages = set()
     exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine'}
 
-    pattern = re.compile(r'\b' + re.escape(target_name) + r'\b')
+    # Match ONLY import/require/export statements, not incidental word mentions
+    patterns = [
+        re.compile(rf"import\s+(?:{{[^}}]*}}|[^{{}};\n]+)\s+from\s+['\"]({re.escape(target_name)})['\"]"),
+        re.compile(rf"import\s+{{[^}}]*}}\s+from\s+['\"]({re.escape(target_name)})['\"]"),
+        re.compile(rf"require\s*\(\s*['\"]({re.escape(target_name)})['\"]"),
+        re.compile(rf"import\s*\(\s*['\"]({re.escape(target_name)})['\"]"),
+        re.compile(rf"export\s+.*?\s+from\s+['\"]({re.escape(target_name)})['\"]"),
+        re.compile(rf"import\s+['\"]({re.escape(target_name)})['\"]"),
+    ]
 
     for root, dirs, files in os.walk(project_root):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
@@ -24,7 +32,7 @@ def find_usages(project_root, target_name):
             try:
                 with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
-                    if pattern.search(content):
+                    if any(p.search(content) for p in patterns):
                         usages.add(filepath)
             except Exception:
                 pass
