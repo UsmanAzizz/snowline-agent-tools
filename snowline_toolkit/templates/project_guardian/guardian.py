@@ -84,15 +84,75 @@ def check_env_gitignore():
         with open(gitignore_path, 'r', encoding='utf-8') as f:
             ignored = set(line.strip() for line in f if line.strip() and not line.startswith('#'))
 
+    # Root-level .env check: use git check-ignore for consistency with nested check
     for f in os.listdir(target_dir):
         if f.startswith('.env') and os.path.isfile(os.path.join(target_dir, f)) and f != '.env.example':
-            if f not in ignored and f"/{f}" not in ignored and "*.env" not in ignored and ".env*" not in ignored:
-                fails.append({
-                    'severity': 'HIGH',
-                    'module': 'ENV_GITIGNORE',
-                    'file': f,
-                    'issue': f'File {f} is missing from .gitignore'
-                })
+            full_path = os.path.join(target_dir, f)
+            try:
+                result = subprocess.run(
+                    ['git', 'check-ignore', '-q', full_path],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 1:
+                    fails.append({
+                        'severity': 'HIGH',
+                        'module': 'ENV_GITIGNORE',
+                        'file': f,
+                        'issue': f'File {f} is missing from .gitignore'
+                    })
+                elif result.returncode == 128:
+                    fails.append({
+                        'severity': 'HIGH',
+                        'module': 'ENV_GITIGNORE',
+                        'file': f,
+                        'issue': f'File {f} is missing from .gitignore (git unavailable)'
+                    })
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                # git not available — fall back to string-based check
+                if f not in ignored and f"/{f}" not in ignored and "*.env" not in ignored and ".env*" not in ignored:
+                    fails.append({
+                        'severity': 'HIGH',
+                        'module': 'ENV_GITIGNORE',
+                        'file': f,
+                        'issue': f'File {f} is missing from .gitignore'
+                    })
+
+    # Also check nested .env files (e.g. backend/.env) using git check-ignore
+    # Skip root dir files — already checked by the root-level loop above
+    for root, dirs, files in os.walk(target_dir):
+        dirs[:] = [d for d in dirs if d not in exclude_dirs]
+        if root == target_dir:
+            continue
+        for f in files:
+            if f.startswith('.env') and f != '.env.example':
+                full_path = os.path.join(root, f)
+                rel_path = os.path.relpath(full_path, target_dir)
+                try:
+                    result = subprocess.run(
+                        ['git', 'check-ignore', '-q', full_path],
+                        capture_output=True, text=True, timeout=5
+                    )
+                    if result.returncode == 1:
+                        fails.append({
+                            'severity': 'HIGH',
+                            'module': 'ENV_GITIGNORE',
+                            'file': rel_path,
+                            'issue': f'File {rel_path} is not in .gitignore'
+                        })
+                    elif result.returncode == 128:
+                        fails.append({
+                            'severity': 'HIGH',
+                            'module': 'ENV_GITIGNORE',
+                            'file': rel_path,
+                            'issue': f'File {rel_path} is not in .gitignore (git unavailable)'
+                        })
+                except (subprocess.TimeoutExpired, FileNotFoundError):
+                    fails.append({
+                        'severity': 'HIGH',
+                        'module': 'ENV_GITIGNORE',
+                        'file': rel_path,
+                        'issue': f'File {rel_path} is not in .gitignore (git unavailable)'
+                    })
 
     env_ex = os.path.join(target_dir, '.env.example')
     ex_keys = set()
@@ -129,7 +189,8 @@ def check_env_gitignore():
 def check_physical_imports():
     """Check for broken relative imports."""
     findings = []
-    import_pattern = re.compile(r'(?:import\s+.*?from\s+|require\()[\'"]([^\'"]+)[\'"]')
+    # Match both single-line and multi-line imports (DOTALL allows . to match newlines)
+    import_pattern = re.compile(r'(?:import\s+.*?\s+from\s+|require\()[\'"]([^\'"]+)[\'"]', re.DOTALL)
 
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
@@ -139,26 +200,33 @@ def check_physical_imports():
             if os.path.getsize(filepath) > MAX_FILE_SIZE: continue
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
-                    for line_num, line in enumerate(f, 1):
-                        for match in import_pattern.findall(line):
-                            if match.startswith('.'):
-                                dir_path = os.path.dirname(filepath)
-                                target_p = os.path.normpath(os.path.join(dir_path, match))
-                                found = False
-                                for suffix in ['', '.js', '.jsx', '.ts', '.tsx', '/index.js', '/index.jsx']:
-                                    if os.path.exists(target_p + suffix):
-                                        found = True
-                                        break
-                                if not found:
-                                    rel = os.path.relpath(filepath, target_dir)
-                                    findings.append({
-                                        'severity': 'HIGH',
-                                        'module': 'PHYSICAL_IMPORT',
-                                        'file': rel,
-                                        'line': line_num,
-                                        'issue': f"Import '{match}' does not exist",
-                                        'snippet': line.strip()[:100]
-                                    })
+                    content = f.read()
+                # Find all imports (single or multi-line) with line number
+                for match in import_pattern.finditer(content):
+                    import_str = match.group(1)
+                    if import_str.startswith('.'):
+                        dir_path = os.path.dirname(filepath)
+                        target_p = os.path.normpath(os.path.join(dir_path, import_str))
+                        found = False
+                        for suffix in ['', '.js', '.jsx', '.ts', '.tsx', '/index.js', '/index.jsx']:
+                            if os.path.exists(target_p + suffix):
+                                found = True
+                                break
+                        if not found:
+                            line_num = content[:match.start()].count('\n') + 1
+                            line_start = content.rfind('\n', 0, match.start()) + 1
+                            line_end = content.find('\n', match.end())
+                            if line_end == -1: line_end = len(content)
+                            snippet = content[line_start:line_end].strip()
+                            rel = os.path.relpath(filepath, target_dir)
+                            findings.append({
+                                'severity': 'HIGH',
+                                'module': 'PHYSICAL_IMPORT',
+                                'file': rel,
+                                'line': line_num,
+                                'issue': f"Import '{import_str}' does not exist",
+                                'snippet': snippet[:100]
+                            })
             except: pass
     return findings
 
@@ -177,7 +245,8 @@ def check_dependencies():
 
     deps = list(pkg.get('dependencies', {}).keys())
     used = set()
-    import_pattern = re.compile(r'(?:import\s+.*?from\s+|require\()[\'"]([^\'"]+)[\'"]')
+    # DOTALL allows . to match newlines, handling multi-line imports
+    import_pattern = re.compile(r'(?:import\s+.*?\s+from\s+|require\()[\'"]([^\'"]+)[\'"]', re.DOTALL)
 
     for root, dirs, files in os.walk(target_dir):
         dirs[:] = [d for d in dirs if d not in exclude_dirs]
@@ -187,13 +256,13 @@ def check_dependencies():
             if os.path.getsize(filepath) > MAX_FILE_SIZE: continue
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        for match in import_pattern.findall(line):
-                            pkg_name = match.split('/')[0]
-                            if pkg_name.startswith('@'):
-                                parts = match.split('/')
-                                if len(parts) > 1: pkg_name = f"{parts[0]}/{parts[1]}"
-                            used.add(pkg_name)
+                    content = f.read()
+                for match in import_pattern.findall(content):
+                    pkg_name = match.split('/')[0]
+                    if pkg_name.startswith('@'):
+                        parts = match.split('/')
+                        if len(parts) > 1: pkg_name = f"{parts[0]}/{parts[1]}"
+                    used.add(pkg_name)
             except: pass
 
     for dep in deps:
