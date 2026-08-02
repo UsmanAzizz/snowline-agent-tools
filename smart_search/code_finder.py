@@ -3,11 +3,13 @@ import sys
 import argparse
 import json
 import hashlib
+import time
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
+MAX_AGE_DAYS = 7  # Expire cache entries older than 7 days
 DEFAULT_EXCLUDES = {'node_modules', '.git', 'vendor', 'build', 'dist', '.idea', '.vscode', '.history', '.backup_replace', '.agents'}
 
 def search_files(directory, keyword, extensions):
@@ -83,12 +85,30 @@ def load_cache(cache_file):
     return {}
 
 def clean_cache(cache_data, project_root):
-    """Remove entries where source file no exists or cache schema mismatched."""
+    """Remove entries where source file no longer exists, or cache is older than MAX_AGE_DAYS."""
     before = len(cache_data)
     cleaned = []
+    now = time.time()
     for key, entry in list(cache_data.items()):
         if 'results' not in entry:
-            continue        results = entry.get('results', [])        if not results:            cleaned.append(key)            continue        first_file = results[0].get('file', '')        if first_file and not os.path.exists(first_file):            cleaned.append(key)    for k in cleaned:        del cache_data[k]    return len(cleaned), before - len(cache_data)
+            continue
+        results = entry.get('results', [])
+        if not results:
+            cleaned.append(key)
+            continue
+        first_file = results[0].get('file', '')
+        if first_file and not os.path.exists(first_file):
+            cleaned.append(key)
+            continue
+        # TTL check: expire entries older than MAX_AGE_DAYS (backward-compat: missing mtime = not expired)
+        mtime = entry.get('mtime', 0)
+        if mtime and float(mtime) > 0:
+            age_days = (now - float(mtime)) / 86400
+            if age_days > MAX_AGE_DAYS:
+                cleaned.append(key)
+    for k in cleaned:
+        del cache_data[k]
+    return len(cleaned), len(cache_data)
 
 def save_cache(cache_file, data):
     try:
@@ -203,6 +223,7 @@ def main():
             results, scanned, skipped = search_files(args.target_dir, args.keyword, extensions)
             cache_data[cache_key] = {
                 'signature': dir_signature,
+                'mtime': str(time.time()),
                 'results': results,
                 'scanned': scanned,
                 'skipped': skipped
@@ -212,6 +233,7 @@ def main():
         results, scanned, skipped = search_files(args.target_dir, args.keyword, extensions)
         cache_data[cache_key] = {
             'signature': dir_signature,
+            'mtime': str(time.time()),
             'results': results,
             'scanned': scanned,
             'skipped': skipped
