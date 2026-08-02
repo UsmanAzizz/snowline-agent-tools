@@ -4,6 +4,7 @@ import re
 import json
 import hashlib
 import argparse
+import ast
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -14,7 +15,10 @@ def parse_js(content):
     toc = []
     class_pattern = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?class\s+([A-Za-z0-9_]+)', re.MULTILINE)
     func_pattern = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z0-9_]+)', re.MULTILINE)
-    arrow_pattern = re.compile(r'^\s*(?:export\s+)?const\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[A-Za-z0-9_]+)\s*=>', re.MULTILINE)
+    arrow_pattern = re.compile(r'^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[A-Za-z0-9_]+)\s*=>', re.MULTILINE)
+    interface_pattern = re.compile(r'^\s*(?:export\s+)?interface\s+([A-Za-z0-9_]+)', re.MULTILINE)
+    type_pattern = re.compile(r'^\s*(?:export\s+)?type\s+([A-Za-z0-9_]+)\s*[=({]', re.MULTILINE)
+    enum_pattern = re.compile(r'^\s*(?:export\s+)?enum\s+([A-Za-z0-9_]+)', re.MULTILINE)
 
     for match in class_pattern.finditer(content):
         line = content.count('\n', 0, match.start()) + 1
@@ -28,6 +32,33 @@ def parse_js(content):
         line = content.count('\n', 0, match.start()) + 1
         toc.append({'line': line, 'type': 'Arrow Function', 'name': match.group(1)})
 
+    for match in interface_pattern.finditer(content):
+        line = content.count('\n', 0, match.start()) + 1
+        toc.append({'line': line, 'type': 'Interface', 'name': match.group(1)})
+
+    for match in type_pattern.finditer(content):
+        line = content.count('\n', 0, match.start()) + 1
+        toc.append({'line': line, 'type': 'Type', 'name': match.group(1)})
+
+    for match in enum_pattern.finditer(content):
+        line = content.count('\n', 0, match.start()) + 1
+        toc.append({'line': line, 'type': 'Enum', 'name': match.group(1)})
+
+    toc.sort(key=lambda x: x['line'])
+    return toc
+
+def parse_py(content):
+    """Extract classes and functions from Python source using AST."""
+    toc = []
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return []
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            toc.append({'line': node.lineno, 'type': 'Class', 'name': node.name})
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            toc.append({'line': node.lineno, 'type': 'Function', 'name': node.name})
     toc.sort(key=lambda x: x['line'])
     return toc
 
@@ -135,7 +166,10 @@ def main():
             print(f"[FAIL] Failed to read file: {e}")
         sys.exit(1)
 
-    toc = parse_js(content)
+    if filepath.endswith('.py'):
+        toc = parse_py(content)
+    else:
+        toc = parse_js(content)
 
     cache_data[cache_key] = {
         'file': filepath,
