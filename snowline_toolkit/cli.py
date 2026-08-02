@@ -158,7 +158,12 @@ def init(dry=True):
         return
 
     # Count files
-    skill_files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
+    skill_files = [
+        f for f in templates.rglob("*")
+        if f.is_file()
+        and not f.name.endswith(".pyc")
+        and f.name != "AGENTS_TEMPLATE.md"  # Handled separately via agents_template variable
+    ]
 
     # Root files (PROJECT_CONTEXT.md is NOT created - it's the historical one from git)
     agents_template = templates / "AGENTS_TEMPLATE.md"
@@ -324,7 +329,12 @@ def update(apply=False):
         # NOTE: agents.md NOT protected - follows timestamp logic like other files
     }
 
-    skill_files = [f for f in templates.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
+    skill_files = [
+        f for f in templates.rglob("*")
+        if f.is_file()
+        and not f.name.endswith(".pyc")
+        and f.name != "AGENTS_TEMPLATE.md"  # Handled separately via agents_template variable
+    ]
 
     new_files = []
     modified_files = []
@@ -386,13 +396,6 @@ def update(apply=False):
         created += 1
 
     for src, rel in modified_files:
-        # Special warning for agents.md - user may have custom edits
-        if rel == "agents.md":
-            print()
-            print_warninging("[WARN] agents.md akan diperbarui!")
-            print_warninging("Jika Anda sudah edit manual, backup dulu sebelum lanjut.")
-            print_warninging("Contoh: copy .agents/agents.md ke .agents/agents.md.bak")
-            print()
         dest = target / rel
         shutil.copy2(src, dest)
         safe_print(f"  {Colors.YELLOW}~{Colors.RESET} {rel}")
@@ -426,6 +429,7 @@ def uninstall(apply=False):
     _clear_pip_cache()
     root = Path.cwd() / ".agents"
     skills_dir = root / "skills"
+    templates = Path(__file__).parent / "templates"
 
     print_header("Snowline Uninstall")
 
@@ -433,18 +437,40 @@ def uninstall(apply=False):
         print_info("No skills found to remove")
         return
 
+    # Build set of known template file relative paths
+    known_paths = set()
+    for f in templates.rglob("*"):
+        if f.is_file() and f.name != "AGENTS_TEMPLATE.md":
+            known_paths.add(str(f.relative_to(templates)))
+
     skill_files = [f for f in skills_dir.rglob("*") if f.is_file() and not f.name.endswith(".pyc")]
-    skill_count = len(skill_files)
+
+    # Separate into template-owned vs user-created
+    to_remove = []
+    to_preserve = []
+    for f in skill_files:
+        rel = str(f.relative_to(skills_dir))
+        if rel in known_paths:
+            to_remove.append(f)
+        else:
+            to_preserve.append(f)
+
+    skill_count = len(to_remove)
+    preserve_count = len(to_preserve)
 
     if not apply:
-        print_warninging(f"Will remove {skill_count} skill files from {skills_dir}")
+        print_warninging(f"Will remove {skill_count} installed skill files from {skills_dir}")
+        if to_preserve:
+            print_info(f"Will preserve {preserve_count} user-created files:")
+            for f in to_preserve:
+                print_list_item(str(f.relative_to(skills_dir)))
         print_info("Configuration files will be kept")
         print()
         safe_print(f"Run {Colors.BOLD}snowline uninstall --apply{Colors.RESET} to confirm")
         return
 
     removed = 0
-    for f in skill_files:
+    for f in to_remove:
         try:
             f.unlink()
             removed += 1
@@ -453,10 +479,15 @@ def uninstall(apply=False):
 
     for d in sorted(skills_dir.rglob("*"), reverse=True):
         if d.is_dir() and not list(d.iterdir()):
-            d.rmdir()
+            try:
+                d.rmdir()
+            except Exception:
+                pass
 
     print()
-    print_success(f"Removed {removed} skill files")
+    print_success(f"Removed {removed} installed skill files")
+    if to_preserve:
+        print_info(f"Preserved {preserve_count} user-created files")
 
 
 def status():
