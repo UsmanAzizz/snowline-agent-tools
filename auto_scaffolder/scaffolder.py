@@ -143,8 +143,10 @@ def generate_scaffold(file_type, name, target_dir, apply_mode):
     # Path traversal check: ensure target_dir is inside project root
     abs_target = os.path.abspath(target_dir)
     project_root = os.getcwd()
+    project_root_lower = project_root.lower()
 
-    if not (abs_target == project_root or abs_target.startswith(project_root + os.sep)):
+    if not (abs_target.lower() == project_root_lower or
+            abs_target.lower().startswith(project_root_lower + os.sep)):
         print(f"[BLOCKED] Target directory '{abs_target}' is outside the project root.")
         print(f"Project root: {project_root}")
         print("File operations are only allowed within the current project directory.")

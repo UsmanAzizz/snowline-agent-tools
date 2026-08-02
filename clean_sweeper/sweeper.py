@@ -19,7 +19,8 @@ def get_dir_signature(target):
             filepath = os.path.join(root, f)
             try:
                 if os.path.getsize(filepath) <= MAX_FILE_SIZE:
-                    mtimes.append(str(os.path.getmtime(filepath)))
+                    rel_path = os.path.relpath(filepath, target).replace(os.sep, '/')
+                    mtimes.append(f"{rel_path}:{os.path.getmtime(filepath)}")
             except Exception:
                 pass
     return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()
@@ -73,8 +74,99 @@ def sweep(target):
 
                         lines = content.split('\n')
                         consecutive_comments = 0
+                        in_block_comment = False
+                        block_start_line = None
+                        block_type = None
+
                         for i, line in enumerate(lines):
-                            if line.strip().startswith(('//', '#')):
+                            stripped = line.strip()
+
+                            # Handle block comment start/end (/* */, <!-- -->, """ """, ''' ''')
+                            if not in_block_comment:
+                                opener = None
+                                if stripped.startswith('/*'):
+                                    opener = '/*'
+                                elif stripped.startswith('<!--'):
+                                    opener = '<!--'
+                                elif stripped.startswith('"""'):
+                                    opener = '"""'
+                                elif stripped.startswith("'''"):
+                                    opener = "'''"
+
+                                if opener:
+                                    in_block_comment = True
+                                    block_start_line = i + 1
+                                    block_type = opener
+                                    # Check if block closes on same line (match opener to closer)
+                                    if opener == '/*':
+                                        closer = '*/'
+                                    elif opener == '<!--':
+                                        closer = '-->'
+                                    else:  # """ or '''
+                                        closer = opener  # same as opener
+
+                                    if closer in stripped[len(opener):]:
+                                        in_block_comment = False
+                                        consecutive_comments += 1
+                                        if consecutive_comments >= 7:
+                                            comment_blocks.append({
+                                                'path': filepath,
+                                                'start_line': block_start_line,
+                                                'end_line': i + 1,
+                                                'count': consecutive_comments,
+                                                'description': 'Large commented block'
+                                            })
+                                        consecutive_comments = 0
+                                        block_type = None
+                                    continue
+
+                            # Inside block comment - check for specific closer
+                            if in_block_comment:
+                                if block_type == '/*' and '*/' in line:
+                                    in_block_comment = False
+                                    consecutive_comments += 1
+                                    if consecutive_comments >= 7:
+                                        comment_blocks.append({
+                                            'path': filepath,
+                                            'start_line': block_start_line,
+                                            'end_line': i + 1,
+                                            'count': consecutive_comments,
+                                            'description': 'Large commented block'
+                                        })
+                                    consecutive_comments = 0
+                                    block_type = None
+                                elif block_type == '<!--' and '-->' in line:
+                                    in_block_comment = False
+                                    consecutive_comments += 1
+                                    if consecutive_comments >= 7:
+                                        comment_blocks.append({
+                                            'path': filepath,
+                                            'start_line': block_start_line,
+                                            'end_line': i + 1,
+                                            'count': consecutive_comments,
+                                            'description': 'Large commented block'
+                                        })
+                                    consecutive_comments = 0
+                                    block_type = None
+                                elif (block_type == '"""' or block_type == "'''") and block_type in line:
+                                    in_block_comment = False
+                                    consecutive_comments += 1
+                                    if consecutive_comments >= 7:
+                                        comment_blocks.append({
+                                            'path': filepath,
+                                            'start_line': block_start_line,
+                                            'end_line': i + 1,
+                                            'count': consecutive_comments,
+                                            'description': 'Large commented block'
+                                        })
+                                    consecutive_comments = 0
+                                    block_type = None
+                                else:
+                                    consecutive_comments += 1
+                                continue
+
+                            # Single-line comment detection
+                            if stripped.startswith(('//', '#')):
                                 consecutive_comments += 1
                             else:
                                 if consecutive_comments >= 7:
