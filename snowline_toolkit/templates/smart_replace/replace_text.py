@@ -10,6 +10,7 @@ import difflib
 import json
 import fnmatch
 from datetime import datetime
+from pathlib import Path
 
 # Force UTF-8 encoding for Windows terminal
 if sys.stdout.encoding.lower() != 'utf-8':
@@ -37,6 +38,28 @@ def check_task_state():
 
 def check_scope(pending_writes):
     """Block if any file to be modified is outside allowed scope (security gate, fail-closed)."""
+    # Import shared scope-checking helper from scope_guardian
+    try:
+        from scope_guardian.scripts.scope_check import is_file_in_scope
+    except ImportError:
+        # Fallback: inline same logic if import fails
+        import fnmatch as _fnmatch
+
+        def is_file_in_scope(filepath, allowed_files, allowed_patterns):
+            target = filepath.replace('\\', '/').lower()
+            for allowed in allowed_files:
+                allowed_lc = allowed.lower()
+                if '/' not in allowed_lc:
+                    if os.path.basename(target) == allowed_lc:
+                        return True
+                else:
+                    if target == allowed_lc or target.endswith('/' + allowed_lc):
+                        return True
+            for pattern in allowed_patterns:
+                if _fnmatch.fnmatch(filepath, pattern):
+                    return True
+            return False
+
     lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
 
     # Fail-closed: no lock = BLOCK (security boundary, not workflow gate)
@@ -51,36 +74,12 @@ def check_scope(pending_writes):
         print("[BLOCKED] Failed to parse scope_lock.json.")
         sys.exit(1)
 
-    allowed_files = [f.replace('\\', '/') for f in scope_data.get('allowed_files', [])]
+    allowed_files = scope_data.get('allowed_files', [])
     allowed_patterns = scope_data.get('allowed_patterns', [])
     task = scope_data.get('task', 'Unknown task')
 
     for filepath, _, _ in pending_writes:
-        target = filepath.replace('\\', '/')
-        in_scope = False
-
-        # Apply same matching logic as scope_check.py (Task 7 fix):
-        # filename-only entries (no /): basename comparison, case-insensitive
-        # path-relative entries (contain /): exact normalized path comparison
-        for allowed in allowed_files:
-            if '/' not in allowed:
-                # Both filename-only: compare basenames with case normalization
-                if os.path.normcase(os.path.basename(target)) == os.path.normcase(allowed):
-                    in_scope = True
-                    break
-            else:
-                # Path-relative: exact match
-                if target == allowed:
-                    in_scope = True
-                    break
-
-        if not in_scope:
-            for pattern in allowed_patterns:
-                if fnmatch.fnmatch(target, pattern):
-                    in_scope = True
-                    break
-
-        if not in_scope:
+        if not is_file_in_scope(filepath, allowed_files, allowed_patterns):
             print(f"[BLOCKED] File is OUT OF SCOPE for the current task.")
             print(f"Task: {task}")
             print(f"Target: {filepath}")
@@ -216,22 +215,59 @@ def print_diff(filepath, old_content, new_content):
         print(f"--- {rel_path} (content changed - diff unavailable)")
 
 def is_inside_string(line, pos):
-    """Check if position pos in line falls inside a string literal (between unmatched quotes)."""
+    """Check if position pos falls inside a String Literal.
+
+    Uses a stateful character-by-character scan: tracks whether we're currently
+    inside a string, and only recognizes a quote as a delimiter when it closes
+    the matching open string. Correctly handles:
+    - Apostrophes in contractions: \"It's fine\" — apostrophe NOT a delimiter
+    - Escaped quotes: \"He said \\\"hi\\\"\" — backslash-quote preserved
+    - Odd backslash count before quote = escaped delimiter (skip)
+    - Even backslash count before quote = unescaped delimiter (close)
+    """
+    if pos > len(line):
+        return False
+
+    in_string = False
+    string_char = None
     i = 0
-    quote_positions = []
+
     while i < len(line):
-        if line[i] == '"' and (i == 0 or line[i-1] != '\\'):
-            quote_positions.append(('"', i))
-        elif line[i] == "'" and (i == 0 or line[i-1] != '\\'):
-            quote_positions.append(("'", i))
-        i += 1
-    open_count = 0
-    for qt, qpos in quote_positions:
-        if qpos < pos:
-            open_count += 1
+        if i == pos:
+            return in_string
+
+        ch = line[i]
+
+        if not in_string:
+            if ch == '"' or ch == "'":
+                if i > 0 and line[i - 1] == '\\':
+                    i += 1
+                    continue
+                in_string = True
+                string_char = ch
         else:
-            break
-    return open_count % 2 == 1
+            if ch == string_char:
+                # Count preceding backslashes to determine if this delimiter is escaped
+                backslash_count = 0
+                j = i - 1
+                while j >= 0 and line[j] == '\\':
+                    backslash_count += 1
+                    j -= 1
+                if backslash_count % 2 == 1:
+                    # Odd backslashes = escaped delimiter, skip it and stay in string
+                    i += 1
+                    continue
+                # Even (including zero) backslashes = unescaped delimiter, close string
+                in_string = False
+                string_char = None
+            elif ch == '\\':
+                # Skip backslash, let next character be processed
+                i += 1
+                continue
+
+        i += 1
+
+    return in_string
 
 
 def split_code_and_comment(line):
@@ -250,12 +286,7 @@ def split_code_and_comment(line):
     # Check for // comment (JS/TS/JSX)
     if '//' in stripped:
         idx = stripped.index('//')
-        before = stripped[:idx]
-        # Count unescaped quotes before this position
-        double_q = before.count('"') - before.count('\\"')
-        single_q = before.count("'") - before.count("\\'")
-        if (double_q % 2 == 0) and (single_q % 2 == 0):
-            # Even quotes = outside string = real comment
+        if not is_inside_string(stripped, idx):
             code_part = stripped[:idx]
             comment_part = leading_ws + stripped[idx:]
             return code_part, comment_part
@@ -263,10 +294,7 @@ def split_code_and_comment(line):
     # Check for # comment (Python/Shell)
     if '#' in stripped:
         idx = stripped.index('#')
-        before = stripped[:idx]
-        double_q = before.count('"') - before.count('\\"')
-        single_q = before.count("'") - before.count("\\'")
-        if (double_q % 2 == 0) and (single_q % 2 == 0):
+        if not is_inside_string(stripped, idx):
             comment_part = leading_ws + stripped[idx:]
             code_part = stripped[:idx]
             return code_part, comment_part

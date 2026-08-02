@@ -3,6 +3,33 @@ import os
 import json
 import fnmatch
 
+
+def is_file_in_scope(filepath, allowed_files, allowed_patterns):
+    """Check if filepath is allowed by allowed_files/patterns.
+
+    Uses .lower() for case-insensitive comparison (normcase() was removed —
+    it mangled '/' to '\\' on Windows, breaking path-relative matching).
+    Both sides already forward-slash-normalized via .replace('\\\\', '/') before calling.
+    Shared by scope_check.py and smart_replace/replace_text.py.
+    """
+    target = filepath.replace('\\', '/').lower()
+
+    for allowed in allowed_files:
+        allowed_lc = allowed.lower()
+        if '/' not in allowed_lc:
+            if os.path.basename(target) == allowed_lc:
+                return True
+        else:
+            if target == allowed_lc or target.endswith('/' + allowed_lc):
+                return True
+
+    for pattern in allowed_patterns:
+        if fnmatch.fnmatch(filepath, pattern):
+            return True
+
+    return False
+
+
 def check_scope(target_file):
     # Normalize path separators for comparison
     target_file = target_file.replace('\\', '/')
@@ -42,17 +69,21 @@ def check_scope(target_file):
     # 1. Check exact matches (SECURITY-FIXED: use basename for filename-only, normalized path for path-relative)
     for allowed in allowed_files:
         if '/' in allowed or '\\' in allowed:
-            # Path-relative entry: normalize and compare full paths
-            allowed_norm = os.path.normcase(os.path.normpath(allowed))
-            target_norm = os.path.normcase(os.path.normpath(target_file))
+            # Path-relative entry: compare normalized paths (already forward-slash from .replace() above).
+            # Use .lower() for case-folding ONLY — do NOT use normcase() or normpath() here.
+            # normcase() on Windows also converts '/' to '\\', breaking endswith('/'+allowed_norm).
+            # .lower() only lowercases, preserving forward-slash separators intact.
+            allowed_norm = allowed.lower()
+            target_norm = target_file.lower()
             if target_norm == allowed_norm or target_norm.endswith('/' + allowed_norm):
                 print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
                 print(f"[RISK] {risk_label}")
                 sys.exit(0)
         else:
-            # Filename-only entry: compare basenames (case-insensitive on Windows)
-            allowed_base = os.path.normcase(allowed)
-            target_base = os.path.normcase(os.path.basename(target_file))
+            # Filename-only entry: compare basenames (case-insensitive)
+            # Use .lower() not normcase() — normcase() also converts '/' to '\\' on Windows
+            allowed_base = allowed.lower()
+            target_base = os.path.basename(target_file).lower()
             if target_base == allowed_base:
                 print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
                 print(f"[RISK] {risk_label}")

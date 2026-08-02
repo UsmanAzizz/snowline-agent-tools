@@ -10,7 +10,16 @@ def parse_env(env_path):
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, val = line.split('=', 1)
-                    val = val.strip().strip("'\"").split('#')[0].strip()
+                    val = val.strip()
+                    # Quote-aware parsing: preserve # literally inside double/single quotes
+                    if val.startswith('"') and val.endswith('"') and len(val) >= 2:
+                        val = val[1:-1]
+                    elif val.startswith("'") and val.endswith("'") and len(val) >= 2:
+                        val = val[1:-1]
+                    else:
+                        # Unquoted: treat first # as comment delimiter
+                        if '#' in val:
+                            val = val.split('#', 1)[0].strip()
                     config[key.strip()] = val
     return config
 
@@ -64,15 +73,16 @@ def extract_mysql(config):
         
     try:
         host = config.get('DB_HOST', '127.0.0.1')
+        port = int(config.get('DB_PORT', 3306))  # Support custom DB port
         user = config.get('DB_USERNAME', config.get('DB_USER', 'root'))
         password = config.get('DB_PASSWORD', '')
         database = config.get('DB_DATABASE', config.get('DB_NAME', ''))
-        
+
         if not database:
             print("No DB_DATABASE or DB_NAME defined in .env")
             return False
-            
-        connection = pymysql.connect(host=host, user=user, password=password, database=database, cursorclass=pymysql.cursors.DictCursor)
+
+        connection = pymysql.connect(host=host, port=port, user=user, password=password, database=database, cursorclass=pymysql.cursors.DictCursor)
         
         with connection.cursor() as cursor:
             cursor.execute("SHOW TABLES")
