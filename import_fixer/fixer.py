@@ -58,23 +58,53 @@ def fix_import(source_file, broken_import, apply_mode):
         print(f"[FAIL] Could not find any file named {basename} in the project.")
         return
         
-    target_file = matches[0]
+    # Finding 2B: proximity tiebreaker for multiple matches
     if len(matches) > 1:
-        print(f"[WARN] Multiple files found. Using the first one: {target_file}")
-        
+        source_dir = os.path.dirname(os.path.abspath(source_file))
+        def proximity_score(match):
+            match_dir = os.path.dirname(match)
+            if match_dir == source_dir:
+                return 0
+            try:
+                rel = os.path.relpath(match_dir, source_dir)
+                if rel == '.':
+                    return 0
+                # Count number of '..' components in relative path
+                return rel.count('..') + rel.count(os.sep)
+            except:
+                return 999
+        matches.sort(key=proximity_score)
+        if proximity_score(matches[0]) < proximity_score(matches[-1]):
+            target_file = matches[0]
+            print(f"[INFO] Multiple matches found — using nearest one: {target_file}")
+        else:
+            print(f"[FAIL] Multiple files found with basename '{basename}':")
+            for m in matches:
+                print(f"  - {m}")
+            print(f"[FAIL] Please provide the full path to the correct file.")
+            return
+    elif len(matches) == 1:
+        target_file = matches[0]
+
     new_import = compute_relative_path(source_file, target_file)
     print(f"\n[INFO] Broken Import : {broken_import}")
     print(f"[INFO] Correct Import: {new_import}")
-    
+
     try:
         with open(source_file, 'r', encoding='utf-8') as f:
             content = f.read()
-            
-        if broken_import not in content:
-            print(f"[WARN] The string '{broken_import}' was not found in {source_file}.")
+
+        # Finding 2A: use quote-backreference regex to avoid substring corruption
+        escaped = re.escape(broken_import)
+        pattern = re.compile(r'([\'"])' + escaped + r'\1')
+        if pattern.search(content):
+            new_content = pattern.sub(lambda m: m.group(1) + new_import + m.group(1), content)
+        elif broken_import in content:
+            # Fallback: plain replace only if pattern didn't match (e.g. unusual quote char)
+            new_content = content.replace(broken_import, new_import)
+        else:
+            print(f"[WARN] The import '{broken_import}' was not found in {source_file}.")
             return
-            
-        new_content = content.replace(broken_import, new_import)
         
         if not apply_mode:
             print("\n" + "=" * 60)

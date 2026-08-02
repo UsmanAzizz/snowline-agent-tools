@@ -49,7 +49,7 @@ def sweep(target):
             scanned_files += 1
             f_lower = f.lower()
 
-            if f_lower.endswith(('.bak', '.old', '.log', '.db', '.sqlite', '.tmp')) or 'copy' in f_lower:
+            if f_lower.endswith(('.bak', '.old', '.log', '.db', '.sqlite', '.tmp')) or re.search(r'(?<=[_\- /])copy(?=[_\-. /])', f_lower, re.IGNORECASE):
                 if f_lower not in ['database.db'] and not f_lower.endswith('.test.js'):
                     residue_files.append({
                         'path': filepath,
