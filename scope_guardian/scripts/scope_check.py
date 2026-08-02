@@ -3,6 +3,38 @@ import os
 import json
 import fnmatch
 
+
+def is_file_in_scope(filepath, allowed_files, allowed_patterns):
+    """Check if filepath is allowed by allowed_files/patterns.
+
+    Uses .lower() for case-insensitive comparison (normcase() was removed —
+    it mangled '/' to '\\' on Windows, breaking path-relative matching).
+    Both sides already forward-slash-normalized via .replace('\\\\', '/') before
+    calling this function.
+
+    Returns True if filepath is in scope, False otherwise.
+    Shared by scope_check.py and smart_replace/replace_text.py.
+    """
+    target = filepath.replace('\\', '/').lower()
+
+    for allowed in allowed_files:
+        allowed_lc = allowed.lower()
+        if '/' not in allowed_lc:
+            # Filename-only entry: compare basenames
+            if os.path.basename(target) == allowed_lc:
+                return True
+        else:
+            # Path-relative entry: exact match or prefix (endswith /path)
+            if target == allowed_lc or target.endswith('/' + allowed_lc):
+                return True
+
+    for pattern in allowed_patterns:
+        if fnmatch.fnmatch(filepath, pattern):
+            return True
+
+    return False
+
+
 def check_scope(target_file):
     # Normalize path separators for comparison
     target_file = target_file.replace('\\', '/')

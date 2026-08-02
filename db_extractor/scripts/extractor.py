@@ -73,15 +73,16 @@ def extract_mysql(config):
         
     try:
         host = config.get('DB_HOST', '127.0.0.1')
+        port = int(config.get('DB_PORT', 3306))  # Support custom DB port
         user = config.get('DB_USERNAME', config.get('DB_USER', 'root'))
         password = config.get('DB_PASSWORD', '')
         database = config.get('DB_DATABASE', config.get('DB_NAME', ''))
-        
+
         if not database:
             print("No DB_DATABASE or DB_NAME defined in .env")
             return False
-            
-        connection = pymysql.connect(host=host, user=user, password=password, database=database, cursorclass=pymysql.cursors.DictCursor)
+
+        connection = pymysql.connect(host=host, port=port, user=user, password=password, database=database, cursorclass=pymysql.cursors.DictCursor)
         
         with connection.cursor() as cursor:
             cursor.execute("SHOW TABLES")
