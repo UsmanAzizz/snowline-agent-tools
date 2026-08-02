@@ -14,18 +14,24 @@ def find_usages(project_root, target_name):
 
     # Match ONLY import/require/export statements, not incidental word mentions
     # Target name is escaped to prevent regex injection
+    escaped = re.escape(target_name)
+    # Suffix match: target name can appear at the end of the quoted path after optional ./ ../ or folder/ prefixes
+    # e.g. 'Button', './Button', '../components/Button', 'utils/Button'
+    # The suffix group (?:\.\/|\.\.\/|/)? allows zero or more folder/prefix chars before the target name
+    quoted_suffix = rf"['\"](?:\.\/|\.\.\/|[^'\"]*/)?{escaped}['\"]"
+
     patterns = [
         # ES module named import: import { Foo } from 'target' or import Foo from 'target'
-        re.compile(rf"import\s+(?:{{[^}}]*}}|[^{{}};\n]+)\s+from\s+['\"]({re.escape(target_name)})['\"]"),
-        re.compile(rf"import\s+{{[^}}]*}}\s+from\s+['\"]({re.escape(target_name)})['\"]"),
-        # CommonJS require: require('target') or require('./target')
-        re.compile(rf"require\s*\(\s*['\"]({re.escape(target_name)})['\"]"),
-        # Dynamic import: import('target') or import("target")
-        re.compile(rf"import\s*\(\s*['\"]({re.escape(target_name)})['\"]"),
+        re.compile(rf"import\s+(?:\{{[^}}]*}}|[^{{}};\n]+)\s+from\s+{quoted_suffix}"),
+        re.compile(rf"import\s+{{[^}}]*}}\s+from\s+{quoted_suffix}"),
+        # CommonJS require: require('target') or require('./target') or require('../utils/target')
+        re.compile(rf"require\s*\(\s*{quoted_suffix}"),
+        # Dynamic import: import('target') or import('./target')
+        re.compile(rf"import\s*\(\s*{quoted_suffix}"),
         # Export from: export ... from 'target'
-        re.compile(rf"export\s+.*?\s+from\s+['\"]({re.escape(target_name)})['\"]"),
+        re.compile(rf"export\s+.*?\s+from\s+{quoted_suffix}"),
         # Direct bareword import: import 'target' (side-effect import)
-        re.compile(rf"import\s+['\"]({re.escape(target_name)})['\"]"),
+        re.compile(rf"import\s+{quoted_suffix}"),
     ]
 
     for root, dirs, files in os.walk(project_root):
