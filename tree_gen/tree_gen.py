@@ -9,31 +9,50 @@ import sys
 import fnmatch
 from typing import List, Optional, Tuple
 
-def parse_gitignore(dir_path: str) -> List[str]:
-    """Parse .gitignore and return list of ignore patterns."""
+def parse_gitignore(dir_path: str, project_root: str = None) -> List[str]:
+    """Parse .gitignore from dir_path AND project root (if different)."""
     default_ignore = [
         '.git', '.agents', 'node_modules', 'vendor', '__pycache__',
         '.DS_Store', 'dist', 'build', '.idea', '.vscode', '.history',
         'quarantine', '.backup_replace', 'uploads', 'public'
     ]
 
+    # Parse subdir .gitignore
     gitignore_path = os.path.join(dir_path, '.gitignore')
     if os.path.exists(gitignore_path):
         with open(gitignore_path, 'r', encoding='utf-8', errors='ignore') as f:
             for line in f:
                 line = line.strip()
                 if line and not line.startswith('#'):
-                    # Remove trailing slash for directory patterns
                     if line.endswith('/'):
                         line = line[:-1]
                     default_ignore.append(line)
+
+    # Also parse root .gitignore if different from current dir
+    if project_root and project_root != dir_path:
+        root_gi = os.path.join(project_root, '.gitignore')
+        if os.path.exists(root_gi):
+            with open(root_gi, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        if line.endswith('/'):
+                            line = line[:-1]
+                        if line not in default_ignore:
+                            default_ignore.append(line)
+
     return default_ignore
 
-def is_ignored(name: str, ignore_patterns: List[str]) -> bool:
+def is_ignored(name: str, ignore_patterns: List[str], full_path: str = "") -> bool:
     """Check if a file/directory should be ignored."""
     for pattern in ignore_patterns:
         if fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(name, pattern + '/*'):
             return True
+        # Also check full path for path-based patterns (e.g., "src/*.js", "/build")
+        if full_path:
+            normalized = full_path.replace('\\', '/')
+            if fnmatch.fnmatch(normalized, pattern) or fnmatch.fnmatch(normalized, pattern + '/*'):
+                return True
     return False
 
 def generate_tree(
@@ -58,6 +77,10 @@ def generate_tree(
     Returns:
         Tree structure as string
     """
+    # 2A: Skip symlinks to prevent infinite recursion
+    if os.path.islink(dir_path):
+        return f"{prefix}└── [Symlink]\n"
+
     if depth > max_depth and max_depth > 0:
         return f"{prefix}└── ... (max depth reached)\n"
 
@@ -73,8 +96,8 @@ def generate_tree(
     except Exception:
         return f"{prefix}└── [Error reading directory]\n"
 
-    # Filter ignored entries
-    entries = [e for e in entries if not is_ignored(e, ignore_patterns)]
+    # Filter ignored entries (pass full path for path-based patterns)
+    entries = [e for e in entries if not is_ignored(e, ignore_patterns, os.path.join(dir_path, e))]
 
     entries_count = len(entries)
     for i, entry in enumerate(entries):
@@ -82,6 +105,10 @@ def generate_tree(
         entry_path = os.path.join(dir_path, entry)
 
         connector = "└── " if is_last else "├── "
+
+        # 2A: Skip symlink entries to avoid infinite recursion
+        if os.path.islink(entry_path):
+            continue
 
         if os.path.isdir(entry_path):
             tree_str += f"{prefix}{connector}📁 {entry}/\n"
@@ -110,6 +137,10 @@ def generate_simple_tree(
     Simple tree without icons (for cleaner output).
     Similar to standard `tree` command output.
     """
+    # 2A: Skip symlinks to prevent infinite recursion
+    if os.path.islink(dir_path):
+        return f"{prefix}└── [Symlink]\n"
+
     if depth > max_depth and max_depth > 0:
         return ""
 
@@ -123,7 +154,8 @@ def generate_simple_tree(
     except Exception:
         return ""
 
-    entries = [e for e in entries if not is_ignored(e, ignore_patterns)]
+    # 2B: pass full path for path-based pattern matching
+    entries = [e for e in entries if not is_ignored(e, ignore_patterns, os.path.join(dir_path, e))]
     entries_count = len(entries)
 
     for i, entry in enumerate(entries):
@@ -131,6 +163,10 @@ def generate_simple_tree(
         entry_path = os.path.join(dir_path, entry)
 
         connector = "└── " if is_last else "├── "
+
+        # 2A: Skip symlink entries
+        if os.path.islink(entry_path):
+            continue
 
         if os.path.isdir(entry_path):
             tree_str += f"{prefix}{connector}{entry}/\n"
@@ -160,16 +196,26 @@ def get_tree_stats(dir_path: str, ignore_patterns: Optional[List[str]] = None) -
     }
 
     def walk(path: str, depth: int = 0):
+        # 2A: Skip symlinks to prevent infinite recursion
+        if os.path.islink(path):
+            return
+
         stats["max_depth"] = max(stats["max_depth"], depth)
         try:
             entries = sorted(os.listdir(path))
         except Exception:
             return
 
-        entries = [e for e in entries if not is_ignored(e, ignore_patterns)]
+        # 2B: pass full path for path-based pattern matching
+        entries = [e for e in entries if not is_ignored(e, ignore_patterns, os.path.join(path, e))]
 
         for entry in entries:
             entry_path = os.path.join(path, entry)
+
+            # 2A: Skip symlink entries
+            if os.path.islink(entry_path):
+                continue
+
             if os.path.isdir(entry_path):
                 stats["total_dirs"] += 1
                 walk(entry_path, depth + 1)
