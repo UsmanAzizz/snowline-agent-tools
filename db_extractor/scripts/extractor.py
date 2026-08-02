@@ -10,7 +10,8 @@ def parse_env(env_path):
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, val = line.split('=', 1)
-                    config[key.strip()] = val.strip().strip("'\"")
+                    val = val.strip().strip("'\"").split('#')[0].strip()
+                    config[key.strip()] = val
     return config
 
 def static_analysis_fallback(project_root):

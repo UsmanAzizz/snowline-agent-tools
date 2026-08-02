@@ -83,25 +83,22 @@ def load_cache(cache_file):
     return {}
 
 def clean_cache(cache_data, project_root):
-    """Remove entries where source file no longer exists or is too old."""
-    import time
-    MAX_AGE_DAYS = 7
+    """Remove entries where source file no longer exists or cache schema mismatched."""
     before = len(cache_data)
-    now = time.time()
     cleaned = []
     for key, entry in list(cache_data.items()):
-        filepath = entry.get('file', '')
-        mtime = entry.get('mtime', 0)
-        if filepath and not os.path.exists(filepath):
+        if 'results' not in entry:
+            continue
+        results = entry.get('results', [])
+        if not results:
             cleaned.append(key)
             continue
-        if mtime and float(mtime) > 0:
-            age_days = (now - float(mtime)) / 86400
-            if age_days > MAX_AGE_DAYS:
-                cleaned.append(key)
+        first_file = results[0].get('file', '')
+        if first_file and not os.path.exists(first_file):
+            cleaned.append(key)
     for k in cleaned:
         del cache_data[k]
-    return len(cleaned), before - len(cache_data)
+    return len(cleaned), before - len(cleaned)
 
 def save_cache(cache_file, data):
     try:

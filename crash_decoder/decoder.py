@@ -23,8 +23,9 @@ def decode_crash(file_path):
         
         for line in content.split('\n'):
             line = line.strip()
-            # Capture actual error messages
-            if re.match(r'^(Error|TypeError|ReferenceError|SyntaxError|UnhandledPromiseRejectionWarning|Exception):', line, re.IGNORECASE):
+            # Capture Python and JS error lines: match any line that looks like an exception name
+            # Generic pattern: word chars, ends with Error/Exception/Err/Type/Warning
+            if re.match(r"^\w+Error|^\w+Exception|^\w+\.\w+Error|^\w+\.\w+Exception|^\w+Err", line, re.IGNORECASE):
                 error_lines.append(line)
             # Capture stack trace lines
             elif line.startswith('at '):
