@@ -205,8 +205,7 @@ def print_diff(filepath, old_content, new_content):
         old_content.splitlines(keepends=True),
         new_content.splitlines(keepends=True),
         fromfile=f'a/{rel_path}',
-        tofile=f'b/{rel_path}',
-        lineterm=''
+        tofile=f'b/{rel_path}'
     ))
     if diff_lines:
         # unified_diff includes --- a/... and +++ b/... headers
@@ -275,28 +274,24 @@ def split_code_and_comment(line):
 
     - For JS/TS/JSX: splits on first '//' (not inside a string)
     - For Python/Shell: splits on first '#' (not inside a string)
-    - Comment part includes leading whitespace, code part does not.
     """
-    stripped = line.lstrip()
-    leading_ws = line[:len(line) - len(stripped)]
-
-    code_part = stripped
+    code_part = line
     comment_part = ""
 
     # Check for // comment (JS/TS/JSX)
-    if '//' in stripped:
-        idx = stripped.index('//')
-        if not is_inside_string(stripped, idx):
-            code_part = stripped[:idx]
-            comment_part = leading_ws + stripped[idx:]
+    if '//' in line:
+        idx = line.index('//')
+        if not is_inside_string(line, idx):
+            code_part = line[:idx]
+            comment_part = line[idx:]
             return code_part, comment_part
 
     # Check for # comment (Python/Shell)
-    if '#' in stripped:
-        idx = stripped.index('#')
-        if not is_inside_string(stripped, idx):
-            comment_part = leading_ws + stripped[idx:]
-            code_part = stripped[:idx]
+    if '#' in line:
+        idx = line.index('#')
+        if not is_inside_string(line, idx):
+            code_part = line[:idx]
+            comment_part = line[idx:]
             return code_part, comment_part
 
     return code_part, comment_part
