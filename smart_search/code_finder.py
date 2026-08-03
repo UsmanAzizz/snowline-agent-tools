@@ -4,6 +4,7 @@ import argparse
 import json
 import hashlib
 import time
+import ast
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -11,6 +12,20 @@ if sys.stdout.encoding != 'utf-8':
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 MAX_AGE_DAYS = 7  # Expire cache entries older than 7 days
 DEFAULT_EXCLUDES = {'node_modules', '.git', 'vendor', 'build', 'dist', '.idea', '.vscode', '.history', '.backup_replace', '.agents'}
+
+def get_function_class_ranges(content):
+    """Return dict: name -> (start_line, end_line) for all def/class.
+    Note: if multiple functions share the same name, dict keeps only the last one (overwrites).
+    """
+    try:
+        tree = ast.parse(content)
+        ranges = {}
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                ranges[node.name] = (node.lineno, node.end_lineno)
+        return ranges, None  # None = no error
+    except SyntaxError as e:
+        return {}, e  # Return error for fallback
 
 def search_files(directory, keyword, extensions):
     results = []
@@ -32,10 +47,27 @@ def search_files(directory, keyword, extensions):
             scanned += 1
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
+                    content = f.read()
+                    lines = content.splitlines(keepends=True)
             except Exception:
                 continue
 
+            # AST-aware extraction for Python files
+            if filepath.endswith('.py'):
+                ranges, error = get_function_class_ranges(content)
+                if error is None and keyword in ranges:
+                    # Keyword matches a function/class name - return FULL body
+                    start, end = ranges[keyword]
+                    # Convert to 0-indexed, inclusive
+                    results.append({
+                        'file': filepath,
+                        'blocks': [{'start': start - 1, 'end': end, 'matches': [start - 1]}],
+                        'lines': lines
+                    })
+                    continue
+                # Fall through to line-context for non-def/class keywords or syntax errors
+
+            # Line-context search (existing behavior)
             matches = []
             for i, line in enumerate(lines):
                 if keyword in line:
