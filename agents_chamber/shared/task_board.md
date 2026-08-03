@@ -8,16 +8,18 @@
 ## Session Status
 | Session | Status | Notes |
 |---------|--------|-------|
-| session_01 | idle | No active chamber-based assignment |
+| claude_code/session_01 | idle | Claude Code agent |
+| gemini/session_01 | idle | Gemini agent |
 
 ## Completed (Recent)
+- Task 35: Add gemini/ folder to agents_chamber
+- Task 32-34: Signal protocol, safe_substitute_line fix, severity-halt rule
 - Task 31: Placeholder content population
 - Task 30: agents_chamber/ structure built
-- Task 29: Orchestrator live-test evidence
-- Task 28: Static orchestrator implemented
 
 ## Notes
+- Both Claude Code and Gemini now have chamber sessions
 - Regular work flows through `for_claude/agents_connector.md` (manual signal channel)
-- agents_chamber/ is infrastructure for future multi-session use
-- When Tech Lead assigns a new session: Tech Lead creates `claude_code/session_NN/` folder first, then notifies the new session
+- agents_chamber/ enables parallel agent trial run
+- When Tech Lead assigns a new session: Tech Lead creates appropriate folder first, then notifies the agent
 - Existing sessions do NOT create their own folders - wait for Tech Lead assignment
