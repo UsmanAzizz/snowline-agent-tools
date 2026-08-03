@@ -311,17 +311,15 @@ def safe_substitute_line(regex, replacement, line):
     new_code = code_part
     matches = list(regex.finditer(code_part))
     if matches:
-        # Replace from right to left to preserve positions
-        offset = 0
-        for m in matches:
-            start, end = m.start() + offset, m.end() + offset
-            # Check if this match falls inside a string (use offset-adjusted position)
-            if is_inside_string(new_code, start):
+        # Iterate in REVERSE order (right-to-left)
+        # Since replacements only affect positions to the LEFT (already processed),
+        # no offset tracking is needed - is_inside_string() scans the ORIGINAL
+        # unmutated code_part, which is never modified until final assembly.
+        for m in reversed(matches):
+            if is_inside_string(code_part, m.start()):
                 continue  # skip match inside string
-            # Extract and replace this match
-            matched_text = new_code[start:end]
-            new_code = new_code[:start] + replacement + new_code[end:]
-            offset += len(replacement) - (end - start)
+            # Replace this match
+            new_code = new_code[:m.start()] + replacement + new_code[m.end():]
 
     return new_code + comment_part
 
