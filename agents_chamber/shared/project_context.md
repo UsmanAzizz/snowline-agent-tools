@@ -9,14 +9,14 @@ Lightweight Python tools for AI coding agents (Claude Code, Gemini). Goal: preve
 
 **Repository:** `https://github.com/UsmanAzizz/snowline-agent-tools`
 
-## Active Sessions
-- session_01: Claude Code session (idle)
+## Active Positions
+- claude_code/pos_01: Claude Code agent
+- gemini/pos_01: Gemini agent
 
 ## Tool Inventory (top-level folders)
 
 | Tool | Purpose |
 |------|---------|
-| `.agents/` | Skill definitions (AGENTS.md, companion_cli.py) |
 | `smart_search/` | Code search with function body extraction (Python AST, JS brace-counting) |
 | `scope_guardian/` | Path/directory scope validation |
 | `project_guardian/` | Security scan (API keys, secrets detection) |
@@ -30,7 +30,9 @@ Lightweight Python tools for AI coding agents (Claude Code, Gemini). Goal: preve
 | `orchestrator/` | One-shot Claude Code invoker (Task 28) |
 | `agents_chamber/` | Multi-agent shared workspace (Task 30) |
 
-## Session History (Tasks 1-31)
+*Note: `.agents/` is the self-hosted dev-testing install copy, not a tool.*
+
+## Position History (Tasks 1-36)
 
 - Tasks 1-22: Tool development and fixes
 - Tasks 23-24: Daemon watcher (deprecated, replaced by orchestrator)
@@ -40,7 +42,10 @@ Lightweight Python tools for AI coding agents (Claude Code, Gemini). Goal: preve
 - Task 28: Static orchestrator
 - Task 29: Orchestrator live-test evidence
 - Task 30: agents_chamber/ workspace structure
-- Task 31: This task - placeholder content population
+- Task 31: Placeholder content population
+- Task 32-34: Signal protocol, safe_substitute_line fix, severity-halt rule
+- Task 35: gemini/ folder added
+- Task 36: session_XX renamed to pos_XX
 
 ## Key Patterns
 - **AGENTS.md**: Primary rules file (AI reads this on session start)
