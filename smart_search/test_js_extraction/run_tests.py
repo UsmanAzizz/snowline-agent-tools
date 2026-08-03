@@ -17,11 +17,14 @@ TESTS = [
     ("test5_line_comment.js", "commented", "SUCCESS", "Braces in line comment"),
     ("test6_block_comment.js", "blockComment", "SUCCESS", "Braces in block comment"),
     ("test7_escaped_quotes.js", "escapedQuotes", "SUCCESS", "Escaped quotes in string"),
-    # Test 8 - JSX with parameter destructuring causes early return (known limitation)
-    ("test8_jsx.jsx", "JSXComponent", "PARTIAL", "JSX with destructuring param (known limitation)"),
+    # Test 8 - JSX: paren-depth tracking works, but slash in `</div>` triggers bail-out
+    ("test8_jsx.jsx", "JSXComponent", "BAIL_OUT", "JSX with closing tags (slash in </div>)"),
     ("test9_regex_brace.js", "regexFunc", "BAIL_OUT", "Regex literal with brace"),
-    # Test 10 - returns FIRST occurrence (known limitation: last def should win for proper AST)
+    # Test 10 - returns FIRST occurrence (known limitation)
     ("test10_duplicate_names.js", "process", "PARTIAL", "Duplicate function names (first def wins)"),
+    # Test 11 - specifically tests paren-depth tracking for destructured params
+    ("test11_destructured_params.js", "processItems", "SUCCESS", "Arrow fn with destructured params"),
+    ("test11_destructured_params.js", "handleClick", "SUCCESS", "Fn with destructured params"),
 ]
 
 def run_test(filename, keyword, expected, description):

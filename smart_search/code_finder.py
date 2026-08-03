@@ -73,18 +73,22 @@ def extract_js_body(content, start_idx):
     """
     Extract function/class body using brace-counting state machine.
 
-    BAIL-OUT STRATEGY (per Tech Lead request):
+    BAIL-OUT STRATEGY:
     - Returns None immediately when encountering:
       - Backtick (`) - template literal (can't track ${} interpolation safely)
       - Forward slash (/) in ambiguous context - can't distinguish from regex/division
-    - These cases fall back to line-context behavior in caller.
+    - Falls back to line-context behavior in caller.
 
-    KNOWN LIMITATION: Braces in function parameter destructuring (e.g. { items })
-    are counted as part of the function body, potentially causing early return.
-    This is acceptable for v1 since real AST parsing is out of scope.
+    PAREN-DEPTH TRACKING:
+    - Tracks paren depth ( ) alongside brace depth
+    - Only starts counting braces toward function-body depth AFTER
+      the parameter list's parentheses have fully closed (paren_depth = 0)
+    - This correctly handles destructured params like function({ items }) { }
     """
     lines = content.split('\n')
-    depth = 0
+    depth = 0          # Brace depth (for function body)
+    paren_depth = 0    # Paren depth (for parameter list)
+    body_started = False  # Set to True after first ')' closes param list
     found = False
     i = start_idx
     while True:
@@ -148,16 +152,27 @@ def extract_js_body(content, start_idx):
             if ch == '`':
                 return None  # Template literal - can't track safely
 
-            # Track braces
+            # Track parentheses first (before braces)
+            if ch == '(':
+                paren_depth += 1
+            elif ch == ')':
+                paren_depth -= 1
+                if paren_depth == 0 and not body_started:
+                    # First closing paren after opening - param list is done
+                    body_started = True
+
+            # Track braces (only after param list is closed)
             if ch == '{':
-                depth += 1
-                found = True
+                if body_started:
+                    depth += 1
+                    found = True
             elif ch == '}':
-                depth -= 1
-                if depth < 0:
-                    return None  # Excess closing brace
-                if depth == 0 and found:
-                    return (start_idx, i)
+                if body_started:
+                    depth -= 1
+                    if depth < 0:
+                        return None  # Excess closing brace
+                    if depth == 0 and found:
+                        return (start_idx, i)
             j += 1
         i += 1
     return None
