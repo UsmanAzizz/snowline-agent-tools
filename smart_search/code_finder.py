@@ -393,6 +393,11 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         import traceback
-        print(f"[ERROR] {type(e).__name__}: {e}")
-        traceback.print_exc()
+        import sys
+        print(file=sys.stderr)
+        print("[TOOL ERROR - ini bug internal snowline, BUKAN masalah di kode project Anda]", file=sys.stderr)
+        print(f"Error: {type(e).__name__}: {e}", file=sys.stderr)
+        print(file=sys.stderr)
+        print("Traceback (untuk dilaporkan ke developer):", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
