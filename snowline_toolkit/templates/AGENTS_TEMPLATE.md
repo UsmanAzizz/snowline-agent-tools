@@ -71,6 +71,18 @@ Hanya tool yang MEMODIFIKASI file yang butuh persetujuan:
 
 ---
 
+## 🚨 Security Findings - Mandatory Halt
+
+Jika `project_guardian` melaporkan temuan CRITICAL:
+1. **STOP SEGERA** — jangan lanjutkan task atau instruksi lain
+2. **LAPORKAN** temuan tersebut ke user dengan detail lengkap
+3. **TUNGGU** konfirmasi eksplisit dari user sebelum melanjutkan
+4. Ini berlaku **MESKIPUN** instruksi asli tidak menyebut soal keamanan
+
+Meskipun user meminta "cuma fix X" tanpa menyebut keamanan, temuan CRITICAL tetap diutamakan — laporkan dulu.
+
+---
+
 ## 📋 Tools Inti (MANDATORY)
 
 Anda DILARANG KERAS menggunakan tool bawaan (seperti grep_search, cat, ls) jika ada tool custom Snowline yang lebih hemat token.

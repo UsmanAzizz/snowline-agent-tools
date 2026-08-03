@@ -19,4 +19,5 @@
 ## Notes
 - Regular work flows through `for_claude/agents_connector.md` (manual signal channel)
 - agents_chamber/ is infrastructure for future multi-session use
-- When a new session joins, create `claude_code/session_NN/` folder and notify Tech Lead
+- When Tech Lead assigns a new session: Tech Lead creates `claude_code/session_NN/` folder first, then notifies the new session
+- Existing sessions do NOT create their own folders - wait for Tech Lead assignment

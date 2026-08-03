@@ -315,8 +315,8 @@ def safe_substitute_line(regex, replacement, line):
         offset = 0
         for m in matches:
             start, end = m.start() + offset, m.end() + offset
-            # Check if this match falls inside a string
-            if is_inside_string(new_code, m.start()):
+            # Check if this match falls inside a string (use offset-adjusted position)
+            if is_inside_string(new_code, start):
                 continue  # skip match inside string
             # Extract and replace this match
             matched_text = new_code[start:end]

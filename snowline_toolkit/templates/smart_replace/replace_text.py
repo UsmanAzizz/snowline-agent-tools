@@ -42,7 +42,7 @@ def check_scope(pending_writes):
     try:
         from scope_guardian.scripts.scope_check import is_file_in_scope
     except ImportError:
-        # Fallback: inline same logic if import fails
+        # Fallback: check manually if import fails
         import fnmatch as _fnmatch
 
         def is_file_in_scope(filepath, allowed_files, allowed_patterns):
@@ -205,8 +205,7 @@ def print_diff(filepath, old_content, new_content):
         old_content.splitlines(keepends=True),
         new_content.splitlines(keepends=True),
         fromfile=f'a/{rel_path}',
-        tofile=f'b/{rel_path}',
-        lineterm=''
+        tofile=f'b/{rel_path}'
     ))
     if diff_lines:
         # unified_diff includes --- a/... and +++ b/... headers
@@ -219,11 +218,10 @@ def is_inside_string(line, pos):
 
     Uses a stateful character-by-character scan: tracks whether we're currently
     inside a string, and only recognizes a quote as a delimiter when it closes
-    the matching open string. Correctly handles:
-    - Apostrophes in contractions: \"It's fine\" — apostrophe NOT a delimiter
-    - Escaped quotes: \"He said \\\"hi\\\"\" — backslash-quote preserved
-    - Odd backslash count before quote = escaped delimiter (skip)
-    - Even backslash count before quote = unescaped delimiter (close)
+    the matching open string. This correctly handles:
+    - Apostrophes in contractions: "It's fine" → apostrophe NOT a delimiter
+    - Escaped quotes: "He said \"hi\"" → escaped quotes NOT delimiters
+    - Mixed delimiters: "It's 'fine'" → both strings correctly tracked
     """
     if pos > len(line):
         return False
@@ -240,6 +238,7 @@ def is_inside_string(line, pos):
 
         if not in_string:
             if ch == '"' or ch == "'":
+                # Check for escape before opening
                 if i > 0 and line[i - 1] == '\\':
                     i += 1
                     continue
@@ -261,7 +260,7 @@ def is_inside_string(line, pos):
                 in_string = False
                 string_char = None
             elif ch == '\\':
-                # Skip backslash, let next character be processed
+                # Skip backslash, let next character be processed (may be escaped delimiter)
                 i += 1
                 continue
 
@@ -275,28 +274,24 @@ def split_code_and_comment(line):
 
     - For JS/TS/JSX: splits on first '//' (not inside a string)
     - For Python/Shell: splits on first '#' (not inside a string)
-    - Comment part includes leading whitespace, code part does not.
     """
-    stripped = line.lstrip()
-    leading_ws = line[:len(line) - len(stripped)]
-
-    code_part = stripped
+    code_part = line
     comment_part = ""
 
     # Check for // comment (JS/TS/JSX)
-    if '//' in stripped:
-        idx = stripped.index('//')
-        if not is_inside_string(stripped, idx):
-            code_part = stripped[:idx]
-            comment_part = leading_ws + stripped[idx:]
+    if '//' in line:
+        idx = line.index('//')
+        if not is_inside_string(line, idx):
+            code_part = line[:idx]
+            comment_part = line[idx:]
             return code_part, comment_part
 
     # Check for # comment (Python/Shell)
-    if '#' in stripped:
-        idx = stripped.index('#')
-        if not is_inside_string(stripped, idx):
-            comment_part = leading_ws + stripped[idx:]
-            code_part = stripped[:idx]
+    if '#' in line:
+        idx = line.index('#')
+        if not is_inside_string(line, idx):
+            code_part = line[:idx]
+            comment_part = line[idx:]
             return code_part, comment_part
 
     return code_part, comment_part
@@ -320,8 +315,8 @@ def safe_substitute_line(regex, replacement, line):
         offset = 0
         for m in matches:
             start, end = m.start() + offset, m.end() + offset
-            # Check if this match falls inside a string
-            if is_inside_string(new_code, m.start()):
+            # Check if this match falls inside a string (use offset-adjusted position)
+            if is_inside_string(new_code, start):
                 continue  # skip match inside string
             # Extract and replace this match
             matched_text = new_code[start:end]
@@ -500,11 +495,11 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         import traceback
-        print()
-        print("[TOOL ERROR] Ini bug internal snowline, BUKAN masalah di kode project Anda.")
-        print(f"Error: {type(e).__name__}: {e}")
-        print()
-        print("Traceback (untuk dilaporkan ke developer):")
-        traceback.print_exc()
         import sys
+        print(file=sys.stderr)
+        print("[TOOL ERROR - ini bug internal snowline, BUKAN masalah di kode project Anda]", file=sys.stderr)
+        print(f"Error: {type(e).__name__}: {e}", file=sys.stderr)
+        print(file=sys.stderr)
+        print("Traceback (untuk dilaporkan ke developer):", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
