@@ -7,6 +7,13 @@ import time
 import ast
 import re
 
+# Ensure UTF-8 stdout on Windows (guards against UnicodeEncodeError on emoji/non-ASCII)
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass  # Some streams don't support reconfigure
+
 MAX_FILE_SIZE = 500 * 1024
 MAX_AGE_DAYS = 7
 DEFAULT_EXCLUDES = {'node_modules', '.git', 'vendor', 'build', 'dist', '.idea', '.vscode', '.history', '.backup_replace', '.agents'}
