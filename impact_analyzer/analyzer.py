@@ -18,7 +18,16 @@ def find_usages(project_root, target_name):
     # Suffix match: target name can appear at the end of the quoted path after optional ./ ../ or folder/ prefixes
     # e.g. 'Button', './Button', '../components/Button', 'utils/Button'
     # The suffix group (?:\.\/|\.\.\/|/)? allows zero or more folder/prefix chars before the target name
-    quoted_suffix = rf"['\"](?:\.\/|\.\.\/|[^'\"]*/)?{escaped}['\"]"
+    # Optional file extension (?:\.[a-zA-Z0-9]+)? allows explicit extensions like './Button.js'
+    quoted_suffix = rf"['\"](?:\.\/|\.\.\/|[^'\"]*/)?{escaped}(?:\.[a-zA-Z0-9]+)?['\"]"
+
+    # Python-specific patterns (Bug 1 fix)
+    python_patterns = [
+        re.compile(rf'import\s+{escaped}\b'),                    # import target
+        re.compile(rf'from\s+{escaped}\s+import'),                # from target import
+        re.compile(rf'from\s+{escaped}\.\w+\s+import'),          # from target.submodule import
+        re.compile(rf'import\s+{escaped}(?:\.\w+)*\b'),        # import target.submodule
+    ]
 
     patterns = [
         # ES module named import: import { Foo } from 'target' or import Foo from 'target'
@@ -44,8 +53,13 @@ def find_usages(project_root, target_name):
             try:
                 with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
-                    if any(p.search(content) for p in patterns):
-                        usages.add(filepath)
+                    # Use Python patterns for Python/PHP files, JS patterns for JS/TS files
+                    if file.endswith(('.py', '.php')):
+                        if any(p.search(content) for p in python_patterns):
+                            usages.add(filepath)
+                    else:  # JS/TS files
+                        if any(p.search(content) for p in patterns):
+                            usages.add(filepath)
             except Exception:
                 pass
     return usages
