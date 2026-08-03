@@ -3,258 +3,374 @@ import sys
 import argparse
 import json
 import hashlib
+import time
+import ast
+import re
 
-if sys.stdout.encoding != 'utf-8':
-    sys.stdout.reconfigure(encoding='utf-8')
-
-MAX_FILE_SIZE = 500 * 1024 # 500 KB
+MAX_FILE_SIZE = 500 * 1024
+MAX_AGE_DAYS = 7
 DEFAULT_EXCLUDES = {'node_modules', '.git', 'vendor', 'build', 'dist', '.idea', '.vscode', '.history', '.backup_replace', '.agents'}
+
+JS_PATTERNS = [
+    r'(?:export\s+)?(?:async\s+)?function\s+\w+\s*\(',
+    r'(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?\([^)]*\)\s*=>',
+    r'class\s+\w+',
+]
+
+def get_python_ranges(content):
+    try:
+        tree = ast.parse(content)
+        ranges = {}
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                ranges[node.name] = (node.lineno, node.end_lineno)
+        return ranges, None
+    except SyntaxError:
+        return {}, 'error'
+
+def find_js_line(content, keyword):
+    """
+    Find the line number where a JS function/class with the keyword starts.
+    Uses simple state machine to skip strings and comments.
+    """
+    lines = content.split('\n')
+    for i, line in enumerate(lines):
+        # Parse line character by character to handle strings/comments
+        j = 0
+        in_string = None  # None, '"', or "'"
+        while j < len(line):
+            ch = line[j]
+            # Skip escaped characters
+            if j > 0 and line[j-1] == '\\':
+                j += 1
+                continue
+            # Handle string delimiters
+            if ch == '"' or ch == "'":
+                if in_string == ch:
+                    in_string = None
+                elif in_string is None:
+                    in_string = ch
+                j += 1
+                continue
+            # If we're in a string, just continue
+            if in_string is not None:
+                j += 1
+                continue
+            # Skip line comments
+            if ch == '/' and j + 1 < len(line) and line[j+1] == '/':
+                break  # Rest of line is comment
+            # Check if keyword is present (before any comment)
+            if keyword in line[:j]:
+                # We found keyword before any comment, now check for JS pattern
+                code_part = line[:j]
+                for pat in JS_PATTERNS:
+                    if re.search(pat, code_part):
+                        return i
+            j += 1
+    return None
+
+def extract_js_body(content, start_idx):
+    """
+    Extract function/class body using brace-counting state machine.
+
+    BAIL-OUT STRATEGY (per Tech Lead request):
+    - Returns None immediately when encountering:
+      - Backtick (`) - template literal (can't track ${} interpolation safely)
+      - Forward slash (/) in ambiguous context - can't distinguish from regex/division
+    - These cases fall back to line-context behavior in caller.
+
+    KNOWN LIMITATION: Braces in function parameter destructuring (e.g. { items })
+    are counted as part of the function body, potentially causing early return.
+    This is acceptable for v1 since real AST parsing is out of scope.
+    """
+    lines = content.split('\n')
+    depth = 0
+    found = False
+    i = start_idx
+    while True:
+        if i >= len(lines):
+            return None  # EOF with depth > 0
+        line = lines[i]
+        j = 0
+        in_string = None  # None, '"', or "'"
+        while j < len(line):
+            ch = line[j]
+
+            # Handle escape characters INSIDE strings only
+            if in_string and j > 0 and line[j-1] == '\\':
+                j += 1
+                continue
+
+            # Handle string delimiters
+            if ch == '"' or ch == "'":
+                if in_string == ch:
+                    in_string = None
+                elif in_string is None:
+                    in_string = ch
+                j += 1
+                continue
+
+            # Skip rest of line if in string
+            if in_string is not None:
+                j += 1
+                continue
+
+            # Handle comments FIRST (before slash bail-out)
+            if ch == '/':
+                if j + 1 < len(line) and line[j+1] == '/':
+                    # Line comment - safe, skip to end of line
+                    break
+                elif j + 1 < len(line) and line[j+1] == '*':
+                    # Block comment - safe, skip the block
+                    end = line.find('*/', j+2)
+                    if end >= 0:
+                        lines[i] = line[:j] + line[end+2:]
+                        # After splicing, break to next line to avoid
+                        # reprocessing the remaining '/' from '/*'
+                        break
+                    else:
+                        i += 1
+                        while i < len(lines):
+                            end = lines[i].find('*/')
+                            if end >= 0:
+                                lines[i] = lines[i][end+2:]
+                                break
+                            i += 1
+                        else:
+                            return None
+                        # After processing multi-line block comment, move to next line
+                        break
+                else:
+                    # Ambiguous slash - could be regex or division
+                    return None  # BAIL-OUT
+
+            # BAIL-OUT: Template literal start
+            if ch == '`':
+                return None  # Template literal - can't track safely
+
+            # Track braces
+            if ch == '{':
+                depth += 1
+                found = True
+            elif ch == '}':
+                depth -= 1
+                if depth < 0:
+                    return None  # Excess closing brace
+                if depth == 0 and found:
+                    return (start_idx, i)
+            j += 1
+        i += 1
+    return None
 
 def search_files(directory, keyword, extensions):
     results = []
     scanned = 0
     skipped = 0
-
     for root, dirs, files in os.walk(directory):
         dirs[:] = [d for d in dirs if d not in DEFAULT_EXCLUDES]
-
-        for file in files:
-            if extensions and not any(file.endswith(ext) for ext in extensions):
+        for fname in files:
+            if extensions and not any(fname.endswith(ext) for ext in extensions):
                 continue
-
-            filepath = os.path.join(root, file)
-            if os.path.getsize(filepath) > MAX_FILE_SIZE:
+            fpath = os.path.join(root, fname)
+            if os.path.getsize(fpath) > MAX_FILE_SIZE:
                 skipped += 1
                 continue
-
             scanned += 1
             try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    lines = f.readlines()
-            except Exception:
+                with open(fpath, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    lines = content.splitlines(keepends=True)
+            except:
                 continue
-
+            if fpath.endswith('.py'):
+                rngs, err = get_python_ranges(content)
+                if err is None and keyword in rngs:
+                    s, e = rngs[keyword]
+                    results.append({
+                        'file': fpath,
+                        'blocks': [{'start': s-1, 'end': e, 'matches': [s-1]}],
+                        'lines': lines
+                    })
+                    continue
+            if fpath.endswith(('.js', '.jsx', '.ts', '.tsx')):
+                idx = find_js_line(content, keyword)
+                if idx is not None:
+                    body = extract_js_body(content, idx)
+                    if body:
+                        s, e = body
+                        results.append({
+                            'file': fpath,
+                            'blocks': [{'start': s, 'end': e, 'matches': [s]}],
+                            'lines': lines
+                        })
+                        continue
+                    else:
+                        # Bail-out: template literal or ambiguous slash detected
+                        # Fall through to line-context below
+                        pass
             matches = []
             for i, line in enumerate(lines):
                 if keyword in line:
                     matches.append(i)
-
             if matches:
-                context_lines = 5
+                ctx = 5
                 blocks = []
-                current_block = None
-
+                cur = None
                 for m in matches:
-                    start = max(0, m - context_lines)
-                    end = min(len(lines), m + context_lines + 1)
-
-                    if current_block and start <= current_block['end']:
-                        current_block['end'] = max(current_block['end'], end)
-                        current_block['matches'].append(m)
+                    s = max(0, m - ctx)
+                    e = min(len(lines), m + ctx + 1)
+                    if cur and s <= cur['end']:
+                        cur['end'] = max(cur['end'], e)
+                        cur['matches'].append(m)
                     else:
-                        if current_block:
-                            blocks.append(current_block)
-                        current_block = {'start': start, 'end': end, 'matches': [m]}
-
-                if current_block:
-                    blocks.append(current_block)
-
-                results.append({'file': filepath, 'blocks': blocks, 'lines': lines})
-
+                        if cur:
+                            blocks.append(cur)
+                        cur = {'start': s, 'end': e, 'matches': [m]}
+                if cur:
+                    blocks.append(cur)
+                results.append({'file': fpath, 'blocks': blocks, 'lines': lines})
     return results, scanned, skipped
 
 def get_project_root(start_path):
-    current = os.path.abspath(start_path)
+    curr = os.path.abspath(start_path)
     while True:
-        if os.path.exists(os.path.join(current, 'package.json')) or os.path.exists(os.path.join(current, '.git')):
-            return current
-        parent = os.path.dirname(current)
-        if parent == current:
+        if os.path.exists(os.path.join(curr, 'package.json')) or os.path.exists(os.path.join(curr, '.git')):
+            return curr
+        parent = os.path.dirname(curr)
+        if parent == curr:
             return os.path.abspath(start_path)
-        current = parent
+        curr = parent
 
-def load_cache(cache_file):
-    if os.path.exists(cache_file):
+def load_cache(f):
+    if os.path.exists(f):
         try:
-            with open(cache_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception:
+            with open(f, 'r') as fp:
+                return json.load(fp)
+        except:
             pass
     return {}
 
-def clean_cache(cache_data, project_root):
-    """Remove entries where source file no longer exists or cache schema mismatched."""
-    before = len(cache_data)
+def clean_cache(data, root):
     cleaned = []
-    for key, entry in list(cache_data.items()):
-        if 'results' not in entry:
+    now = time.time()
+    for k, v in list(data.items()):
+        if 'results' not in v:
             continue
-        results = entry.get('results', [])
-        if not results:
-            cleaned.append(key)
+        res = v.get('results', [])
+        if not res:
+            cleaned.append(k)
             continue
-        first_file = results[0].get('file', '')
-        if first_file and not os.path.exists(first_file):
-            cleaned.append(key)
+        if not os.path.exists(res[0].get('file', '')):
+            cleaned.append(k)
+            continue
+        mt = v.get('mtime', 0)
+        if mt and float(mt) > 0:
+            if (now - float(mt)) / 86400 > MAX_AGE_DAYS:
+                cleaned.append(k)
     for k in cleaned:
-        del cache_data[k]
-    return len(cleaned), before - len(cleaned)
+        del data[k]
+    return len(cleaned), len(data)
 
-def save_cache(cache_file, data):
+def save_cache(f, data):
     try:
-        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
-        with open(cache_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-    except Exception:
+        d = os.path.dirname(f)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        with open(f, 'w') as fp:
+            json.dump(data, fp, indent=2)
+    except:
         pass
 
-def get_dir_signature(directory, extensions):
-    mtimes = []
+def get_dir_sig(directory, exts):
+    parts = []
     for root, dirs, files in os.walk(directory):
         dirs[:] = [d for d in dirs if d not in DEFAULT_EXCLUDES]
-        for file in files:
-            if extensions and not any(file.endswith(ext) for ext in extensions):
+        for f in files:
+            if exts and not any(f.endswith(e) for e in exts):
                 continue
-            filepath = os.path.join(root, file)
+            fp = os.path.join(root, f)
             try:
-                if os.path.getsize(filepath) <= MAX_FILE_SIZE:
-                    mtimes.append(str(os.path.getmtime(filepath)))
-            except Exception:
+                if os.path.getsize(fp) <= MAX_FILE_SIZE:
+                    rel = os.path.relpath(fp, directory).replace(os.sep, '/')
+                    parts.append(f"{rel}:{os.path.getsize(fp)}")
+            except:
                 pass
-    return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()
+    return hashlib.md5("".join(sorted(parts)).encode()).hexdigest()
 
-def print_human(results, keyword, scanned, skipped):
-    total_matches = 0
+def print_human(results, kw, scanned, skipped):
+    total = 0
     for r in results:
-        rel_path = os.path.relpath(r['file'], os.getcwd())
-        print(f"\n[WARN] Found in: {rel_path}")
+        rel = os.path.relpath(r['file'], os.getcwd())
+        print(f"\n[WARN] Found in: {rel}")
         print("-" * 60)
-
         for block in r['blocks']:
-            for i in range(block['start'], block['end']):
-                line_str = r['lines'][i].rstrip()
-                prefix = ">>" if i in block['matches'] else "  "
-                print(f"{i+1:5d} | {prefix} {line_str}")
+            for i in range(block['start'], block['end'] + 1):
+                ln = r['lines'][i].rstrip() if i < len(r['lines']) else ''
+                pref = ">>" if i in block['matches'] else "  "
+                print(f"{i+1:5d} | {pref} {ln}")
                 if i in block['matches']:
-                    total_matches += 1
+                    total += 1
             print("-" * 30)
-
     print("\n" + "=" * 60)
-    print(f"[OK] Selesai: {total_matches} kecocokan di {len(results)} file (dari {scanned} dipindai, {skipped} dilewati karena >500KB).")
-    print("\n💡 PROMPT:")
-    print('"Tolong baca cuplikan kode di atas. Jika Anda perlu mengubah kode tersebut, gunakan tool replace_file_content."')
+    print(f"[OK] Selesai: {total} kecocokan di {len(results)} file (dari {scanned} dipindai, {skipped} dilewati)")
 
-def print_json(results, keyword, scanned, skipped):
-    total_matches = 0
-    output = {
-        'status': 'FOUND' if results else 'NOT_FOUND',
-        'keyword': keyword,
-        'stats': {
-            'total_matches': 0,
-            'files_with_matches': len(results),
-            'scanned': scanned,
-            'skipped': skipped
-        },
-        'results': []
-    }
-
+def print_json(results, kw, scanned, skipped):
+    out = {'status': 'FOUND' if results else 'NOT_FOUND', 'keyword': kw, 'stats': {'total': 0, 'files': len(results), 'scanned': scanned, 'skipped': skipped}, 'results': []}
     for r in results:
-        rel_path = os.path.relpath(r['file'], os.getcwd())
-        file_result = {
-            'file': rel_path,
-            'absolute_path': r['file'],
-            'matches': []
-        }
-
+        rel = os.path.relpath(r['file'], os.getcwd())
+        fr = {'file': rel, 'absolute': r['file'], 'matches': []}
         for block in r['blocks']:
-            for i in range(block['start'], block['end']):
-                line_str = r['lines'][i].rstrip()
-                is_match = i in block['matches']
-                file_result['matches'].append({
-                    'line': i + 1,
-                    'content': line_str,
-                    'is_match': is_match
-                })
-                if is_match:
-                    total_matches += 1
-
-        output['results'].append(file_result)
-
-    output['stats']['total_matches'] = total_matches
-    print(json.dumps(output, indent=2))
+            for i in range(block['start'], block['end'] + 1):
+                ln = r['lines'][i].rstrip() if i < len(r['lines']) else ''
+                ism = i in block['matches']
+                fr['matches'].append({'line': i+1, 'content': ln, 'match': ism})
+                if ism:
+                    out['stats']['total'] += 1
+        out['results'].append(fr)
+    print(json.dumps(out, indent=2))
 
 def main():
-    parser = argparse.ArgumentParser(description="Smart Code Finder - Find code with context (Token Efficient)")
-    parser.add_argument("target_dir", help="Directory to scan")
-    parser.add_argument("keyword", help="Search keyword (e.g., 'function_name')")
-    parser.add_argument("--ext", help="Comma-separated extensions to filter (e.g., .js,.jsx)", default="")
-    parser.add_argument("--json", action="store_true", help="Output as JSON (machine-readable)")
-    args = parser.parse_args()
-
-    extensions = [ext.strip() for ext in args.ext.split(",")] if args.ext else []
-
-    project_root = get_project_root(args.target_dir)
-    cache_file = os.path.join(project_root, '.agents', 'session_cache.json')
-    cache_data = load_cache(cache_file)
-    removed, _ = clean_cache(cache_data, project_root)
-    save_cache(cache_file, cache_data)
-
-    dir_signature = get_dir_signature(args.target_dir, extensions)
-    cache_key = f"search_{hashlib.md5((args.target_dir + args.keyword + ''.join(extensions)).encode()).hexdigest()}"
-
-    if cache_key in cache_data:
-        cached_entry = cache_data[cache_key]
-        if cached_entry.get('signature') == dir_signature:
-            print("[INFO] Menggunakan hasil cache dari session_cache.json (tidak ada file yang berubah)")
-            results = cached_entry['results']
-            scanned = cached_entry['scanned']
-            skipped = cached_entry['skipped']
-        else:
-            results, scanned, skipped = search_files(args.target_dir, args.keyword, extensions)
-            cache_data[cache_key] = {
-                'signature': dir_signature,
-                'results': results,
-                'scanned': scanned,
-                'skipped': skipped
-            }
-            save_cache(cache_file, cache_data)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("target")
+    ap.add_argument("keyword")
+    ap.add_argument("--ext", default="")
+    ap.add_argument("--json", action="store_true")
+    args = ap.parse_args()
+    exts = [e.strip() for e in args.ext.split(",")] if args.ext else []
+    root = get_project_root(args.target)
+    cf = os.path.join(root, '.agents', 'session_cache.json')
+    data = load_cache(cf)
+    clean_cache(data, root)
+    save_cache(cf, data)
+    sig = get_dir_sig(args.target, exts)
+    key = f"search_{hashlib.md5((args.target + args.keyword + ''.join(exts)).encode()).hexdigest()}"
+    if key in data and data[key].get('sig') == sig:
+        print("[INFO] Cache hit")
+        results = data[key]['results']
+        scanned = data[key]['scanned']
+        skipped = data[key]['skipped']
     else:
-        results, scanned, skipped = search_files(args.target_dir, args.keyword, extensions)
-        cache_data[cache_key] = {
-            'signature': dir_signature,
-            'results': results,
-            'scanned': scanned,
-            'skipped': skipped
-        }
-        save_cache(cache_file, cache_data)
-
+        results, scanned, skipped = search_files(args.target, args.keyword, exts)
+        data[key] = {'sig': sig, 'mtime': str(time.time()), 'results': results, 'scanned': scanned, 'skipped': skipped}
+        save_cache(cf, data)
     if not results:
         if args.json:
-            print(json.dumps({
-                'status': 'NOT_FOUND',
-                'keyword': args.keyword,
-                'stats': {'scanned': scanned, 'skipped': skipped}
-            }, indent=2))
+            print(json.dumps({'status': 'NOT_FOUND', 'keyword': args.keyword, 'stats': {'scanned': scanned, 'skipped': skipped}}))
         else:
-            print(f"[OK] Keyword '{args.keyword}' not found in {scanned} files.")
-        sys.exit(0)
-
+            print(f"[OK] Keyword '{args.keyword}' not found in {scanned} files")
+        return
     if args.json:
         print_json(results, args.keyword, scanned, skipped)
     else:
-        print(f"🔎 SEARCH RESULTS: '{args.keyword}'")
+        print(f"SEARCH: '{args.keyword}'")
         print("=" * 60)
         print_human(results, args.keyword, scanned, skipped)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except Exception as e:
         import traceback
-        print()
-        print("[TOOL ERROR] Ini bug internal snowline, BUKAN masalah di kode project Anda.")
-        print(f"Error: {type(e).__name__}: {e}")
-        print()
-        print("Traceback (untuk dilaporkan ke developer):")
+        print(f"[ERROR] {type(e).__name__}: {e}")
         traceback.print_exc()
         sys.exit(1)
