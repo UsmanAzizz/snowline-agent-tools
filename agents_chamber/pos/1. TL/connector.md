@@ -9,7 +9,21 @@ When done: write to OUTBOX below, then say "Task complete - please signal PM" in
 
 ## ACTIVE TASK - INBOX
 
-*(Empty - waiting for task)*
+**[New Task]** - **`snowline status` Should Offer (Not Auto-Run) Force-Reinstall + Update When a Newer Version Exists**
+
+**Goal:** `snowline status` stays read-only/safe by default (checks current vs. latest version), but if a newer version IS available, it should interactively OFFER the user a combined refresh: force-reinstall the package + run `snowline update --apply` in one confirmed step - not run automatically, requires explicit user confirmation (consistent with this project's dry-run-by-default, explicit-apply-required philosophy used everywhere else).
+
+**This touches `snowline_toolkit/cli.py` - shipped to ALL end users, not personal dev-tooling** - so this needs the full rigor: your review, QA counterbalance, Executor implementation with live-testing, same as any user-facing tool change.
+
+**Design questions for you and QA to work through:**
+1. How does `status` determine "newer version available" - compare local installed version against what's on the GitHub repo (requires a network call)? What happens gracefully if there's no network access (should still show current status, just skip/skip-with-a-note the update-check part)?
+2. What should the interactive prompt look like - a simple y/n, or show what's changed (changelog) before asking?
+3. Should this be a NEW flag (e.g. `snowline status --check-updates`) or just always check by default now (with a fast/cached check to avoid slowing down every `status` call)?
+4. Confirm the actual combined refresh command matches what's already documented in README.md (`pip uninstall ... && pip install ... --force-reinstall --no-cache-dir` then `snowline update --apply`) - don't invent new steps, reuse the exact proven sequence.
+
+**Live-test required once approved:** simulate an outdated-version scenario, confirm `status` detects it and prompts correctly; confirm declining the prompt leaves everything unchanged; confirm accepting runs the full sequence correctly. Also test the up-to-date case (no prompt shown) and no-network case (graceful degradation).
+
+**Status:** [READY]
 
 ---
 

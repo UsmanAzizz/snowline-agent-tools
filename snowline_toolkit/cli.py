@@ -566,9 +566,36 @@ def status():
         print()
         print_warninging("Ada versi lebih baru tersedia!")
         print()
-        print_info("Untuk update, jalankan:")
-        safe_print(f"  {Colors.BOLD}pip install --force-reinstall --no-cache-dir git+https://github.com/UsmanAzizz/snowline-agent-tools.git{Colors.RESET}")
-        print()
+        safe_print(f"Apakah Anda ingin melakukan instalasi ulang dan update sekarang? [y/N]: ", end="")
+        try:
+            choice = input().strip().lower()
+        except KeyboardInterrupt:
+            choice = 'n'
+            print()
+
+        if choice == 'y':
+            package_url = "git+https://github.com/UsmanAzizz/snowline-agent-tools.git"
+            import platform
+
+            if platform.system().lower() == "windows":
+                print_section("Meluncurkan updater di jendela baru...")
+                # Windows detached handoff: buka CMD baru, tunggu 2 detik agar proses saat ini mati
+                cmd_str = f'start cmd.exe /c "echo Menunggu penutupan Snowline (2 detik)... & ping 127.0.0.1 -n 2 > nul & echo Memulai Update... & {sys.executable} -m pip install --force-reinstall --no-cache-dir {package_url} & {sys.executable} -m snowline_toolkit.cli update --apply & echo. & echo Update selesai! & pause"'
+                os.system(cmd_str)
+                print_success("Snowline akan tertutup untuk melepas lock file.")
+                sys.exit(0)
+            else:
+                # Unix synchronous update
+                print_section("Memulai proses update...")
+                import subprocess
+                subprocess.run([sys.executable, '-m', 'pip', 'install', '--force-reinstall', '--no-cache-dir', package_url])
+                print_section("Menerapkan update pada tools lokal (snowline update)...")
+                subprocess.run([sys.executable, '-m', 'snowline_toolkit.cli', 'update', '--apply'])
+                print_success("Update selesai!")
+        else:
+            print_info("Update dibatalkan. Anda dapat mengupdate manual dengan perintah:")
+            safe_print(f"  {Colors.BOLD}pip install --force-reinstall --no-cache-dir git+https://github.com/UsmanAzizz/snowline-agent-tools.git{Colors.RESET}")
+            safe_print(f"  {Colors.BOLD}snowline update --apply{Colors.RESET}")
 
 
 def show_path():
