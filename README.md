@@ -59,7 +59,7 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 
 **Verified working with:** Claude Code (reliably auto-invoked per `.agents/agents.md` instructions) and Gemini/Antigravity (works when instructions are present in `agents.md`, though tool-call approval behavior varies by platform/IDE settings and is outside this project's control).
 
-## Tools (14 Core)
+## Tools (15 Core)
 
 ### Search & Modify
 | Tool | Purpose | Needs Approval? |
@@ -67,6 +67,7 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 | `smart_search` | Find code with surrounding context | No |
 | `smart_replace` | Find-and-replace with dry-run, backup, and syntax validation | Yes (`--apply`) |
 | `import_fixer` | Fix broken relative imports | Yes (`--apply`) |
+| `surgical_splicer` | Extract a single function/class body with zero surrounding context (token-efficient for huge files) | No |
 
 ### Read & Navigate
 | Tool | Purpose | Needs Approval? |
@@ -80,7 +81,7 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 |------|---------|------------------|
 | `project_guardian` | Scans for exposed credentials, `.gitignore` issues, broken imports | No |
 | `deep_analyzer` | Project profiler (tech stack, dependencies, file stats) | No |
-| `impact_analyzer` | Traces reverse-dependencies before a file is changed | No |
+| `impact_analyzer` | Traces reverse-dependencies before a file is changed, with configurable `--depth` for multi-hop chains | No |
 | `clean_sweeper` | Finds leftover/temp files and tech debt | No |
 | `db_extractor` | Extracts database schema (requires `pymysql`) | No (read-only) |
 
