@@ -22,7 +22,7 @@ class PostInstallMessage(install):
 
 setup(
     name="snowline-agent-tools",
-    version="1.0.5",
+    version="1.0.6",
     description="Portable agent tools for coding assistants.",
     author="UsmanAzizz",
     packages=find_packages(),
