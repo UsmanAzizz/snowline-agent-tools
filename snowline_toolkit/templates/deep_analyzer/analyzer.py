@@ -6,6 +6,21 @@ import argparse
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
+def _read_gitignore(project_root):
+    """Read directory patterns from project's .gitignore."""
+    gitignore_path = os.path.join(project_root, '.gitignore')
+    patterns = []
+    if os.path.exists(gitignore_path):
+        with open(gitignore_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    # Strip trailing slash from dir patterns (e.g. .next/ -> .next)
+                    if line.endswith('/'):
+                        line = line[:-1]
+                    patterns.append(line)
+    return patterns
+
 def analyze_project(target_dir):
     result = {
         'tech_stack': [],
@@ -47,7 +62,9 @@ def analyze_project(target_dir):
             pass
 
     # 3. Directory Stats
-    ignore_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history', 'quarantine'}
+    hardcoded_ignore = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history', 'quarantine'}
+    ignore_dirs = set(hardcoded_ignore)
+    ignore_dirs.update(_read_gitignore(target_dir))
     total_files = 0
     total_size = 0
     file_counts = {}

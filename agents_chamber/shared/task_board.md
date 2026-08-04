@@ -5,18 +5,22 @@
 ## Active Tasks
 *(None currently assigned through chamber system)*
 
-## Position Status
-| Position | Status | Notes |
-|---------|--------|-------|
-| claude_code/pos_01 | idle | Claude Code agent |
-| gemini/pos_01 | idle | Gemini agent |
+## Position Status & Active Tasks
+*(Single Source of Truth untuk status agen - dilarang menggunakan seksi CURRENT TASK di connector.md)*
+
+| Position | Role | Current Active Task / Status | Notes |
+|---------|--------|-----------------------------|-------|
+| `pos/0. PM` | **Project Manager** | Mengawasi eksekusi *Governance Package* | Claude Web/App UI |
+| `pos/1. TL` | **Tech Lead** | Mengeksekusi *Governance Package* (Item 1-5) | Gemini (Antigravity) |
+| `pos/2. QA` | **QA / Reviewer** | Mengevaluasi ulang integrasi *Installer* | Gemini |
+| `pos/3. Executor/Executor_01` | **Executor** | *Idle - Menunggu instruksi TL* | Claude Code |
+| `pos/3. Executor/Executor_02` | **Executor** | *Kosong* | (Reserved) |
 
 ## Completed (Recent)
-- Task 36: Rename session_XX to pos_XX
-- Task 35: Add gemini/ folder to agents_chamber
-- Task 32-34: Signal protocol, safe_substitute_line fix, severity-halt rule
-- Task 31: Placeholder content population
-- Task 30: agents_chamber/ structure built
+- Task 41-44: Surgical Code Splicer & Indentation Fallback (VERIFIED)
+- Task 42-43: Chamber Optimizations (Arsip & Ledger)
+- Task 40: Evaluate Architecture Concepts
+- Task 39: On-the-Fly Recursive Traversal + `--depth` Parameter
 
 ## Notes
 - Both Claude Code and Gemini now have chamber positions

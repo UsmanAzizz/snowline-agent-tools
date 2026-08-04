@@ -1,8 +1,9 @@
 import ast, sys, re
 
 JS_PATTERNS = [
-    r"function\s+\w+\s*\(",
-    r"class\s+\w+",
+    r'(?:export\s+)?(?:async\s+)?function\s+\w+\s*\(',
+    r'(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?\([^)]*\)\s*=>',
+    r'class\s+\w+',
 ]
 
 def get_ranges(c):
@@ -16,77 +17,188 @@ def get_ranges(c):
     except:
         return {}
 
-def find_js_line(c, kw):
-    lines = c.split("\n")
+def find_js_line(content, keyword):
+    """
+    Find the line number where a JS function/class with the keyword starts.
+    Uses simple state machine to skip strings and comments.
+    """
+    lines = content.split('\n')
     for i, line in enumerate(lines):
+        # Parse line character by character to handle strings/comments
         j = 0
-        in_str = None
+        in_string = None  # None, '"', or "'"
         while j < len(line):
             ch = line[j]
-            if j > 0 and line[j-1] == "\\":
+            # Skip escaped characters
+            if j > 0 and line[j-1] == '\\':
                 j += 1
                 continue
-            if ch in "\"'":
-                in_str = None if in_str == ch else ch
+            # Handle string delimiters
+            if ch == '"' or ch == "'":
+                if in_string == ch:
+                    in_string = None
+                elif in_string is None:
+                    in_string = ch
                 j += 1
                 continue
-            if in_str:
+            # If we're in a string, just continue
+            if in_string is not None:
                 j += 1
                 continue
-            # Check if keyword found AND pattern matches
-            if kw in line[:j]:
+            # Skip line comments
+            if ch == '/' and j + 1 < len(line) and line[j+1] == '/':
+                break  # Rest of line is comment
+            # Check if keyword is present (before any comment)
+            if keyword in line[:j]:
+                # We found keyword before any comment, now check for JS pattern
+                code_part = line[:j]
                 for pat in JS_PATTERNS:
-                    if re.search(pat, line[:j]):
+                    if re.search(pat, code_part):
                         return i
             j += 1
     return None
 
-def extract_body(c, start):
-    lines = c.split("\n")
-    depth = 0
-    paren_depth = 0
-    body_started = False
+def extract_by_indentation(content, start_idx):
+    """
+    Fallback extraction using indentation levels.
+    Counts leading spaces of the starting line, then finds where the block ends.
+    Stops when finding a line whose stripped version starts with '}'
+    AND whose indentation level is <= the starting indentation level.
+    """
+    lines = content.split('\n')
+    if start_idx >= len(lines):
+        return None
+
+    # Get the indentation level of the starting line
+    start_line = lines[start_idx]
+    start_indent = len(start_line) - len(start_line.lstrip())
+
+    # Find the end of the block
+    end_idx = start_idx
+    while end_idx < len(lines):
+        line = lines[end_idx]
+        stripped = line.strip()
+
+        # Check if this line starts with '}' and is at or below start indent
+        if stripped.startswith('}'):
+            line_indent = len(line) - len(line.lstrip())
+            if line_indent <= start_indent:
+                return (start_idx, end_idx)
+
+        end_idx += 1
+
+    return None
+
+def extract_js_body(content, start_idx):
+    """
+    Extract function/class body using brace-counting state machine.
+
+    BAIL-OUT STRATEGY:
+    - Returns None immediately when encountering:
+      - Backtick (`) - template literal (can't track ${} interpolation safely)
+      - Forward slash (/) in ambiguous context - can't distinguish from regex/division
+    - Falls back to line-context behavior in caller.
+
+    PAREN-DEPTH TRACKING:
+    - Tracks paren depth ( ) alongside brace depth
+    - Only starts counting braces toward function-body depth AFTER
+      the parameter list's parentheses have fully closed (paren_depth = 0)
+    - This correctly handles destructured params like function({ items }) { }
+    """
+    lines = content.split('\n')
+    depth = 0          # Brace depth (for function body)
+    paren_depth = 0    # Paren depth (for parameter list)
+    body_started = False  # Set to True after first ')' closes param list
     found = False
-    i = start
+    i = start_idx
     while True:
         if i >= len(lines):
-            return None
+            return None  # EOF with depth > 0
         line = lines[i]
         j = 0
-        in_str = None
+        in_string = None  # None, '"', or "'"
         while j < len(line):
             ch = line[j]
-            if in_str and j > 0 and line[j-1] == "\\":
+
+            # Handle escape characters INSIDE strings only
+            if in_string and j > 0 and line[j-1] == '\\':
                 j += 1
                 continue
-            if ch in "\"'":
-                in_str = None if in_str == ch else ch
+
+            # Handle string delimiters
+            if ch == '"' or ch == "'":
+                if in_string == ch:
+                    in_string = None
+                elif in_string is None:
+                    in_string = ch
                 j += 1
                 continue
-            if in_str:
+
+            # Skip rest of line if in string
+            if in_string is not None:
                 j += 1
                 continue
-            if ch == "`":
-                return None
-            if ch == "/":
-                return None
-            if ch == "(":
+
+            # Handle comments FIRST (before slash bail-out)
+            if ch == '/':
+                if j + 1 < len(line) and line[j+1] == '/':
+                    # Line comment - safe, skip to end of line
+                    break
+                elif j + 1 < len(line) and line[j+1] == '*':
+                    # Block comment - safe, skip the block
+                    end = line.find('*/', j+2)
+                    if end >= 0:
+                        lines[i] = line[:j] + line[end+2:]
+                        # After splicing, break to next line to avoid
+                        # reprocessing the remaining '/' from '/*'
+                        break
+                    else:
+                        i += 1
+                        while i < len(lines):
+                            end = lines[i].find('*/')
+                            if end >= 0:
+                                lines[i] = lines[i][end+2:]
+                                break
+                            i += 1
+                        else:
+                            return None
+                        # After processing multi-line block comment, move to next line
+                        break
+                else:
+                    # Check for safe JSX slashes
+                    if j > 0 and line[j-1] == '<' and j + 1 < len(line) and (line[j+1].isalpha() or line[j+1] == '>'):
+                        pass # Safe JSX closing tag (including <></>)
+                    elif j + 1 < len(line) and line[j+1] == '>' and j > 0 and line[j-1] not in '<>=-+*':
+                        pass # Safe JSX self-closing tag
+                    else:
+                        # Ambiguous slash - could be regex or division
+                        return None  # BAIL-OUT
+
+            # BAIL-OUT: Template literal start
+            if ch == '`':
+                return None  # Template literal - can't track safely
+
+            # Track parentheses first (before braces)
+            if ch == '(':
                 paren_depth += 1
-            elif ch == ")":
+            elif ch == ')':
                 paren_depth -= 1
-                if paren_depth == 0:
+                if paren_depth == 0 and not body_started:
+                    # First closing paren after opening - param list is done
                     body_started = True
-            if ch == "{":
+
+            # Track braces (only after param list is closed)
+            if ch == '{':
                 if body_started:
                     depth += 1
                     found = True
-            elif ch == "}":
+            elif ch == '}':
                 if body_started:
                     depth -= 1
                     if depth < 0:
-                        return None
+                        return None  # Excess closing brace
                     if depth == 0 and found:
-                        return (start, i)
+                        return (start_idx, i)
             j += 1
         i += 1
     return None
@@ -110,12 +222,23 @@ def splice(fp, fn):
     if any(fp.endswith(ext) for ext in js_exts):
         start = find_js_line(c, fn)
         if start is not None:
-            body = extract_body(c, start)
+            # Try primary extraction first
+            body = extract_js_body(c, start)
+            if body is None:
+                # Fallback to indentation-based extraction
+                body = extract_by_indentation(c, start)
+                if body:
+                    sys.stderr.write(f"[FALLBACK: indentation-based, verify manually]\n")
             if body:
                 s, e = body
                 for i in range(s, e + 1):
                     print(lines[i])
                 return
+            # Both failed - Plan C: print 50 lines of context
+            sys.stderr.write(f"[FALLBACK: line-context, not full-body extraction] Printing 50 lines context.\n")
+            for i in range(start, min(start + 50, len(lines))):
+                print(lines[i])
+            return
     sys.stderr.write(f"[ERROR] {fn} not found\n")
 
 if __name__ == "__main__":

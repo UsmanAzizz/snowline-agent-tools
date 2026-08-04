@@ -227,9 +227,16 @@ def search_files(directory, keyword, extensions):
                         })
                         continue
                     else:
-                        # Bail-out: template literal or ambiguous slash detected
-                        # Fall through to line-context below
-                        pass
+                        # Check for safe JSX slashes
+                        if j > 0 and line[j-1] == '<' and j + 1 < len(line) and (line[j+1].isalpha() or line[j+1] == '>'):
+                            pass # Safe JSX closing tag (including <></>)
+                        elif j + 1 < len(line) and line[j+1] == '>' and j > 0 and line[j-1] not in '<>=-+*':
+                            pass # Safe JSX self-closing tag
+                        else:
+                            # Bail-out: template literal or ambiguous slash detected
+                            # Fall through to line-context below
+                            sys.stderr.write(f"[FALLBACK: line-context, not full-body extraction] in {fpath}\n")
+                            pass
             matches = []
             for i, line in enumerate(lines):
                 if keyword in line:

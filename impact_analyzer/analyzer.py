@@ -7,39 +7,31 @@ import argparse
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-def find_usages(project_root, target_name):
-    """Scan all files to find import/require usages of target_name (no false positives from comments/strings)."""
+def find_usages(project_root, target_names):
+    """Scan all files to find import/require usages of multiple target_names in a single pass."""
+    if not target_names:
+        return set()
+
     usages = set()
     exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine'}
 
-    # Match ONLY import/require/export statements, not incidental word mentions
-    # Target name is escaped to prevent regex injection
-    escaped = re.escape(target_name)
-    # Suffix match: target name can appear at the end of the quoted path after optional ./ ../ or folder/ prefixes
-    # e.g. 'Button', './Button', '../components/Button', 'utils/Button'
-    # The suffix group (?:\.\/|\.\.\/|/)? allows zero or more folder/prefix chars before the target name
-    # Optional file extension (?:\.[a-zA-Z0-9]+)? allows explicit extensions like './Button.js'
-    quoted_suffix = rf"['\"](?:\.\/|\.\.\/|[^'\"]*/)?{escaped}(?:\.[a-zA-Z0-9]+)?['\"]"
+    escaped_targets = [re.escape(t) for t in target_names]
+    targets_pattern = "(?:" + "|".join(escaped_targets) + ")"
+    quoted_suffix = rf"['\"](?:\.\/|\.\.\/|[^'\"]*/)?{targets_pattern}(?:\.[a-zA-Z0-9]+)?['\"]"
 
-    # Python-specific patterns (Bug 1 fix)
     python_patterns = [
-        re.compile(rf'import\s+{escaped}\b'),                    # import target
-        re.compile(rf'from\s+{escaped}\s+import'),                # from target import
-        re.compile(rf'from\s+{escaped}\.\w+\s+import'),          # from target.submodule import
-        re.compile(rf'import\s+{escaped}(?:\.\w+)*\b'),        # import target.submodule
+        re.compile(rf'import\s+{targets_pattern}\b'),
+        re.compile(rf'from\s+{targets_pattern}\s+import'),
+        re.compile(rf'from\s+{targets_pattern}\.\w+\s+import'),
+        re.compile(rf'import\s+{targets_pattern}(?:\.\w+)*\b'),
     ]
 
     patterns = [
-        # ES module named import: import { Foo } from 'target' or import Foo from 'target'
         re.compile(rf"import\s+(?:\{{[^}}]*}}|[^{{}};\n]+)\s+from\s+{quoted_suffix}"),
         re.compile(rf"import\s+{{[^}}]*}}\s+from\s+{quoted_suffix}"),
-        # CommonJS require: require('target') or require('./target') or require('../utils/target')
         re.compile(rf"require\s*\(\s*{quoted_suffix}"),
-        # Dynamic import: import('target') or import('./target')
         re.compile(rf"import\s*\(\s*{quoted_suffix}"),
-        # Export from: export ... from 'target'
         re.compile(rf"export\s+.*?\s+from\s+{quoted_suffix}"),
-        # Direct bareword import: import 'target' (side-effect import)
         re.compile(rf"import\s+{quoted_suffix}"),
     ]
 
@@ -53,52 +45,56 @@ def find_usages(project_root, target_name):
             try:
                 with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
-                    # Use Python patterns for Python/PHP files, JS patterns for JS/TS files
                     if file.endswith(('.py', '.php')):
                         if any(p.search(content) for p in python_patterns):
                             usages.add(filepath)
-                    else:  # JS/TS files
+                    else:
                         if any(p.search(content) for p in patterns):
                             usages.add(filepath)
             except Exception:
                 pass
     return usages
 
-def analyze_impact(target_path, project_root):
-    target_filename = os.path.basename(target_path)
-    target_base, _ = os.path.splitext(target_filename)
+def _get_target_base(filepath):
+    """Extract target base name from filepath, handling index.js -> parent folder."""
+    base, _ = os.path.splitext(os.path.basename(filepath))
+    if base.lower() == 'index':
+        return os.path.basename(os.path.dirname(filepath))
+    return base
 
-    if target_base.lower() == 'index':
-        target_base = os.path.basename(os.path.dirname(target_path))
+def analyze_impact(target_path, project_root, max_depth=2):
+    """Analyze dependency impact with configurable recursive depth.
 
-    # Level 1
-    level_1 = find_usages(project_root, target_base)
-    level_1.discard(target_path)
+    Args:
+        target_path: Path to the target file
+        project_root: Root directory of the project
+        max_depth: Maximum recursion depth (default 2)
+    Returns:
+        Dict with levels and stats
+    """
+    levels = {}
+    already_seen = {target_path}
 
-    # Level 2
-    level_2 = set()
-    for l1_file in level_1:
-        l1_base, _ = os.path.splitext(os.path.basename(l1_file))
-        if l1_base.lower() == 'index':
-            l1_base = os.path.basename(os.path.dirname(l1_file))
+    current_targets = {_get_target_base(target_path)}
 
-        usages = find_usages(project_root, l1_base)
-        usages.discard(l1_file)
-        usages.discard(target_path)
-        level_2.update(usages)
+    for depth in range(1, max_depth + 1):
+        if not current_targets:
+            break
+        current_level = find_usages(project_root, current_targets) - already_seen
+        if current_level:
+            levels[depth] = sorted(current_level)
+            already_seen.update(current_level)
+            current_targets = {_get_target_base(f) for f in current_level}
+        else:
+            levels[depth] = []
+            current_targets = set()
 
-    level_2 = level_2 - level_1
-
+    total = sum(len(files) for files in levels.values())
     return {
-        'target': target_filename,
+        'target': os.path.basename(target_path),
         'target_path': target_path,
-        'level_1': list(level_1),
-        'level_2': list(level_2),
-        'stats': {
-            'level_1_count': len(level_1),
-            'level_2_count': len(level_2),
-            'total_impacted': len(level_1) + len(level_2)
-        }
+        'levels': levels,
+        'stats': {'total': total, 'per_level': {d: len(files) for d, files in levels.items()}}
     }
 
 def print_human(result, project_root):
@@ -106,35 +102,35 @@ def print_human(result, project_root):
     print(f"Project Root: {project_root}")
     print("-" * 50)
 
-    print("\n[Level 1] Direct Dependents:")
-    if not result['level_1']:
-        print("  No dependents found. Safe to modify/delete.")
-    else:
-        for f in result['level_1']:
-            print(f"  - {os.path.relpath(f, project_root)}")
-
-    print("\n[Level 2] Indirect Dependents:")
-    if not result['level_2']:
-        print("  No Level 2 dependents found.")
-    else:
-        for f in result['level_2']:
-            print(f"  - {os.path.relpath(f, project_root)}")
+    for depth, files in sorted(result['levels'].items()):
+        label = "Direct" if depth == 1 else f"Level {depth}"
+        print(f"\n[Level {depth}] {label} Dependents:")
+        if not files:
+            print("  None found.")
+        else:
+            for f in files:
+                print(f"  - {os.path.relpath(f, project_root)}")
 
     print("\n" + "=" * 50)
-    print(f"Impact Summary: {result['stats']['level_1_count']} direct, {result['stats']['level_2_count']} indirect")
+    stats = result['stats']
+    print(f"Impact Summary: {stats['total']} total")
+    for depth, count in sorted(stats['per_level'].items()):
+        label = "direct" if depth == 1 else f"level {depth}"
+        print(f"  Level {depth}: {count} {label}")
 
 def main():
     parser = argparse.ArgumentParser(description="Impact Analyzer - Dependency Graph")
     parser.add_argument("target", help="Target file path")
     parser.add_argument("project_root", help="Project root directory")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--depth", type=int, default=2, help="Maximum traversal depth (default: 2)")
     args = parser.parse_args()
 
     if not os.path.exists(args.target):
         print(f"[ERROR] Target file not found: {args.target}")
         sys.exit(1)
 
-    result = analyze_impact(args.target, args.project_root)
+    result = analyze_impact(args.target, args.project_root, max_depth=args.depth)
 
     if args.json:
         print(json.dumps(result, indent=2))

@@ -1,0 +1,5 @@
+{
+    "task": "test task",
+    "allowed_files": ["src/api.js", "src/app.jsx"],
+    "allowed_patterns": []
+}

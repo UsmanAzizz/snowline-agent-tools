@@ -244,25 +244,26 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
         "smart_replace"
     }
 
-    # ---- False-positive guard for "baru" (new) ----
-    # "baru" in Indonesian means both "new" (creation) AND "recently" (past tense)
-    # "cari file yang baru diubah" = "find recently modified files" — NOT creation intent
-    # Only suppress "baru" trigger when adjacent to action verbs indicating past/recent actions
-    creation_verbs_for_check = [cv for cv in CREATION_VERBS]
-    if " baru" in text:
-        action_adjacent = any(avi in text for avi in [" cari ", " ubah", " ganti", " edit", " modif", " rubah", " di", " yang ", " udah "])
-        if action_adjacent:
-            # "baru" likely means "recently", not "new/create" — remove from check
-            creation_verbs_for_check = [cv for cv in CREATION_VERBS if cv != "baru"]
-
-    has_creation_verb = any(cv in text for cv in creation_verbs_for_check)
+    has_creation_verb = any(cv in text for cv in CREATION_VERBS)
     matched_tool_names = {m["tool"] for m in tool_matches}
-    # Override: if creation verb present AND only analysis tools matched (not auto_scaffolder, not clean_sweeper)
+    # Override: if creation verb present AND only analysis tools matched (not auto_scaffolder)
+    # Note: clean_sweeper is excluded from override because "tambah bersihkan" = "do more cleanup" (not create)
     has_analysis_only = (
         matched_tool_names.issubset(analysis_tools) and
         "auto_scaffolder" not in matched_tool_names and
         "clean_sweeper" not in matched_tool_names
     )
+
+    # ---- False-positive guard for "baru" (new) ----
+    # "baru" in Indonesian means both "new" (creation) AND "recently" (past tense)
+    # "cari file yang baru diubah" = "find recently modified files" — NOT creation intent
+    # Only suppress "baru" trigger when adjacent to action verbs indicating past/recent actions
+    if " baru" in text:
+        action_adjacent = any(avi in text for avi in [" cari ", " ubah", " ganti", " edit", " modif", " rubah", " di", " yang ", " udah "])
+        if action_adjacent:
+            # "baru" likely means "recently", not "new/create" — remove from check
+            creation_verbs_filtered = [cv for cv in CREATION_VERBS if cv != "baru"]
+            has_creation_verb = any(cv in text for cv in creation_verbs_filtered)
 
     if has_creation_verb and has_analysis_only and not needs_clarify:
         needs_clarify = True
