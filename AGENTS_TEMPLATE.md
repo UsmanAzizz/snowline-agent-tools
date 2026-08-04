@@ -142,14 +142,18 @@ Setelah user setuju:
 **5. Communication:**
 - Pakai format tag: [TASK], [DONE], [WARN], [INFO]
 - Bahasa Indonesia, lugas, tanpa hype
-- Pakai format tag: [TASK], [DONE], [WARN], [INFO]
-- Bahasa Indonesia, lugas, tanpa hype
 - ⚠️ WAJIB laporkan error yang diatasi sendiri
 
 **6. Stop on CRITICAL Findings:**
 - Jika `project_guardian` melaporkan severity CRITICAL, AI WAJIB berhenti dan melapor ke user terlebih dahulu SEBELUM melanjutkan task atau instruksi lain apa pun
 - Tidak boleh dilanjutkan tanpa konfirmasi eksplisit dari user, meskipun instruksi asal tidak menyebutkan soal keamanan
 - Contoh: user minta "rapikan kode", hasilnya ada API key di commit history → AI berhenti dan tanya user sebelum lanjut
+
+**7. "Grill First" & Formal Planning (The `_plan` Convention):**
+- Jika prompt user mengandung kata kunci `_plan` (case-insensitive, contoh: `_plan buat fitur login`), Anda DIWAJIBKAN untuk masuk ke mode **Formal Planning** dan dilarang keras langsung memodifikasi kode.
+- **Tahap 1 (Grill First):** Jangan langsung berasumsi. Gunakan `deep_analyzer` atau `context_mapper` untuk membaca struktur proyek, lalu ajukan 1-2 pertanyaan terarah (Grill) kepada user untuk memperjelas batasan atau edge-cases.
+- **Tahap 2 (Blueprint):** Setelah asumsi terjawab, susun rencana eksekusi menggunakan struktur `plan_tracker/PLAN_TEMPLATE.md`. Bagian "Keputusan & Asumsi" dan "Menunggu Konfirmasi" wajib diisi.
+- **Tahap 3 (Explicit Approval):** Berhenti dan tunggu konfirmasi eksplisit dari user ("Proceed", "Silakan lanjut") SEBELUM mengeksekusi tool WRITE apa pun.
 
 ---
 

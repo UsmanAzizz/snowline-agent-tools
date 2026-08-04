@@ -36,6 +36,8 @@ BROADCAST_ALPHA_OK
 
 ## ARCHIVE
 
+- [Task 50 & 51] Desain `_plan` Convention & Grill-First: APPROVED WITH REVISION (Ganti intercept `startswith` menjadi substring `in` agar bulletproof).
+
 - [Task 48] Verifikasi Final Eksekusi JSX Slash & Governance v2.1: VERIFIED & PASSED. (JSX fragment `<></>` dan self-closing tags kini diekstrak utuh tanpa fallback).
 - [Task 44] Verify splicer.py Indentation Fallback: VERIFIED & PASSED -> see `shared/archive/task_44_splicer_fallback.md`
 - [Task 43] Verify Chamber Optimization: VERIFIED & PASSED -> see `shared/archive/task_43_verify_chamber.md`
