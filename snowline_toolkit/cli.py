@@ -578,11 +578,11 @@ def status():
             import platform
 
             if platform.system().lower() == "windows":
-                print_section("Membuka jendela baru untuk proses update...")
+                print_info("Mendelegasikan proses update ke jendela terpisah...")
                 # Windows detached handoff: buka CMD baru, tunggu 2 detik agar proses saat ini mati
                 cmd_str = f'start cmd.exe /c "ping 127.0.0.1 -n 2 > nul & echo Sedang mengunduh dan menerapkan versi terbaru... & {sys.executable} -m pip install --force-reinstall --no-cache-dir {package_url} & {sys.executable} -m snowline_toolkit.cli update --apply & echo. & echo Update berhasil diterapkan! & pause"'
                 os.system(cmd_str)
-                print_success("Proses update sedang berjalan. Jendela ini akan ditutup otomatis.")
+                safe_print(f"{Colors.DIM}Sesi perintah ini diakhiri untuk membuka akses modifikasi file.{Colors.RESET}")
                 sys.exit(0)
             else:
                 # Unix synchronous update
