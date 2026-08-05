@@ -36,6 +36,32 @@ pip uninstall snowline-toolkit -y
 pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-reinstall --no-cache-dir
 ```
 
+## CLI Commands
+
+### Status Check (Dual-Layer)
+```bash
+python -m snowline_toolkit.cli status
+```
+Checks both **package version** (Python package from GitHub) and **project layer** (`.agents/` skills from local templates) simultaneously. Shows actionable commands when updates are available.
+
+### Reinstall
+```bash
+# Restore from local package (no GitHub download)
+python -m snowline_toolkit.cli reinstall
+
+# Download and apply latest version from GitHub
+python -m snowline_toolkit.cli reinstall --latest
+python -m snowline_toolkit.cli reinstall --apply --latest  # execute
+```
+The `--latest` flag downloads the newest package directly from GitHub with local rollback protection if the download fails.
+
+### Init (with Force)
+```bash
+python -m snowline_toolkit.cli init --apply
+python -m snowline_toolkit.cli init --apply --force  # overwrite existing skills
+```
+Use `--force` to restore all skills from templates, overwriting any local modifications.
+
 ## AGENTS.md — How the Ecosystem Is Used
 
 After installation, `.agents/agents.md` is created in your project root. This file instructs the AI agent (Gemini, Claude Code, etc.) working in your project to:
