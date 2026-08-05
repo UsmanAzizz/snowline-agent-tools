@@ -129,21 +129,18 @@ def _clear_pip_cache():
                 pass
 
 
-def init(dry=True):
-    # Check if already installed - suggest update
+def init(dry=True, force=False):
+    # Check if already installed
     existing_count = 0
     skills_dir = Path.cwd() / ".agents" / "skills"
     if skills_dir.exists():
         existing_count = len([f for f in skills_dir.rglob("*") if f.is_file() and not f.name.endswith(".pyc")])
-    
-    if existing_count > 0 and not dry:
+
+    if existing_count > 0 and not force:
         print_info(f"Found {existing_count} existing skills")
         print()
-        print_warninging("Skills already installed!")
-        print_info("To update, run: snowline update --apply")
-        print_info("To reinstall, run: snowline uninstall --apply first")
-        print()
-        safe_print(f"{Colors.DIM}Use --apply to install anyway{Colors.RESET}")
+        print_warninging("Skills sudah terpasang. Tidak ada yang diubah.")
+        print_info("Untuk memasang ulang: snowline reinstall --apply")
         return
 
     templates = Path(__file__).parent / "templates"
@@ -263,7 +260,7 @@ def init(dry=True):
         dest.parent.mkdir(parents=True, exist_ok=True)
         
         # Always copy SKILL.md, always copy new files
-        if not dest.exists() or f.name in ALWAYS_UPDATE:
+        if force or not dest.exists() or f.name in ALWAYS_UPDATE:
             shutil.copy2(f, dest)
             if not dest.exists():
                 created_skills.append(str(rel))
@@ -425,7 +422,7 @@ def update(apply=False):
     print_success(f"Updated: {created} new, {updated} modified")
 
 
-def uninstall(apply=False):
+def uninstall(apply=False, confirm_msg=None):
     _clear_pip_cache()
     root = Path.cwd() / ".agents"
     skills_dir = root / "skills"
@@ -466,7 +463,9 @@ def uninstall(apply=False):
                 print_list_item(str(f.relative_to(skills_dir)))
         print_info("Configuration files will be kept")
         print()
-        safe_print(f"Run {Colors.BOLD}snowline uninstall --apply{Colors.RESET} to confirm")
+        default_cmd = "snowline uninstall --apply to confirm"
+        cmd = confirm_msg if confirm_msg else default_cmd
+        safe_print(f"Run {Colors.BOLD}{cmd}{Colors.RESET}")
         return
 
     removed = 0
@@ -490,12 +489,46 @@ def uninstall(apply=False):
         print_info(f"Preserved {preserve_count} user-created files")
 
 
+def reinstall(apply=False, latest=False):
+    if latest:
+        print_info("Mengambil versi terbaru dari GitHub...")
+        if not apply:
+            print_warninging("Ini akan mendownload package dan melakukan reinstall.")
+            safe_print("Run snowline reinstall --apply --latest to execute")
+            return
+
+        package_url = "git+https://github.com/UsmanAzizz/snowline-agent-tools.git"
+        import platform
+        if platform.system().lower() == "windows":
+            print_info("Mendelegasikan ke CMD terpisah (Windows)...")
+            cmd_str = f'start cmd.exe /c "ping 127.0.0.1 -n 2 > nul & echo Sedang mengunduh... & {sys.executable} -m pip install --force-reinstall --no-cache-dir {package_url} && {sys.executable} -m snowline_toolkit.cli reinstall --apply && echo. && echo Reinstall berhasil! & pause"'
+            os.system(cmd_str)
+            sys.exit(0)
+        else:
+            import subprocess
+            res = subprocess.run([sys.executable, '-m', 'pip', 'install', '--force-reinstall', '--no-cache-dir', package_url])
+            if res.returncode == 0:
+                print_success("Package terupdate!")
+                uninstall(apply=True)
+                init(dry=False, force=True)
+                print_success("Reinstall selesai!")
+            else:
+                print_error("Gagal mendownload package. Instalasi lokal tidak disentuh.")
+    else:
+        print_info("Memulihkan dari paket lokal.")
+        if not apply:
+            print_info("Untuk sekaligus mengambil versi terbaru dari GitHub: snowline reinstall --apply --latest")
+        uninstall(apply=apply, confirm_msg="snowline reinstall --apply to confirm")
+        if apply:
+            init(dry=False, force=True)
+
+
 def status():
-    """Check if newer version is available on GitHub (read-only)."""
+    """Check package (GitHub) and project (.agents) layers."""
     import subprocess
     import json
 
-    # Find installed package info
+    # ---- Layer 1: Package (GitHub) ----
     installed_commit = None
     package_info = None
 
@@ -512,7 +545,6 @@ def status():
     except Exception:
         pass
 
-    # Read commit from dist-info/direct_url.json
     if package_info:
         import glob
         dist_info_pattern = os.path.join(package_info, 'snowline_agent_tools-*.dist-info')
@@ -528,7 +560,6 @@ def status():
                 except Exception:
                     pass
 
-    # Get remote HEAD commit
     remote_commit = None
     try:
         result = subprocess.run(
@@ -542,29 +573,85 @@ def status():
     except Exception:
         pass
 
+    pkg_latest = (installed_commit and remote_commit and installed_commit == remote_commit)
+    pkg_behind = (installed_commit and remote_commit and installed_commit != remote_commit)
+    pkg_unknown = (not installed_commit)
+
+    # ---- Layer 2: .agents files ----
+    new_files_count = 0
+    modified_files_count = 0
+    agents_md_modified = False
+
+    target = Path.cwd() / ".agents" / "skills"
+    if target.exists():
+        templates = Path(__file__).parent / "templates"
+        agents_template = templates / "AGENTS_TEMPLATE.md"
+        agents_dest = target.parent / "agents.md"
+        PROTECTED = {
+            "memory.json", "PROJECT_CONTEXT.md", "PROJECT_NOTES.md",
+            "CURRENT_STATE.md", "scope_lock.json",
+        }
+        skill_files = [
+            f for f in templates.rglob("*")
+            if f.is_file()
+            and not f.name.endswith(".pyc")
+            and f.name != "AGENTS_TEMPLATE.md"
+        ]
+        if agents_template.exists() and agents_dest.exists():
+            if agents_template.stat().st_mtime > agents_dest.stat().st_mtime:
+                agents_md_modified = True
+        for f in skill_files:
+            rel = str(f.relative_to(templates))
+            if rel in PROTECTED:
+                continue
+            dest = target / rel
+            if not dest.exists():
+                new_files_count += 1
+            elif f.stat().st_mtime > dest.stat().st_mtime:
+                modified_files_count += 1
+
+    total_current = len([f for f in target.rglob("*") if f.is_file()]) if target.exists() else 0
+    agents_sinkron = (new_files_count == 0 and modified_files_count == 0 and not agents_md_modified)
+    agents_tersedia = (new_files_count > 0 or modified_files_count > 0 or agents_md_modified)
+
+    # ---- Output ----
     print_header("Snowline Status")
 
-    if not installed_commit:
-        print_error("Could not determine installed version")
-        print_info("Try reinstalling: pip install --force-reinstall git+https://github.com/UsmanAzizz/snowline-agent-tools.git")
-        return
-
-    print_info(f"Terinstal: commit {installed_commit[:8]}")
-
-    if not remote_commit:
-        print_info("Tidak dapat memeriksa versi terbaru dari GitHub")
-        print_info("Pastikan koneksi internet aktif")
-        return
-
-    print_info(f"Tersedia di GitHub: commit {remote_commit[:8]}")
-
-    if installed_commit == remote_commit:
-        print()
-        print_success("Sudah menggunakan versi terbaru.")
-        safe_print(f"{Colors.DIM}  (hanya valid di titik waktu ini - cek lagi jika ada commit baru setelahnya){Colors.RESET}")
+    # Layer 1: Package
+    if pkg_unknown:
+        print_error("Tidak dapat menentukan versi package terinstal")
+        print_info("Coba: pip install --force-reinstall git+https://github.com/UsmanAzizz/snowline-agent-tools.git")
+    elif pkg_latest:
+        safe_print(f"  Paket         : commit {installed_commit[:8]}  (GitHub: {remote_commit[:8]})      -> terbaru")
+    elif pkg_behind:
+        safe_print(f"  Paket         : commit {installed_commit[:8]}  (GitHub: {remote_commit[:8]})      -> tertinggal")
+        print_info("  -> snowline status (lalu pilih y)")
     else:
-        print()
-        print_warninging("Ada versi lebih baru tersedia!")
+        safe_print(f"  Paket         : commit {installed_commit[:8] if installed_commit else '?'}  (GitHub: {remote_commit[:8] if remote_commit else '?'})")
+
+    # Layer 2: .agents files
+    safe_print(f"  File .agents/ : {total_current} file ({new_files_count} baru, {modified_files_count} diperbarui)     -> {'sinkron' if agents_sinkron else 'tersedia'}")
+
+    if agents_tersedia:
+        if agents_md_modified:
+            safe_print(f"                 -> {1 + modified_files_count} perubahan (termasuk agents.md)")
+        safe_print(f"                 -> snowline update --apply")
+
+    # Summary
+    print()
+    if pkg_latest and agents_sinkron:
+        print_success("Semua sektor sudah terbaru.")
+    elif pkg_unknown:
+        pass  # Already printed above
+    elif pkg_behind and agents_tersedia:
+        print_warninging("Package DAN file project tersedia update.")
+    elif pkg_behind:
+        print_warninging("Ada versi package terbaru.")
+    elif agents_tersedia:
+        print_info("Ada file project yang tersedia update.")
+
+    # Interactive prompt (only if GitHub is behind)
+    if pkg_behind:
         print()
         safe_print(f"Apakah Anda ingin melakukan instalasi ulang dan update sekarang? [y/N]: ", end="")
         try:
@@ -579,23 +666,25 @@ def status():
 
             if platform.system().lower() == "windows":
                 print_info("Mendelegasikan proses update ke jendela terpisah...")
-                # Windows detached handoff: buka CMD baru, tunggu 2 detik agar proses saat ini mati
-                cmd_str = f'start cmd.exe /c "ping 127.0.0.1 -n 2 > nul & echo Sedang mengunduh dan menerapkan versi terbaru... & {sys.executable} -m pip install --force-reinstall --no-cache-dir {package_url} & {sys.executable} -m snowline_toolkit.cli update --apply & echo. & echo Update berhasil diterapkan! & pause"'
+                cmd_str = f'start cmd.exe /c "ping 127.0.0.1 -n 2 > nul & echo Sedang mengunduh dan menerapkan versi terbaru... & {sys.executable} -m pip install --force-reinstall --no-cache-dir {package_url} && {sys.executable} -m snowline_toolkit.cli update --apply && echo. && echo Update berhasil diterapkan! & pause"'
                 os.system(cmd_str)
-                safe_print(f"{Colors.DIM}Sesi perintah ini diakhiri untuk membuka akses modifikasi file.{Colors.RESET}")
+                safe_print(f"{Colors.DIM}Sesi perintah ini diakhiri untuk membuka akses modulasi file.{Colors.RESET}")
                 sys.exit(0)
             else:
-                # Unix synchronous update
                 print_section("Memulai proses update...")
-                import subprocess
-                subprocess.run([sys.executable, '-m', 'pip', 'install', '--force-reinstall', '--no-cache-dir', package_url])
-                print_section("Menerapkan update pada tools lokal (snowline update)...")
-                subprocess.run([sys.executable, '-m', 'snowline_toolkit.cli', 'update', '--apply'])
-                print_success("Update selesai!")
+                import subprocess as _subproc
+                res = _subproc.run([sys.executable, '-m', 'pip', 'install', '--force-reinstall', '--no-cache-dir', package_url])
+                if res.returncode == 0:
+                    print_section("Menerapkan update pada tools lokal (snowline update)...")
+                    _subproc.run([sys.executable, '-m', 'snowline_toolkit.cli', 'update', '--apply'])
+                    print_success("Update selesai!")
+                else:
+                    print_error("Update gagal (pip install gagal).")
         else:
             print_info("Update dibatalkan. Anda dapat mengupdate manual dengan perintah:")
             safe_print(f"  {Colors.BOLD}pip install --force-reinstall --no-cache-dir git+https://github.com/UsmanAzizz/snowline-agent-tools.git{Colors.RESET}")
             safe_print(f"  {Colors.BOLD}snowline update --apply{Colors.RESET}")
+
 
 
 def show_path():
@@ -621,22 +710,28 @@ def main():
 
     p_init = subparsers.add_parser("init", help="Initialize .agents folder with skills")
     p_init.add_argument("--apply", action="store_true", help="Apply installation")
+    p_init.add_argument("--force", action="store_true", help="Force overwrite existing skills")
 
     p_update = subparsers.add_parser("update", help="Check for skill updates")
     p_update.add_argument("--apply", action="store_true", help="Apply updates")
     p_uninstall = subparsers.add_parser("uninstall", help="Remove installed skills")
     p_uninstall.add_argument("--apply", action="store_true", help="Apply uninstall")
+    p_reinstall = subparsers.add_parser("reinstall", help="Reinstall skills (uninstall then init)")
+    p_reinstall.add_argument("--apply", action="store_true", help="Apply reinstall")
+    p_reinstall.add_argument("--latest", action="store_true", help="Also download latest package from GitHub")
     subparsers.add_parser("path", help="Show installation paths")
-    subparsers.add_parser("status", help="Check for newer version on GitHub")
+    subparsers.add_parser("status", help="Check package + project layers for updates")
 
     args = parser.parse_args()
 
     if args.command == "init":
-        init(dry=not args.apply)
+        init(dry=not args.apply, force=args.force)
     elif args.command == "update":
         update(apply=args.apply)
     elif args.command == "uninstall":
         uninstall(apply=args.apply)
+    elif args.command == "reinstall":
+        reinstall(apply=args.apply, latest=args.latest)
     elif args.command == "path":
         show_path()
     elif args.command == "status":
@@ -648,9 +743,10 @@ def main():
         safe_print(f"{Colors.BOLD}Commands:{Colors.RESET}")
         print_list_item("init --apply  - Install skills to .agents folder")
         print_list_item("update        - Check for new/modified skills")
-        print_list_item("status        - Check for newer version on GitHub")
+        print_list_item("status        - Check package + project layers")
         print_list_item("path          - Show installation paths")
         print_list_item("uninstall     - Remove installed skills")
+        print_list_item("reinstall     - Reinstall skills (uninstall then init)")
         safe_print("")
         safe_print(f"{Colors.DIM}Run 'snowline <command> --help' for more info{Colors.RESET}\n")
 

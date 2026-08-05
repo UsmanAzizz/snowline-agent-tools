@@ -46,14 +46,19 @@ Checks both **package version** (Python package from GitHub) and **project layer
 
 ### Reinstall
 ```bash
-# Restore from local package (no GitHub download)
+# Restore from local package (dry-run)
 python -m snowline_toolkit.cli reinstall
 
-# Download and apply latest version from GitHub
+# Execute reinstall from local package
+python -m snowline_toolkit.cli reinstall --apply
+
+# Download and apply latest version from GitHub (dry-run)
 python -m snowline_toolkit.cli reinstall --latest
-python -m snowline_toolkit.cli reinstall --apply --latest  # execute
+
+# Download latest from GitHub and execute reinstall
+python -m snowline_toolkit.cli reinstall --apply --latest
 ```
-The `--latest` flag downloads the newest package directly from GitHub with local rollback protection if the download fails.
+If the GitHub download fails, the local installation is left untouched.
 
 ### Init (with Force)
 ```bash
