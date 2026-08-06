@@ -3,6 +3,29 @@ cli.py - CLI interface, argparse, and print helpers.
 """
 import sys
 import json
+import os
+from datetime import datetime, timezone
+
+
+def _log_usage(user_input: str, result, action: str, matched_tool: str | None):
+    """Append usage log to companion_usage.jsonl in .agents/ root."""
+    log_path = os.path.join(os.path.dirname(__file__), "..", "..", "companion_usage.jsonl")
+
+    entry = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "input": user_input,
+        "action": action,
+        "confidence": result.confidence_level,
+        "specificity": result.specificity,
+        "matched_tool": matched_tool
+    }
+
+    try:
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except OSError:
+        pass  # Silently fail if log can't be written
+
 
 # ANSI colors for terminal
 class Colors:
@@ -90,6 +113,11 @@ def main():
 
     result = analyze_intent(user_input)
     grill = should_grill(result)
+
+    # Log usage
+    action = get_agent_action(result)
+    matched_tool = result.single_tool.name if result.single_tool else None
+    _log_usage(user_input, result, action, matched_tool)
 
     print(f"\n{'=' * 60}")
     print(f"COMPANION v5.0 - ANALYSIS RESULT")

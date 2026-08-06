@@ -12,7 +12,7 @@
 |---------|--------|-----------------------------|-------|
 | `pos/0. PM` | **Project Manager** | Mendelegasikan seluruh pembaruan Ledger/Admin ke TL | (Human) |
 | `pos/1. TL` | **Tech Lead** | *Idle - Menunggu instruksi PM* | Gemini (Antigravity) |
-| `pos/2. QA` | **QA / Reviewer** | *Active - Verifikasi Task 80* | Opus 4.8 (Claude Code) |
+| `pos/2. QA` | **QA / Reviewer** | *Active - Verifikasi Task 81* | Opus 4.8 (Claude Code) |
 | `pos/3. Executor/Executor_01` | **Executor** | *Idle - Menunggu instruksi TL* | Claude Code |
 | `pos/3. Executor/Executor_02` | **Executor** | *Kosong* | (Reserved) |
 | `pos/3. Executor/Executor_03` | **Executor** | *Kosong* | (Reserved) |
@@ -20,6 +20,9 @@
 | `pos/3. Executor/Executor_05` | **Executor** | *Kosong* | (Reserved) |
 
 ## Completed (Recent)
+- **Task 81:** Implementasi *Usage Logging* Companion (F-B2) - **SELESAI** (QA PASS). Fitur rekam data *prompt history* telah ditambahkan ke `cli.py` sehingga akurasi *intent analysis* kini bisa diukur. Data di-*log* ke format JSON Lines.
+- **Real-World Ecosystem Test (2026-08-06):** Pengujian sistem secara komprehensif pada proyek nyata (`scarecrow/for_claude`). **Hasil: 33/33 PASS, 0 FAIL, 0 CRASH**. Ekosistem dinyatakan stabil dan *Production Ready*.
+- **Task 80:** Typo Fix "batass" pada `core_intent.py` - **SELESAI** (QA PASS). Keyword duplikat yang *typo* telah dihapus dari *tool* `scope_guardian`. MD5 sinkron.
 - **Task 79:** Investigasi & Perbaikan Kontradiksi `snowline status` vs `update` - **SELESAI** (QA PASS). Fungsi `update()` kini mengecek `pkg_behind` secara remote. Pesan peringatan spesifik akan muncul jika package tertinggal tapi skill terupdate.
 - **Task 78:** Perbaikan Minor UX & Konfigurasi Scope - **SELESAI** (QA PASS). Argumen `--help` pada `crash_decoder` dan `db_extractor` kini menampilkan panduan alih-alih melempar error *file not found*. `scope_guardian` terverifikasi sudah berjalan berbasis CWD.
 - **Task 77:** Perbaikan Bug Lanjutan Companion (F4, F5, F6) - **SELESAI** (QA PASS). F4 (Critical): `companion_cli.py` *standalone import error* teratasi dengan *path resolution*. F5: Kontradiksi `_plan` diratakan ke jalur `MEDIUM`. F6: Potensi `TypeError` di- *guard*.
