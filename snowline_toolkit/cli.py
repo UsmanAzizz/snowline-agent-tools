@@ -347,11 +347,61 @@ def update(apply=False):
             modified_files.append((f, rel))
 
     total_current = len([f for f in target.rglob("*") if f.is_file()])
-    
+
     print_info(f"Current skills: {total_current}")
-    
-    if not new_files and not modified_files and not agents_md_modified:
+
+    # Check package commit (mirrors status() logic for consistency)
+    import subprocess
+    import glob
+    import json as _json
+
+    remote_commit = None
+    try:
+        result = subprocess.run(
+            ['git', 'ls-remote', 'https://github.com/UsmanAzizz/snowline-agent-tools.git', 'HEAD'],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode == 0 and result.stdout:
+            remote_commit = result.stdout.split()[0]
+    except Exception as e:
+        pass  # Silently fail - not critical
+
+    installed_commit = None
+    package_info = None
+    try:
+        result = subprocess.run(
+            ['pip', 'show', 'snowline-agent-tools'],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if line.startswith('Location:'):
+                    package_info = line.split(':', 1)[1].strip()
+    except Exception as e:
+        pass  # Silently fail - not critical
+
+    if package_info and remote_commit:
+        dist_info_pattern = os.path.join(package_info, 'snowline_agent_tools-*.dist-info')
+        matches = glob.glob(dist_info_pattern)
+        if matches:
+            direct_url_path = os.path.join(matches[0], 'direct_url.json')
+            if os.path.exists(direct_url_path):
+                try:
+                    with open(direct_url_path, 'r') as f:
+                        data = _json.load(f)
+                    installed_commit = data.get('vcs_info', {}).get('commit_id', '')
+                except Exception as e:
+                    pass  # Silently fail - not critical
+
+    pkg_behind = (installed_commit and remote_commit and installed_commit != remote_commit)
+
+    if not new_files and not modified_files and not agents_md_modified and not pkg_behind:
         print_success("All skills are up to date!")
+        return
+
+    if pkg_behind and not new_files and not modified_files and not agents_md_modified:
+        print_warninging("Package version tertinggal!")
+        print_info("Skill files sudah sinkron. Jalankan 'snowline reinstall --latest' untuk update package.")
         return
 
     print_info(f"Available: {len(new_files)} new, {len(modified_files)} modified")

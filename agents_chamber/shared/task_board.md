@@ -12,7 +12,7 @@
 |---------|--------|-----------------------------|-------|
 | `pos/0. PM` | **Project Manager** | Mendelegasikan seluruh pembaruan Ledger/Admin ke TL | (Human) |
 | `pos/1. TL` | **Tech Lead** | *Idle - Menunggu instruksi PM* | Gemini (Antigravity) |
-| `pos/2. QA` | **QA / Reviewer** | *Active - Verifikasi Task 78* | Opus 4.8 (Claude Code) |
+| `pos/2. QA` | **QA / Reviewer** | *Active - Verifikasi Task 79* | Opus 4.8 (Claude Code) |
 | `pos/3. Executor/Executor_01` | **Executor** | *Idle - Menunggu instruksi TL* | Claude Code |
 | `pos/3. Executor/Executor_02` | **Executor** | *Kosong* | (Reserved) |
 | `pos/3. Executor/Executor_03` | **Executor** | *Kosong* | (Reserved) |
@@ -20,6 +20,7 @@
 | `pos/3. Executor/Executor_05` | **Executor** | *Kosong* | (Reserved) |
 
 ## Completed (Recent)
+- **Task 79:** Investigasi & Perbaikan Kontradiksi `snowline status` vs `update` - **SELESAI** (QA PASS). Fungsi `update()` kini mengecek `pkg_behind` secara remote. Pesan peringatan spesifik akan muncul jika package tertinggal tapi skill terupdate.
 - **Task 78:** Perbaikan Minor UX & Konfigurasi Scope - **SELESAI** (QA PASS). Argumen `--help` pada `crash_decoder` dan `db_extractor` kini menampilkan panduan alih-alih melempar error *file not found*. `scope_guardian` terverifikasi sudah berjalan berbasis CWD.
 - **Task 77:** Perbaikan Bug Lanjutan Companion (F4, F5, F6) - **SELESAI** (QA PASS). F4 (Critical): `companion_cli.py` *standalone import error* teratasi dengan *path resolution*. F5: Kontradiksi `_plan` diratakan ke jalur `MEDIUM`. F6: Potensi `TypeError` di- *guard*.
 - **Task 76:** Eksekusi Backlog Minor Companion (B1 & B2) - **SELESAI** (QA PASS). Pesan *grilling* untuk *Confidence MEDIUM* dikoreksi menjadi "perlu konfirmasi" (konsisten dengan *Action*). Logika *creation verb* ditambahkan pengaman untuk mencegah *false-positive override* pada himpunan kosong.
