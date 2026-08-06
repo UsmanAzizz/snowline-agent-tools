@@ -19,7 +19,6 @@ agents_chamber/
 
 Each role folder contains `ONBOARDING.md` (role definition - read this first, every fresh session) and `connector.md` (INBOX/OUTBOX, actual work).
 
-
 ## The 4 Roles
 
 **1. Project Manager (PM)** (currently: the human user)
@@ -52,39 +51,39 @@ Each role folder contains `ONBOARDING.md` (role definition - read this first, ev
 2. **Signal Protocol**: When you complete a task and write to OUTBOX:
    - Write your response to the OUTBOX section
    - PRINT/Say "Task complete - please signal [PM/TL, as appropriate]" in your terminal response
-   - The Manager (PM) relays manually between positions menggunakan **SATU** kode tunggal:
-     - `''` (empty quotes) = "Giliran Anda. Buka dan periksa *connector* (INBOX/OUTBOX) karena ada sinyal dari agen sebelumnya."
-   - **Alur Kerja Deterministik**: Konteks dari `''` ditentukan murni oleh alur kerja saat itu, tanpa perlu embel-embel nama posisi:
-     1. TL memberi instruksi kode ke Executor -> PM mengirim `''` ke Executor.
-     2. Executor merespons di OUTBOX -> PM mengirim `''` ke TL.
-     3. TL menyerahkan hasil eksekusi ke QA -> PM mengirim `''` ke QA.
-     4. QA memberikan *verdict* di OUTBOX -> PM mengirim `''` ke TL.
-     5. Jika task berakhir (PASS), TL adalah titik terakhir yang menerima informasi dari QA. TL kemudian mengatur status seluruh sektor kembali menjadi *Idle*, dan *flow* diulang dari awal untuk *task* selanjutnya.
+   - The Manager (PM) relays manually between positions using **ONE** single code:
+     - `''` (empty quotes) = "Your turn. Open and check connector (INBOX/OUTBOX) because there is a signal from the previous agent."
+   - **Deterministic Workflow**: The context of `''` is determined purely by the current workflow state, without needing position names:
+     1. TL gives code instructions to Executor -> PM sends `''` to Executor.
+     2. Executor responds in OUTBOX -> PM sends `''` to TL.
+     3. TL hands execution results to QA -> PM sends `''` to QA.
+     4. QA provides verdict in OUTBOX -> PM sends `''` to TL.
+     5. If task concludes (PASS), TL is the final point receiving information from QA. TL then resets all sector statuses to Idle, and the flow repeats for the next task.
 
 3. **Position Persistence**: Your position folder (e.g. `pos/1. TL`) is persistent across resets - the same folder survives, you just resume where you left off.
 
 4. **Amnesia as a Feature**: State lives in FILES (`connector.md`, `project_context.md`, `task_board.md`), not in chat/session history - so a long-running session's history is a liability, not an asset, once this pattern is established (stale context risks hallucination or redoing already-completed work, as happened once - see ARCHIVE incident notes). The Manager should proactively restart an agent's session/CLI after a major task or block of tasks completes, rather than letting one session run indefinitely. A freshly-reset session reads these files and gets 100% clean, relevant context - no accumulated staleness.
 
-5. **New files must be documented**: any new file created as part of a task must be mentioned (at minimum one line) in `project_context.md` before the task is considered done. An undocumented file is an incomplete task.
+5. **New files must be documented**: Any new file created as part of a task must be mentioned (at minimum one line) in `project_context.md` before the task is considered done. An undocumented file is an incomplete task.
 
-6. **Test artifacts stay contained**: all test/scratch files go in a clearly-named, gitignored sandbox location - never scattered directly in the project root.
+6. **Test artifacts stay contained**: All test/scratch files go in a clearly-named, gitignored sandbox location - never scattered directly in the project root.
 
 7. **Strict Sequential Task Numbering**: Task numbers (IDs) must be assigned strictly sequentially and linearly (e.g., Task 41, 42, 43...). Do NOT jump backwards or assign numbers out of order. If a new sub-issue is discovered, it must receive the next highest available number in the sequence, rather than being inserted between older numbers. This keeps the history and dependencies traceable.
 
-8. **Single-Writer Delegation (TL sebagai Juru Tulis)**: Untuk mencegah inkonsistensi (*drift*) dan konflik format, penulisan ke `RULES.md`, `project_context.md`, dan `task_board.md` dilakukan melalui satu tangan saja, yaitu TL. Ini **pendelegasian tugas menulis, bukan pemindahan wewenang** - PM tetap pemegang otoritas penuh atas isi dokumen-dokumen tersebut. TL menulis **atas nama PM**: TL menuangkan, PM yang memutuskan.
-   - PM menyampaikan keputusan dan arahan lewat *chat*; TL menuliskannya ke dokumen.
-   - TL TIDAK berhak menolak atau mengubah substansi arahan PM. Bila TL menilai sebuah arahan bertabrakan dengan aturan atau Ledger yang ada, TL wajib menyampaikan keberatan itu ke PM lebih dulu - bukan mengubahnya sendiri secara diam-diam.
-   - Pendelegasian ini demi kerapian format dan pencegahan *drift*, bukan pencabutan hak PM. PM tetap berhak menulis langsung kapan pun diperlukan.
+8. **Single-Writer Delegation (TL as Scribe)**: To prevent drift and formatting conflicts, writing to `RULES.md`, `project_context.md`, and `task_board.md` is done exclusively through one hand: the TL. This is **delegation of the writing task, not a transfer of authority** - the PM remains the absolute authority over the content. TL writes **on behalf of the PM**: TL transcribes, PM decides.
+   - PM delivers decisions and directives via chat; TL writes them into the documents.
+   - TL does NOT have the right to refuse or alter the substance of a PM directive. If TL assesses that a directive conflicts with existing rules or the Ledger, TL MUST raise this objection to the PM first - rather than secretly modifying it.
+   - This delegation is for formatting neatness and drift prevention, not revoking PM rights. PM retains the right to write directly whenever necessary.
 
-9. **No Pre-filling Verdicts**: OUTBOX hanya boleh ditulis oleh pemilik posisi (misal: QA atau Executor). Siapapun yang memberikan tugas hanya boleh mengisi bagian INBOX dari file `connector.md` agen yang dituju. Hasil/verdict tidak boleh di-prefill. Task board hanya boleh mencatat hasil review/eksekusi SETELAH OUTBOX agen yang bersangkutan terisi dengan laporan riil.
+9. **No Pre-filling Verdicts**: OUTBOX may only be written by the position owner (e.g. QA or Executor). Whoever assigns the task may only fill the INBOX section of the target agent's `connector.md`. Results/verdicts must not be pre-filled. The task board may only record review/execution results AFTER the respective agent's OUTBOX is filled with a real report.
 
-10. **Broadcast All Administrative Updates**: Setiap kali ada perubahan atau penambahan pada aturan administratif (misalnya di `RULES.md`, `AGENTS.md`, atau pembaruan prosedur kerja Chamber), TL WAJIB menyiarkan perubahan tersebut ke dalam `shared/broadcast.md` agar seluruh agen (QA dan Executor) yang baru bangun/reset dapat langsung mengetahui pembaruan tanpa harus membaca seluruh log atau `AGENTS.md` dari awal. **CRITICAL: Aturan yang belum masuk `broadcast.md` = task belum selesai.**
+10. **Broadcast All Administrative Updates**: Every time there is a change or addition to administrative rules (e.g. in `RULES.md`, `AGENTS.md`, or Chamber operating procedures), TL MUST broadcast the change into `shared/broadcast.md` so all newly awakened/reset agents (QA and Executor) can immediately know the updates without reading the entire log or `AGENTS.md` from scratch. **CRITICAL: Rules not yet in `broadcast.md` = incomplete task.**
 
-11. **Mandatory QA Validation**: TL DILARANG menutup secara sepihak (*mark as DONE*) task apa pun yang telah selesai dikerjakan oleh Executor. Setiap eksekusi task harus dilempar ke QA (Reviewer) terlebih dahulu untuk diaudit. Hanya QA yang berhak menentukan apakah sebuah task sudah valid dan boleh ditutup. Jika QA menyatakan "PASS", barulah TL boleh memperbarui `task_board.md` menjadi *DONE*. 
-    - *Syarat PASS*: QA WAJIB menyertakan *raw output* riil (bukan klaim naratif) sebagai bukti agar TL/PM bisa memverifikasinya.
-    - *Micro-Task Exception*: Jika task bersifat sangat minor (seperti ubah satu string, typo, atau kriteria Fast Track Protocol di `plan_first.md`), TL berhak mem-bypass QA dan langsung menutup task tersebut.
+11. **Mandatory QA Validation**: TL is FORBIDDEN from unilaterally closing (marking as DONE) any task completed by the Executor. Every task execution MUST be thrown to QA (Reviewer) first for auditing. Only QA has the authority to determine if a task is valid and may be closed. If QA declares "PASS", only then may TL update `task_board.md` to DONE.
+    - *PASS Requirement*: QA MUST include real raw output (not narrative claims) as evidence so TL/PM can verify it.
+    - *Micro-Task Exception*: If the task is extremely minor (like changing one string, fixing a typo, or meets Fast Track Protocol criteria in `plan_first.md`), TL has the right to bypass QA and close the task directly.
 
-12. **Anti-Drift Check**: Selalu verifikasi bahwa setiap perubahan yang dilakukan pada versi *live/installed* (misal di dalam direktori `.agents/`) juga disinkronisasikan secara identik ke *master template* aslinya di `snowline_toolkit/templates/` sebelum menutup sebuah task. Hal ini untuk mencegah lingkungan *live* kita melenceng (*drift*) dari *source code* utama.
+12. **Anti-Drift Check**: Always verify that any changes made to the live/installed version (e.g. inside `.agents/` directory) are also identically synchronized to the master template in `snowline_toolkit/templates/` before closing a task. This prevents the live environment from drifting away from the main source code.
 
 ## Onboarding a New Position (copy-paste starting point)
 
@@ -107,7 +106,7 @@ Long-term memory for architectural precedents agreed upon by the Chamber (TL + Q
 **1. Isolation over DRY (Zero-Bloat AI Scripts)**
 - **Rule:** Do NOT use shared modules (e.g. a common `utils.py` imported by multiple scripts) when building autonomous AI automation tools (like `impact_analyzer`, `splicer`, etc).
 - **The Task 18 Carve-out (Exception 1):** Core **security/scope boundaries** (such as `is_file_in_scope()` in `scope_guardian`) with a proven history of drift bugs (Tasks 7, 14, 15) MUST be consolidated into a shared module. The risk of disparate implementations bypassing security boundaries is far more dangerous than the risk of Coupled Failure.
-- **The Task 75 Carve-out (Exception 2):** Modul internal murni — tanpa efek samping, tidak menyentuh file, tidak memegang *state* — boleh dibagikan antar-tool. Untuk kode seperti ini, kegagalan akibat *coupling* bersifat keras dan langsung terlihat saat dijalankan, sementara *drift* akibat penggandaan bersifat diam dan baru ketahuan setelah waktu yang lama. Contoh: `tree_gen`.
+- **The Task 75 Carve-out (Exception 2):** Pure internal modules — with no side effects, touching no files, holding no state — may be shared between tools. For such code, failures due to coupling are hard and immediately visible upon execution, whereas drift due to duplication is silent and only discovered much later. Example: `tree_gen`.
 - **Why:** In AI ecosystems, shared feature modules are vectors for Coupled Failure - optimizing a shared feature for Tool A can silently break Tool B. For security boundaries specifically, drift causes repeated vulnerabilities instead, which is worse.
 - **Action:** Use Pure Copy-Paste (Isolation) for general feature logic (code extraction, searching, etc). Use Shared Modules ONLY for unified security/scope boundaries, or pure stateless internal modules.
 

@@ -1,6 +1,6 @@
 # Connector: QA / Reviewer
 
-See `ONBOARDING.md` in this same folder for role definition, mandatory/forbidden rules, and coordination flow.
+See `ONBOARDING.md` in this folder for role definition, mandatory/forbidden rules, and coordination flow.
 
 ## Signal Protocol
 When done: write to OUTBOX below, then say "Task complete - please signal TL" in your terminal response.
@@ -19,21 +19,17 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ---
 
-
 ## BACKLOG
 
-*(Kosong)*
+- [BUG CHAMBER] Session cache stale — Read tool reports "file unchanged" even when connector has new content. Use Bash cat to bypass cache.
 
 ---
 
 ## ARCHIVE
 
-- [Task 81] Usage Logging Companion (F-B2) - SELESAI. QA PASS. Usage logging berfungsi, log file valid, MD5 synced.
-- [Task 80] Typo Fix "batass" pada core_intent.py - SELESAI. Keyword typo dihapus. MD5 Identical.
-- [Full Test 2026-08-06] Ecosystem on real project (scarecrow/for_claude) — 33 tests, 33 PASS. Report: shared/archive/full_ecosystem_test_2026_08_06_scarecrow.md
-- [Task 79] Kontradiksi snowline status vs update - SELESAI. update() sekarang ikut cek git commit package (pkg_behind). Konsisten dengan status. QA PASS.
-- [Task 78] Perbaikan UX --help + Scope - SELESAI. QA PASS.
-- [Task 77] Perbaikan Bug Companion F4/F5/F6 - SELESAI. QA PASS.
-- [Task 76] Backlog B1 & B2 Companion - SELESAI. QA PASS.
-- [Stress Test 2026-08-06] Full Ecosystem (synthetic) — 16 tool + companion. Report: shared/archive/stress_test_2026_08_06_full_ecosystem.md
-- [Audit 2026-08-06] Full Ecosystem Audit — 7 findings. Report: shared/archive/audit_2026_08_06_chamber_companion.md.
+- [Task 85] Redraft AGENTS.md to strict English - FULL APPROVAL. Translated RULES.md to English as well.
+- [Task 85] Redraft AGENTS.md to English - FULL APPROVAL. Complete strict English draft with no emojis, ready for TL implementation.
+- [Task 84] Paradoks Native vs Snowline Tools - PARTIAL APPROVAL. Rekomendasi: update wording AGENTS.md, tambah penalty warning, improve companion reliability.
+- [Task 83] Evaluasi Fast Path Bypass - DITOLAK. Rule #1 tetap utuh.
+- [Task 81] Usage Logging Companion (F-B2) - QA PASS.
+- [Task 80] Typo Fix "batass" - QA PASS.
