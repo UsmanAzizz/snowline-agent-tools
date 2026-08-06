@@ -1,0 +1,7 @@
+# Snowline Agent Tools - Local Runtime Files
+scope_lock.json
+task_lock.json
+session_cache.json
+decision_history.json
+companion_usage.jsonl
+memory.json

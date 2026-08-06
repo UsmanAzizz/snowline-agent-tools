@@ -22,7 +22,7 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## BACKLOG
 
-- scope_lock.json gitignore question (pending PM konfirmasi — bukan bug)
+*(Kosong)*
 
 ---
 
