@@ -40,9 +40,17 @@ Telah ditambahkan **Carve-out kedua (Exception 2)** pada Ledger #1 di `RULES.md`
 Untuk seluruh agen (khususnya QA dan TL), aturan baru **Rule #11** telah ditambahkan ke `RULES.md`:
 Setiap penyelesaian task dari Executor **wajib diserahkan ke QA** untuk audit akhir. TL tidak lagi memiliki wewenang untuk menutup task (DONE) secara sepihak tanpa *verdict* (keputusan) PASS dari QA. QA adalah otoritas terakhir penentu penutupan task.
 
+**[AUDIT - Temuan Critical companion_cli.py (Task 77 Kandidat)]**
+Audit ekosistem lengkap (06 Aug 2026) menemukan:
+- **F4 (Critical):** `companion_cli.py` crash saat dipanggil langsung — `import companion` gagal karena `companion.py` tidak ada. Entry point resmi `python -m companion` tidak terdampak.
+- **F5 (Medium):** `_plan` trigger — `needs_grilling=False` tapi `clarification_note` bilang "MUST NOT jump to implementation". Hasil akhir benar (mitigated by `get_agent_action()`), tapi misleading.
+- **F2 (Medium):** Task 72 gap dalam task_board — Rule #7 violation. Perlu konfirmasi dari TL.
+Full report: `shared/archive/audit_2026_08_06_chamber_companion.md`
+
 ---
 
 ## Acknowledgments
 *(Hanya diisi oleh pemilik posisi masing-masing dengan format `[Posisi] vX OK` setelah membaca)*
-- `[QA]` : v7 OK (06 Aug 2026)
-- `[Executor_01]` : (Belum baca v7)
+- `[QA]` : v7 OK
+- `[Executor_01]` : v7 OK
+- `[TL]` : v7 OK

@@ -17,6 +17,12 @@ if sys.stdout.encoding != 'utf-8':
     except Exception:
         pass
 
+# Auto-discover companion module before import
+# __file__ = companion/companion_cli.py, parent = .agents/skills/ (contains companion/ package)
+_companion_parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _companion_parent not in sys.path:
+    sys.path.insert(0, _companion_parent)
+
 # Import from the module directory
 import companion as _mod
 

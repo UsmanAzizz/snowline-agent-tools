@@ -205,7 +205,7 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
             keywords=["_plan"],
             entities=[],
             specificity="high",
-            confidence_level="HIGH",
+            confidence_level="MEDIUM",  # not "HIGH" — needs_clarification=True, so KONFIRMASI not EXECUTE
             needs_clarification=True,
             clarification_note="PLAN_MODE_TRIGGERED: User explicitly requested a formal planning phase. Agent MUST NOT jump to implementation. 1) Grill for gaps, 2) Write PLAN_TEMPLATE.md, 3) Wait for approval."
         )

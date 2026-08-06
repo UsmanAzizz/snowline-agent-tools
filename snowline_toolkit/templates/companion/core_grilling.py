@@ -17,6 +17,8 @@ def should_grill(result) -> dict:
         - needs_grilling: bool
         - reason: str (penjelasan kenapa)
     """
+    # Guard: ensure entities is never None
+    _entities = result.entities if result.entities is not None else []
     user_level = load_user_level()
 
     # Micro Task criteria:
@@ -28,7 +30,7 @@ def should_grill(result) -> dict:
         }
 
     # Specific entity + high specificity = Micro Task ( MESKIPUN MEDIUM confidence)
-    if len(result.entities) >= 1 and result.specificity == "high":
+    if len(_entities) >= 1 and result.specificity == "high":
         return {
             "needs_grilling": False,
             "reason": "Micro Task - specific entity detected"
@@ -40,7 +42,7 @@ def should_grill(result) -> dict:
             # Technical language for experienced users
             reason = (
                 f"confidence={result.confidence_level}, specificity={result.specificity} "
-                f"({len(result.entities)} entities extracted) - requires clarification before execution"
+                f"({len(_entities)} entities extracted) - perlu konfirmasi"
             )
         else:
             # Simple language for default/low level
@@ -52,11 +54,11 @@ def should_grill(result) -> dict:
 
     # Long instruction without entities = ambiguous
     words = result.input.split()
-    if len(words) > 15 and len(result.entities) == 0:
+    if len(words) > 15 and len(_entities) == 0:
         if user_level >= 7:
-            reason = f"instruction length={len(words)} words, 0 entities, confidence={result.confidence_level} - ambiguous scope"
+            reason = f"instruction length={len(words)} words, 0 entities, confidence={result.confidence_level} - perlu konfirmasi"
         else:
-            reason = "Instruction >15 words without specific entity"
+            reason = f"Instruction >15 words tanpa entitas spesifik - perlu konfirmasi"
         return {
             "needs_grilling": True,
             "reason": reason

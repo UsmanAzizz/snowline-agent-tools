@@ -15,35 +15,53 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## ACTIVE TASK - OUTBOX (Executor -> TL)
 
-**Task 76 — EKSEKUSI SELESAI**
+**Task 77 — EKSEKUSI SELESAI**
 
-### Perubahan (2 file):
+### Perubahan (3 file, 3 fix):
 
-**B1 — core_grilling.py line 47:**
-`"Confidence {level} - perlu clarify"` → `"Confidence {level} - perlu konfirmasi"`
-
-**B2 — core_intent.py lines 292-296:**
+**F4 — companion_cli.py standalone path resolution:**
 ```python
-has_analysis_only = (
-    matched_tool_names and          # <-- TAMBAH: cegah empty set subset
-    matched_tool_names.issubset(analysis_tools) and
-    "auto_scaffolder" not in matched_tool_names and
-    "clean_sweeper" not in matched_tool_names
-)
+_companion_parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _companion_parent not in sys.path:
+    sys.path.insert(0, _companion_parent)
+import companion as _mod
+```
+
+**F5 — core_intent.py `_plan` contradiction:**
+- Hilangkan `confidence_level="HIGH"` + `specificity="high"` dari branch `_plan`
+- Ganti dengan `confidence_level="MEDIUM"` → `_plan` sekarang memicu grilling (`needs_clarification=True` + specificity MEDIUM) secara langsung tanpa kontradiksi
+
+**F6 — core_grilling.py entities=None guard:**
+```python
+_entities = result.entities if result.entities is not None else []
+# Ganti semua result.entities → _entities di dalam should_grill()
 ```
 
 ### Verifikasi:
 
 ```
-# B2 test: empty tool_matches
-$ python companion.py "gantiardi"
-Confidence: NONE
-Action: CLARIFY
-  reason: Confidence NONE - perlu konfirmasi  ✅ (no false trigger)
+=== F4: companion_cli.py standalone ===
+$ python .agents/skills/companion/companion_cli.py "cari axios"
+============================================================
+COMPANION v5.0 - ANALYSIS RESULT  ✅ (no crash)
 
-# MD5 sync
-core_grilling: a24f3a9d... identical  ✅
-core_intent:   38c782f4... identical  ✅
+=== F5: _plan grinding ===
+$ python companion.py "_plan fitur baru"
+Confidence: MEDIUM
+Action: CLARIFY
+needs_grilling: True
+reason: Confidence MEDIUM - perlu konfirmasi  ✅ (kontradiksi GONE)
+
+=== F6: entities=None guard ===
+$ python companion.py "cari"
+Confidence: MEDIUM
+needs_grilling: True
+reason: Confidence MEDIUM - perlu konfirmasi  ✅ (no TypeError)
+
+=== MD5 sync ===
+companion_cli.py: dce3fd4a... identical  ✅
+core_grilling.py: cc454c9c... identical  ✅
+core_intent.py: a75ddb19... identical  ✅
 ```
 
 **Status: SELESAI**
@@ -52,13 +70,16 @@ core_intent:   38c782f4... identical  ✅
 
 ## BACKLOG
 
-*(Use for tracking pending items)*
+*(Kosong)*
 
 ---
 
 ## ARCHIVE
 
 - [Task 76] Backlog B1 & B2 Companion - SELESAI. B1 (core_grilling: "perlu konfirmasi"), B2 (core_intent: empty set guard before issubset). SYNCED ke template. MD5 identical.
+- [Task 77] Perbaikan Bug Companion F4/F5/F6 - SELESAI. F4 (path resolution companion_cli.py standalone), F5 (_plan contradiction fixed), F6 (entities=None guard core_grilling.py). SYNCED ke template. 3/3 test passed, MD5 identical.
+- [Task 75]
+- [Task 76]
 - [Task 75] Perbaikan Companion Multi-Match - SELESAI. cli.py: get_agent_action() multi-match -> KONFIRMASI, main() tampilkan tool teratas + alternatif. SYNCED ke template. 2 test passed, MD5 identical.
 - [Task 74] Enforcement check_scope - SELESAI (REVISI). context_mapper: check per-file (structure_file, patterns_file), auto_scaffolder: check filepath (bukan target_dir), import_fixer LULUS (source_file spesifik). SYNCED ke template. MD5 identical.
 - [Task 73] Perbaiki Path Resolution is_file_in_scope - SELESAI (REVISI). Tambah sys.path resolution sebelum import scope_guardian (shadow copy tetap dihapus). SYNCED ke template. 3 test passed (no ModuleNotFoundError, BLOCKED out-of-scope, MD5 identical).

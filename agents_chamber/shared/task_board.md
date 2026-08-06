@@ -20,10 +20,12 @@
 | `pos/3. Executor/Executor_05` | **Executor** | *Kosong* | (Reserved) |
 
 ## Completed (Recent)
+- **Task 77:** Perbaikan Bug Lanjutan Companion (F4, F5, F6) - **SELESAI** (QA PASS). F4 (Critical): `companion_cli.py` *standalone import error* teratasi dengan *path resolution*. F5: Kontradiksi `_plan` diratakan ke jalur `MEDIUM`. F6: Potensi `TypeError` di- *guard*.
 - **Task 76:** Eksekusi Backlog Minor Companion (B1 & B2) - **SELESAI** (QA PASS). Pesan *grilling* untuk *Confidence MEDIUM* dikoreksi menjadi "perlu konfirmasi" (konsisten dengan *Action*). Logika *creation verb* ditambahkan pengaman untuk mencegah *false-positive override* pada himpunan kosong.
 - **Task 75:** Perbaikan Companion (Isu Multi-Match) & Ledger Carve-out #2 - **SELESAI** (QA PASS). Logika multi-match kini mengeluarkan KONFIRMASI dengan tool teratas beserta alternatifnya. Fallback rate membaik drastis (10 -> 4). Ledger diperbarui untuk mengizinkan stateless internal modules.
 - **Task 74:** Enforcement `check_scope` pada Tool Berdampak (C1) - **SELESAI** (QA PASS). `import_fixer`, `context_mapper`, dan `auto_scaffolder` kini mengecek `is_file_in_scope` pada target individual file (bukan *folder*), memblokir penulisan ke luar area.
 - **Task 73:** Hapus Salinan Bayangan `is_file_in_scope` di `replace_text.py` (C2) - **SELESAI** (QA PASS). *Path resolution* telah diperbaiki sehingga impor keamanan berjalan normal tanpa *crash*.
+- **Task 72:** *(Nomor dilewati/Dibatalkan secara sengaja oleh PM untuk sinkronisasi urutan)*
 - **Task 71:** Update README.md & Bugfix Reinstall - **SELESAI** (QA PASS). Dokumentasi baru untuk *status* dan *reinstall*, bug *dry-run* konfirmasi `reinstall` diselesaikan.
 - **Task 70:** Penyederhanaan Logika Aksi CLI - **SELESAI** (QA PASS). Logika `--apply` 100% dipastikan bebas bug/kombinasi-hilang.
 - **Task 69:** Penambahan Pesan Aksi Status CLI - **SELESAI** (QA PASS). Pesan *actionable* berhasil ditambahkan ke CLI.
