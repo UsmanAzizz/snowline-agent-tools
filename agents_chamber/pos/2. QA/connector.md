@@ -27,6 +27,7 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## ARCHIVE
 
+- [Task 86] Acknowledge Chamber Updates v8 - COMPLETED. Rule #13 formalized (Bypass Stale Read Cache). broadcast.md v8 acknowledged.
 - [Task 85] Redraft AGENTS.md to strict English - FULL APPROVAL. Translated RULES.md to English as well.
 - [Task 85] Redraft AGENTS.md to English - FULL APPROVAL. Complete strict English draft with no emojis, ready for TL implementation.
 - [Task 84] Paradoks Native vs Snowline Tools - PARTIAL APPROVAL. Rekomendasi: update wording AGENTS.md, tambah penalty warning, improve companion reliability.

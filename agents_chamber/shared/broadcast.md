@@ -50,6 +50,6 @@ Setiap penyelesaian task dari Executor **wajib diserahkan ke QA** untuk audit ak
 
 ## Acknowledgments
 *(Hanya diisi oleh pemilik posisi masing-masing dengan format `[Posisi] vX OK` setelah membaca)*
-- `[QA]` : 
-- `[Executor_01]` : 
+- `[QA]` : v8 OK 
+- `[Executor_01]` : v8 OK 
 - `[TL]` : v8 OK
