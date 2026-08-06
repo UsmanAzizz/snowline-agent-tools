@@ -58,6 +58,9 @@ def needs_approval(tool: str) -> bool:
 
 def get_agent_action(result) -> str:
     if result.needs_clarification:
+        # Multi-match: suggest top tool instead of empty CLARIFY
+        if result.clarification_context and result.clarification_context.get('matched_tools'):
+            return "KONFIRMASI"
         return "CLARIFY"
     if result.confidence_level == "HIGH" and result.specificity == "high":
         return "EXECUTE"
@@ -111,6 +114,15 @@ def main():
         print(f"  Needs Approval: {needs_approval(result.single_tool.name)}")
     elif result.needs_clarification:
         print(f"\n! {result.clarification_note}")
+        # Show top-ranked tool as main suggestion + alternatives from clarification_context
+        if result.clarification_context and result.clarification_context.get('matched_tools'):
+            tools = result.clarification_context['matched_tools']
+            if tools:
+                top = tools[0]
+                print(f"\n  Tool (suggested): {top['name']} ({top['confidence']})")
+                if len(tools) > 1:
+                    alt_names = [f"{t['name']} ({t['confidence']})" for t in tools[1:]]
+                    print(f"  Alternatives: {', '.join(alt_names)}")
 
     print(f"{'=' * 60}\n")
 

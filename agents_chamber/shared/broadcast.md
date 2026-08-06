@@ -1,7 +1,7 @@
 # Broadcast
 
 ## Current Version
-**v6 | 05 Agustus 2026 | mencakup RULES.md s/d Rule #12 | Klarifikasi Otoritas Rule #8**
+**v7 | 06 Agustus 2026 | mencakup RULES.md s/d Rule #12 | Penambahan Carve-out #2 Ledger #1**
 
 ## Standing Notices
 *(Permanent rules and reminders)*
@@ -18,6 +18,9 @@ Executor **DILARANG KERAS** mengedit file administratif tersebut. Jika Executor 
 
 ## One-Time Pings
 *(Ephemeral messages - clear once acknowledged)* 
+
+**[UPDATE ATURAN - Pengecualian Ledger #1 (Task 75)]**
+Telah ditambahkan **Carve-out kedua (Exception 2)** pada Ledger #1 di `RULES.md`. Modul internal murni (stateless, tanpa efek samping, tidak menyentuh file) seperti `tree_gen.py` kini diizinkan untuk di-share antar-tool. Hal ini diputuskan untuk menghindari risiko drift akibat duplikasi paksa (copy-paste). 
 
 **[UPDATE ATURAN - Alur Sinyal Deterministik ('')]**
 - **Rule #2 (Signal Protocol)** disederhanakan: PM hanya akan menggunakan satu kode tunggal yaitu `''` (tanpa variasi nama peran).
@@ -41,5 +44,5 @@ Setiap penyelesaian task dari Executor **wajib diserahkan ke QA** untuk audit ak
 
 ## Acknowledgments
 *(Hanya diisi oleh pemilik posisi masing-masing dengan format `[Posisi] vX OK` setelah membaca)*
-- `[QA]` : v6 OK
-- `[Executor_01]` : v6 OK
+- `[QA]` : v7 OK
+- `[Executor_01]` : (Belum baca v7)

@@ -106,8 +106,9 @@ Long-term memory for architectural precedents agreed upon by the Chamber (TL + Q
 
 **1. Isolation over DRY (Zero-Bloat AI Scripts)**
 - **Rule:** Do NOT use shared modules (e.g. a common `utils.py` imported by multiple scripts) when building autonomous AI automation tools (like `impact_analyzer`, `splicer`, etc).
-- **The Task 18 Carve-out (Exception):** Core **security/scope boundaries** (such as `is_file_in_scope()` in `scope_guardian`) with a proven history of drift bugs (Tasks 7, 14, 15) MUST be consolidated into a shared module. The risk of disparate implementations bypassing security boundaries is far more dangerous than the risk of Coupled Failure.
+- **The Task 18 Carve-out (Exception 1):** Core **security/scope boundaries** (such as `is_file_in_scope()` in `scope_guardian`) with a proven history of drift bugs (Tasks 7, 14, 15) MUST be consolidated into a shared module. The risk of disparate implementations bypassing security boundaries is far more dangerous than the risk of Coupled Failure.
+- **The Task 75 Carve-out (Exception 2):** Modul internal murni — tanpa efek samping, tidak menyentuh file, tidak memegang *state* — boleh dibagikan antar-tool. Untuk kode seperti ini, kegagalan akibat *coupling* bersifat keras dan langsung terlihat saat dijalankan, sementara *drift* akibat penggandaan bersifat diam dan baru ketahuan setelah waktu yang lama. Contoh: `tree_gen`.
 - **Why:** In AI ecosystems, shared feature modules are vectors for Coupled Failure - optimizing a shared feature for Tool A can silently break Tool B. For security boundaries specifically, drift causes repeated vulnerabilities instead, which is worse.
-- **Action:** Use Pure Copy-Paste (Isolation) for feature logic (code extraction, searching, etc). Use Shared Modules ONLY for unified security/scope boundaries.
+- **Action:** Use Pure Copy-Paste (Isolation) for general feature logic (code extraction, searching, etc). Use Shared Modules ONLY for unified security/scope boundaries, or pure stateless internal modules.
 
 **Before adding a new rule here:** check this Ledger and `project_context.md`'s history for anything this might contradict. Note the reconciliation explicitly if there's tension with a past decision, rather than leaving a silent contradiction in the permanent record.
