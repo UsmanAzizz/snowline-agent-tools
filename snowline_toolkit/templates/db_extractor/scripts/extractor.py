@@ -106,9 +106,9 @@ def extract_mysql(config):
 
 def main():
     sys.stdout.reconfigure(encoding='utf-8')
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
         print("Usage: python extractor.py <project_root_dir>")
-        sys.exit(1)
+        sys.exit(0)
         
     project_root = sys.argv[1]
     env_path = os.path.join(project_root, '.env')

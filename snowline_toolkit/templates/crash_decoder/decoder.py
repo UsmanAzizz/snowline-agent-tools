@@ -54,9 +54,9 @@ def decode_crash(file_path):
         print(f"[FAIL] Could not read log file: {e}")
 
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
         print("Usage: python decoder.py <path_to_error_log.txt>")
-        sys.exit(1)
+        sys.exit(0)
 
     decode_crash(sys.argv[1])
 

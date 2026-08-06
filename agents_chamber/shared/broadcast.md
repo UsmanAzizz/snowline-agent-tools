@@ -47,6 +47,14 @@ Audit ekosistem lengkap (06 Aug 2026) menemukan:
 - **F2 (Medium):** Task 72 gap dalam task_board — Rule #7 violation. Perlu konfirmasi dari TL.
 Full report: `shared/archive/audit_2026_08_06_chamber_companion.md`
 
+**[AUDIT - Stress Test Ecosystem (Task 77, 26 test companion)]
+Stress test 16 tool + companion selesai (06 Aug 2026):**
+- 14/16 tool ✅ PASS
+- `crash_decoder` & `db_extractor` — UX bug: --help treat sebagai file path (bukan flag). Fungsi normal tidak terdampak.
+- `scope_lock.json` — config mismatch: path menunjuk ke "D:/project/scarecrow/for_claude" (project berbeda). Scope gate di auto_scaffolder/context_mapper impacted.
+- 0 regressi pada fix B1/B2/F4/F5/F6.
+Full report: `shared/archive/stress_test_2026_08_06_full_ecosystem.md`
+
 ---
 
 ## Acknowledgments

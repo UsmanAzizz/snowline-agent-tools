@@ -15,56 +15,7 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## ACTIVE TASK - OUTBOX (Executor -> TL)
 
-**Task 77 — EKSEKUSI SELESAI**
-
-### Perubahan (3 file, 3 fix):
-
-**F4 — companion_cli.py standalone path resolution:**
-```python
-_companion_parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if _companion_parent not in sys.path:
-    sys.path.insert(0, _companion_parent)
-import companion as _mod
-```
-
-**F5 — core_intent.py `_plan` contradiction:**
-- Hilangkan `confidence_level="HIGH"` + `specificity="high"` dari branch `_plan`
-- Ganti dengan `confidence_level="MEDIUM"` → `_plan` sekarang memicu grilling (`needs_clarification=True` + specificity MEDIUM) secara langsung tanpa kontradiksi
-
-**F6 — core_grilling.py entities=None guard:**
-```python
-_entities = result.entities if result.entities is not None else []
-# Ganti semua result.entities → _entities di dalam should_grill()
-```
-
-### Verifikasi:
-
-```
-=== F4: companion_cli.py standalone ===
-$ python .agents/skills/companion/companion_cli.py "cari axios"
-============================================================
-COMPANION v5.0 - ANALYSIS RESULT  ✅ (no crash)
-
-=== F5: _plan grinding ===
-$ python companion.py "_plan fitur baru"
-Confidence: MEDIUM
-Action: CLARIFY
-needs_grilling: True
-reason: Confidence MEDIUM - perlu konfirmasi  ✅ (kontradiksi GONE)
-
-=== F6: entities=None guard ===
-$ python companion.py "cari"
-Confidence: MEDIUM
-needs_grilling: True
-reason: Confidence MEDIUM - perlu konfirmasi  ✅ (no TypeError)
-
-=== MD5 sync ===
-companion_cli.py: dce3fd4a... identical  ✅
-core_grilling.py: cc454c9c... identical  ✅
-core_intent.py: a75ddb19... identical  ✅
-```
-
-**Status: SELESAI**
+*(Kosong)*
 
 ---
 
@@ -76,9 +27,10 @@ core_intent.py: a75ddb19... identical  ✅
 
 ## ARCHIVE
 
-- [Task 76] Backlog B1 & B2 Companion - SELESAI. B1 (core_grilling: "perlu konfirmasi"), B2 (core_intent: empty set guard before issubset). SYNCED ke template. MD5 identical.
-- [Task 77] Perbaikan Bug Companion F4/F5/F6 - SELESAI. F4 (path resolution companion_cli.py standalone), F5 (_plan contradiction fixed), F6 (entities=None guard core_grilling.py). SYNCED ke template. 3/3 test passed, MD5 identical.
-- [Task 75]
+- [Task 76] Backlog B1 & B2 Companion - SELESAI. B1 ("perlu konfirmasi"), B2 (empty set guard before issubset). SYNCED. MD5 identical.
+- [Task 77] Bug Companion F4/F5/F6 - SELESAI. F4 (path resolution companion_cli.py), F5 (_plan contradiction), F6 (entities=None guard core_grilling.py). SYNCED. 3/3 test passed, MD5 identical.
+- [Task 78] Perbaikan UX --help + Scope - SELESAI. crash_decoder --help exit 0, db_extractor --help exit 0, scope_guardian sudah CWD-based (tool membaca scope_lock.json dinamis dari os.getcwd()). SYNCED 2 file ke template.
+- [Task 75] Companion Multi-Match - SELESAI. get_agent_action multi-match -> KONFIRMASI, main() tampilkan tool teratas + alternatif. SYNCED. 2 test passed, MD5 identical.
 - [Task 76]
 - [Task 75] Perbaikan Companion Multi-Match - SELESAI. cli.py: get_agent_action() multi-match -> KONFIRMASI, main() tampilkan tool teratas + alternatif. SYNCED ke template. 2 test passed, MD5 identical.
 - [Task 74] Enforcement check_scope - SELESAI (REVISI). context_mapper: check per-file (structure_file, patterns_file), auto_scaffolder: check filepath (bukan target_dir), import_fixer LULUS (source_file spesifik). SYNCED ke template. MD5 identical.
