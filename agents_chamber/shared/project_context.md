@@ -11,7 +11,7 @@ Lightweight Python tools for AI coding agents (Claude Code, Gemini). Goal: preve
 
 ## Active Positions
 - `pos/1. TL`: Tech Lead (Gemini)
-- `pos/2. QA`: Reviewer (separate Gemini session)
+- `pos/2. QA`: Reviewer (Opus 4.8 - transitioned from Gemini, kept as a separate independent session)
 - `pos/3. Executor/Executor_01`: Executor (Claude Code)
 - `pos/0. PM`: Project Manager (human, oversees)
 - `pos/3. Executor/Executor_02` through `Executor_05`: reserved slots, empty until invited
@@ -41,7 +41,13 @@ Lightweight Python tools for AI coding agents (Claude Code, Gemini). Goal: preve
 
 | Utility | Purpose |
 |---------|---------|
-| `shared/monitor.py` | CLI Dashboard to view real-time INBOX, OUTBOX, and STATUS of all agents in the Chamber. Built to help human PMs oversee the entire ecosystem from a single terminal window without opening multiple markdown files. Run via: `python agents_chamber/shared/monitor.py`. |
+| `shared/update_header.py` | Skrip utilitas untuk memperbarui header/komentar pada file. |
+
+## Chamber Core Documentation
+
+| File | Purpose |
+|------|---------|
+| `shared/DESIGN_PHILOSOPHY.md` | Justifikasi arsitektur spesialisasi peran agen (MetaGPT-style). Wajib dibaca untuk memahami pemisahan TL, QA, dan Executor. |
 
 ## Position History (Tasks 1-36)
 
@@ -68,6 +74,7 @@ Lightweight Python tools for AI coding agents (Claude Code, Gemini). Goal: preve
 - `PROJECT_CONTEXT.md` - incident history and architecture notes
 - `CURRENT_STATE.md` - current project state
 - `AGENTS.md` - complete rules for agent behavior
+- `shared/archive/` - contains historical verification, deep dives, and raw outputs of completed tasks (e.g., Task 64, Task 65).
 
 ## Design Decision: Chamber/Orchestrator Stay Personal, Manual-Only
 

@@ -59,8 +59,4 @@ print(get_agent_action(result))  # EXECUTE/KONFIRMASI/CLARIFY
 | crash_decoder | Error parser | error, bug, crash |
 | scope_guardian | Scope validator | scope |
 
-## Memory
-
-Companion learns from usage:
-- Records tool selections in `.agents/memory.json`
-- Suggests tools based on past success
+---

@@ -10,7 +10,7 @@ import time
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history'}
+exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history', '.venv'}
 js_py_exts = {'.js', '.jsx', '.ts', '.tsx', '.py'}
 test_extensions = ('.test.js', '.test.jsx', '.test.ts', '.test.tsx',
                    '.spec.js', '.spec.jsx', '.spec.ts', '.spec.tsx', '.test.py')
@@ -38,6 +38,12 @@ def get_dir_signature():
                     mtimes.append(str(os.path.getmtime(filepath)))
             except Exception:
                 pass
+    # Include guardian.py source hash to invalidate cache when the tool itself changes
+    try:
+        guardian_hash = hashlib.md5(open(__file__, 'rb').read()).hexdigest()
+        mtimes.append(guardian_hash)
+    except Exception:
+        pass
     return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()
 
 def scan_secrets():
@@ -49,7 +55,9 @@ def scan_secrets():
         (r'(?i)(secret\s*[:=]\s*[\'"].+[\'"])', 'Hardcoded secret'),
         (r'(mongodb\+srv://.+)', 'MongoDB connection string'),
         (r'(mysql://.+)', 'MySQL connection string'),
-        (r'(Bearer\s+[A-Za-z0-9\-\._~+/]+=*)', 'Bearer token')
+        (r'(?i)(AIza[0-9A-Za-z_\-]{35})', 'Google API Key'),
+        (r'(?i)(AKIA[0-9A-Z]{16})', 'AWS Access Key'),
+        (r'(Bearer\s+[A-Za-z0-9\-\._~+/]{20,}=*)', 'Bearer token')
     ]
     compiled = [(re.compile(p), desc) for p, desc in secret_patterns]
 
@@ -57,7 +65,12 @@ def scan_secrets():
         dirs[:] = [d for d in dirs if d not in exclude_dirs and d not in test_dir_names]
         for file in files:
             if file.startswith('.env'): continue
-            # Skip test files
+            if file.endswith('.patch'): continue
+            # Skip project_guardian tool itself (path-based, not just filename)
+            if file == 'guardian.py':
+                dir_basename = os.path.basename(root)
+                if dir_basename == 'project_guardian':
+                    continue
             if file.endswith(test_extensions): continue
             filepath = os.path.join(root, file)
             if os.path.getsize(filepath) > MAX_FILE_SIZE: continue

@@ -38,27 +38,12 @@ def check_task_state():
 
 def check_scope(pending_writes):
     """Block if any file to be modified is outside allowed scope (security gate, fail-closed)."""
-    # Import shared scope-checking helper from scope_guardian
-    try:
-        from scope_guardian.scripts.scope_check import is_file_in_scope
-    except ImportError:
-        # Fallback: check manually if import fails
-        import fnmatch as _fnmatch
-
-        def is_file_in_scope(filepath, allowed_files, allowed_patterns):
-            target = filepath.replace('\\', '/').lower()
-            for allowed in allowed_files:
-                allowed_lc = allowed.lower()
-                if '/' not in allowed_lc:
-                    if os.path.basename(target) == allowed_lc:
-                        return True
-                else:
-                    if target == allowed_lc or target.endswith('/' + allowed_lc):
-                        return True
-            for pattern in allowed_patterns:
-                if _fnmatch.fnmatch(filepath, pattern):
-                    return True
-            return False
+    # Ensure .agents/skills is in sys.path so scope_guardian can be found
+    import sys, os
+    _SKILLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # -> .agents/skills
+    if _SKILLS not in sys.path:
+        sys.path.insert(0, _SKILLS)
+    from scope_guardian.scripts.scope_check import is_file_in_scope
 
     lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
 

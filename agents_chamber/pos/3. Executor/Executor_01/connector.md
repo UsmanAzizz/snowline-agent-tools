@@ -9,110 +9,13 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## ACTIVE TASK - INBOX
 
-**[Tech Lead Assignment]** - **Task 50 & 51: Implement `_plan` Convention & Grill-First**
-
-QA telah menyetujui rancangan arsitektur untuk konvensi `_plan` dengan satu revisi wajib: pencegatan di `core_intent.py` harus menggunakan pencarian *substring* (`in`) agar *bulletproof* (bisa menangkap `_plan` di tengah kalimat).
-
-**Instruksi Eksekusi:**
-1. **Modifikasi `AGENTS_TEMPLATE.md`:** Tambahkan Rule #7 di bagian bawah `Aturan Inti` (sebelum blok Communication) seperti berikut:
-   ```markdown
-   **7. "Grill First" & Formal Planning (The `_plan` Convention):**
-   - Jika prompt user mengandung kata kunci `_plan` (case-insensitive, contoh: `_plan buat fitur login`), Anda DIWAJIBKAN untuk masuk ke mode **Formal Planning** dan dilarang keras langsung memodifikasi kode.
-   - **Tahap 1 (Grill First):** Jangan langsung berasumsi. Gunakan `deep_analyzer` atau `context_mapper` untuk membaca struktur proyek, lalu ajukan 1-2 pertanyaan terarah (Grill) kepada user untuk memperjelas batasan atau edge-cases.
-   - **Tahap 2 (Blueprint):** Setelah asumsi terjawab, susun rencana eksekusi menggunakan struktur `plan_tracker/PLAN_TEMPLATE.md`. Bagian "Keputusan & Asumsi" dan "Menunggu Konfirmasi" wajib diisi.
-   - **Tahap 3 (Explicit Approval):** Berhenti dan tunggu konfirmasi eksplisit dari user ("Proceed", "Silakan lanjut") SEBELUM mengeksekusi tool WRITE apa pun.
-   ```
-
-2. **Modifikasi `snowline_toolkit/templates/companion/core_intent.py`:** Di dalam fungsi `analyze_intent(user_input: str) -> AnalyzeResult:`, langsung setelah baris `text = user_input.lower()`, tambahkan *fast-path intercept*:
-   ```python
-       # ---------------------------------------------------------
-       # Fast-Path: _plan convention trigger
-       # ---------------------------------------------------------
-       if '_plan' in text:
-           return AnalyzeResult(
-               input=user_input,
-               keywords=["_plan"],
-               entities=[],
-               specificity="high",
-               confidence_level="HIGH",
-               needs_clarification=True,
-               clarification_note="PLAN_MODE_TRIGGERED: User explicitly requested a formal planning phase. Agent MUST NOT jump to implementation. 1) Grill for gaps, 2) Write PLAN_TEMPLATE.md, 3) Wait for approval."
-           )
-   ```
-
-**Verifikasi:**
-- Gunakan alat *replace* untuk melakukan injeksi pada kedua file tersebut.
-- Jalankan pengecekan sintaksis (`py_compile`) pada `core_intent.py`.
-- Tuliskan laporan dan bukti penyisipan di OUTBOX.
-
-**Status:** [DONE]
+*(Kosong - Menunggu instruksi TL)*
 
 ---
 
 ## ACTIVE TASK - OUTBOX (Executor -> TL)
 
-**Task 50 & 51: Implement `_plan` Convention & Grill-First - COMPLETE**
-
-**BROADCAST_ALPHA_OK**
-
----
-
-## Implementation Summary
-
-### 1. Modified `AGENTS_TEMPLATE.md` - Added Rule #7
-
-**Location:** After Rule #4 (Communication), before "🔍 Bukti Live-Test" section
-
-```markdown
-**7. "Grill First" & Formal Planning (The `_plan` Convention):**
-- Jika prompt user mengandung kata kunci `_plan` (case-insensitive, contoh: `_plan buat fitur login`), Anda DIWAJIBKAN untuk masuk ke mode **Formal Planning** dan dilarang keras langsung memodifikasi kode.
-- **Tahap 1 (Grill First):** Jangan langsung berasumsi. Gunakan `deep_analyzer` atau `context_mapper` untuk membaca struktur proyek, lalu ajukan 1-2 pertanyaan terarah (Grill) kepada user untuk memperjelas batasan atau edge-cases.
-- **Tahap 2 (Blueprint):** Setelah asumsi terjawab, susun rencana eksekusi menggunakan struktur `plan_tracker/PLAN_TEMPLATE.md`. Bagian "Keputusan & Asumsi" dan "Menunggu Konfirmasi" wajib diisi.
-- **Tahap 3 (Explicit Approval):** Berhenti dan tunggu konfirmasi eksplisit dari user ("Proceed", "Silakan lanjut") SEBELUM mengeksekusi tool WRITE apa pun.
-```
-
-### 2. Modified `core_intent.py` - Fast-Path Intercept
-
-**Location:** After `text = user_input.lower()` in `analyze_intent()` function (line 177)
-
-```python
-    # ---------------------------------------------------------
-    # Fast-Path: _plan convention trigger
-    # ---------------------------------------------------------
-    if '_plan' in text:
-        return AnalyzeResult(
-            input=user_input,
-            keywords=["_plan"],
-            entities=[],
-            specificity="high",
-            confidence_level="HIGH",
-            needs_clarification=True,
-            clarification_note="PLAN_MODE_TRIGGERED: User explicitly requested a formal planning phase. Agent MUST NOT jump to implementation. 1) Grill for gaps, 2) Write PLAN_TEMPLATE.md, 3) Wait for approval."
-        )
-```
-
-## Verification
-
-```bash
-$ python -m py_compile snowline_toolkit/templates/companion/core_intent.py
-Syntax OK
-```
-
-## Files Modified
-1. `snowline_toolkit/templates/AGENTS_TEMPLATE.md` - Added Rule #7
-2. `snowline_toolkit/templates/companion/core_intent.py` - Added fast-path intercept (substring `in` check per QA revision)
-
----
-
-Task 50 & 51: **COMPLETE**
-
----
-
-## CURRENT TASK / CONTEXT
-
-- Active: None - waiting for next task
-- Position: 3. Executor/Executor_01 (migrated from `claude_code/pos_01` -> `pos/Executor_01` -> current)
-- Last completed: Task 50 & 51 - `_plan` Convention & Grill-First (Rule #7 + core_intent.py fast-path)
+*(Kosong)*
 
 ---
 
@@ -124,11 +27,21 @@ Task 50 & 51: **COMPLETE**
 
 ## ARCHIVE
 
+- [Task 73] Perbaiki Path Resolution is_file_in_scope - SELESAI (REVISI). Tambah sys.path resolution sebelum import scope_guardian (shadow copy tetap dihapus). SYNCED ke template. 3 test passed (no ModuleNotFoundError, BLOCKED out-of-scope, MD5 identical).
+- [Task 71] Update README.md & Bugfix Konfirmasi Reinstall - SELESAI (REVISI). Fix: tambah confirm_msg ke uninstall(), fix double "Run", README tambahkan --apply, fix terminology. Commit 34fa7fd, pushed to main.
+- [Task 70] Penyederhanaan Logika Aksi CLI - SELESAI. Hapus else dari blok agents_tersedia (line 636), hapus duplikasi di summary (line 651). snowline update --apply sekarang di satu lokasi.
+- [Task 69] Penambahan Pesan Aksi Status CLI - SELESAI. Tambah "-> snowline update --apply" ke summary "Ada file project tersedia update." (line 651). Verifikasi: 3 lokasi aksi (inline project available, inline package behind, summary).
+- [Task 68] Status CLI Lapis Ganda - SELESAI. U1 (status() dual layer: Paket + .agents), U2/U3 (reinstall --latest dari GitHub). Live-test passed.
+- [Task 67] Perbaikan Alur Instalasi CLI - SELESAI (REVISI). Fix: tambah `force` ke logika penyalinan file (line 263). Live-test: init --apply (ASLI dipertahankan) + init --apply --force (ASLI tertimpa, Pulih dari template).
+- [Task 66] Perbaikan Keyword crash_decoder - SELESAI. Hapus "perbaiki", "perbaikan", "memperbaiki", "masalah" dari keywords. Keyword inti error/bug/exception tetap berfungsi. SYNCED ke template.
+- [Task 65] Perbaikan Logika Companion - REVISI DONE. Fix 1 (C2 sorting dipindahkan keluar dari blok needs_clarify), Fix 2 (C1 imbuhan TOOL_REGISTRY: menganalisa, memperbaiki, mengganti, membersihkan, dll). SYNCED ke template. PENDING QA (Rule #11).
+- [Task 63] Fix Guardian Cache Invalidation & Template Sync - DONE. Guardian.py source hash ditambahkan ke dir_sig, filter path-based, disinkronkan ke 3 lokasi (md5 verified identical).
+- [Task 61] Remediasi Task 7.3 & Perbaikan Guardian - DONE. CRITICAL: 18→5. Perubahan: `.venv` excluded, `guardian.py` self-scan fixed, Google/AWS regex added, Bearer diperketat, Rule #7 sinkron. Live-test via `python project_guardian/guardian.py`.
 - [Task 50 & 51] `_plan` Convention & Grill-First: DONE. Added Rule #7 to AGENTS_TEMPLATE.md and fast-path intercept to core_intent.py (substring `in` check per QA revision). Syntax verified.
-- [Task 49] Interactive `snowline status` with Detached Handoff: DONE. Modified `snowline_toolkit/cli.py` - added interactive update prompt with Windows `start cmd.exe /c` detached handoff (2s ping delay) and Unix subprocess fallback. Syntax verified.
-- [Task 45] Full Toolkit Stress Test: DONE. Tested 10 tools directly on D:\project\scarecrow - all PASSED. scope_guardian bypass protection verified, project_guardian .env/secret detection working, impact_analyzer --depth parameter working, splicer indentation fallback triggered correctly on template literal code.
-- [Task 44] Indentation Fallback for splicer.py: DONE. Added `extract_by_indentation()` as fallback tier, did NOT modify `extract_js_body`/`find_js_line` (per Isolation-over-DRY mandate). Live-tested against 3 real functions with template literals - all passed.
-- [Task 41] Build Surgical Code Splicer: DONE (required Manual Override after an initial shortcut attempt) -> see `shared/archive/task_41_splicer.md`
-- Task 39: Implement `--depth` Configurable Recursive Traversal in `impact_analyzer`.
-- Task 38: impact_analyzer Python blindness + JS explicit extension fix - commit 19fd09b
-- Trial Task: Clean up Tool Inventory table (Task 36 trial) - commit 15d20ea
+- [Task 49] Interactive `snowline status` with Detached Handoff: DONE. Modified `snowline_toolkit/cli.py`.
+- [Task 45] Full Toolkit Stress Test: DONE. Tested 10 tools - all PASSED.
+- [Task 44] Indentation Fallback for splicer.py: DONE.
+- [Task 41] Build Surgical Code Splicer: DONE (required Manual Override after initial shortcut attempt).
+- [Task 39] On-the-Fly Recursive Traversal + `--depth` Parameter.
+- [Task 38] impact_analyzer Python blindness + JS explicit extension fix.
+- Trial Task: Clean up Tool Inventory table.

@@ -161,6 +161,14 @@ Setelah user setuju:
 - Tidak boleh dilanjutkan tanpa konfirmasi eksplisit dari user, meskipun instruksi asal tidak menyebutkan soal keamanan
 - Contoh: user minta "rapikan kode", hasilnya ada API key di commit history → AI berhenti dan tanya user sebelum lanjut
 
+**7. "Grill First" & Formal Planning (The `_plan` Convention):**
+- Jika prompt user mengandung kata kunci `_plan`, Anda DIWAJIBKAN masuk ke mode Formal Planning.
+- **Tahap 1 (Grill First):** Ajukan 1-2 pertanyaan terarah (Grill) kepada user untuk memperjelas batasan atau edge-cases.
+
+**8. Jurisdiction Boundary (TL vs Executor):**
+- Segala hal yang berkaitan dengan **administrasi proyek** (mengubah `RULES.md`, `AGENTS.md`, `AGENTS_TEMPLATE.md`, `task_board.md`, konektor, atau *ledger* lainnya) adalah **yurisdiksi eksklusif Tech Lead (TL)**.
+- Executor DILARANG KERAS mengedit file administratif tersebut. Jika ada instruksi yang mencakup pembaruan administrasi sekaligus *coding*, TL wajib mengambil alih bagian administrasinya dan hanya melempar urusan modifikasi *source code* (seperti file Python, JS, dll) ke Executor.
+
 ---
 
 ## Communication

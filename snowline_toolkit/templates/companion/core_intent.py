@@ -35,20 +35,20 @@ class AnalyzeResult:
 
 TOOL_REGISTRY = {
     "smart_search": {
-        "keywords": ["cari", "find", "search", "locate", "ketemu", "where", "grep", "import", "module", "dependencies"],
+        "keywords": ["cari", "find", "search", "locate", "ketemu", "where", "grep", "import", "module", "dependencies", "pencarian", "mencari"],
         "confidence": "medium",
         "safety": "safe",
         "command": "python .agents/skills/smart_search/code_finder.py <dir> <keyword>"
     },
     "smart_replace": {
-        "keywords": ["ganti", "replace", "tukar", "ubah", "change", "modify", "edit", "rename", "refactor", "konversi", "convert", "migration"],
+        "keywords": ["ganti", "replace", "tukar", "ubah", "change", "modify", "edit", "rename", "refactor", "konversi", "convert", "migration", "penggantian", "mengganti", "mengubah"],
         "confidence": "high",
         "safety": "moderate",
         "command": "python .agents/skills/smart_replace/replace_text.py <old> <new> [--apply]",
         "needs_approval": True
     },
     "selective_reader": {
-        "keywords": ["baca", "read", "lihat", "view", "show", "check", "inspect", "dokumentasi"],
+        "keywords": ["baca", "read", "lihat", "view", "show", "check", "inspect", "dokumentasi", "dibaca", "membaca"],
         "confidence": "medium",
         "safety": "safe",
         "command": "python .agents/skills/selective_reader/reader.py <filepath>"
@@ -66,7 +66,7 @@ TOOL_REGISTRY = {
         "command": "python .agents/skills/scope_guardian/scripts/scope_check.py <filepath>"
     },
     "deep_analyzer": {
-        "keywords": ["analisa", "analyze", "overview", "ringkasan", "summary", "statistik", "diagnosa", "evaluasi", "inventori"],
+        "keywords": ["analisa", "analyze", "overview", "ringkasan", "summary", "statistik", "diagnosa", "evaluasi", "inventori", "menganalisa", "menganalisis", "analisis"],
         "confidence": "high",
         "safety": "safe",
         "command": "python .agents/skills/deep_analyzer/analyzer.py . --json"
@@ -84,13 +84,13 @@ TOOL_REGISTRY = {
         "command": "python .agents/skills/impact_analyzer/analyzer.py <file> ."
     },
     "crash_decoder": {
-        "keywords": ["error", "bug", "crash", "debug", "log", "trace", "gagal", "failed", "masalah", "issue", "exception", "perbaiki"],
+        "keywords": ["error", "bug", "crash", "debug", "log", "trace", "gagal", "failed", "issue", "exception"],
         "confidence": "high",
         "safety": "safe",
         "command": "python .agents/skills/crash_decoder/decoder.py <logfile>"
     },
     "clean_sweeper": {
-        "keywords": ["bersih", "bersihkan", "cleanup", "clean", "hapus", "delete", "buang", "sampah", "residu", "garbage", "unused", "backup", "archive", "temporary", "tmp", "beresin", "rapikan"],
+        "keywords": ["bersih", "bersihkan", "cleanup", "clean", "hapus", "delete", "buang", "sampah", "residu", "garbage", "unused", "backup", "archive", "temporary", "tmp", "beresin", "rapikan", "membersihkan", "menghapus", "pembersihan"],
         "confidence": "medium",
         "safety": "safe",
         "command": "python .agents/skills/clean_sweeper/sweeper.py ."
@@ -100,6 +100,26 @@ TOOL_REGISTRY = {
         "confidence": "high",
         "safety": "moderate",
         "command": "python .agents/skills/auto_scaffolder/scaffolder.py <type> <name> [--apply]",
+        "needs_approval": True
+    },
+    "db_extractor": {
+        "keywords": ["schema", "skema", "database", "erd", "struktur tabel", "kolom tabel", "relasi tabel"],
+        "confidence": "high",
+        "safety": "safe",
+        "command": "python .agents/skills/db_extractor/scripts/extractor.py ."
+    },
+    "context_mapper": {
+        "keywords": ["context mapper", "petakan project", "knowledge base", "project structure", "onboarding project", "dokumentasi arsitektur"],
+        "confidence": "high",
+        "safety": "moderate",
+        "command": "python .agents/skills/context_mapper/context_mapper.py [--apply]",
+        "needs_approval": True
+    },
+    "import_fixer": {
+        "keywords": ["import rusak", "broken import", "fix import", "perbaiki import", "module not found", "cannot find module"],
+        "confidence": "high",
+        "safety": "moderate",
+        "command": "python .agents/skills/import_fixer/fixer.py <source_file> <broken_import_string> [--apply]",
         "needs_approval": True
     },
 }
@@ -209,7 +229,7 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
     # Match keywords to tools
     for tool_name, tool_info in TOOL_REGISTRY.items():
         for kw in tool_info["keywords"]:
-            if kw in text:
+            if re.search(r'\b' + re.escape(kw) + r'\b', text):
                 keywords_found.append(kw)
                 tool_matches.append({
                     "tool": tool_name,
@@ -217,6 +237,10 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
                     "confidence": tool_info["confidence"]
                 })
                 break
+
+    # Sort tool_matches by confidence: high > medium > low (before any clarify logic)
+    conf_order = {"high": 0, "medium": 1, "low": 2}
+    tool_matches.sort(key=lambda m: conf_order.get(m["confidence"], 2))
 
     # Extract entities (use ORIGINAL input)
     entities = extract_entities(user_input)
@@ -244,7 +268,9 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
     elif len(tool_matches) == 1 and tool_matches[0]["confidence"] == "high":
         confidence_level = "HIGH"
     elif len(tool_matches) >= 2:
-        confidence_level = "HIGH"
+        needs_clarify = True
+        clarify_note = "Multiple tools matched. Confirm intended tool."
+        confidence_level = "MEDIUM"
     elif len(tool_matches) == 1:
         confidence_level = "MEDIUM"
     else:
