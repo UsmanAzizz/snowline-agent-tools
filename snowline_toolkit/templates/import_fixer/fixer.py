@@ -2,10 +2,41 @@ import os
 import sys
 import re
 import shutil
+import json
 from datetime import datetime
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
+
+
+def check_scope_write(write_target):
+    """Block if write target is outside allowed scope (security gate, fail-closed)."""
+    # Ensure .agents/skills is in sys.path so scope_guardian can be found
+    _SKILLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # -> .agents/skills
+    if _SKILLS not in sys.path:
+        sys.path.insert(0, _SKILLS)
+    from scope_guardian.scripts.scope_check import is_file_in_scope
+
+    lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
+    if not os.path.exists(lock_file):
+        print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
+        sys.exit(1)
+    try:
+        with open(lock_file, 'r', encoding='utf-8') as f:
+            scope_data = json.load(f)
+    except Exception:
+        print("[BLOCKED] Failed to parse scope_lock.json.")
+        sys.exit(1)
+    allowed_files = scope_data.get('allowed_files', [])
+    allowed_patterns = scope_data.get('allowed_patterns', [])
+    task = scope_data.get('task', 'Unknown task')
+    if not is_file_in_scope(write_target, allowed_files, allowed_patterns):
+        print(f"[BLOCKED] Write target is OUT OF SCOPE.")
+        print(f"Task: {task}")
+        print(f"Target: {write_target}")
+        print(f"Allowed: {allowed_files}")
+        sys.exit(1)
+
 
 IGNORE_DIRS = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history'}
 EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx']
@@ -43,7 +74,10 @@ def compute_relative_path(source_file, target_file):
 def fix_import(source_file, broken_import, apply_mode):
     print("🔗 SMART IMPORT FIXER 🔗")
     print("=" * 60)
-    
+
+    # Check scope before writing
+    check_scope_write(source_file)
+
     if not os.path.exists(source_file):
         print(f"[FAIL] Source file not found: {source_file}")
         return

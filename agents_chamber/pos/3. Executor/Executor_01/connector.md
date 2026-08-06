@@ -27,6 +27,7 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## ARCHIVE
 
+- [Task 74] Enforcement check_scope - SELESAI (REVISI). context_mapper: check per-file (structure_file, patterns_file), auto_scaffolder: check filepath (bukan target_dir), import_fixer LULUS (source_file spesifik). SYNCED ke template. MD5 identical.
 - [Task 73] Perbaiki Path Resolution is_file_in_scope - SELESAI (REVISI). Tambah sys.path resolution sebelum import scope_guardian (shadow copy tetap dihapus). SYNCED ke template. 3 test passed (no ModuleNotFoundError, BLOCKED out-of-scope, MD5 identical).
 - [Task 71] Update README.md & Bugfix Konfirmasi Reinstall - SELESAI (REVISI). Fix: tambah confirm_msg ke uninstall(), fix double "Run", README tambahkan --apply, fix terminology. Commit 34fa7fd, pushed to main.
 - [Task 70] Penyederhanaan Logika Aksi CLI - SELESAI. Hapus else dari blok agents_tersedia (line 636), hapus duplikasi di summary (line 651). snowline update --apply sekarang di satu lokasi.

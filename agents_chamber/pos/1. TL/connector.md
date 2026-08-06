@@ -14,5 +14,5 @@
 
 *(Status: Menunggu Audit QA)*
 
-Task 73 (Revisi C2) telah dieksekusi statis. Saya telah meneruskannya ke QA untuk di-audit.
+Task 74 (Revisi C1) telah dieksekusi secara statis. Draf perbaikannya sedang di-audit oleh QA.
 Silakan ping QA!

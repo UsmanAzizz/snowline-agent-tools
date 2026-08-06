@@ -1,10 +1,41 @@
 import os
 import sys
+import json
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
 import json
+
+
+def check_scope_write(write_target):
+    """Block if write target is outside allowed scope (security gate, fail-closed)."""
+    # Ensure .agents/skills is in sys.path so scope_guardian can be found
+    _SKILLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # -> .agents/skills
+    if _SKILLS not in sys.path:
+        sys.path.insert(0, _SKILLS)
+    from scope_guardian.scripts.scope_check import is_file_in_scope
+
+    lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
+    if not os.path.exists(lock_file):
+        print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
+        sys.exit(1)
+    try:
+        with open(lock_file, 'r', encoding='utf-8') as f:
+            scope_data = json.load(f)
+    except Exception:
+        print("[BLOCKED] Failed to parse scope_lock.json.")
+        sys.exit(1)
+    allowed_files = scope_data.get('allowed_files', [])
+    allowed_patterns = scope_data.get('allowed_patterns', [])
+    task = scope_data.get('task', 'Unknown task')
+    if not is_file_in_scope(write_target, allowed_files, allowed_patterns):
+        print(f"[BLOCKED] Write target is OUT OF SCOPE.")
+        print(f"Task: {task}")
+        print(f"Target: {write_target}")
+        print(f"Allowed: {allowed_files}")
+        sys.exit(1)
+
 
 def check_task_state():
     state_file = os.path.join(os.getcwd(), '.agents', 'task_state.json')
@@ -73,36 +104,27 @@ module.exports = router;
 """
 
 def generate_scaffold(file_type, name, target_dir, apply_mode):
-    # Path traversal check: ensure target_dir is inside project root
-    abs_target = os.path.abspath(target_dir)
-    project_root = os.getcwd()
-
-    if not (abs_target == project_root or abs_target.startswith(project_root + os.sep)):
-        print(f"[BLOCKED] Target directory '{abs_target}' is outside the project root.")
-        print(f"Project root: {project_root}")
-        print("File operations are only allowed within the current project directory.")
-        if apply_mode:
-            sys.exit(1)
-        return
-
     print("🏗️ AUTO-SCAFFOLDER 🏗️")
     print("=" * 60)
-    
+
     if file_type.lower() not in ['react', 'api']:
         print("[FAIL] Invalid type. Choose 'react' or 'api'.")
         return
-        
+
     if not os.path.exists(target_dir) and apply_mode:
         os.makedirs(target_dir, exist_ok=True)
-        
+
     if file_type.lower() == 'react':
         filename = f"{name}.jsx"
         content = REACT_TEMPLATE.replace("{name}", name).replace("{name.lower()}", name.lower())
     else:
         filename = f"{name.lower()}.js"
         content = API_TEMPLATE
-        
+
     filepath = os.path.join(target_dir, filename)
+
+    # Check scope before writing (file-level, not directory)
+    check_scope_write(filepath)
     
     if os.path.exists(filepath):
         print(f"[FAIL] File {filename} already exists at {target_dir}!")

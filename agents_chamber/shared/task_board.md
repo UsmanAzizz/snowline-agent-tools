@@ -12,7 +12,7 @@
 |---------|--------|-----------------------------|-------|
 | `pos/0. PM` | **Project Manager** | Mendelegasikan seluruh pembaruan Ledger/Admin ke TL | (Human) |
 | `pos/1. TL` | **Tech Lead** | *Idle - Menunggu instruksi PM* | Gemini (Antigravity) |
-| `pos/2. QA` | **QA / Reviewer** | *Active - Audit Task 73 Revisi* | Opus 4.8 (Claude Code) |
+| `pos/2. QA` | **QA / Reviewer** | *Active - Audit Task 74 Revisi* | Opus 4.8 (Claude Code) |
 | `pos/3. Executor/Executor_01` | **Executor** | *Idle - Menunggu instruksi TL* | Claude Code |
 | `pos/3. Executor/Executor_02` | **Executor** | *Kosong* | (Reserved) |
 | `pos/3. Executor/Executor_03` | **Executor** | *Kosong* | (Reserved) |
@@ -20,6 +20,7 @@
 | `pos/3. Executor/Executor_05` | **Executor** | *Kosong* | (Reserved) |
 
 ## Completed (Recent)
+- **Task 73:** Hapus Salinan Bayangan `is_file_in_scope` di `replace_text.py` (C2) - **SELESAI** (QA PASS). *Path resolution* telah diperbaiki sehingga impor keamanan berjalan normal tanpa *crash*.
 - **Task 71:** Update README.md & Bugfix Reinstall - **SELESAI** (QA PASS). Dokumentasi baru untuk *status* dan *reinstall*, bug *dry-run* konfirmasi `reinstall` diselesaikan.
 - **Task 70:** Penyederhanaan Logika Aksi CLI - **SELESAI** (QA PASS). Logika `--apply` 100% dipastikan bebas bug/kombinasi-hilang.
 - **Task 69:** Penambahan Pesan Aksi Status CLI - **SELESAI** (QA PASS). Pesan *actionable* berhasil ditambahkan ke CLI.
