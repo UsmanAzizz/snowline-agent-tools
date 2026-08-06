@@ -92,36 +92,111 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 
 ## Tools (15 Core)
 
-### 🔍 Search & Modify
-| Tool | Purpose | Needs Approval? |
-|------|---------|-----------------|
-| `smart_search` | Find code with surrounding context | No |
-| `smart_replace` | Find-and-replace with dry-run, backup, and syntax validation | Yes (`--apply`) |
-| `import_fixer` | Fix broken relative imports | Yes (`--apply`) |
-| `surgical_splicer` | Extract a single function/class body with zero surrounding context (token-efficient for huge files) | No |
+<table>
+  <thead>
+    <tr>
+      <th>Tool</th>
+      <th>Purpose</th>
+      <th>Needs Approval?</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- Search & Modify -->
+    <tr>
+      <td colspan="3"><strong>🔍 Search & Modify</strong></td>
+    </tr>
+    <tr>
+      <td><code>smart_search</code></td>
+      <td>Find code with surrounding context</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>smart_replace</code></td>
+      <td>Find-and-replace with dry-run, backup, and syntax validation</td>
+      <td>Yes (<code>--apply</code>)</td>
+    </tr>
+    <tr>
+      <td><code>import_fixer</code></td>
+      <td>Fix broken relative imports</td>
+      <td>Yes (<code>--apply</code>)</td>
+    </tr>
+    <tr>
+      <td><code>surgical_splicer</code></td>
+      <td>Extract a single function/class body with zero surrounding context (token-efficient for huge files)</td>
+      <td>No</td>
+    </tr>
 
-### 🧭 Read & Navigate
-| Tool | Purpose | Needs Approval? |
-|------|---------|-----------------|
-| `selective_reader` | Extract table of contents from large files | No |
-| `smart_tree` | Compact, `.gitignore`-aware directory visualizer | No |
-| `scope_guardian` | Validates whether a file is within the current task's allowed scope | No |
+    <!-- Read & Navigate -->
+    <tr>
+      <td colspan="3"><strong>🧭 Read & Navigate</strong></td>
+    </tr>
+    <tr>
+      <td><code>selective_reader</code></td>
+      <td>Extract table of contents from large files</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>smart_tree</code></td>
+      <td>Compact, <code>.gitignore</code>-aware directory visualizer</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>scope_guardian</code></td>
+      <td>Validates whether a file is within the current task's allowed scope</td>
+      <td>No</td>
+    </tr>
 
-### 🛡️ Analyze & Audit
-| Tool | Purpose | Needs Approval? |
-|------|---------|-----------------|
-| `project_guardian` | Scans for exposed credentials, `.gitignore` issues, broken imports | No |
-| `deep_analyzer` | Project profiler (tech stack, dependencies, file stats) | No |
-| `impact_analyzer` | Traces reverse-dependencies before a file is changed, with configurable `--depth` for multi-hop chains | No |
-| `clean_sweeper` | Finds leftover/temp files and tech debt | No |
-| `db_extractor` | Extracts database schema (requires `pymysql`) | No (read-only) |
+    <!-- Analyze & Audit -->
+    <tr>
+      <td colspan="3"><strong>🛡️ Analyze & Audit</strong></td>
+    </tr>
+    <tr>
+      <td><code>project_guardian</code></td>
+      <td>Scans for exposed credentials, <code>.gitignore</code> issues, broken imports</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>deep_analyzer</code></td>
+      <td>Project profiler (tech stack, dependencies, file stats)</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>impact_analyzer</code></td>
+      <td>Traces reverse-dependencies before a file is changed, with configurable <code>--depth</code> for multi-hop chains</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>clean_sweeper</code></td>
+      <td>Finds leftover/temp files and tech debt</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>db_extractor</code></td>
+      <td>Extracts database schema (requires <code>pymysql</code>)</td>
+      <td>No (read-only)</td>
+    </tr>
 
-### ⚙️ Workflow Helpers
-| Tool | Purpose | Needs Approval? |
-|------|---------|-----------------|
-| `crash_decoder` | Parses crash logs, filters noise | No |
-| `auto_scaffolder` | Generates boilerplate files (component/route templates) | Yes (`--apply`) |
-| `context_mapper` | Generates architecture documentation into `.agents/knowledge/` | Yes (`--apply`) |
+    <!-- Workflow Helpers -->
+    <tr>
+      <td colspan="3"><strong>⚙️ Workflow Helpers</strong></td>
+    </tr>
+    <tr>
+      <td><code>crash_decoder</code></td>
+      <td>Parses crash logs, filters noise</td>
+      <td>No</td>
+    </tr>
+    <tr>
+      <td><code>auto_scaffolder</code></td>
+      <td>Generates boilerplate files (component/route templates)</td>
+      <td>Yes (<code>--apply</code>)</td>
+    </tr>
+    <tr>
+      <td><code>context_mapper</code></td>
+      <td>Generates architecture documentation into <code>.agents/knowledge/</code></td>
+      <td>Yes (<code>--apply</code>)</td>
+    </tr>
+  </tbody>
+</table>
 
 ## Usage Examples
 
