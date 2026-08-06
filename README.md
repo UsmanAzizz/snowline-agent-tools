@@ -92,27 +92,36 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 
 ## Tools (15 Core)
 
-| Kategori / Tool       | Purpose                                                                                               | Needs Approval? |
-|-----------------------|-------------------------------------------------------------------------------------------------------|-----------------|
-| **Search & Modify**   |                                                                                                       |                 |
-| `smart_search`        | Find code with surrounding context                                                                    | No              |
-| `smart_replace`       | Find-and-replace with dry-run, backup, and syntax validation                                          | Yes (`--apply`) |
-| `import_fixer`        | Fix broken relative imports                                                                           | Yes (`--apply`) |
-| `surgical_splicer`    | Extract a single function/class body with zero surrounding context (token-efficient for huge files)   | No              |
-| **Read & Navigate**   |                                                                                                       |                 |
-| `selective_reader`    | Extract table of contents from large files                                                            | No              |
-| `smart_tree`          | Compact, `.gitignore`-aware directory visualizer                                                      | No              |
-| `scope_guardian`      | Validates whether a file is within the current task's allowed scope                                   | No              |
-| **Analyze & Audit**   |                                                                                                       |                 |
-| `project_guardian`    | Scans for exposed credentials, `.gitignore` issues, broken imports                                    | No              |
-| `deep_analyzer`       | Project profiler (tech stack, dependencies, file stats)                                               | No              |
-| `impact_analyzer`     | Traces reverse-dependencies before a file is changed, with configurable `--depth` for multi-hop chains| No              |
-| `clean_sweeper`       | Finds leftover/temp files and tech debt                                                               | No              |
-| `db_extractor`        | Extracts database schema (requires `pymysql`)                                                         | No (read-only)  |
-| **Workflow Helpers**  |                                                                                                       |                 |
-| `crash_decoder`       | Parses crash logs, filters noise                                                                      | No              |
-| `auto_scaffolder`     | Generates boilerplate files (component/route templates)                                               | Yes (`--apply`) |
-| `context_mapper`      | Generates architecture documentation into `.agents/knowledge/`                                        | Yes (`--apply`) |
+### 🔍 Search & Modify
+| Tool | Purpose | Needs Approval? |
+|------|---------|-----------------|
+| `smart_search` | Find code with surrounding context | No |
+| `smart_replace` | Find-and-replace with dry-run, backup, and syntax validation | Yes (`--apply`) |
+| `import_fixer` | Fix broken relative imports | Yes (`--apply`) |
+| `surgical_splicer` | Extract a single function/class body with zero surrounding context (token-efficient for huge files) | No |
+
+### 🧭 Read & Navigate
+| Tool | Purpose | Needs Approval? |
+|------|---------|-----------------|
+| `selective_reader` | Extract table of contents from large files | No |
+| `smart_tree` | Compact, `.gitignore`-aware directory visualizer | No |
+| `scope_guardian` | Validates whether a file is within the current task's allowed scope | No |
+
+### 🛡️ Analyze & Audit
+| Tool | Purpose | Needs Approval? |
+|------|---------|-----------------|
+| `project_guardian` | Scans for exposed credentials, `.gitignore` issues, broken imports | No |
+| `deep_analyzer` | Project profiler (tech stack, dependencies, file stats) | No |
+| `impact_analyzer` | Traces reverse-dependencies before a file is changed, with configurable `--depth` for multi-hop chains | No |
+| `clean_sweeper` | Finds leftover/temp files and tech debt | No |
+| `db_extractor` | Extracts database schema (requires `pymysql`) | No (read-only) |
+
+### ⚙️ Workflow Helpers
+| Tool | Purpose | Needs Approval? |
+|------|---------|-----------------|
+| `crash_decoder` | Parses crash logs, filters noise | No |
+| `auto_scaffolder` | Generates boilerplate files (component/route templates) | Yes (`--apply`) |
+| `context_mapper` | Generates architecture documentation into `.agents/knowledge/` | Yes (`--apply`) |
 
 ## Usage Examples
 
