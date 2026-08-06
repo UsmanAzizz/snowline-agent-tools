@@ -55,6 +55,14 @@ Stress test 16 tool + companion selesai (06 Aug 2026):**
 - 0 regressi pada fix B1/B2/F4/F5/F6.
 Full report: `shared/archive/stress_test_2026_08_06_full_ecosystem.md`
 
+**[FULL TEST - Project Nyata: scarecrow/for_claude (913 files)]
+33 test, 33 PASS, 0 FAIL, 0 CRASH:**
+- Companion intent: 20/20 PASS (14 tool match + 4 multi-tool + 2 edge)
+- Companion task lock: 3/3 PASS (start/status/end)
+- Tools direct: 10/10 PASS (smart_search, scope_guardian, guardian, crash_decoder, deep_analyzer, clean_sweeper, smart_tree, impact_analyzer, auto_scaffolder, smart_replace)
+- Scope lock berfungsi pada project nyata ✅
+Full report: `shared/archive/full_ecosystem_test_2026_08_06_scarecrow.md`
+
 ---
 
 ## Acknowledgments

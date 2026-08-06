@@ -60,7 +60,7 @@ TOOL_REGISTRY = {
         "command": "python .agents/skills/smart_tree/scripts/tree_viewer.py . <depth>"
     },
     "scope_guardian": {
-        "keywords": ["scope", "area", "batass", "batasan", "limits", "di area", "seluruh"],
+        "keywords": ["scope", "area", "batasan", "limits", "di area", "seluruh"],
         "confidence": "medium",
         "safety": "safe",
         "command": "python .agents/skills/scope_guardian/scripts/scope_check.py <filepath>"

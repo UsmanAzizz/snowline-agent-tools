@@ -12,7 +12,7 @@
 |---------|--------|-----------------------------|-------|
 | `pos/0. PM` | **Project Manager** | Mendelegasikan seluruh pembaruan Ledger/Admin ke TL | (Human) |
 | `pos/1. TL` | **Tech Lead** | *Idle - Menunggu instruksi PM* | Gemini (Antigravity) |
-| `pos/2. QA` | **QA / Reviewer** | *Active - Verifikasi Task 79* | Opus 4.8 (Claude Code) |
+| `pos/2. QA` | **QA / Reviewer** | *Active - Verifikasi Task 80* | Opus 4.8 (Claude Code) |
 | `pos/3. Executor/Executor_01` | **Executor** | *Idle - Menunggu instruksi TL* | Claude Code |
 | `pos/3. Executor/Executor_02` | **Executor** | *Kosong* | (Reserved) |
 | `pos/3. Executor/Executor_03` | **Executor** | *Kosong* | (Reserved) |

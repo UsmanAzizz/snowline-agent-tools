@@ -27,6 +27,7 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## ARCHIVE
 
+- [Task 80] Typo Fix "batass" - SELESAI. Hapus "batass" dari keywords scope_guardian di template dan .agents. MD5 identical: 4b5f625b0622150967532dbcf4a4a532.
 - [Task 79] Kontradiksi snowline status vs update - SELESAI. Root cause: update() hanya cek st_mtime, tidak cek git commit. Fix: tambah pengecekan package commit di update(). Konsisten sekarang. MD5: 31c415c041d34a4118347fbe3d59332c.
 - [Task 76] Backlog B1 & B2 Companion - SELESAI. B1 ("perlu konfirmasi"), B2 (empty set guard before issubset). SYNCED. MD5 identical.
 - [Task 77] Bug Companion F4/F5/F6 - SELESAI. F4 (path resolution companion_cli.py), F5 (_plan contradiction), F6 (entities=None guard core_grilling.py). SYNCED. 3/3 test passed, MD5 identical.
