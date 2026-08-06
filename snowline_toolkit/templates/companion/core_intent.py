@@ -290,6 +290,7 @@ def analyze_intent(user_input: str) -> AnalyzeResult:
     # Override: if creation verb present AND only analysis tools matched (not auto_scaffolder)
     # Note: clean_sweeper is excluded from override because "tambah bersihkan" = "do more cleanup" (not create)
     has_analysis_only = (
+        matched_tool_names and
         matched_tool_names.issubset(analysis_tools) and
         "auto_scaffolder" not in matched_tool_names and
         "clean_sweeper" not in matched_tool_names

@@ -15,50 +15,35 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## ACTIVE TASK - OUTBOX (Executor -> TL)
 
-**Task 75 — EKSEKUSI SELESAI**
+**Task 76 — EKSEKUSI SELESAI**
 
 ### Perubahan (2 file):
 
-**cli.py — get_agent_action():**
+**B1 — core_grilling.py line 47:**
+`"Confidence {level} - perlu clarify"` → `"Confidence {level} - perlu konfirmasi"`
+
+**B2 — core_intent.py lines 292-296:**
 ```python
-if result.needs_clarification:
-    if result.clarification_context and result.clarification_context.get('matched_tools'):
-        return "KONFIRMASI"  # ada tool teratas
-    return "CLARIFY"
+has_analysis_only = (
+    matched_tool_names and          # <-- TAMBAH: cegah empty set subset
+    matched_tool_names.issubset(analysis_tools) and
+    "auto_scaffolder" not in matched_tool_names and
+    "clean_sweeper" not in matched_tool_names
+)
 ```
 
-**cli.py — main() multi-match block:**
-```python
-elif result.needs_clarification:
-    print(f"\n! {result.clarification_note}")
-    if result.clarification_context and result.clarification_context.get('matched_tools'):
-        tools = result.clarification_context['matched_tools']
-        if tools:
-            top = tools[0]
-            print(f"\n  Tool (suggested): {top['name']} ({top['confidence']})")
-            if len(tools) > 1:
-                alt_names = [f"{t['name']} ({t['confidence']})" for t in tools[1:]]
-                print(f"  Alternatives: {', '.join(alt_names)}")
-```
-
-### Live-Test Evidence:
+### Verifikasi:
 
 ```
-# Test 1: "analisa struktur project ini"
-Input: analisa struktur project ini
-Confidence: MEDIUM
-Action: KONFIRMASI  ✅
-! Multiple tools matched. Confirm intended tool.
-  Tool (suggested): deep_analyzer (high)  ✅
-  Alternatives: smart_tree (medium)  ✅
-
-# Test 2: "ganti semua axios jadi fetch"
-Confidence: HIGH
-Action: KONFIRMASI  ✅
-Tool: smart_replace (high)  ✅
+# B2 test: empty tool_matches
+$ python companion.py "gantiardi"
+Confidence: NONE
+Action: CLARIFY
+  reason: Confidence NONE - perlu konfirmasi  ✅ (no false trigger)
 
 # MD5 sync
-220fae1de289... identical  ✅
+core_grilling: a24f3a9d... identical  ✅
+core_intent:   38c782f4... identical  ✅
 ```
 
 **Status: SELESAI**
@@ -73,6 +58,7 @@ Tool: smart_replace (high)  ✅
 
 ## ARCHIVE
 
+- [Task 76] Backlog B1 & B2 Companion - SELESAI. B1 (core_grilling: "perlu konfirmasi"), B2 (core_intent: empty set guard before issubset). SYNCED ke template. MD5 identical.
 - [Task 75] Perbaikan Companion Multi-Match - SELESAI. cli.py: get_agent_action() multi-match -> KONFIRMASI, main() tampilkan tool teratas + alternatif. SYNCED ke template. 2 test passed, MD5 identical.
 - [Task 74] Enforcement check_scope - SELESAI (REVISI). context_mapper: check per-file (structure_file, patterns_file), auto_scaffolder: check filepath (bukan target_dir), import_fixer LULUS (source_file spesifik). SYNCED ke template. MD5 identical.
 - [Task 73] Perbaiki Path Resolution is_file_in_scope - SELESAI (REVISI). Tambah sys.path resolution sebelum import scope_guardian (shadow copy tetap dihapus). SYNCED ke template. 3 test passed (no ModuleNotFoundError, BLOCKED out-of-scope, MD5 identical).

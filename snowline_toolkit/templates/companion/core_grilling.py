@@ -44,7 +44,7 @@ def should_grill(result) -> dict:
             )
         else:
             # Simple language for default/low level
-            reason = f"Confidence {result.confidence_level} - perlu clarify"
+            reason = f"Confidence {result.confidence_level} - perlu konfirmasi"
         return {
             "needs_grilling": True,
             "reason": reason
