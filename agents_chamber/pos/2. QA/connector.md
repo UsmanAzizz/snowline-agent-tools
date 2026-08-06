@@ -21,7 +21,7 @@ When done: write to OUTBOX below, then say "Task complete - please signal TL" in
 
 ## BACKLOG
 
-- [BUG CHAMBER] Session cache stale — Read tool reports "file unchanged" even when connector has new content. Use Bash cat to bypass cache.
+*(Kosong)*
 
 ---
 

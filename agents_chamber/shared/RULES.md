@@ -85,6 +85,8 @@ Each role folder contains `ONBOARDING.md` (role definition - read this first, ev
 
 12. **Anti-Drift Check**: Always verify that any changes made to the live/installed version (e.g. inside `.agents/` directory) are also identically synchronized to the master template in `snowline_toolkit/templates/` before closing a task. This prevents the live environment from drifting away from the main source code.
 
+13. **Bypass Stale Read Cache (Chamber Bug Workaround)**: When reading `connector.md`, `broadcast.md`, or any heavily updated administrative file, DO NOT use your internal `read_file` or `view_file` API tools as they may cache old states and falsely report "file unchanged." You MUST use a raw terminal command (e.g., `cat pos/2. QA/connector.md`) to read these files, guaranteeing fresh real-time data directly from the disk.
+
 ## Onboarding a New Position (copy-paste starting point)
 
 When the Manager invites a new position, give it this:

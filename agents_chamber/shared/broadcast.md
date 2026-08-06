@@ -1,10 +1,13 @@
 # Broadcast
 
 ## Current Version
-**v7 | 06 Agustus 2026 | mencakup RULES.md s/d Rule #12 | Penambahan Carve-out #2 Ledger #1**
+**v8 | 06 Agustus 2026 | mencakup RULES.md s/d Rule #13 | Penambahan Rule 13 Bypass Cache**
 
 ## Standing Notices
 *(Permanent rules and reminders)*
+
+**[PENTING - ATURAN BARU (Rule #13)]**
+Telah ditambahkan **Rule #13 (Bypass Stale Read Cache)** ke `RULES.md`. Saat membaca file administratif yang sering berubah (seperti `connector.md` atau `broadcast.md`), agen dilarang menggunakan tool API bawaan (`view_file`/`read_file`) karena adanya bug cache. Agen WAJIB menggunakan perintah terminal murni (`cat`) agar mendapatkan data *real-time*.
 
 **[PENTING - KLARIFIKASI OTORITAS (Rule #8)]**
 Rule #8 telah direvisi. TL **Bukan** pemegang otoritas aturan Chamber, melainkan **Juru Tulis (Perpanjangan Tangan)** dari PM. Seluruh otoritas tetap ada di PM. PM bebas untuk melakukan edit file secara langsung jika diperlukan.
@@ -18,6 +21,9 @@ Executor **DILARANG KERAS** mengedit file administratif tersebut. Jika Executor 
 
 ## One-Time Pings
 *(Ephemeral messages - clear once acknowledged)* 
+
+**[UPDATE ATURAN - Penulisan Ulang AGENTS.md & RULES.md (Task 85)]**
+Seluruh `AGENTS.md` dan `RULES.md` telah ditulis ulang ke dalam bahasa Inggris yang absolut, kaku, dan tanpa emoji. Ditambahkan klausul **System Prompt Override** yang mewajibkan seluruh agen memprioritaskan skrip Snowline (python) di atas insting tool API bawaan pabrik (Native Tool Bias). Segala bentuk *native tool usage* saat mengedit atau mencari *source code* dianggap sebagai pelanggaran fatal.
 
 **[UPDATE ATURAN - Pengecualian Ledger #1 (Task 75)]**
 Telah ditambahkan **Carve-out kedua (Exception 2)** pada Ledger #1 di `RULES.md`. Modul internal murni (stateless, tanpa efek samping, tidak menyentuh file) seperti `tree_gen.py` kini diizinkan untuk di-share antar-tool. Hal ini diputuskan untuk menghindari risiko drift akibat duplikasi paksa (copy-paste). 
@@ -40,33 +46,10 @@ Telah ditambahkan **Carve-out kedua (Exception 2)** pada Ledger #1 di `RULES.md`
 Untuk seluruh agen (khususnya QA dan TL), aturan baru **Rule #11** telah ditambahkan ke `RULES.md`:
 Setiap penyelesaian task dari Executor **wajib diserahkan ke QA** untuk audit akhir. TL tidak lagi memiliki wewenang untuk menutup task (DONE) secara sepihak tanpa *verdict* (keputusan) PASS dari QA. QA adalah otoritas terakhir penentu penutupan task.
 
-**[AUDIT - Temuan Critical companion_cli.py (Task 77 Kandidat)]**
-Audit ekosistem lengkap (06 Aug 2026) menemukan:
-- **F4 (Critical):** `companion_cli.py` crash saat dipanggil langsung — `import companion` gagal karena `companion.py` tidak ada. Entry point resmi `python -m companion` tidak terdampak.
-- **F5 (Medium):** `_plan` trigger — `needs_grilling=False` tapi `clarification_note` bilang "MUST NOT jump to implementation". Hasil akhir benar (mitigated by `get_agent_action()`), tapi misleading.
-- **F2 (Medium):** Task 72 gap dalam task_board — Rule #7 violation. Perlu konfirmasi dari TL.
-Full report: `shared/archive/audit_2026_08_06_chamber_companion.md`
-
-**[AUDIT - Stress Test Ecosystem (Task 77, 26 test companion)]
-Stress test 16 tool + companion selesai (06 Aug 2026):**
-- 14/16 tool ✅ PASS
-- `crash_decoder` & `db_extractor` — UX bug: --help treat sebagai file path (bukan flag). Fungsi normal tidak terdampak.
-- `scope_lock.json` — config mismatch: path menunjuk ke "D:/project/scarecrow/for_claude" (project berbeda). Scope gate di auto_scaffolder/context_mapper impacted.
-- 0 regressi pada fix B1/B2/F4/F5/F6.
-Full report: `shared/archive/stress_test_2026_08_06_full_ecosystem.md`
-
-**[FULL TEST - Project Nyata: scarecrow/for_claude (913 files)]
-33 test, 33 PASS, 0 FAIL, 0 CRASH:**
-- Companion intent: 20/20 PASS (14 tool match + 4 multi-tool + 2 edge)
-- Companion task lock: 3/3 PASS (start/status/end)
-- Tools direct: 10/10 PASS (smart_search, scope_guardian, guardian, crash_decoder, deep_analyzer, clean_sweeper, smart_tree, impact_analyzer, auto_scaffolder, smart_replace)
-- Scope lock berfungsi pada project nyata ✅
-Full report: `shared/archive/full_ecosystem_test_2026_08_06_scarecrow.md`
-
 ---
 
 ## Acknowledgments
 *(Hanya diisi oleh pemilik posisi masing-masing dengan format `[Posisi] vX OK` setelah membaca)*
-- `[QA]` : v7 OK
-- `[Executor_01]` : v7 OK
-- `[TL]` : v7 OK
+- `[QA]` : 
+- `[Executor_01]` : 
+- `[TL]` : v8 OK
