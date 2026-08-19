@@ -14,6 +14,12 @@ Dibuat 19 Agustus 2026 setelah sprint penelitian PM + Claude Code + Gemini.
 4. `03_TUGAS.md` — apa yang dikerjakan siapa
 5. `04_SPRINT.md` — cara sprint dijalankan: pembagian kerja, anggaran token,
    langkah silang, dan retrospektif kesalahan rancangan sprint sebelumnya
+6. `05_APA_YANG_MASIH_BERDIRI.md` — **mulai dari sini kalau kamu baru masuk
+   dan butuh gambaran menyeluruh.** Menyatukan temuan lintas tugas: apa yang
+   sudah mati beserta sebabnya, apa yang terukur dan tidak dibantah, dan tiga
+   hal yang masih tegak
+7. `v2_prototypes/PENILAIAN_QA.md` — mana dari delapan prototipe yang ikut
+   runtuh bersama hipotesis yang gugur, dan mana yang tidak
 
 ## Aturan kerja di folder ini
 
