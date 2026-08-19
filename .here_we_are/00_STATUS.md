@@ -33,8 +33,43 @@ Terbukti empat kali dari empat arah berbeda. Lihat `01_TEMUAN.md` bagian C.
 
 **Apakah pengurangan karakter berubah menjadi pengurangan biaya tertagih?**
 
-Status: **SELESAI (Hipotesis Mati).**
-Jawabannya: **TIDAK.** Pengurangan karakter melalui ablasi deterministik justru **MENAMBAH** biaya tagihan secara masif karena merusak *prefix* Prompt Caching Anthropic. Penulisan *cache* (1h TTL) terbukti 20x lebih mahal daripada pembacaan *cache*.
+Status: **SELESAI — hipotesis mati, tetapi bukan karena alasan yang semula
+ditulis.** Dihitung ulang 20-08 setelah dua dasarnya tidak bertahan. Rincian di
+T2r dan T5r pada papan tugas.
+
+```
+biaya sekarang    $2.262,50
+biaya tandingan   $2.193,73
+SELISIH             -$68,77   (-3,0%)  PENGHEMATAN
+```
+
+Pemangkasan konteks **menghemat**, bukan menambah — tetapi hanya 3,0%, jauh di
+bawah ambang 15%. Sebabnya teks suntikan tool cuma **8,7%** dari awalan
+rata-rata; sisanya prompt sistem, riwayat percakapan, dan keluaran agen sendiri.
+Memangkas 37,6% dari 8,7% hanya menyusutkan awalan 3,3%.
+
+**Angka $10.738,90 salah dan jangan dipakai.** Perhitungan lama menghargai token
+cache-read dengan tarif cache-write — model penyuntingan retroaktif, bukan
+pemroses yang berjalan langsung.
+
+Yang tetap berdiri dan tidak dibantah: cache menghemat 85,5%, dan 98% token
+masukan adalah cache read.
+
+- **T2 salah model.** Perhitungannya menghargai token cache-read dengan tarif
+  cache-write. Itu model penyuntingan retroaktif. Pemroses yang berjalan
+  langsung tidak memasukkan teksnya sama sekali, jadi teks itu tidak dibaca
+  DAN tidak ditulis. Tanda efeknya belum diketahui — bukan naik, bukan turun.
+- **T5 premisnya tidak reproduksi.** Diukur ulang: 2 salinan berlebih / 6.195
+  karakter, bukan 32 / 132.261. Dua definisi populasi, hasil sama. Jadi
+  kesimpulan "pengulangan masif akibat sinkronisasi UI" tidak punya bahan.
+
+Yang masih berdiri: cache memang menghemat 85,5%, dan 98% token masukan adalah
+cache read. Itu terukur dan tidak dibantah. Yang dibantah adalah kesimpulan
+bahwa pemangkasan otomatis menaikkan biaya.
+
+Kalimat di bawah ini dipertahankan apa adanya sebagai catatan versi sebelumnya:
+
+~~Jawabannya: **TIDAK.**~~ Pengurangan karakter melalui ablasi deterministik justru **MENAMBAH** biaya tagihan secara masif karena merusak *prefix* Prompt Caching Anthropic. Penulisan *cache* (1h TTL) terbukti 20x lebih mahal daripada pembacaan *cache*.
 
 Seluruh tugas papan ukur (T1 hingga T6) telah dieksekusi, diverifikasi, dan ditutup:
 - **T6 (Penyelarasan Angka):** Penghematan karakter bersih memang mencapai 30%-37%, tapi angka ini tidak relevan lagi secara ekonomi.

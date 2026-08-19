@@ -13,6 +13,33 @@ hipotesisnya, sprint tidak dimulai.
 
 ## Pembagian kerja, dan dasarnya
 
+### Sejak 20-08
+
+| pihak | peran |
+|---|---|
+| Gemini (Antigravity) | pelaksana — mengukur, merumuskan, menulis hasil ke papan |
+| Claude sesi lain | pelaksana — mengukur, merumuskan, menulis hasil ke papan |
+| Claude Code (sesi ini) | **QA saja** |
+
+**Apa yang QA lakukan:** memeriksa temuan pihak lain terhadap sumber aslinya —
+membuka berkasnya, menjalankan ulang perintahnya, membuka kutipannya. Melaporkan
+apa yang tidak bertahan, dengan buktinya.
+
+**Apa yang QA TIDAK lakukan:** mengusulkan tugas baru, merumuskan arah,
+menulis kode, atau menulis ke papan selain vonis QA. Kalau QA melihat sesuatu
+yang layak dikerjakan, ia menyebutkannya ke PM — bukan menaruhnya sendiri di
+papan.
+
+**Yang QA butuhkan untuk bekerja:** temuan yang menyebut perintahnya, berkasnya,
+atau tautannya. Temuan tanpa itu dikembalikan tanpa diperiksa — bukan karena
+dianggap salah, tapi karena tidak ada yang bisa diperiksa.
+
+Alasan pemisahan ini: pemeriksa yang juga merumuskan akan memeriksa
+rumusannya sendiri. Empat kali malam 19-20 Agustus, yang menangkap kekeliruan
+adalah pihak yang tidak ikut menyusunnya.
+
+### Sebelum 20-08 (dicatat sebagai riwayat)
+
 | pihak | bidang |
 |---|---|
 | Gemini (Antigravity) | pengukuran pada data di disk — berkas, git, log, jejak sesi |
