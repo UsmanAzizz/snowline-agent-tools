@@ -54,8 +54,71 @@ Satu keberatan yang harus dijawab lebih dulu oleh siapa pun yang melanjutkannya:
 T7 menemukan pembatalan cache disebabkan harness membongkar-pasang tool-nya
 sendiri, dan menyimpulkan skrip di luar tidak bisa mencegahnya. Kalau prototipe
 ini menyusun payload untuk API secara langsung — bukan lewat Claude Code —
-keberatan itu tidak berlaku, karena payload-nya milik sendiri. **Perbedaan itu
-menentukan, dan belum diperiksa.**
+keberatan itu tidak berlaku, karena payload-nya milik sendiri.
+
+## Pemeriksaan lanjutan — 20-08, atas permintaan PM
+
+**Keberatan T7 memang TIDAK berlaku untuk keduanya.** Keduanya menyusun payload
+API secara langsung. Siapa yang menyusun payload, dia yang memiliki awalan.
+Harness tidak ikut campur. Pintu itu nyata.
+
+Tetapi tiga hal ditemukan saat diperiksa.
+
+### 1. Keduanya tidak nyambung
+
+```
+$ python -c "... GoldenPayloadBuilder -> AnthropicAdapter ..."
+kunci keluaran golden_payload : ['system_context', 'tools', 'user_message']
+setelah lewat AnthropicAdapter: ['system_context', 'tools', 'user_message']
+cache_control tersuntik?      : False
+```
+
+Adapter memeriksa `if "system" in payload`. Builder mengeluarkan
+`system_context`, bukan `system`. Syaratnya tidak pernah terpenuhi, adapter
+tidak melakukan apa-apa. **`cache_control` tidak pernah tersuntik.**
+
+Dua prototipe yang dimaksudkan berpasangan, tidak berpasangan.
+
+### 2. Pembuktian `golden_payload` melingkar
+
+`__main__`-nya membangun dua payload dari builder yang SAMA dengan
+`raw_code` dan `tools_dict` yang sama, lalu membuktikan bagian bersamanya
+identik. Itu `json.dumps(x) == json.dumps(x)`.
+
+Ia tidak menguji apa pun tentang kestabilan awalan. Untuk menguji itu,
+payload kedua harus dibangun dari masukan yang **berbeda urutannya** —
+misalnya `tools_dict` dengan urutan kunci teracak — lalu dibuktikan hasil
+serialisasinya tetap identik.
+
+Dan pengurutan yang menentukan justru terjadi di `json.dumps(..., sort_keys=True)`
+milik berkas ujinya, bukan di builder.
+
+Gagasannya benar — urutan stabil menghasilkan awalan stabil, dan itu memang
+penyakit yang T7 temukan. Kodenya belum membuktikannya.
+
+### 3. TTL-nya keliru untuk sesi panjang
+
+```python
+payload["system"][-1]["cache_control"] = {"type": "ephemeral"}
+```
+
+Nama dan bentuk fieldnya benar — ini memang mekanisme API yang sesungguhnya.
+Tetapi `ephemeral` tanpa keterangan berarti TTL 5 menit. T2 mengukur Claude
+Code memakai TTL 1 jam untuk **99,9%** cache creation-nya. Untuk sesi kerja
+panjang, 5 menit adalah setelan yang salah; perlu `"ttl": "1h"` eksplisit.
+
+## Yang menentukan, dan bukan urusan QA
+
+Untuk memakai keduanya, snowline harus memanggil API sendiri — artinya
+menjadi gelung agennya sendiri, bukan perkakas yang membantu Claude Code.
+
+Itu wilayah orkestrator, dan proyek ini sudah pernah menolaknya sebagai
+scope inflation. Survei lanskap 19-08 juga menyimpulkan ruang itu tertutup.
+
+**Pintunya nyata dan tidak terhalang keberatan T7. Tetapi ia terbuka ke
+ruangan yang sudah disurvei dan dinyatakan penuh.**
+
+Keputusan apakah tetap masuk ke situ ada di PM, bukan QA.
 
 ## Catatan lingkup
 
