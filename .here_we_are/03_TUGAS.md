@@ -125,7 +125,17 @@ Pola yang teridentifikasi:
 - Lonjakan ~25k saat **membaca banyak file dokumentasi** sekaligus
 - Lonjakan ~21k saat **menganalisis error logs**
 
-**3. Inti Pertanyaan: Dampak Ablasi Prospektif pada Cache**
+> [!CAUTION]
+> **BAGIAN 3 DI BAWAH SUDAH DIBANTAH. Angka +$10.738,90 salah, jangan dipakai.**
+> Modelnya menghargai token cache-read dengan tarif cache-write — itu berlaku
+> untuk penyuntingan retroaktif, bukan pemroses yang berjalan langsung. Angka
+> dasarnya juga belum didedup `msg_id`.
+> Angka yang berlaku: **−$38,33 (−3,1%), penghematan bukan penambahan.**
+> Hipotesis tetap mati karena jauh di bawah ambang 15%.
+> Lihat **T2r** di bagian PEMULIHAN. Bagian 3 dan 4 dipertahankan apa adanya
+> sebagai catatan versi sebelumnya, bukan sebagai hasil.
+
+**3. Inti Pertanyaan: Dampak Ablasi Prospektif pada Cache** ~~(DIBANTAH)~~
 
 ```
 Data baseline (dari T6 korpus cbt_master):
@@ -153,7 +163,7 @@ karena:
 - Jika teks berubah → cache miss → harus tulis ulang
 - Kerugian 20x lebih besar dari penghematan
 
-**KESIMPULAN: Ablasi karakter BERBAHAYA untuk biaya cache.**
+**~~KESIMPULAN: Ablasi karakter BERBAHAYA untuk biaya cache.~~** *(DIBANTAH — lihat T2r)*
 Tidak seperti makalah 2607.12161 yang mengukur kompresi LLM-generated text,
 ablasi snowline (`selective_reader`) menambahkan teks di akhir konteks
 (tidak merusak prefix cache). Tapi jika ablasi mengubah teks yang sudah
@@ -184,13 +194,18 @@ harness Claude Code).
 
 ---
 
-**RINGKASAN TEMUAN T2:**
+**RINGKASAN TEMUAN T2** *(butir 3 dibantah — lihat T2r)*
 
-1. Cache memberikan penghematan **85,5%** ($13.233 dari $15.485)
-2. 98%+ token input adalah cache read (murah, $0,50/juta vs $5,00/juta)
-3. Ablasi karakter akan **MENAMBAH biaya** $10.738,90 jika teks berubah
-4. Rasio biaya: cache write 1h = **20x** biaya cache read
-5. Semua cache creation menggunakan TTL 1-jam (99,9%)
+1. Cache memberikan penghematan **85,5%** ($13.233 dari $15.485) — BERLAKU
+2. 98%+ token input adalah cache read ($0,50/juta vs $5,00/juta) — BERLAKU
+3. ~~Ablasi karakter akan MENAMBAH biaya $10.738,90 jika teks berubah~~
+   **DIBANTAH.** Angka yang berlaku: **−$38,33 (−3,1%)**, penghematan bukan
+   penambahan. Hipotesis tetap mati karena di bawah ambang 15%.
+4. Rasio biaya: cache write 1h = **20x** biaya cache read — BERLAKU
+5. Semua cache creation menggunakan TTL 1-jam (99,9%) — BERLAKU
+
+Catatan angka dasar: total pada blok ini belum didedup `msg_id`. Angka
+terdedup — cache_read 1.818.689.088, cache_write 26.717.715 — ada di T2r.
 
 **BUKTI:**
 Lokasi: `D:\AAAAAAAAA\open_source_agents\.here_we_are\bukti\T2_BUKTI.md`
