@@ -1,10 +1,12 @@
-# Apa yang masih berdiri
+# Apa yang masih berdiri, dan ke mana arahnya
 
 Disusun QA, 20 Agustus 2026, setelah delapan tugas selesai.
 
-Halaman ini menyatukan temuan lintas tugas. Bukan rencana — tidak ada rencana
-di folder ini, karena tidak ada yang selamat dari pengukuran. Bacalah sebagai
-laporan lahan: apa yang sudah dibersihkan, dan apa yang masih tegak.
+Halaman ini menyatukan temuan lintas tugas dan lima arah yang dimunculkannya.
+
+Dua bagian pertama adalah koreksi atas versi awal dokumen ini: satu tentang
+batas kesimpulannya, satu tentang cara QA membingkainya. Keduanya diangkat PM
+dan diterima. Baca keduanya sebelum bagian mana pun yang memuat angka.
 
 ---
 
@@ -59,13 +61,93 @@ yang menulis dokumen ini sendiri. Yang mengikat hanya hook.
 
 ---
 
+## Koreksi framing — 20 Agustus
+
+Versi pertama dokumen ini membuka dengan kalimat: *"Tujuh dari delapan tugas
+bertanya apakah X layak dibunuh, dan semuanya dijawab ya."* Lalu melaporkannya
+sebagai sifat temuannya.
+
+Itu keliru. Itu sifat cara QA membingkainya, bukan sifat datanya. PM menugaskan
+sprint ini untuk **mencari celah dan arah**; QA mengubahnya jadi sidang
+kelayakan. Polanya dilihat dan dilaporkan tanpa mengenali siapa yang membuatnya.
+
+Data yang sama, dibaca sebagai arah alih-alih sebagai vonis, memberi lima
+petunjuk. Itu isi bagian berikutnya.
+
+---
+
+## Lima arah yang dimunculkan sprint ini
+
+Semuanya turunan dari bukti yang sudah ada di folder ini. Bukan gagasan baru.
+
+### 1. Apa pun yang dibangun harus mengikat, bukan dipanggil
+
+Bukan berita duka soal companion. Ini batasan rancangan.
+
+`PreToolUse` satu-satunya permukaan yang benar-benar menahan — keluar dengan
+kode 2, panggilan diblokir. `PostToolUse` tidak bisa membatalkan apa pun.
+Aturan di `agents.md` terbukti bisa diabaikan bahkan oleh agen yang menulis
+dokumen ini, enam hari berturut-turut.
+
+Nilainya: apa pun yang dirancang setelah ini, kalau pemanggilannya bergantung
+pada kesediaan agen, hasilnya sudah diketahui sebelum dimulai. Itu menghemat
+percobaan, bukan menutup jalan.
+
+### 2. Peta uangnya sudah tergambar
+
+```
+cache menentukan 85,5% ekonomi sesi
+83,8% penulisan cache terbuang percuma
+teks suntikan tool cuma 8,7% dari awalan
+```
+
+QA menutup ini dengan "bukan milik kita". Itu bukan penutup — itu peta. Ia
+memberi tahu di mana angka besarnya berada, dan bahwa pemangkasan konteks
+(yang selama ini dikejar) bukan di situ tempatnya.
+
+### 3. Siapa yang menyusun payload, dia yang memiliki cache
+
+Dibuktikan pada `golden_payload_poc.py` dan `agnostic_adapter_poc.py`:
+keberatan T7 — bahwa harness yang mengendalikan awalan — **tidak berlaku**
+untuk kode yang menyusun payload API sendiri.
+
+QA menutupnya dengan "pintunya membuka ke ruangan yang sudah penuh". Itu
+mengutip survei tentang **orkestrator umum**, bukan tentang satu orang dengan
+satu basis kode dan satu pola kerja. Belum ada yang menguji apakah kesimpulan
+itu berlaku untuk kasus ini.
+
+### 4. `project_guardian` belum disetel, bukan gagal
+
+78% positif palsu, seluruhnya dari dua kelas yang bisa dikecualikan: berkas
+dokumentasi, dan data contoh di berkas frontend. Dibuang keduanya, positif
+palsunya 0 dari 2.
+
+Itu pekerjaan setengah hari, bukan vonis.
+
+### 5. Bentuknya mungkin yang salah, bukan gagasannya
+
+Ini yang paling terlewat, dan hanya muncul setelah PM menolak framing QA.
+
+Yang benar-benar bertahan dan dipakai bukan perkakas snowline mana pun —
+melainkan **pemeriksa yang ditulis di dalam aplikasi, dalam bahasa aplikasi**.
+Commit `fe0d78f` di `cbt_master` lahir dari standar snowline tanpa satu pun
+tool-nya tersentuh.
+
+Selama ini yang dibangun adalah perkakas yang **memeriksa aplikasi secara
+umum**. Yang ternyata berguna adalah perkakas yang **membantu menulis pemeriksa
+spesifik-aplikasi**. Itu dua produk yang berbeda, dan yang kedua belum pernah
+dicoba.
+
+Ini arah yang paling layak dikejar menurut QA, dan ia tidak pernah muncul
+sepanjang sprint karena QA sibuk menghitung apa yang mati.
+
+---
+
 ## Bentuk seluruh sprint
 
-Delapan tugas dijalankan. **Tujuh bertanya "apakah X layak dibunuh", dan
-semuanya dijawab ya.** Satu-satunya tugas afirmatif — T7 — menemukan sesuatu
-yang nyata dan masif, lalu menyimpulkan itu bukan milik kita.
-
-Itu bukan kegagalan sprint. Itu hasilnya.
+Delapan tugas dijalankan, tujuh di antaranya dibingkai QA sebagai pertanyaan
+kelayakan. Bacalah hasilnya bersama lima arah di atas dan batasan kesimpulan
+di bagian sebelumnya — bukan sebagai daftar kematian.
 
 ---
 
@@ -89,9 +171,13 @@ cache menghemat 85,5% biaya sesi          $13.233 dari $15.485
 98% token masukan adalah cache read       $0,50/juta vs $5,00/juta
 cache write 1 jam = 20x cache read
 pembatalan cache sia-sia                  83,8% dari cache_write
-sumbangan snowline atas 20 bug terakhir   0 dari 20
 perkakas tanpa bukti pernah dijalankan    11 dari 23
 ```
+
+Satu angka dikeluarkan dari daftar ini: **"sumbangan snowline atas 20 bug
+terakhir: 0 dari 20"**. Itu hasil pembacaan, bukan hasil menjalankan — lihat
+BATASAN KESIMPULAN di atas. Ia dugaan terdidik, dan tidak boleh berdiri di
+kolom yang sama dengan angka yang benar-benar diukur.
 
 Dua angka terakhir yang paling menentukan. Seluruh lapisan `src/backend/services`
 di `cbt_master` — 2.805 baris, 20 penjaga, 170 dari 260 kasus tes — dibangun
