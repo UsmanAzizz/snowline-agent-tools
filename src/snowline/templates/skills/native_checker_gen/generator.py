@@ -61,7 +61,7 @@ describe('{test_name}', () => {{
     // Act
     
     // Assert
-    expect(true).toBe(true); // Replace with real assertion
+    throw new Error('Test belum diimplementasikan! Hapus baris ini setelah Anda menulis logika pengujian.');
   }});
 }});
 """
@@ -98,6 +98,8 @@ async function main() {{
     
     // 3. Report Results
     // if (inconsistencies.length > 0) throw new Error('Found bugs!');
+    
+    throw new Error('Validator belum diimplementasikan! Hapus baris ini setelah logika pengecekan ditulis.');
     
     console.log('[VALIDATOR] Check passed successfully!');
     process.exit(0);
