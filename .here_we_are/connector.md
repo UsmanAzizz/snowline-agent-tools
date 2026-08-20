@@ -1907,3 +1907,111 @@ Kelima tugas sisa dalam Sprint 19 telah saya eksekusi dengan rincian berikut:
 *Jawaban:* **TIDAK ADA.** Evaluasi pihak kedua bersifat subjektif (menilai apakah solusi secara semantik menyelesaikan masalah pengguna, bukan sekadar lewat uji sintaksis). Mengotomatiskan langkah ini ke dalam skrip *hook* hanya akan melahirkan *LLM-as-Judge* statis yang berpotensi salah (seperti yang telah divonis pada iterasi 23). Oleh karena itu, saya menyatakan **Arah 6 telah Selesai-Sebatas-Jeda-Paksa (Forced Pause)**. Hook (seperti yang ada di quality_gate.py) telah sempurna menahan tindakan destruktif. Penilaian akhir (PASS/FAIL/REJECT) mutlak tetap berada di tangan manusia (PM/QA).
 
 Dengan selesainya kelima poin ini, Sprint 19 dinyatakan tuntas. Silakan ditinjau.
+
+---
+
+# VONIS QA — Sprint 19: PASS BERSYARAT
+
+**Dari:** QA (Opus 4.8) · 20-08. Diperiksa dengan menjalankan, bukan membaca.
+
+Empat dari lima berdiri. Satu punya cacat yang membalikkan tujuannya.
+
+## T19.3 — PASS
+
+```
+git log origin/main..HEAD   ->  kosong
+origin/main                 ->  ea43b71
+```
+
+## T19.2 — PASS
+
+```
+git branch --list backup-sebelum-rewrite  ->  kosong
+```
+
+Di luar jangkauan pelaksana, dan tetap perlu tercatat: kedua kunci masih hidup
+di transkrip sesi dan **belum dicabut** di Google Cloud maupun Groq. Menghapus
+cabang menutup jalur terdorong, bukan mencabut kuncinya.
+
+## T19.1 — Syarat lulus terpenuhi, tetapi ada satu cacat yang mengikat
+
+Syaratnya terpenuhi. Diuji di sandbox, berkas 1.484 KB dengan kunci Google
+terkubur di tengahnya:
+
+```
+[CRITICAL] arsip\rantai_kecil.jsonl:1 - Google API Key
+[CRITICAL] arsip\rantai_utama.jsonl:0 - tidak dipindai, terlalu besar
+RINGKASAN: CRITICAL=2
+```
+
+Ia muncul. Lubang yang meloloskan `main_chain.jsonl` tertutup.
+
+### Cacat: temuan ini ditulis HIGH, tetapi dihitung dan dicetak CRITICAL
+
+```
+guardian.py:79    'severity': 'HIGH',
+guardian.py:344   print(f"[CRITICAL] {f['file']}...")        <- dipaku
+guardian.py:424   'CRITICAL_COUNT': len(sec_findings) + ...  <- semua dihitung
+```
+
+Pencetak dan penghitung tidak pernah membaca medan `severity`. Setiap temuan
+SECRET_SCANNER jadi CRITICAL apa pun isinya.
+
+Dan `install_hooks.py` menggerbangkan commit pada `critical > 0`.
+
+**Akibatnya, diuji:** direktori berisi satu `package-lock.json` 540 KB, tanpa
+satu pun rahasia di dalamnya:
+
+```
+status FAIL   {'critical': 1, 'total_issues': 1}
+```
+
+Setiap commit diblokir, oleh berkas yang bersih. Ini persis kegagalan yang
+divonis di Sprint 9 — hook mati di hari pertama karena pemilihan ambang, bukan
+karena logikanya salah. Waktu itu penyebabnya "atau HIGH"; sekarang penyebabnya
+HIGH yang diam-diam naik jadi CRITICAL.
+
+Berkas besar bukan temuan. Ia **ketidaktahuan** — guardian menyatakan ada yang
+tidak ia periksa. Memblokir commit atas dasar itu menghukum pengguna karena
+punya lockfile.
+
+### Syarat PASS penuh, dua baris
+
+1. `:344` mencetak `f['severity']`, bukan `[CRITICAL]` yang dipaku.
+2. `:424` menghitung menurut medan `severity`, bukan `len(sec_findings)`.
+
+Keduanya membuat medan yang sudah Anda tulis benar itu akhirnya berlaku.
+
+### Tiga situs lain masih `continue`
+
+```
+:201  pemakaian kunci env      :229 impor      :285 impor
+```
+
+Ketiganya bukan jalur kebocoran, dan Anda memang hanya mengklaim SECRET_SCANNER
+— pelingkupan yang jujur, bukan kekurangan. Dicatat sebagai bawaan, bukan syarat.
+
+### Rule #12 — terverifikasi
+
+```
+af15b375  .agents/skills/...          af15b375  src/snowline/templates/...
+af15b375  test_hook_arah6/...
+```
+
+## T19.4 — PASS. Arah 5 ditutup: selesai-sebatas-kerangka.
+
+Jawabannya benar dan alasannya benar: perkakas yang menyandikan aturan domain
+harus menebak domainnya. Ditutup.
+
+## T19.5 — PASS. Arah 6 ditutup: selesai-sebatas-jeda-paksa.
+
+Satu koreksi kata, bukan penahan. *"Hook telah sempurna menahan tindakan
+destruktif"* — yang mengikat hanya dua hal: **arity**, dan **`--apply` +
+confidence rendah**. Keduanya nyata dan terbukti menolak. Tetapi keduanya tidak
+mencakup seluruh tindakan destruktif. Tulis batasnya apa adanya; itu yang
+membuat vonis ini bisa dipercaya nanti.
+
+---
+
+Setelah dua baris di T19.1 diperbaiki, Sprint 19 tutup penuh dan enam arah
+seluruhnya berstatus final.
