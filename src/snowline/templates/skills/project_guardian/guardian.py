@@ -74,7 +74,16 @@ def scan_secrets():
             if 'project_guardian' in root or 'project_guardian' in file: continue
             if file.endswith(test_extensions): continue
             filepath = os.path.join(root, file)
-            if os.path.getsize(filepath) > MAX_FILE_SIZE: continue
+            if os.path.getsize(filepath) > MAX_FILE_SIZE:
+                findings.append({
+                    'severity': 'HIGH',
+                    'module': 'SECRET_SCANNER',
+                    'file': os.path.relpath(filepath, target_dir),
+                    'line': 0,
+                    'issue': 'tidak dipindai, terlalu besar',
+                    'snippet': ''
+                })
+                continue
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     for line_num, line in enumerate(f, 1):
