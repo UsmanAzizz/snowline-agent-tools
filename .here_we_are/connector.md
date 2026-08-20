@@ -853,3 +853,61 @@ Pindai `.json`, `.jsonl`, `.env*`, `.log` juga. Dan untuk berkas di atas batas
 ukuran, jangan dilewati diam-diam — laporkan sebagai `HIGH: tidak dipindai,
 terlalu besar`. Yang berbahaya bukan berkas besar, melainkan berkas besar yang
 dilewati tanpa jejak.
+
+---
+
+# TANGGAPAN QA — prioritas Sprint 16
+
+**Dari:** QA (Opus 4.8) · 20-08. Ini pendapat, bukan vonis. Keputusan di PM.
+
+## Arah 2 dan 3 sudah terjawab, bukan belum disentuh
+
+**Arah 2 (ekonomi cache).** T7 mengukurnya sampai selesai: 83,8% penulisan
+cache adalah pembatalan yang bisa dihindari, dan sebabnya harness
+membongkar-pasang deferred tool di tengah sesi. Kesimpulannya nyata, terukur,
+**bukan milik kita** — dan pelaksananya sendiri yang menulis kalimat itu.
+
+**Arah 3 (menguasai payload).** Bunyinya: siapa yang menyusun payload, dia yang
+memiliki cache. Itu benar, dan justru **Sprint 12 menutupnya secara sengaja**.
+Begitu `orchestrator.py` dihapus dan snowline jadi konfigurasi untuk native
+agent, tidak ada lagi payload yang bisa disusun sendiri.
+
+Membuka keduanya lagi berarti membatalkan pivot Sprint 12. Kalau itu yang
+dimaui, katakan begitu — jangan disebut "belum disentuh".
+
+## Arah 6 yang masih hidup, dan kehilangan implementasinya
+
+Satu-satunya implementasi Arah 6 adalah dual-agent `QA_REVIEW`/`QA_REJECT` yang
+QA luluskan di Sprint 9. **Ia ikut terhapus bersama `orchestrator.py`.**
+
+Hari ini pelapor terakhir atas sistem ini kembali jadi agen yang
+menjalankannya — kecuali karena PM mengestafetkan ke QA dengan tangan, satu
+per satu, sepanjang dua hari ini.
+
+Dan sekarang ada yang dulu belum ada: **hook terbukti mengikat.** Sprint 13
+membuktikannya di sesi nyata.
+
+## Saran: Arah 6, tetapi hanya separuhnya
+
+Arah 6 memuat dua hal, dan hanya satu yang bisa ditegakkan:
+
+**Bisa** — *jeda paksa*. `Stop` hook sudah terbukti berjalan (`rollback_enforcer`).
+Menahan agen menutup tugas sampai syarat tertentu terpenuhi adalah masalah yang
+sama bentuknya, dan permukaannya sudah ada.
+
+**Tidak bisa** — *penilaian pihak kedua*. Agen kedua tetap agen. Literatur di
+`01_TEMUAN.md` sudah menutup ini: LLM-as-judge tidak menyelesaikan masalah
+relevansi bukti, dan koreksi-diri dari umpan balik yang dibangkitkan agen
+sendiri tidak terbukti berhasil.
+
+**Jadi lingkupkan Sprint 16 pada jeda paksa saja.** Menahan agen berhenti
+sendiri itu bisa ditegakkan. Membuat agen menilai dengan benar, tidak.
+
+Yang menilai tetap manusia — dan itu bukan kegagalan rancangan, itu batas yang
+sudah diukur.
+
+## Satu syarat kalau Sprint 16 jalan
+
+Definisikan lebih dulu **apa yang memicu jeda**, dan pastikan pemicunya bisa
+diperiksa tanpa penilaian. "Agen merasa selesai" tidak bisa. "Tes gagal",
+"guardian menemukan CRITICAL", "berkas disunting tanpa tes" — bisa.
