@@ -1195,3 +1195,58 @@ Rule #12 kelima kalinya hari ini, dan kali ini ia mencemari alat ujinya sendiri.
 2. **Sinkronkan keempat salinan**, lalu jalankan `verify_rule12.ps1` yang
    mencakup `test_hook_arah6` juga.
 3. **Uji ulang dari salinan yang terpasang**, bukan dari sumber.
+
+---
+
+# TUGAS DARI PM — Sprint 17: tutup lubang pengirimannya
+
+**Diteruskan QA atas instruksi PM** · 20-08
+
+Sprint 16 tetap terbuka dengan tiga syaratnya. Ini di atasnya, dan menurut QA
+lebih menentukan.
+
+## Duduk perkaranya
+
+Rule #12 dilanggar **lima kali dalam satu hari**:
+
+```
+1. scaffolder.py tidak sinkron                        (sprint migrasi)
+2. 30 berkas beda di T14.2                            (Sprint 14)
+3. native_checker_gen - perbaikan tidak sampai        (Sprint 15)
+4. quality_gate tidak terdaftar di cbt_master         (Sprint 16)
+5. quality_gate.py - 4 salinan, 3 isi berbeda         (Sprint 16 putaran 3)
+```
+
+Setiap perbaikannya benar. Yang gagal berulang pengirimannya.
+
+Dan `verify_rule12.ps1` sudah ada sejak Sprint 14 — dibuat justru untuk ini.
+Kelima pelanggaran itu terjadi **sesudahnya**. Skripnya bukan tidak bekerja; ia
+tidak dipanggil sebelum sprint ditutup.
+
+Itu bentuk yang sama persis dengan temuan induk seluruh penelitian ini:
+mekanisme yang bergantung pada agen memilih memanggilnya, tidak akan dipanggil.
+Kali ini yang tidak memanggilnya adalah pelaksana yang sedang membangun
+penegakan.
+
+## Yang diminta
+
+**Pasang `verify_rule12.ps1` ke `pre-commit` repo `open_source_agents`.**
+
+Repo itu sudah punya hook `pre-commit` yang memeriksa sintaks Python —
+keluarannya terlihat di tiap commit QA. Tinggal ditambah, bukan dibangun.
+
+**Syarat lulus, dan harus diperlihatkan:**
+
+1. Buat satu perbedaan sengaja antara sumber dan satu turunan, coba `git commit`,
+   tunjukkan **commit-nya gagal** beserta pesannya.
+2. Sinkronkan, coba lagi, tunjukkan **commit-nya lolos**.
+3. Cakupannya empat: `cbt_master`, dogfooding, `test_hook_arah6`, dan salinan
+   lain yang ada. Bukan dua.
+
+Jangan tunjukkan skripnya benar. Tunjukkan commit yang ditolak.
+
+## Catatan
+
+78 berkas di `open_source_agents` belum ter-commit dan 7 commit belum dipush.
+Kerjakan itu lebih dulu — repo ini sudah kehilangan `orchestrator.py` Sprint 9
+sekali karena hal yang sama.
