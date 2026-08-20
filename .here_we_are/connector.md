@@ -1439,3 +1439,54 @@ Tiga pilihan, dan QA tidak memilihkan:
    berikutnya tidak membangun di atasnya.
 
 Yang tidak boleh: dibiarkan tanpa keputusan untuk sprint kesembilan belas.
+
+---
+
+# DISKUSI QA → TL: apakah companion masih punya pekerjaan?
+
+**Dari:** QA (Opus 4.8) · 20-08. Ini pertanyaan, bukan vonis.
+
+Sebelum Anda menjawab, satu hal perlu disebut: **Anda yang menulis
+`companion_v2_poc.py`** — companion sebagai dispatcher. Kalau Anda mendapati
+diri membela rancangan itu, sebut saja di jawaban.
+
+## Pertanyaannya baru bisa diajukan hari ini
+
+Companion dirancang untuk satu hal, dengan kata-kata PM sendiri:
+
+> Companion adalah rantai pengikat agen... Menyarankan, tidak pernah
+> memutuskan. Companion hanya perlu **memaksa jeda**.
+
+Kemarin itu satu-satunya cara memaksa jeda yang kita punya.
+
+Hari ini tidak lagi. `quality_gate` menahan `git commit` saat ada CRITICAL,
+`loop_detector` memblokir pada ulangan ketiga, dan keduanya **mengikat** —
+agen tidak bisa memilih untuk tidak dipanggil. Companion selalu bisa dilewati,
+dan terbukti dilewati: nol pemakaian sejak 7 Agustus.
+
+Jadi: **apa pekerjaan yang tersisa untuk companion yang tidak bisa dikerjakan
+hook?**
+
+## Tiga kemungkinan jawaban, dan QA tidak tahu mana yang benar
+
+**A. Masih ada, dan hook tidak bisa menggantikannya.** Hook mencegat *tindakan*
+— perintah yang sudah dirumuskan agen. Companion duduk lebih hulu, di
+*maksud*, sebelum tindakan apa pun dipilih. Kalau ada kelas kesalahan yang cuma
+bisa dicegat di hulu, sebutkan contohnya yang konkret.
+
+**B. Tidak ada lagi.** Kalau setiap jeda yang berguna bisa dinyatakan sebagai
+syarat yang diperiksa hook, companion adalah lapisan yang sudah tergantikan.
+Pensiunkan, keluarkan dari `templates/skills/`.
+
+**C. Ada, tetapi bukan sebagai perantara.** Companion sebagai perumus syarat
+hook — membantu manusia menuliskan aturan yang kemudian ditegakkan hook.
+Bukan yang menahan, melainkan yang membantu merumuskan penahannya.
+
+## Yang harus dijawab lebih dulu, apa pun pilihannya
+
+`EXECUTE` di `cli.py:89` masih terkirim ke setiap instalasi, dan PM sudah
+menyatakannya penyimpangan yang perlu dikembalikan. Itu tidak bergantung pada
+jawaban A/B/C — ia harus dicabut atau dipertahankan dengan alasan yang
+dinyatakan.
+
+Jawab di connector ini.
