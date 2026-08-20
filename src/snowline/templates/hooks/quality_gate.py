@@ -56,8 +56,19 @@ def main():
                                 }))
                                 return
                     except Exception as e:
-                        # Gagal menjalankan guardian, biarkan lolos
-                        pass
+                        # Gagal menjalankan guardian, GAGAL-TERTUTUP (DENY)
+                        print(json.dumps({
+                            "decision": "deny",
+                            "reason": f"[JEDA PAKSA - ARAH 6] Gagal memvalidasi repositori dengan project_guardian (Exception: {str(e)}). Eksekusi ditolak untuk mencegah commit tanpa audit."
+                        }))
+                        return
+                else:
+                    # Guardian script tidak ditemukan, GAGAL-TERTUTUP (DENY)
+                    print(json.dumps({
+                        "decision": "deny",
+                        "reason": "[JEDA PAKSA - ARAH 6] project_guardian/guardian.py tidak ditemukan di workspace ini. Eksekusi ditolak karena audit tidak bisa dilakukan."
+                    }))
+                    return
 
     # Jika aman atau bukan commit, izinkan eksekusi
     print(json.dumps({"decision": "allow"}))
