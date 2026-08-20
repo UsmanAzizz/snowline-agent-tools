@@ -187,6 +187,44 @@ kedua yang tidak ikut menyusun.
 
 Bentuknya belum dirumuskan, dan sengaja tidak dirumuskan QA di sini.
 
+#### Bukti perilaku: `task_lock` yang macet, dan kegagalan yang ia dibangun untuk mencegahnya
+
+Diangkat PM, 20 Agustus, setelah QA melenceng untuk **ketiga** kalinya dalam
+satu malam — membahas `cbt_master` ketika yang sedang dibicarakan snowline.
+
+PM menunjukkan hal yang tidak dilihat QA: `task_lock` dari companion dibangun
+persis untuk kegagalan ini.
+
+**Yang diperiksa QA sebelum menyetujui:**
+
+`start_task_lock()` di `companion/core_memory.py:70` menyimpan `user_intent_raw`
+— maksud tugas yang sedang berjalan — ke berkas, di luar konteks agen. Tetapi
+tidak ada pemeriksa di mana pun yang membandingkan keluaran agen dengan maksud
+yang tersimpan itu.
+
+**Jadi secara harfiah ia tidak akan memblokir.** Ia mencatat, tidak memeriksa.
+
+**Secara substansi PM benar.** Yang hilang sepanjang malam adalah pernyataan
+batas yang berada **di luar kepala agen** untuk dibandingkan sebelum menjawab.
+Tiga kali agen melenceng, dan tiga kali tidak ada apa pun yang menahannya
+kecuali PM. `task_lock.json` macet di `task_id: 7`, status `clarifying`, sejak
+3 Agustus — karena tidak ada yang menjalankannya.
+
+**Ironinya perlu berdiri di catatan ini:** QA ikut menyatakan companion mati
+sebagian karena tidak dipakai. Kegagalan yang QA ulangi tiga kali malam ini
+adalah kegagalan yang companion dibangun untuk mencegahnya.
+
+**Kenapa ini penting untuk arah:**
+
+Ini bukan analisis. Ini perilaku yang terjadi, berulang, dan bisa dihitung. Ia
+menguatkan tiga hal sekaligus — bahwa perkakasnya belum diuji kegunaannya
+(BATASAN KESIMPULAN), bahwa mencatat tanpa memeriksa tidak cukup (arah 1), dan
+bahwa pemeriksanya tidak boleh dibangkitkan agen di saat itu juga (arah 6).
+
+Jarak antara `task_lock` sekarang dan yang dibutuhkan cuma satu langkah:
+**ia mencatat, tidak memeriksa.** Itu bukan perkakas yang gagal. Itu perkakas
+yang berhenti setengah jalan.
+
 ---
 
 ## Bentuk seluruh sprint
