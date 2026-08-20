@@ -1,63 +1,77 @@
-$source = "src\snowline\templates\skills"
-$target = "..\cbt_master\.agents\skills"
+$ErrorActionPreference = "Stop"
 
-# Get hashes for all files excluding .history and __pycache__
-$sourceHashes = Get-ChildItem -Path $source -Recurse -File | Where-Object { $_.FullName -notmatch '\.history' -and $_.FullName -notmatch '__pycache__' -and $_.Extension -ne '.pyc' } | Get-FileHash
-$targetHashes = Get-ChildItem -Path $target -Recurse -File | Where-Object { $_.FullName -notmatch '\.history' -and $_.FullName -notmatch '__pycache__' -and $_.Extension -ne '.pyc' } | Get-FileHash
+$sourceBase = "src\snowline\templates"
+$targets = @("..\cbt_master\.agents", ".agents", "test_hook_arah6\.agents")
+$itemsToCheck = @("skills", "hooks", "hooks.json")
 
-# Create dictionaries mapping relative paths to hashes
-$sourceDict = @{}
-foreach ($item in $sourceHashes) {
-    $relPath = $item.Path.Substring((Resolve-Path $source).Path.Length + 1)
-    $sourceDict[$relPath] = $item.Hash
+$hasError = $false
+
+foreach ($targetBase in $targets) {
+    if (-not (Test-Path $targetBase)) {
+        Write-Host "Target missing: $targetBase"
+        $hasError = $true
+        continue
+    }
+
+    foreach ($item in $itemsToCheck) {
+        $sourcePath = Join-Path $sourceBase $item
+        $targetPath = Join-Path $targetBase $item
+
+        if (-not (Test-Path $sourcePath)) { continue }
+
+        if (-not (Test-Path $targetPath)) {
+            Write-Host "ERROR: Missing $item in $targetBase"
+            $hasError = $true
+            continue
+        }
+
+        # If it's a file (hooks.json)
+        if ((Get-Item $sourcePath) -is [System.IO.FileInfo]) {
+            $sHash = (Get-FileHash $sourcePath).Hash
+            $tHash = (Get-FileHash $targetPath).Hash
+            if ($sHash -ne $tHash) {
+                Write-Host "ERROR: File divergence $item in $targetBase"
+                $hasError = $true
+            }
+            continue
+        }
+
+        # If it's a directory
+        $sFiles = Get-ChildItem -Path $sourcePath -Recurse -File | Where-Object { $_.FullName -notmatch '\.history' -and $_.FullName -notmatch '__pycache__' -and $_.Extension -ne '.pyc' }
+        $tFiles = Get-ChildItem -Path $targetPath -Recurse -File | Where-Object { $_.FullName -notmatch '\.history' -and $_.FullName -notmatch '__pycache__' -and $_.Extension -ne '.pyc' }
+
+        $sDict = @{}
+        foreach ($f in $sFiles) {
+            $rel = $f.FullName.Substring((Resolve-Path $sourcePath).Path.Length + 1)
+            $sDict[$rel] = (Get-FileHash $f.FullName).Hash
+        }
+
+        $tDict = @{}
+        foreach ($f in $tFiles) {
+            $rel = $f.FullName.Substring((Resolve-Path $targetPath).Path.Length + 1)
+            $tDict[$rel] = (Get-FileHash $f.FullName).Hash
+        }
+
+        $allKeys = $sDict.Keys + $tDict.Keys | Sort-Object -Unique
+        foreach ($k in $allKeys) {
+            if (-not $sDict.ContainsKey($k)) {
+                Write-Host "ERROR: Extra file in target $targetBase\$item\$k"
+                $hasError = $true
+            } elseif (-not $tDict.ContainsKey($k)) {
+                Write-Host "ERROR: Missing file in target $targetBase\$item\$k"
+                $hasError = $true
+            } elseif ($sDict[$k] -ne $tDict[$k]) {
+                Write-Host "ERROR: Content divergence $targetBase\$item\$k"
+                $hasError = $true
+            }
+        }
+    }
 }
 
-$targetDict = @{}
-foreach ($item in $targetHashes) {
-    $relPath = $item.Path.Substring((Resolve-Path $target).Path.Length + 1)
-    $targetDict[$relPath] = $item.Hash
-}
-
-$target2 = ".agents\skills"
-$target2Hashes = Get-ChildItem -Path $target2 -Recurse -File | Where-Object { $_.FullName -notmatch '\.history' -and $_.FullName -notmatch '__pycache__' -and $_.Extension -ne '.pyc' } | Get-FileHash
-$target2Dict = @{}
-foreach ($item in $target2Hashes) {
-    $relPath = $item.Path.Substring((Resolve-Path $target2).Path.Length + 1)
-    $target2Dict[$relPath] = $item.Hash
-}
-
-$sama1 = 0
-$beda1 = 0
-$hilangS1 = 0
-$hilangT1 = 0
-
-$sama2 = 0
-$beda2 = 0
-$hilangS2 = 0
-$hilangT2 = 0
-
-$allKeys1 = $sourceDict.Keys + $targetDict.Keys | Sort-Object -Unique
-$allKeys2 = $sourceDict.Keys + $target2Dict.Keys | Sort-Object -Unique
-
-foreach ($key in $allKeys1) {
-    if (-not $sourceDict.ContainsKey($key)) { $hilangS1++ }
-    elseif (-not $targetDict.ContainsKey($key)) { $hilangT1++ }
-    elseif ($sourceDict[$key] -ne $targetDict[$key]) { $beda1++ }
-    else { $sama1++ }
-}
-
-foreach ($key in $allKeys2) {
-    if (-not $sourceDict.ContainsKey($key)) { $hilangS2++ }
-    elseif (-not $target2Dict.ContainsKey($key)) { $hilangT2++ }
-    elseif ($sourceDict[$key] -ne $target2Dict[$key]) { $beda2++ }
-    else { $sama2++ }
-}
-
-Write-Host "TARGET 1 (cbt_master): sama = $sama1    beda = $beda1    hilang_sumber = $hilangS1    hilang_turunan = $hilangT1"
-Write-Host "TARGET 2 (dogfooding): sama = $sama2    beda = $beda2    hilang_sumber = $hilangS2    hilang_turunan = $hilangT2"
-
-if ($beda1 -gt 0 -or $hilangS1 -gt 0 -or $hilangT1 -gt 0 -or $beda2 -gt 0 -or $hilangS2 -gt 0 -or $hilangT2 -gt 0) {
+if ($hasError) {
+    Write-Host "Rule #12 Violation Detected."
     exit 1
 } else {
+    Write-Host "Rule #12 Verified: All targets are byte-identical."
     exit 0
 }

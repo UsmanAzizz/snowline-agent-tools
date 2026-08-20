@@ -45,16 +45,29 @@ def main():
                         )
                         
                         if result.stdout:
-                            guardian_out = json.loads(result.stdout)
-                            critical_count = guardian_out.get("summary", {}).get("critical", 0)
-                            
-                            # JEDA PAKSA (ARAH 6)
-                            if critical_count > 0:
+                            try:
+                                guardian_out = json.loads(result.stdout)
+                                critical_count = guardian_out.get("summary", {}).get("critical", 0)
+                                
+                                # JEDA PAKSA (ARAH 6)
+                                if critical_count > 0:
+                                    print(json.dumps({
+                                        "decision": "deny",
+                                        "reason": f"[JEDA PAKSA - ARAH 6] project_guardian menemukan {critical_count} isu CRITICAL! Anda dilarang melakukan commit sebelum memperbaikinya atau menyertakan penanda abaikan (// guardian-ignore)."
+                                    }))
+                                    return
+                            except json.JSONDecodeError:
                                 print(json.dumps({
                                     "decision": "deny",
-                                    "reason": f"[JEDA PAKSA - ARAH 6] project_guardian menemukan {critical_count} isu CRITICAL! Anda dilarang melakukan commit sebelum memperbaikinya atau menyertakan penanda abaikan (// guardian-ignore)."
+                                    "reason": f"[JEDA PAKSA - ARAH 6] Output guardian tidak valid (JSON error)."
                                 }))
                                 return
+                        else:
+                            print(json.dumps({
+                                "decision": "deny",
+                                "reason": f"[JEDA PAKSA - ARAH 6] project_guardian tidak menghasilkan output (returncode={result.returncode}, stderr={result.stderr})."
+                            }))
+                            return
                     except Exception as e:
                         # Gagal menjalankan guardian, GAGAL-TERTUTUP (DENY)
                         print(json.dumps({
@@ -69,6 +82,13 @@ def main():
                         "reason": "[JEDA PAKSA - ARAH 6] project_guardian/guardian.py tidak ditemukan di workspace ini. Eksekusi ditolak karena audit tidak bisa dilakukan."
                     }))
                     return
+            else:
+                # Tidak ada workspace_paths, GAGAL-TERTUTUP (DENY)
+                print(json.dumps({
+                    "decision": "deny",
+                    "reason": "[JEDA PAKSA - ARAH 6] Parameter workspacePaths tidak ditemukan dalam konteks hook. Eksekusi ditolak karena lingkungan gagal diverifikasi."
+                }))
+                return
 
     # Jika aman atau bukan commit, izinkan eksekusi
     print(json.dumps({"decision": "allow"}))
