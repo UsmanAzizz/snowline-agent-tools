@@ -49,6 +49,16 @@ Lahir dari kesalahan nyata malam ini, bukan dari teori.
 7. **Melenceng ke temuan menarik yang tidak ditanyakan adalah kegagalan**,
    sekalipun temuannya benar.
 
+## WAJIB DIBACA SEBELUM MENILAI APA PUN
+
+`agents_chamber/shared/DESIGN_PHILOSOPHY.md` memuat kutipan langsung PM tentang
+maksud companion dan chamber. Kode menunjukkan **apa yang ada**; berkas itu
+menyatakan **apa yang dimaksudkan**.
+
+Menilai yang pertama tanpa yang kedua sudah menghasilkan kesimpulan yang salah
+dua kali — sekali oleh QA sebelumnya (tercatat di berkas itu sendiri, baris 49),
+sekali lagi oleh QA sprint ini pada 20-08.
+
 ## Cara PM ingin dikerjakan
 
 Ini bukan aturan penelitian, ini cara berinteraksi. Sama mengikatnya.

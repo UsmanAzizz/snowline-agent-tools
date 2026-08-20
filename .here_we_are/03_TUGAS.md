@@ -752,3 +752,72 @@ Itu penggambaran kode yang akurat.
 **Tidak sah sebagai vonis.** Bingkai vonis itu ditaruh QA, bukan berasal dari
 data. Tujuh yang mencetak belum dinilai dengan kriteria yang sesuai fungsinya,
 dan karena itu belum boleh disebut tidak berguna.
+
+---
+
+### KOREKSI KEDUA — QA menilai companion tanpa membaca maksudnya
+
+Diangkat PM, 20-08. Sumbernya `agents_chamber/shared/DESIGN_PHILOSOPHY.md`,
+berkas yang memuat kutipan langsung PM tentang maksud companion dan chamber.
+**QA tidak pernah membukanya** — dua hari menilai ekosistem ini tanpa membaca
+berkas yang menyatakan tujuannya.
+
+#### Yang salah pada catatan QA sebelumnya
+
+QA menulis `task_lock` "berhenti setengah jalan — mencatat, tidak memeriksa",
+dan menyebutnya perkakas yang tinggal satu langkah dari selesai.
+
+Menurut rancangannya, itu keliru. Kutipan PM:
+
+> "Companion adalah rantai pengikat agen. Ia boleh menjadi binatang pemburu
+> buas, tapi tidak akan pernah bekerja tanpa batas."
+>
+> Menyarankan, tidak pernah memutuskan... Companion hanya perlu memaksa jeda.
+
+**Mencatat dan memaksa jeda ITULAH bentuk lengkapnya.** Menambahkan pemeriksa
+yang memblokir bukan penyempurnaan — `DESIGN_PHILOSOPHY.md` menyebutnya
+"pembalikan peran, bukan peningkatan kemampuan", dan mencatat bahwa
+`Action: EXECUTE` dulu tumbuh persis lewat penyimpangan seperti itu, tanpa
+pernah ada yang memutuskan menambahkannya.
+
+**Yang kurang bukan pemeriksanya. Yang kurang: tidak ada apa pun yang membuat
+jedanya terjadi.** Itu masalah berbeda dengan solusi berbeda, dan istilah
+"setengah jalan" menutupinya.
+
+#### Dan tujuan companion adalah kegagalan QA sendiri
+
+Tujuannya, kata PM: **mencegah agen berpikir di luar konteks prompt user.**
+
+Tiga kali pada 20-08 QA melenceng ke `cbt_master` ketika yang dibicarakan
+snowline. Alat yang QA nilai tak berguna dibangun untuk persis kegagalan itu.
+
+#### Chamber juga salah dibaca
+
+QA membacanya sebagai mekanisme produktivitas, lalu menilainya dari rasio
+keluaran. PM sudah menulis lebih dulu bahwa agennya memang **tidak**
+bergotong royong:
+
+> Yang terlihat sebagai kerja sama tiga agen sesungguhnya adalah satu manusia
+> yang menjahit tiga kesendirian.
+
+Ironi itu isinya, bukan cacatnya.
+
+#### Baris yang paling perlu dibaca siapa pun yang menilai repo ini
+
+`DESIGN_PHILOSOPHY.md:49` —
+
+> QA yang membaca seluruh 1006 baris kode companion tetap salah menyimpulkan
+> maksudnya — sampai PM mengoreksi secara lisan. Tidak ada perintah yang bisa
+> menangkap drift semacam itu, karena kode hanya menunjukkan **apa yang ada**,
+> bukan **apa yang dimaksudkan**.
+
+Itu sudah terjadi sekali, kepada QA sebelum ini. Halaman itu ditulis supaya
+tidak terulang. Ia gagal karena tidak dibaca — dan pada 20-08 PM mengoreksi
+QA empat kali secara lisan, pola yang sama persis.
+
+#### ATURAN BARU UNTUK FOLDER INI
+
+**Baca `agents_chamber/shared/DESIGN_PHILOSOPHY.md` sebelum menilai perkakas
+atau bagian mana pun dari ekosistem ini.** Kode menunjukkan apa yang ada;
+berkas itu menyatakan apa yang dimaksudkan. Menilai yang pertama tanpa yang
+kedua sudah menghasilkan kesimpulan yang salah dua kali.

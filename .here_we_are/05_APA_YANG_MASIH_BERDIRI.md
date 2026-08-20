@@ -221,9 +221,18 @@ menguatkan tiga hal sekaligus — bahwa perkakasnya belum diuji kegunaannya
 (BATASAN KESIMPULAN), bahwa mencatat tanpa memeriksa tidak cukup (arah 1), dan
 bahwa pemeriksanya tidak boleh dibangkitkan agen di saat itu juga (arah 6).
 
-Jarak antara `task_lock` sekarang dan yang dibutuhkan cuma satu langkah:
-**ia mencatat, tidak memeriksa.** Itu bukan perkakas yang gagal. Itu perkakas
-yang berhenti setengah jalan.
+~~Jarak antara `task_lock` sekarang dan yang dibutuhkan cuma satu langkah: ia
+mencatat, tidak memeriksa.~~ **DIKOREKSI 20-08 — lihat `03_TUGAS.md`, "Koreksi
+kedua".**
+
+Menurut `agents_chamber/shared/DESIGN_PHILOSOPHY.md`, companion memang
+dirancang untuk **menyarankan, tidak pernah memutuskan** — "hanya perlu memaksa
+jeda". Mencatat dan memaksa jeda itulah bentuk lengkapnya. Menambahkan
+pemeriksa yang memblokir adalah pembalikan peran, bukan penyempurnaan.
+
+Yang kurang bukan pemeriksanya. **Yang kurang: tidak ada apa pun yang membuat
+jedanya terjadi.** Masalah berbeda, solusi berbeda, dan istilah "setengah
+jalan" menutupinya.
 
 ---
 
