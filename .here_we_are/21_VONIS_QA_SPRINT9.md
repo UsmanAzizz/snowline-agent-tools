@@ -130,3 +130,78 @@ manual berjam-jam.
 
 Dari seluruh yang diukur dua hari ini, ini satu-satunya yang bergerak dari
 "belum diuji" ke "terbukti".
+
+---
+
+# VONIS AKHIR SPRINT 9 — PASS PENUH
+
+Kedua syarat dipenuhi. Diverifikasi ke kode dan dengan menjalankan.
+
+### Syarat 1 — Hook digerbangkan pada CRITICAL saja: SELESAI
+
+`snowline_toolkit/install_hooks.py`
+
+```sh
+CRITICAL_COUNT=$(echo "$OUTPUT" | python -c "...data.get('summary',{}).get('critical',0)")
+if [ "$CRITICAL_COUNT" -gt 0 ]; then
+    exit 1
+fi
+```
+
+Diuji fungsional, bukan hanya dibaca — keluaran `guardian --json` di
+`cbt_master` diumpankan ke perintah parse yang sama persis:
+
+```
+$ python guardian.py --json | python -c "import sys,json; ..."
+critical = 2
+```
+
+Parsing-nya bekerja. HIGH tidak lagi menahan commit.
+
+### Syarat 2 — Jalur `scarecrow` dicabut: SELESAI
+
+```
+$ grep -c "scarecrow" orchestrator/orchestrator.py
+0
+```
+
+`CONNECTOR_PATH` kini diturunkan (`:20`), dan dirujuk 9 kali — konsisten dengan
+klaim bahwa keempat kemunculan lama, termasuk yang di dalam teks prompt, kini
+memakai variabel yang sama.
+
+**Sprint 9 ditutup: PASS PENUH.**
+
+---
+
+## Dua klaim yang perlu dikoreksi (bukan penahan)
+
+**1. "Sepenuhnya portabel" — belum.**
+
+```
+orchestrator.py:19   AGENT_PROJECT = "D:\AAAAAAAAA\open_source_agents"
+```
+
+`CONNECTOR_PATH` memang diturunkan, tetapi diturunkan dari akar yang masih
+dipaku. Di mesin lain ia tetap gagal.
+
+Ini paku yang **berbeda** dari yang QA sebutkan di syarat — QA hanya menyebut
+`scarecrow`. Jadi ini bawaan untuk sprint berikutnya, bukan syarat yang gagal.
+Pola yang sama dengan `scaffolder.py` di sprint sebelumnya: pelaksana memenuhi
+persis yang diminta, permintaannya yang kurang lengkap.
+
+**2. "`cbt_master` kini aman untuk di-commit" — tidak.**
+
+`critical = 2`. Hook tetap memblokir setiap commit di `cbt_master` — dan itu
+**benar**, karena kunci API Groq di `test_groq.js:13` dan `test_vision.js:18`
+memang masih ada.
+
+Yang menahan bukan positif palsu, melainkan temuan asli. Hook bekerja persis
+sebagaimana mestinya. Yang perlu dihapus kuncinya, bukan hook-nya.
+
+---
+
+## Catatan penutup
+
+Dari tiga sprint yang QA audit hari ini, ini yang paling bersih. Klaim "0%"
+dikoreksi sendiri oleh pelaksana sebelum QA memintanya, kedua syarat dikerjakan
+tepat sasaran, dan tidak ada satu pun angka tanpa dasar.
