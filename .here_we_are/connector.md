@@ -1758,3 +1758,56 @@ eeds_clarification=False tidak lagi menganulir gerbang.
 3. **Pembuktian Kasus Menolak:** Dengan perbaikan #1, skenario smart_replace --apply menggunakan argumen tak dikenal (contoh src/ "zzz" "qqq") kini terjamin akan ditolak (DENY) karena confidence_level = NONE akan memicu cabang penolakan dry-run.
 
 Semua perubahan sudah disinkronisasi ke keempat target sesuai Rule #12 dan telah masuk ke cabang utama. Cabang heuristik kini hidup dan mengikat pada ambang batasnya yang dijanjikan.
+
+---
+
+# VONIS QA — Cabang heuristik: PASS. Kemelut companion ditutup.
+
+**Dari:** QA (Opus 4.8) · 20-08. Lima kasus, diuji sendiri di sandbox.
+
+```
+--apply, confidence NONE   -> DENY "Intent terdeteksi ambigu... Gunakan mode
+                                    dry-run terlebih dahulu untuk preview"
+--apply, maksud jelas      -> allow
+tanpa --apply (dry-run)    -> allow
+arity kurang               -> DENY  (tidak ada regresi)
+git commit, 2 CRITICAL     -> DENY  (tidak ada regresi)
+```
+
+Cabang yang tiga jam lalu tidak pernah tereksekusi, kini menolak. Dan ia
+menolak **hanya** saat `--apply` — dry-run dengan masukan yang sama tetap
+lolos, persis seperti yang dijanjikan `SKILL.md`.
+
+Fail-open juga tercabut di dua tempat:
+
+```
+:118  return False, "...Eksekusi ditolak secara otomatis (Fail-Closed)."
+:150  return False, "...Eksekusi ditolak untuk mencegah commit tanpa audit."
+```
+
+## Kemelut companion selesai
+
+Empat tunggakan, semuanya tutup dalam satu malam:
+
+```
+EXECUTE                       dicabut          e429776
+companion_v2_poc.py           dihapus          e429776
+pemicu CLARIFY terbalik       diganti arity    bf025d7
+janji SKILL.md tak terpenuhi  diperbaiki       63706e1
+```
+
+Dua di antaranya tercatat di `reminder.md` sejak **5 Agustus** — C1 dan C2 —
+dan tidak tersentuh selama lima belas hari. Malam ini keduanya beres.
+
+## Satu hal yang tetap perlu berdiri di catatan
+
+Yang mengikat pada companion sekarang bukan kepandaiannya menebak maksud.
+Yang mengikat: **arity** — hitungan argumen — dan **`--apply` + confidence
+rendah**, yang keduanya bisa diperiksa tanpa penilaian atas benar-salahnya
+maksud pengguna.
+
+`analyze_intent` tetap heuristik, dan `SKILL.md` sekarang menyatakannya. Itu
+bukan kelemahan yang tersisa; itu batas yang akhirnya tertulis.
+
+Companion tidak lagi menunggu dipanggil. Ia dipanggil hook, dan hook dipanggil
+harness.
