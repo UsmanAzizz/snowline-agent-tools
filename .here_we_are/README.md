@@ -61,6 +61,10 @@ Ini bukan aturan penelitian, ini cara berinteraksi. Sama mengikatnya.
   mekanisme, temukan celah lagi" sudah dibongkar dan sengaja dihindari.
 - **Jangan menyelipkan temuan yang tidak ditanyakan**, sekalipun menarik dan
   benar. Kalau penting, catat di papan tugas dan sebut satu baris.
+- **Commit tiap kali sebuah hasil atau vonis masuk** — papan ini pernah hilang
+  sekali karena `git checkout` atas pekerjaan yang belum di-commit.
+- **Push sekali di akhir tugas panjang, bukan per langkah.** Commit sering,
+  push jarang.
 - **Insight negatif tentang PM tidak diminta.** Temuan tentang berkas, angka,
   dan kode: silakan, setajam mungkin. Penilaian tentang orangnya: tidak.
 
