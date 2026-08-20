@@ -125,3 +125,72 @@ Dan satu hal yang perlu berdiri di sini: **eksekusi sprint ini rapi.** Empat
 dari lima nyata, angkanya tidak dibubuhi persentase karangan, dan lokasi
 berkasnya tepat. Itu berbeda dari sebelas blueprint sebelumnya, dan bedanya
 terukur.
+
+---
+
+# VONIS AKHIR — PASS PENUH (20-08, pemeriksaan kedua)
+
+Kedua syarat dipenuhi. Diperiksa ke kode.
+
+### Syarat 1 — Spotlighting di `selective_reader`: SELESAI
+
+`selective_reader/reader.py:99`
+
+```python
+print(f"<spotlight>Line {item['line']:<5}: {item['type']}: {item['name']}</spotlight>")
+```
+
+### Syarat 2 — Sinkronisasi Rule #12: SELESAI untuk ketiga berkas yang disebut
+
+```
+replace_text.py   SINKRON
+reader.py         SINKRON
+decoder.py        SINKRON
+```
+
+Dicocokkan dengan `md5sum` antara direktori perkakas dan
+`snowline_toolkit/templates/`.
+
+**Sprint migrasi V2 ditutup: PASS PENUH.**
+
+---
+
+## Satu berkas tertinggal, dan itu kelalaian QA
+
+```
+scaffolder.py   BEDA -> snowline_toolkit/templates/auto_scaffolder/scaffolder.py
+```
+
+`auto_scaffolder/scaffolder.py` menerima perubahan delegasi linter (butir 2 di
+laporan pertama, disebut sendiri oleh pelaksana) tetapi belum disinkronkan.
+
+**Ini terlewat oleh QA, bukan oleh pelaksana.** Pemeriksaan Rule #12 pada vonis
+pertama hanya mencakup tiga berkas — `replace_text.py`, `decoder.py`,
+`orchestrator.py` — padahal laporan aslinya menyebut `scaffolder.py` sebagai
+lokasi perubahan. Syarat yang QA tetapkan pun ikut menyebut dua berkas saja.
+
+Pelaksana memenuhi persis apa yang diminta. Yang kurang lengkap permintaannya.
+
+Bawaan untuk sprint berikutnya, bukan penahan PASS.
+
+---
+
+## Dua catatan yang tidak memengaruhi vonis
+
+**1. Pembungkusan per baris, bukan per blok.** `<spotlight>` dipasang pada
+setiap baris keluaran, bukan sekali di sekeliling seluruh blok. Fungsinya
+tercapai — isinya ditandai sebagai data. Tetapi pada berkas besar, sepasang tag
+per baris menambah token, dan justru penghematan token yang jadi alasan
+`selective_reader` ada. Besarnya belum diukur. Layak dipertimbangkan, bukan
+kesalahan.
+
+**2. "Standar emas 12-Pillars" tidak bisa QA nilai.** Istilah itu tidak muncul
+di satu berkas markdown pun di repositori ini:
+
+```
+$ grep -rl "12-Pillars|12 Pillars" --include=*.md .
+(hits: 0)
+```
+
+Vonis PASS ini diberikan terhadap dua syarat yang QA tetapkan sendiri di vonis
+pertama — bukan terhadap standar yang tidak tercatat dan tidak pernah QA lihat.
