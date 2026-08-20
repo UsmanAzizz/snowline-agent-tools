@@ -20,3 +20,6 @@ dump/
 Thumbs.db
 .agents/
 PROJECT_STRUCTURE.md
+
+# Repositori git tertanam milik prototipe uji, bukan bagian repo ini
+.here_we_are/v2_prototypes/sandbox_app/
