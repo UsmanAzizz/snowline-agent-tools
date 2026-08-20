@@ -64,11 +64,50 @@ di `cbt_master` — 2.805 baris, 20 penjaga, 170 dari 260 kasus tes — dibangun
 
 Tiga hal, dan hanya tiga.
 
-**1. `project_guardian` — pemindaian aktif.** Satu-satunya perkakas yang
-terbukti menemukan sesuatu yang terlewat manusia: kunci API ter-commit,
-ditemukan dalam 30 detik setelah pembacaan kode 12 jam melewatkannya. Ini
-kebalikan dari seluruh arah lain — bukan menghemat, melainkan menemukan.
-**Belum pernah diukur dengan benar.**
+**1. `project_guardian` — pemindaian aktif. SUDAH DIUKUR 20-08.**
+
+Dijalankan di `cbt_master`:
+
+```
+$ cd D:/AAAAAAAAA/cbt_master
+$ python D:/AAAAAAAAA/open_source_agents/project_guardian/guardian.py
+
+CRITICAL  9 temuan  ->  2 nyata   (78% positif palsu)
+HIGH      5 temuan  ->  1 nyata, nilainya rendah
+```
+
+**Dua temuan nyata:** kunci API Groq yang sama di dua berkas —
+`scripts/test_groq.js:13` dan `scripts/test_vision.js:18`. Yang kedua tidak
+pernah ditemukan siapa pun, termasuk QA yang membaca kode berjam-jam sepanjang
+sprint dan sudah menandai berkas pertama 12 hari sebelumnya.
+
+**Tujuh temuan palsu, dari dua kelas saja:**
+- Dokumentasi snowline sendiri (`SKILL.md:69` — contoh di dalam panduannya)
+- Data contoh di berkas frontend: `{ nama: 'Budi', ... }` di modal impor,
+  `setForm({ password: '' })` yang menginisialisasi form kosong,
+  `data[0] || { nama: "AMANDA TRILOFA", password: "8BF278" }` untuk pratinjau
+
+Temuan HIGH soal `.env.development` dan `.env.production` benar — keduanya
+terlacak git — tetapi isinya diperiksa: nol baris memuat kunci atau sandi.
+
+**Vonis:** 78% positif palsu. Literatur menyebut adopsi alat statis runtuh di
+atas 20%; Google membidik 5% efektif. Empat kali lipat melewati ambang runtuh.
+Dijalankan rutin, ia akan dimatikan dalam seminggu — nasib yang sama dengan
+companion dan `scope_guardian`.
+
+**Tetapi:** kedua temuan nyatanya kunci API hidup, dan tidak ada apa pun
+sepanjang sprint ini yang menemukannya. Ini satu-satunya sinyal positif yang
+bertahan setelah diukur.
+
+**Yang menentukan bagi siapa pun yang melanjutkan:** seluruh derau berasal dari
+dua kelas yang bisa dikecualikan — berkas dokumentasi dan data contoh di
+frontend. Dibuang keduanya, positif palsunya 0 dari 2. Itu belum diuji, dan
+itu perbedaan antara perkakas yang dimatikan dalam seminggu dan perkakas yang
+dipakai terus.
+
+Perhatikan juga bahwa nilainya tidak menuntut ia berupa toolkit. Satu pemindai
+rahasia, dipasang sebagai pre-commit hook, mengikat tanpa bergantung pada
+kesediaan agen memanggilnya — bersinggungan langsung dengan butir 2 di bawah.
 
 **2. Penegakan lewat hook `PreToolUse`.** Satu-satunya permukaan yang benar-benar
 mengikat di harness ini — keluar dengan kode 2 memblokir panggilan. Segala
