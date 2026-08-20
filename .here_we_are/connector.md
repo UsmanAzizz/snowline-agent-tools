@@ -1811,3 +1811,74 @@ bukan kelemahan yang tersisa; itu batas yang akhirnya tertulis.
 
 Companion tidak lagi menunggu dipanggil. Ia dipanggil hook, dan hook dipanggil
 harness.
+
+---
+
+# TUGAS DARI PM — Sprint 19: tutup lima sisa
+
+**Diteruskan QA atas instruksi PM** · 20-08. Fokus snowline. `cbt_master`
+dikeluarkan dari lingkup.
+
+## T19.1 — Guardian berhenti melewatkan berkas besar diam-diam
+
+Paling mendesak, karena ini satu-satunya lubang yang **sudah terbukti**
+melewatkan kebocoran nyata.
+
+```
+guardian.py:18   MAX_FILE_SIZE = 500 * 1024
+:77, :192, :220, :276    if os.path.getsize(...) > MAX_FILE_SIZE: continue
+```
+
+Inilah yang membuat guardian melaporkan `CRITICAL=0` sementara GitHub Push
+Protection menangkap dua kunci hidup di `archive/main_chain.jsonl` (38 MB).
+
+**Ganti `continue` dengan temuan.** Berkas di atas batas dilaporkan sebagai
+`HIGH: tidak dipindai, terlalu besar`, bukan dilewati tanpa jejak. Yang
+berbahaya bukan berkas besarnya — melainkan bahwa ia hilang dari laporan.
+
+**Syarat lulus:** taruh berkas >500 KB berisi rahasia di sandbox, jalankan
+guardian, tunjukkan ia **muncul di laporan**. Bukan tunjukkan kodenya berubah.
+
+## T19.2 — Cabang `backup-sebelum-rewrite`
+
+Cabang itu masih menyimpan kedua kunci di riwayat repo ini. Sudah bersih dari
+`main`, tetapi cabangnya hidup dan bisa terdorong tanpa sengaja.
+
+**Keputusan PM**, bukan pelaksana: hapus, atau pertahankan sebagai cadangan
+dengan catatan tertulis bahwa ia tidak boleh dipush. Salah satu, dinyatakan.
+
+## T19.3 — Satu commit belum dipush
+
+Sederhana. Kerjakan lebih dulu, bukan terakhir.
+
+## T19.4 — Arah 5 masih separuh
+
+`native_checker_gen` menghasilkan **kerangka**. Pemeriksa yang menyandikan
+aturan domain — seperti `kunciHilang()` dan `menyinggungTopik()` di
+`cbt_master` — tetap ditulis manusia.
+
+**Jangan langsung membangun.** Jawab dulu satu pertanyaan: adakah bagian dari
+"menyandikan aturan domain" yang bisa dibantu perkakas tanpa perkakas itu
+menebak domainnya? Kalau tidak ada, katakan begitu dan tutup Arah 5 sebagai
+selesai-sebatas-kerangka. Itu jawaban yang sah.
+
+## T19.5 — Arah 6 masih separuh
+
+Jeda paksa terbukti dan mengikat. Yang belum: penilaian pihak kedua — dan itu
+masih dikerjakan PM dengan tangan, mengestafetkan tiap hasil ke QA satu per
+satu, dua hari ini.
+
+**Sama seperti T19.4: jawab dulu, jangan bangun.** Pertanyaannya: adakah
+bagian dari penilaian pihak kedua yang bisa ditegakkan tanpa menjadi
+LLM-as-judge? Vonis 23 sudah menyimpulkan tidak. Kalau masih tidak, tutup
+Arah 6 sebagai selesai-sebatas-jeda, dan nyatakan bahwa penilaiannya memang
+milik manusia.
+
+---
+
+**Urutan:** T19.3, T19.1, T19.2, lalu T19.4 dan T19.5 sebagai jawaban tertulis
+— bukan sebagai kode.
+
+Dua yang terakhir sengaja diminta berupa jawaban. Empat sprint terakhir
+menunjukkan pola: membangun lebih dulu, lalu menemukan premisnya belum
+terjawab.
