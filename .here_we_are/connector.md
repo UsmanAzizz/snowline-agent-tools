@@ -2091,3 +2091,92 @@ Arah 6  selesai-sebatas-jeda-paksa
 Yang tersisa di luar jangkauan pelaksana: **kedua kunci belum dicabut** di
 Google Cloud dan Groq. Cabangnya sudah hilang, riwayatnya sudah bersih, tetapi
 kuncinya masih hidup.
+
+---
+
+# LAPORAN QA — Uji pakai sebagai agen baru
+
+**Dari:** QA (Opus 4.8) · 20-08. Bukan membaca kode. Memasang di proyek kosong
+dan memakainya seperti agen yang belum pernah melihat snowline.
+
+Proyek uji: git init kosong, tiga berkas, satu kunci Google ditanam di
+`src/app.js`.
+
+## Yang bekerja
+
+```
+snowline init --apply       61 berkas, skills + hooks + hooks.json + agents.md
+companion_cli.py            Action: KONFIRMASI, tool: smart_search, medium
+smart_search                3 kecocokan di 2 berkas
+project_guardian            kunci tertanam tertangkap
+smart_tree, deep_analyzer, selective_reader     jalan
+```
+
+**Dan scope_guardian benar-benar mengikat.** `auto_scaffolder` menolak menulis
+`src/KartuNilai.jsx` karena di luar `allowed_files`, lalu menulis setelah
+scope_lock diperbarui. Itu penolakan nyata, bukan peringatan.
+
+## Tiga hal yang membuatnya belum layak dipakai orang lain
+
+### 1. Perintah pertama di README gagal
+
+```
+$ python -m snowline_toolkit.cli init --apply
+ModuleNotFoundError: No module named 'snowline_toolkit'
+```
+
+Paketnya sudah berganti nama jadi `snowline` — `pyproject.toml:13`. Nama lama
+masih muncul **8 kali di README, 2 di QUICK_START, 1 di AGENTS.md.** Yang benar
+`python -m snowline.cli init --apply`, atau `snowline init --apply`.
+
+Kontak pertama seorang pengguna baru dengan snowline adalah pesan galat.
+
+### 2. `smart_replace --apply` selalu jatuh — dan tidak pernah bisa berhasil
+
+```
+UnboundLocalError: cannot access local variable 'os'
+  replace_text.py:105  ext = os.path.splitext(filepath)[1].lower()
+  replace_text.py:135  import subprocess, tempfile, os     <- membuat os lokal
+```
+
+Impor di dalam fungsi menjadikan `os` variabel lokal untuk **seluruh** fungsi,
+sehingga baris 105 jatuh sebelum sampai ke baris 135. `validate_syntax` dipanggil
+dari `:473`, hanya pada jalur `--apply`. Artinya jalur tulis andalan snowline
+belum pernah berhasil sejak baris itu ditambahkan.
+
+Ia **gagal-tertutup** — tidak ada berkas yang berubah, ada `[TOOL ERROR]` yang
+jujur menyebut ini bug snowline. Itu bagian yang benar. Yang salah: alatnya tidak
+bekerja sama sekali.
+
+Perbaikannya menghapus `, os` dari baris 135.
+
+**Dan ini kelalaian QA, bukan pelaksana.** Baris 135 masuk lewat sprint delegasi
+linter, dan vonis QA waktu itu meluluskannya dengan mengutip `:141-146` — QA
+membaca kodenya dan tidak pernah menjalankannya. Persis pola yang QA tuntut dari
+orang lain sejak Sprint 11.
+
+### 3. `scope_lock.json` tidak dibuat `init`, dan galatnya tidak menunjukkan jalan
+
+```
+[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.
+```
+
+Skemanya ada — `rules/scope_guardian.md:7-16` — tetapi pesan galat tidak
+menyebutkannya. Agen baru harus menebak atau menggeledah. Cukup tambahkan
+rujukan berkasnya ke pesan itu.
+
+## Dua catatan kecil
+
+- Guardian menghitung satu kunci bocor sebagai **CRITICAL=2** — pola
+  `Hardcoded API key` dan `Google API Key` sama-sama kena di baris yang sama.
+  Temuannya benar, angkanya menggelembung. Ini juga memengaruhi metrik "9 → 2".
+- README menyebut **15 tools**; yang terpasang **22**.
+
+## Ringkas
+
+Fondasinya berdiri: pemasangan bersih, hook terpasang, scope_guardian mengikat,
+guardian menangkap kunci asli, dry-run dihormati. Yang belum layak dipakai orang
+lain hanya tiga: dokumen yang menyebut nama paket lama, satu alat tulis yang
+selalu jatuh, dan satu berkas prasyarat yang tidak dijelaskan saat dibutuhkan.
+
+Ketiganya perbaikan kecil. Tidak satu pun soal rancangan.
