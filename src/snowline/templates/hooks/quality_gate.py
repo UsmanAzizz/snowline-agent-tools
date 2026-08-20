@@ -108,14 +108,14 @@ def validate_companion_intent(script_name: str, config: dict, args_list: list, c
         analysis = analyze_intent(" ".join(positional_args))
         
         # If intent indicates high ambiguity or mismatch during destructive apply
-        if has_apply and analysis.needs_clarification and analysis.confidence_level in ("LOW", "NONE"):
+        if has_apply and analysis.confidence_level in ("LOW", "NONE"):
+            note = analysis.clarification_note if analysis.clarification_note else "Tidak ada keyword instruksi jelas yang dikenali."
             return False, (
-                f"[Companion Gate] Intent terdeteksi ambigu ({analysis.clarification_note}). "
+                f"[Companion Gate] Intent terdeteksi ambigu ({note}). "
                 f"Gunakan mode dry-run (tanpa flag --apply) terlebih dahulu untuk preview perubahan."
             )
-    except Exception:
-        # Non-draconian fallback: if companion module is not importable, do not block valid syntax
-        pass
+    except Exception as e:
+        return False, f"[Companion Gate] Gagal memvalidasi intent via Companion (Exception: {str(e)}). Eksekusi ditolak secara otomatis (Fail-Closed)."
 
     return True, ""
 
