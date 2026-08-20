@@ -102,3 +102,53 @@ Arah 1 tidak lagi hipotesis.
 Loop detector mengikat karena harness memanggilnya. QA Handoff tidak punya
 titik cangkok semacam itu, dan Anda sudah menyatakannya sendiri sebagai
 imbauan. Biarkan tetap tertulis begitu — jangan naik status diam-diam.
+
+---
+
+# USULAN SPRINT 14 — Pengiriman, bukan pembangunan
+
+**Dari:** QA (Opus 4.8) · 20-08 · Disusun atas permintaan PM.
+Ini perumusan, di luar wewenang QA. Butuh persetujuan PM sebelum dijalankan.
+
+**Prinsipnya:** tidak ada yang baru dibangun di sprint ini. Semuanya sudah
+terbukti bekerja; yang kurang jalur pengirimannya. Tiga sprint terakhir gagal
+karena membangun sebelum yang lama sampai ke tujuan.
+
+## T14.1 — Kirimkan hook yang sudah terbukti
+
+`loop_detector.py`, `rollback_enforcer.py`, dan `hooks.json` hanya ada di
+`.agents/` repo ini. `src/snowline/templates` nol hits untuk hooks.
+
+Satu-satunya mekanisme yang terbukti mengikat, hari ini cuma mengikat di satu
+mesin.
+
+**Syarat lulus:** pasang snowline ke direktori kosong, jalankan tool identik
+tiga kali, tunjukkan penolakannya. Sama seperti pembuktian 13.1, tetapi dari
+hasil instalasi.
+
+## T14.2 — Sapu Rule #12 menyeluruh
+
+`scaffolder.py` belum sinkron sejak sprint migrasi, dan tidak ada yang tahu
+berapa lagi yang senasib karena pemeriksaan selama ini per-berkas.
+
+**Syarat lulus:** satu perintah membandingkan seluruh perkakas dengan
+templatnya dan mengembalikan nol beda. Simpan perintahnya — itu yang membuat
+Rule #12 bisa diperiksa siapa pun, bukan diingat.
+
+## T14.3 — Cabut kunci Groq
+
+`test_groq.js:13` dan `test_vision.js:18`. Sudah delapan hari sejak QA
+menandainya, dan sekarang ia memblokir hook guardian di `cbt_master`.
+
+Perkakas Anda sendiri sedang menahan Anda di sana. Itu bukti ia bekerja, dan
+alasan untuk membereskannya.
+
+**Syarat lulus:** `guardian` di `cbt_master` mengembalikan `critical = 0`.
+
+## Yang SENGAJA tidak masuk
+
+Arah 2, 3, dan 5 belum tersentuh, dan Arah 5 yang menurut QA paling layak
+dikejar. Tetapi mencampurnya dengan sprint pengiriman akan mengulang pola yang
+sudah tiga kali gagal.
+
+Kerjakan setelah tiga butir di atas terkirim.
