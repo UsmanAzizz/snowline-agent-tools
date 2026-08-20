@@ -1361,3 +1361,81 @@ seperti transkrip `5330ddf5` membuktikan loop detector.
 Itu bukan syarat yang QA tahan, karena Anda sudah menyatakan lingkungan Anda
 tidak mencegat `run_command`. Tetapi selama itu belum ada, yang terbukti adalah
 logikanya — bukan pemanggilannya.
+
+---
+
+# TEMUAN QA — nasib companion belum diputuskan siapa pun
+
+**Dari:** QA (Opus 4.8) · 20-08. Atas permintaan PM.
+
+Delapan belas sprint berlalu; companion tidak pernah masuk agenda satu pun.
+Statusnya sekarang:
+
+## 1. `EXECUTE` masih hidup di kode yang dikirim
+
+`src/snowline/templates/skills/companion/cli.py:89`
+
+```python
+if result.confidence_level == "HIGH" and result.specificity == "high":
+    return "EXECUTE"
+```
+
+`DESIGN_PHILOSOPHY.md`, kutipan langsung PM:
+
+> `Action: EXECUTE` **bukan bagian dari rancangan awal**... Bila kemudian muncul
+> lagi, itu **penyimpangan yang perlu dikembalikan** — bukan fitur yang perlu
+> dipertahankan.
+
+Ia tidak muncul lagi; ia tidak pernah pergi. Dan sekarang ikut terkirim ke
+setiap `snowline init`.
+
+`reminder.md` C1 sudah mengukurnya pada 5 Agustus: *"terbukti aktif,
+frekuensinya belum terukur"*, dengan contoh `perbaiki dialog di UserProfile ->
+Action: EXECUTE`.
+
+## 2. Pemicu `CLARIFY` masih tidak terhubung ke dampak
+
+`reminder.md` C2, 5 Agustus. Perancang aslinya menegaskan ulang di
+`07_JAWABAN_PERANCANG.md` hari ini: CLARIFY dipicu ambiguitas linguistik, bukan
+tingkat dampak. Dan mengaitkannya ke dampak adalah usul **belakangan**, bukan
+rancangan asli.
+
+Belum dikerjakan.
+
+## 3. Prototipe V2-nya bertentangan dengan maksudnya, dan masih di folder ini
+
+`.here_we_are/v2_prototypes/companion_v2_poc.py`
+
+```
+"route": "CHAMBER_PIPELINE"
+"route": "SUBAGENT_AUDITOR"
+"route": "SOLO_AGENT"
+def analyze_intent_and_route(user_prompt)
+```
+
+Ini companion sebagai dispatcher — yang PM sendiri sebut *pembalikan peran*.
+Vonis QA di `19_VONIS_QA_08_18.md` sudah menandainya, tetapi berkasnya tidak
+pernah dicabut maupun dinyatakan ditolak. Ia masih di sana, siap dibaca agen
+berikutnya sebagai rancangan yang disetujui.
+
+## 4. Nol pemakaian sejak 7 Agustus
+
+`cbt_master/.agents/companion_usage.jsonl` — 3.827 byte, disentuh terakhir
+**7 Agustus 09.27**. Dua minggu.
+
+## Yang perlu diputuskan PM
+
+Companion adalah asal-usul seluruh proyek ini — sesi audit pertama dimulai
+karena ia tidak pernah dipanggil. Hari ini ia masih tidak dipanggil, dan
+memuat satu penyimpangan yang PM sendiri nyatakan harus dikembalikan.
+
+Tiga pilihan, dan QA tidak memilihkan:
+
+1. **Cabut `EXECUTE`.** Satu percabangan, dan itu memenuhi titah
+   `DESIGN_PHILOSOPHY.md`.
+2. **Nyatakan companion pensiun**, dan keluarkan dari `templates/skills/`.
+   Jeda paksa kini dikerjakan hook, yang mengikat — companion tidak pernah bisa.
+3. **Biarkan**, tetapi tandai `companion_v2_poc.py` sebagai ditolak supaya agen
+   berikutnya tidak membangun di atasnya.
+
+Yang tidak boleh: dibiarkan tanpa keputusan untuk sprint kesembilan belas.
