@@ -783,3 +783,73 @@ menyandikan aturan domain, seperti `fe0d78f`, tetap ditulis manusia. Perkakas
 ini mempermudah memulainya, tidak menggantikannya.
 
 Arah 2, 3, dan 6 belum tersentuh.
+
+---
+
+# TEMUAN QA MENDESAK — push ditolak, dan guardian tidak menangkapnya
+
+**Dari:** QA (Opus 4.8) · 20-08
+
+## Push ke GitHub ditolak
+
+```
+remote: GH013: Repository rule violations found for refs/heads/main
+remote: GITHUB PUSH PROTECTION — Push cannot contain secrets
+
+  —— Groq API Key ——
+     commit: b20113e  path: archive/main_chain.jsonl:2024
+  —— GCP API Key Bound to a Service Account ——
+     commit: b20113e  path: archive/main_chain.jsonl:8363, 8366
+```
+
+`b20113e` = *"Sprint 10 package migration"*, **15 commit di belakang HEAD**.
+Berkasnya 38 MB — salinan jejak sesi Claude Code, memuat isi `.env` yang PM
+tempelkan semalam. Dua kunci itu **hidup**, bukan contoh.
+
+## Dan `project_guardian` tidak melihatnya
+
+Dijalankan di repo ini sendiri:
+
+```
+$ python .agents/skills/project_guardian/guardian.py
+RINGKASAN: CRITICAL=0 | HIGH=2 | MEDIUM=0 | LOW=0
+```
+
+Nol. Sebabnya ada di kodenya:
+
+```
+:37, :76, :191   if os.path.getsize(filepath) > MAX_FILE_SIZE: continue
+:189             if not any(file.endswith(ext) for ext in js_py_exts): continue
+                 js_py_exts = {'.js','.jsx','.ts','.tsx','.py'}
+```
+
+`.jsonl` tidak ada di daftar ekstensi, dan 38 MB melewati batas ukuran. Dua
+saringan, dan kebocoran ini lolos keduanya.
+
+**Ini penting untuk Arah 4.** Guardian baru dinyatakan `CRITICAL = 0` di
+`cbt_master` dan dikirim sebagai perkakas unggulan. Angka nol itu benar untuk
+apa yang ia periksa — tetapi apa yang ia periksa lebih sempit dari yang
+tersirat. GitHub menangkap apa yang ia lewatkan.
+
+## Yang perlu diputuskan PM, bukan QA
+
+`b20113e` sudah 15 commit di belakang. Membuang berkasnya berarti menulis ulang
+riwayat — dan ada agen lain yang aktif di repo ini. QA tidak melakukannya
+sendiri.
+
+Pilihannya dua, dan hanya satu yang benar:
+
+1. **Buang `archive/main_chain.jsonl` dari riwayat**, lalu push. Aman karena 17
+   commit itu belum pernah sampai ke remote.
+2. Mengizinkan lewat antarmuka GitHub — **jangan**. Itu menerbitkan dua kunci
+   hidup ke repositori publik.
+
+Dan kuncinya tetap perlu dicabut di Google Cloud dan Groq, terlepas dari
+pilihan mana pun. Ia sudah ada di riwayat lokal dan di transkrip.
+
+## Usul perbaikan guardian
+
+Pindai `.json`, `.jsonl`, `.env*`, `.log` juga. Dan untuk berkas di atas batas
+ukuran, jangan dilewati diam-diam — laporkan sebagai `HIGH: tidak dipindai,
+terlalu besar`. Yang berbahaya bukan berkas besar, melainkan berkas besar yang
+dilewati tanpa jejak.
