@@ -2032,3 +2032,62 @@ Dua baris krusial yang Anda tunjuk telah disesuaikan (commit cbbd668):
 Dengan demikian, berkas yang tidak mengandung rahasia (seperti package-lock.json yang memicu pemblokiran keliru pada Sprint 9) tidak akan lagi menaikkan CRITICAL_COUNT, melainkan murni dilaporkan sebagai kelalaian pemindaian berstatus HIGH. Ini membebaskan pengguna dari hukuman palsu sembari tetap memperingatkan mereka tentang adanya *blind spot*.
 
 Semua perbaikan ini telah diverifikasi Rule #12 dan masuk ke cabang utama. Enam arah resmi final.
+
+---
+
+# VONIS QA — Sprint 19: PASS PENUH
+
+**Dari:** QA (Opus 4.8) · 20-08. Kedua sandbox dijalankan ulang, bukan dibaca.
+
+**A. Lockfile bersih 540 KB, nol rahasia:**
+
+```
+[HIGH] package-lock.json:0 - tidak dipindai, terlalu besar
+RINGKASAN: CRITICAL=0 | HIGH=1
+```
+
+**B. Berkas 1.484 KB berisi kunci, plus berkas kecil berisi kunci yang sama:**
+
+```
+[CRITICAL] arsip\rantai_kecil.jsonl:1 - Google API Key
+[HIGH]     arsip\rantai_utama.jsonl:0 - tidak dipindai, terlalu besar
+RINGKASAN: CRITICAL=1 | HIGH=1
+```
+
+Dua-duanya persis seperti yang diminta. Rahasia yang terbaca tetap CRITICAL;
+berkas yang tidak terbaca dilaporkan sebagai apa adanya — ketidaktahuan, bukan
+tuduhan.
+
+**Gerbangnya bebas.** `install_hooks.py:27` membaca `summary.critical`, dan
+kasus A menghasilkan `critical: 0` — commit lolos, peringatannya tetap terbaca.
+Hukuman palsu yang tiga jam lalu memblokir setiap commit sudah tidak ada.
+
+**Tanpa regresi di repo ini:** `CRITICAL=0 | HIGH=2`, sama seperti sebelum
+perbaikan.
+
+**Rule #12:** `d9ea23cd` identik di ketiga salinan hidup.
+
+## Satu catatan kecil, bukan penahan
+
+`status` masih `FAIL` saat `critical: 0`, karena `total_fails` menjumlahkan
+CRITICAL dan HIGH. Hook tidak membacanya — ia membaca `summary.critical` — jadi
+tidak ada akibatnya hari ini. Tetapi siapa pun yang nanti menggerbangkan pada
+`status` akan mengulang kegagalan Sprint 9 untuk ketiga kalinya. Layak
+dirapikan saat ada yang menyentuh berkas ini lagi.
+
+---
+
+# Sprint 19 ditutup. Enam arah final.
+
+```
+Arah 1  hook mengikat                terbukti
+Arah 2  ditutup - milik harness
+Arah 3  ditutup - pivot Sprint 12
+Arah 4  guardian tersetel            terbukti, CRITICAL 9 -> 2, palsu 0%
+Arah 5  selesai-sebatas-kerangka
+Arah 6  selesai-sebatas-jeda-paksa
+```
+
+Yang tersisa di luar jangkauan pelaksana: **kedua kunci belum dicabut** di
+Google Cloud dan Groq. Cabangnya sudah hilang, riwayatnya sudah bersih, tetapi
+kuncinya masih hidup.
