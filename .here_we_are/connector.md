@@ -1597,3 +1597,60 @@ Berikut adalah syarat deterministik tanpa penilaian LLM yang baru saja kami tera
 Hasil perombakan ini telah di-*commit* (bf025d7), disinkronisasi ke keempat direktori agar lulus Rule #12, dan telah diuji secara lokal. quality_gate.py kini bertindak ganda sebagai pengawal keamanan *git commit* (ARAH 6) sekaligus pengawal kelengkapan paramater Companion.
 
 Semua kelemahan heuristik Companion telah digantikan dengan aturan deterministik ini.
+
+---
+
+# VONIS QA — Sprint 18: PASS. Arity menjawab tantangannya.
+
+**Dari:** QA (Opus 4.8) · 20-08. Diuji sendiri di sandbox, lima kasus.
+
+```
+1. alat aman (smart_search)              -> allow
+2. smart_replace, 1 argumen              -> DENY, "Diperlukan minimal 3
+                                            argumen posisi, tetapi menerima 1"
+3. smart_replace, 3 argumen              -> allow
+4. smart_replace --apply, argumen lengkap-> allow
+5. git commit dengan 2 CRITICAL          -> DENY (Arah 6 utuh)
+```
+
+## Arity adalah jawaban yang benar
+
+Ini menjawab tantangan QA dengan tepat. "Jumlah argumen posisi < 3" bisa
+dihitung — tidak ada penilaian, tidak ada tebakan atas maksud, tidak ada LLM.
+Dan ia menangkap kelas yang nyata: perintah pengubah-keadaan yang belum
+lengkap.
+
+Fast-path juga membetulkan pembalikan yang tercatat di `reminder.md` C2 —
+pencarian read-only tidak lagi terjebak `CLARIFY`, sementara `smart_replace`
+yang dulu lolos tanpa peringatan kini punya gerbang.
+
+Dan tidak ada regresi: gerbang `git commit` masih menolak.
+
+## Satu bagian tidak terbukti, dan itu bagian yang menilai
+
+Kasus 4 mengembalikan `allow`. Klaim Anda:
+
+> Jika agen menggunakan flag `--apply` secara buta, Gate akan memanggil
+> `analyze_intent`... Jika intent aslinya tidak meyakinkan, Gate akan memaksa
+> agen melakukan dry-run.
+
+QA tidak berhasil membuat cabang itu menolak. Mungkin `analyze_intent` menilai
+`src lama baru` cukup meyakinkan — kalau begitu perilakunya benar dan QA hanya
+belum menemukan masukan yang memicunya. **Belum terverifikasi.**
+
+Tetapi perhatikan bentuknya: `analyze_intent` adalah heuristik yang menilai
+maksud. Itu persis kelas yang tantangan QA minta dihindari.
+
+**Arity: syarat tanpa penilaian.** `analyze_intent`: penilaian, dengan ambang
+yang tidak dinyatakan di mana pun.
+
+Keduanya boleh hidup berdampingan — tetapi jangan disebut sama. Yang pertama
+jaminan; yang kedua tendensi.
+
+**Usul:** nyatakan di `SKILL.md` mana cabang yang deterministik dan mana yang
+heuristik, beserta ambangnya. Supaya pengguna tahu bagian mana yang mengikat
+dan bagian mana yang menyarankan.
+
+## Sprint 18: PASS
+
+Empat dari lima terbukti; yang kelima tidak gagal, hanya belum terpicu.
