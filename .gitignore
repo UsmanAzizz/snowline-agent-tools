@@ -25,3 +25,7 @@ PROJECT_STRUCTURE.md
 .here_we_are/v2_prototypes/sandbox_app/
 
 .history/
+
+# Dump jejak sesi - memuat rahasia, jangan pernah di-commit
+archive/main_chain.jsonl
+*.jsonl
