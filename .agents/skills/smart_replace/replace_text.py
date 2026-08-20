@@ -38,12 +38,27 @@ def check_task_state():
 
 def check_scope(pending_writes):
     """Block if any file to be modified is outside allowed scope (security gate, fail-closed)."""
-    # Ensure .agents/skills is in sys.path so scope_guardian can be found
-    import sys, os
-    _SKILLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # -> .agents/skills
-    if _SKILLS not in sys.path:
-        sys.path.insert(0, _SKILLS)
-    from scope_guardian.scripts.scope_check import is_file_in_scope
+    # Import shared scope-checking helper from scope_guardian
+    try:
+        from scope_guardian.scripts.scope_check import is_file_in_scope
+    except ImportError:
+        # Fallback: check manually if import fails
+        import fnmatch as _fnmatch
+
+        def is_file_in_scope(filepath, allowed_files, allowed_patterns):
+            target = filepath.replace('\\', '/').lower()
+            for allowed in allowed_files:
+                allowed_lc = allowed.lower()
+                if '/' not in allowed_lc:
+                    if os.path.basename(target) == allowed_lc:
+                        return True
+                else:
+                    if target == allowed_lc or target.endswith('/' + allowed_lc):
+                        return True
+            for pattern in allowed_patterns:
+                if _fnmatch.fnmatch(filepath, pattern):
+                    return True
+            return False
 
     lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
 
@@ -91,6 +106,7 @@ def validate_syntax(filepath, content):
     
     if ext == '.py':
         try:
+            import ast
             ast.parse(content)
             return True, None
         except SyntaxError as e:
@@ -116,40 +132,43 @@ def validate_syntax(filepath, content):
                 return False, f"Unclosed bracket '{top_char}' opened at line {line}"
             return True, None
 
-        # Cek ketersediaan Node.js
-        node_available = False
+        import subprocess, tempfile, os
+        
+        # Cek ketersediaan Linter
+        linter_available = False
+        linter_cmd = []
         try:
-            subprocess.run(['node', '-v'], capture_output=True, check=True)
-            node_available = True
+            if subprocess.run(['npx', 'eslint', '-v'], capture_output=True, shell=True).returncode == 0:
+                linter_available = True
+                linter_cmd = ['npx', 'eslint', '--quiet']
+            elif subprocess.run(['npx', 'tsc', '-v'], capture_output=True, shell=True).returncode == 0:
+                linter_available = True
+                linter_cmd = ['npx', 'tsc', '--noEmit']
         except Exception:
             pass
             
-        # Gunakan node --check hanya untuk murni JS (karena node tidak mengerti JSX)
-        if node_available and ext == '.js':
-            with tempfile.NamedTemporaryFile(suffix='.js', delete=False, mode='w', encoding='utf-8') as f:
+        if linter_available:
+            with tempfile.NamedTemporaryFile(suffix=ext, delete=False, mode='w', encoding='utf-8') as f:
                 f.write(content)
                 temp_path = f.name
             
             try:
-                result = subprocess.run(['node', '--check', temp_path], capture_output=True, text=True)
+                # Need shell=True on Windows for npx
+                cmd = linter_cmd + [temp_path]
+                result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
                 os.unlink(temp_path)
                 if result.returncode != 0:
-                    # Kalau node error karena JSX tag (biasanya di React JS), fallback ke bracket check
-                    if "Unexpected token '<'" in result.stderr:
-                        is_valid, err = check_brackets(content)
-                        if not is_valid:
-                            return False, err
-                        return True, "[WARN] Validasi JS fallback ke bracket-balancing dasar."
-                    return False, f"Node.js Syntax Error:\n{result.stderr.strip()}"
+                    return False, f"Linter Syntax Error:\n{result.stdout.strip()}\n{result.stderr.strip()}"
                 return True, None
             except Exception as e:
-                os.unlink(temp_path)
-                return False, f"Failed to run node --check: {e}"
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                return False, f"Failed to run linter: {e}"
         else:
             is_valid, err = check_brackets(content)
             if not is_valid:
                 return False, err
-            return True, "[WARN] Validasi menggunakan bracket-balancing dasar (bukan full syntax check)."
+            return True, "[WARN] Validasi menggunakan bracket-balancing dasar (Linter ESLint/TSC tidak ditemukan)."
             
     return True, "[WARN] Tipe file tidak dikenali untuk validasi syntax, pengecekan dilewati."
 

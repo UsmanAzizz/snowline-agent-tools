@@ -145,7 +145,7 @@ def init(dry=True, force=False):
 
     templates = Path(__file__).parent / "templates"
     root = Path.cwd() / ".agents"
-    target = root / "skills"
+    target = root
 
     print_header("Snowline Agent Tools - Installer")
 
@@ -297,7 +297,7 @@ def init(dry=True, force=False):
 def update(apply=False):
     _clear_pip_cache()
     root = Path.cwd() / ".agents"
-    target = root / "skills"
+    target = root
 
     print_header("Snowline Update")
 
@@ -632,7 +632,7 @@ def status():
     modified_files_count = 0
     agents_md_modified = False
 
-    target = Path.cwd() / ".agents" / "skills"
+    target = Path.cwd() / ".agents"
     if target.exists():
         templates = Path(__file__).parent / "templates"
         agents_template = templates / "AGENTS_TEMPLATE.md"
