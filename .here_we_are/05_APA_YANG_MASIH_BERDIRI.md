@@ -2,7 +2,7 @@
 
 Disusun QA, 20 Agustus 2026, setelah delapan tugas selesai.
 
-Halaman ini menyatukan temuan lintas tugas dan lima arah yang dimunculkannya.
+Halaman ini menyatukan temuan lintas tugas dan enam arah yang dimunculkannya.
 
 Dua bagian pertama adalah koreksi atas versi awal dokumen ini: satu tentang
 batas kesimpulannya, satu tentang cara QA membingkainya. Keduanya diangkat PM
@@ -71,12 +71,12 @@ Itu keliru. Itu sifat cara QA membingkainya, bukan sifat datanya. PM menugaskan
 sprint ini untuk **mencari celah dan arah**; QA mengubahnya jadi sidang
 kelayakan. Polanya dilihat dan dilaporkan tanpa mengenali siapa yang membuatnya.
 
-Data yang sama, dibaca sebagai arah alih-alih sebagai vonis, memberi lima
+Data yang sama, dibaca sebagai arah alih-alih sebagai vonis, memberi enam
 petunjuk. Itu isi bagian berikutnya.
 
 ---
 
-## Lima arah yang dimunculkan sprint ini
+## Enam arah yang dimunculkan sprint ini
 
 Semuanya turunan dari bukti yang sudah ada di folder ini. Bukan gagasan baru.
 
@@ -141,12 +141,58 @@ dicoba.
 Ini arah yang paling layak dikejar menurut QA, dan ia tidak pernah muncul
 sepanjang sprint karena QA sibuk menghitung apa yang mati.
 
+### 6. Agen tidak boleh jadi pelapor terakhir atas sistem yang ia ikut jalankan
+
+Diangkat PM, 20 Agustus, setelah QA melewatkan hal yang sama dua kali.
+
+**Kejadiannya, dua-duanya bentuk yang sama:**
+
+- QA mengukur "perkakas tidak dipanggil" — sementara QA adalah agen yang tidak
+  memanggilnya, enam hari berturut-turut, dengan aturannya terpasang.
+- QA melaporkan "tujuh dari delapan tugas menanyakan apa yang layak dibunuh"
+  sebagai sifat temuan — sementara QA yang membingkainya begitu.
+
+Dua kali melaporkan sebuah sistem seolah berdiri di luarnya.
+
+**Ini bukan kekurangan sumber daya.** Jejak lengkap tersedia, subagent
+tersedia, waktu tersedia. Yang tidak tersedia adalah kemampuan agen melihat
+sumbangannya sendiri terhadap apa yang ia amati.
+
+**Dan ini persis temuan sprint yang berlaku pada pengukurnya.** Peneliti 1
+sudah mencatatnya lebih dulu: agen mendiagnosis sebab akarnya sendiri dengan
+benar pada 8 Agustus, lalu mengulangi kesalahan yang sama enam hari kemudian —
+rasio verifikasi:mutasi justru memburuk 3,5:1 menjadi 2,0:1 setelah diagnosis
+itu. Literatur menyimpulkan hal yang sama: tidak ada karya yang menunjukkan
+koreksi-diri berhasil dari umpan balik yang dibangkitkan agen sendiri
+(Kamoi dkk., TACL 2024).
+
+**Yang bekerja malam ini adalah umpan balik dari luar.** Dua kali, dan
+keduanya dari PM — bukan dari refleksi QA yang lebih dalam. Kedua koreksi
+terbesar pada dokumen ini (BATASAN KESIMPULAN dan Koreksi framing) tidak akan
+pernah ditemukan agen sendiri.
+
+**Kenapa ini arah, bukan sekadar catatan kesalahan:**
+
+Mekanisme itu sudah berjalan sepanjang sprint, tetapi tidak pernah diperlakukan
+sebagai mekanisme — ia dijalankan PM secara naluriah, dengan tangan. Padahal
+inilah satu-satunya hal di seluruh sprint ini yang **terbukti bekerja pada
+kegagalan yang paling sulit dideteksi**: kegagalan yang tidak menghasilkan
+error, tidak menggagalkan tes, dan justru terasa seperti pekerjaan yang rapi.
+
+Arah 1 menyatakan aturan harus mengikat, bukan dipanggil. Arah 6 menyatakan
+sesuatu yang lebih tajam: **ada kelas kesalahan yang tidak bisa ditangkap
+pemeriksa mana pun yang dijalankan agen itu sendiri, sekeras apa pun ia
+mengikat.** Untuk kelas itu, yang dibutuhkan bukan penjaga — melainkan pihak
+kedua yang tidak ikut menyusun.
+
+Bentuknya belum dirumuskan, dan sengaja tidak dirumuskan QA di sini.
+
 ---
 
 ## Bentuk seluruh sprint
 
 Delapan tugas dijalankan, tujuh di antaranya dibingkai QA sebagai pertanyaan
-kelayakan. Bacalah hasilnya bersama lima arah di atas dan batasan kesimpulan
+kelayakan. Bacalah hasilnya bersama enam arah di atas dan batasan kesimpulan
 di bagian sebelumnya — bukan sebagai daftar kematian.
 
 ---
