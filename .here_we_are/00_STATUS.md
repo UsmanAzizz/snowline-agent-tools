@@ -5,6 +5,12 @@
 Apakah snowline-agent-tools punya alasan untuk terus ada, dan di mana
 sebenarnya nilai perkakas agen mengendap?
 
+> [!IMPORTANT]
+> **Sebelum memakai angka mana pun di folder ini**, baca bagian "BATASAN
+> KESIMPULAN" di `05_APA_YANG_MASIH_BERDIRI.md`. Sprint ini mengukur adopsi
+> lalu menyimpulkan tentang kegunaan. Angka adopsi sah; angka kegunaan
+> (0 dari 20) hasil pembacaan, belum diuji lapangan.
+
 ## SELESAI — jangan diteliti ulang
 
 ### 1. agents_chamber berhenti

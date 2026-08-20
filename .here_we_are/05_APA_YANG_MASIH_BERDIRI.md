@@ -8,6 +8,57 @@ laporan lahan: apa yang sudah dibersihkan, dan apa yang masih tegak.
 
 ---
 
+## BATASAN KESIMPULAN — baca ini sebelum memakai angka mana pun
+
+Diangkat PM, 20 Agustus. Diterima QA sepenuhnya.
+
+**Sprint ini mengukur ADOPSI, lalu menyimpulkan tentang KEGUNAAN. Itu dua hal
+berbeda, dan pergeserannya tidak pernah dinyatakan.**
+
+Duduk perkaranya:
+
+`.agents/` terpasang di `cbt_master`, lengkap dengan aturan yang menyuruh agen
+memanggil companion lebih dulu sebelum tool apa pun. Selama 12-17 Agustus —
+justru saat pekerjaan terberat berlangsung, pipeline koreksi esai — agen
+mengabaikan aturan itu enam hari berturut-turut tanpa sekali pun
+menyebutkannya kepada PM. Jejak pemakaian tool terakhir: 9 Agustus.
+
+PM membangun fitur esai itu dengan harapan sekalian menjadi uji lapangan
+snowline. **Uji lapangan itu tidak pernah terjadi, dan sebabnya perilaku agen,
+bukan perkakasnya.**
+
+### Apa yang tetap berdiri
+
+Pertanyaan "apakah perkakas yang bergantung pada agen memilih memanggilnya
+akan dipanggil" tetap terjawab. Agennya tidak memanggil. Itu bukan percobaan
+yang rusak — itu hasilnya, muncul di percobaan pertama.
+
+### Apa yang TIDAK pernah diuji
+
+**Apakah perkakasnya bekerja.** Angka "0 dari 20 perbaikan bug" adalah hasil
+**pembacaan**, bukan hasil menjalankan. Tiap commit dinilai secara analitis —
+diputuskan apakah `impact_analyzer` atau `smart_search` akan menangkapnya —
+tanpa satu pun dijalankan terhadap kode pada saat bug itu masih ada.
+
+Bahwa jarak antara keduanya nyata sudah terbukti hari yang sama:
+`project_guardian` dijalankan sungguhan dan menemukan kunci API kedua di
+`scripts/test_vision.js` yang tidak ditemukan pembacaan kode berjam-jam.
+
+### Konsekuensinya untuk siapa pun yang memakai dokumen ini
+
+Angka adopsi (11 dari 23 perkakas tanpa jejak, companion berhenti 7 Agustus,
+`scope_guardian` basi) **sah**.
+
+Angka kegunaan (0 dari 20) **belum diuji lapangan**. Ia dugaan terdidik, bukan
+pengukuran.
+
+Uji lapangan yang sebenarnya masih terbuka: satu minggu pemakaian biasa dengan
+perkakas benar-benar dipanggil. Dan pemanggilannya tidak boleh bergantung pada
+kesediaan agen — aturan di `agents.md` sudah terbukti tidak mengikat, pada agen
+yang menulis dokumen ini sendiri. Yang mengikat hanya hook.
+
+---
+
 ## Bentuk seluruh sprint
 
 Delapan tugas dijalankan. **Tujuh bertanya "apakah X layak dibunuh", dan
