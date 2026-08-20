@@ -85,12 +85,7 @@ def get_agent_action(result) -> str:
         if result.clarification_context and result.clarification_context.get('matched_tools'):
             return "KONFIRMASI"
         return "CLARIFY"
-    if result.confidence_level == "HIGH" and result.specificity == "high":
-        return "EXECUTE"
-    elif result.confidence_level in ("HIGH", "MEDIUM"):
-        return "KONFIRMASI"
-    else:
-        return "CLARIFY"
+    return "KONFIRMASI"
 
 
 def main():
