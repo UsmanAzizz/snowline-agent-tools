@@ -341,7 +341,7 @@ def print_human_output(all_findings, total_fails, total_warns):
     """Print human-readable output."""
     print("\n--- MODULE 1: SECRET SCANNER ---")
     for f in all_findings.get('SECRET_SCANNER', []):
-        print(f"[CRITICAL] {f['file']}:{f['line']} - {f['issue']}")
+        print(f"[{f['severity']}] {f['file']}:{f['line']} - {f['issue']}")
 
     print("\n--- MODULE 2: ENV & GITIGNORE ---")
     for f in all_findings.get('ENV_GITIGNORE', []):
@@ -421,8 +421,8 @@ def main():
         'NPM_AUDIT': audit_findings,
         'UNUSED_PACKAGE': dep_warns,
         'DEP_INSTALL': dep_fails,
-        'CRITICAL_COUNT': len(sec_findings) + len([f for f in audit_findings if f['severity'] == 'CRITICAL']),
-        'HIGH_COUNT': len(env_fails) + len(imp_findings) + len([f for f in audit_findings if f['severity'] == 'HIGH']),
+        'CRITICAL_COUNT': len([f for f in sec_findings if f.get('severity') == 'CRITICAL']) + len([f for f in audit_findings if f.get('severity') == 'CRITICAL']),
+        'HIGH_COUNT': len([f for f in sec_findings if f.get('severity') == 'HIGH']) + len(env_fails) + len(imp_findings) + len([f for f in audit_findings if f.get('severity') == 'HIGH']),
         'MEDIUM_COUNT': len(env_warns),
         'LOW_COUNT': len(dep_warns),
     }
