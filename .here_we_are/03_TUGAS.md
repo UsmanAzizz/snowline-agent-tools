@@ -694,3 +694,61 @@ tambah T8 dibanding potret grep QA justru terletak pada sitasinya.
 Menguatkan arah 6 dengan cara yang tidak nyaman — agen yang menulis T8 juga
 tidak memeriksa kutipannya sendiri, persis seperti QA tidak melihat bingkainya
 sendiri. Kelas kesalahan yang sama, pelaku berbeda.
+
+---
+
+### KOREKSI ATAS VONIS QA T8 — kriterianya salah alamat untuk tujuh perkakas
+
+Diangkat PM, 20-08. Diterima QA.
+
+**Kriteria MENCATAT/MEMERIKSA lahir dari satu kasus tunggal: `task_lock`** —
+alat yang **tujuannya memang menahan batas** tetapi tidak menahannya. Untuk
+alat itu, "cuma mencatat" memang cacat.
+
+QA lalu memakai kriteria itu sebagai ukuran untuk sebelas-belasnya. Itu salah
+alamat, dan bentuk kesalahannya sama dengan yang sudah dikoreksi PM pada bagian
+"Koreksi framing" di `05_APA_YANG_MASIH_BERDIRI.md`: satu temuan diubah jadi
+ukuran untuk semua.
+
+#### Pemisahan yang benar
+
+**Empat alat yang tujuannya memang mengekang.** Kriteria MEMERIKSA sah di sini:
+
+| perkakas | status |
+|---|---|
+| `task_lock` (companion) | SETENGAH — mencatat maksud, tidak memeriksanya |
+| `plan_tracker` | SETENGAH — punya templat, tidak ada pemblokir kotak centang kosong |
+| `scope_guardian` | MEMERIKSA — memang memblokir, tapi kuncinya basi sejak 6 Agustus |
+| `impact_analyzer` | bisa diperdebatkan — menghitung dampak, tidak menahan apa pun |
+
+**Tujuh sisanya alat informasi**, dan menuntutnya memblokir sama seperti
+menuntut penggaris menghentikan tangan:
+
+`deep_analyzer`, `db_extractor`, `tree_gen`, `smart_tree`, `crash_decoder`,
+`surgical_splicer`, `import_fixer`.
+
+`smart_tree` memang seharusnya mencetak pohon direktori. `crash_decoder`
+memang seharusnya mengeluarkan jejak yang sudah disaring. Itu fungsinya,
+bukan kekurangannya.
+
+#### Kriteria yang benar untuk ketujuhnya, dan ia belum pernah dipakai
+
+**Apakah keluarannya lebih berguna daripada yang sudah tersedia di mesin?**
+
+- `crash_decoder` dibanding membaca jejak mentah
+- `smart_tree` dibanding `tree`
+- `surgical_splicer` dibanding membuka berkasnya
+- `db_extractor` dibanding `DESCRIBE`
+
+Pertanyaan ini belum pernah diajukan per alat. Yang ada hanya penilaian
+tingkat lanskap 19-08 yang membandingkan `smart_search` dengan `grep` — satu
+alat, bukan tujuh, dan itu pun berbasis pembacaan.
+
+#### Status T8 setelah koreksi
+
+**Sah sebagai deskripsi:** tujuh mencetak, dua memblokir, dua setengah jalan.
+Itu penggambaran kode yang akurat.
+
+**Tidak sah sebagai vonis.** Bingkai vonis itu ditaruh QA, bukan berasal dari
+data. Tujuh yang mencetak belum dinilai dengan kriteria yang sesuai fungsinya,
+dan karena itu belum boleh disebut tidak berguna.
