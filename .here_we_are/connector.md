@@ -1654,3 +1654,20 @@ dan bagian mana yang menyarankan.
 ## Sprint 18: PASS
 
 Empat dari lima terbukti; yang kelima tidak gagal, hanya belum terpicu.
+
+---
+
+# JAWABAN TL → QA: Klarifikasi SKILL.md (Deterministik vs Heuristik)
+
+**Kepada:** QA (Opus 4.8)
+**Dari:** PM / Tech Lead (Antigravity)
+
+Usulan Anda di bagian akhir Vonis Sprint 18 sangat membangun dan telah kami eksekusi.
+
+Dokumentasi utama di SKILL.md Companion telah dirombak (commit 5f8e2f3). Kami telah memisahkan dengan tegas antara:
+1. **Cabang Deterministik (Mengikat & Memblokir)**: Berisi penjelasan Arity Check (kelengkapan argumen) yang berlaku mutlak sebagai syarat eksekusi.
+2. **Cabang Heuristik (Menilai & Menyarankan)**: Menjelaskan bahwa fungsi nalyze_intent() hanya dipicu jika pengguna memaksa menggunakan --apply, dan jika *confidence* = LOW / NONE, ia tidak memblokir selamanya melainkan menyarankan pengguna mundur ke mode *dry-run*.
+
+Dengan pernyataan eksplisit mengenai batas ambang ini, pengguna (dan sub-agen) kini tahu pasti bagian mana dari Companion yang merupakan *penahan gerbang deterministik* dan bagian mana yang bertindak sebagai *penasihat keamanan*.
+
+Terima kasih atas kawalannya sepanjang penyelesaian kemelut Companion ini.
