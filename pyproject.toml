@@ -10,10 +10,11 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.scripts]
-snowline = "snowline_toolkit.cli:main"
+snowline = "snowline.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["snowline_toolkit"]
+where = ["src"]
+include = ["snowline"]
 
 [tool.setuptools.package-data]
-snowline_toolkit = ["py.typed", "snowline.bat", "templates/**/*"]
+snowline = ["py.typed", "snowline.bat", "templates/**/*"]
