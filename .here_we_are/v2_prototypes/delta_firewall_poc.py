@@ -1,55 +1,69 @@
 import re
-import hashlib
-import uuid
-import datetime
-import time
+import sys
+import os
 
-class DeltaFirewall:
-    def __init__(self):
-        self.seen_hashes = set()
+# Tier 1 Defense: Known Attack Signatures (Regex/Keywords)
+INJECTION_SIGNATURES = [
+    r"(?i)ignore\s+(all\s+)?(previous\s+)?instructions",
+    r"(?i)forget\s+(all\s+)?context",
+    r"(?i)system\s+override",
+    r"(?i)you\s+are\s+now\s+(a\s+)?(different\s+)?agent"
+]
 
-    def _strip_variable_data(self, text: str) -> str:
-        # Strip timestamps like YYYY-MM-DD HH:MM:SS
-        timestamp_pattern = r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?'
-        # Strip UUIDs
-        uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+DANGEROUS_COMMANDS = [
+    r"(?i)rm\s+-rf",
+    r"(?i)curl\s+.*-d",
+    r"(?i)wget\s+",
+    r"(?i)chmod\s+(777|o\+w)"
+]
+
+def scan_text(text):
+    """Scan text against known malicious signatures."""
+    for sig in INJECTION_SIGNATURES:
+        if re.search(sig, text):
+            return False, f"Instruction Smuggling Detected ({sig})"
+            
+    for cmd in DANGEROUS_COMMANDS:
+        if re.search(cmd, text):
+            return False, f"Dangerous Command Pattern Detected ({cmd})"
+            
+    return True, "Clean"
+
+def mark_data(text):
+    """Wrap content to enforce it as passive data."""
+    return f"\n<untrusted_file_content>\n{text}\n</untrusted_file_content>\n"
+
+def read_file_safe(filepath):
+    """Read a file safely through the LLM Firewall."""
+    if not os.path.exists(filepath):
+        print(f"[ERROR] Firewall: File {filepath} tidak ditemukan.")
+        sys.exit(1)
         
-        stripped = re.sub(timestamp_pattern, '<TIMESTAMP>', text)
-        stripped = re.sub(uuid_pattern, '<UUID>', stripped, flags=re.IGNORECASE)
-        return stripped
-
-    def process(self, error_message: str) -> str:
-        stripped_message = self._strip_variable_data(error_message)
-        message_hash = hashlib.sha256(stripped_message.encode('utf-8')).hexdigest()
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception as e:
+        print(f"[ERROR] Gagal membaca file: {e}")
+        sys.exit(1)
         
-        if message_hash in self.seen_hashes:
-            return "[FIREWALL BLOCKED]"
-        
-        self.seen_hashes.add(message_hash)
-        return error_message
-
-if __name__ == '__main__':
-    firewall = DeltaFirewall()
+    is_safe, reason = scan_text(content)
     
-    for i in range(3):
-        print(f"--- Iteration {i+1} ---")
+    if not is_safe:
+        print(f"\n[BLOCKED] LLM Firewall Mencegat Potensi Prompt Injection!")
+        print(f"File: {filepath}")
+        print(f"Reason: {reason}")
+        print("Teks ini TIDAK BOLEH masuk ke dalam jendela memori agen.")
+        sys.exit(1)
         
-        # Generate 50 lines of error log with changing timestamp and UUID
-        current_time = (datetime.datetime.now() + datetime.timedelta(seconds=i)).strftime("%Y-%m-%d %H:%M:%S")
-        current_uuid = str(uuid.uuid4())
+    # Jika aman, bungkus sebagai passive data
+    marked_content = mark_data(content)
+    print(f"[OK] Firewall: {filepath} lolos pemindaian. Berikut output terbungkus:")
+    print(marked_content)
+    sys.exit(0)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python delta_firewall_poc.py <filepath>")
+        sys.exit(1)
         
-        error_lines = []
-        for j in range(50):
-            error_lines.append(f"[{current_time}] ERROR {current_uuid} - Failure on module {j}: Critical exception occurred.")
-            
-        huge_error_string = "\n".join(error_lines)
-        
-        # Pass to firewall
-        result = firewall.process(huge_error_string)
-        
-        if result == "[FIREWALL BLOCKED]":
-            print(f"Result: {result} - Duplicate structurally similar log detected!")
-        else:
-            print(f"Result: Log allowed (length: {len(result)} chars)")
-            
-        time.sleep(1)
+    read_file_safe(sys.argv[1])

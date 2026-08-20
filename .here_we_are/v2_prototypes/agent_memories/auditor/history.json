@@ -1,0 +1,14 @@
+[
+  {
+    "task": "Memindai file env yang bocor",
+    "files_changed": [
+      ".gitignore"
+    ]
+  },
+  {
+    "task": "Memperbarui dependensi rentan",
+    "files_changed": [
+      "package.json"
+    ]
+  }
+]

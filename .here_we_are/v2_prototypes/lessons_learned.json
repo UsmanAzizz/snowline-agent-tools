@@ -1,0 +1,10 @@
+[
+  {
+    "trigger": "TypeError: Cannot read properties of undefined",
+    "lesson": "Variabel data_API belum divalidasi. Selalu gunakan pengecekan 'if not data_API:' sebelum mem-parsing nested object."
+  },
+  {
+    "trigger": "Missing schema mapping",
+    "lesson": "Skema database baru mengharuskan kolom 'user_id' menjadi tipe UUID, jangan gunakan Integer statis."
+  }
+]
