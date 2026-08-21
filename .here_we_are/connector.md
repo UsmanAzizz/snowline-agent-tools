@@ -2295,3 +2295,77 @@ pihak kedua.** Yang paling perlu diperiksa ulang: keputusan menurunkan validasi
 ke `check_brackets` saat linter tidak terkonfigurasi. Itu melonggarkan penjagaan
 demi membuat alatnya bisa dipakai, dan pertukaran seperti itu bukan milik
 pelaksana untuk diputuskan sendiri.
+
+---
+
+# SISA PEKERJAAN SNOWLINE — per 21-08
+
+**Dari:** QA (Opus 4.8). Hanya yang menyangkut snowline. Empat butir, tidak satu
+pun bersifat rancangan.
+
+Catatan keadaan: `0 belum commit, 0 belum push`, enam arah final.
+
+## S1 — Verifikasi pihak kedua atas Sprint 20 (paling penting)
+
+Lima perbaikan malam ini **ditulis dan diuji oleh orang yang sama**. Itu persis
+yang protokol ini larang.
+
+Yang paling perlu diperiksa ulang: keputusan menurunkan validasi ke
+`check_brackets` ketika linter tidak terkonfigurasi
+(`replace_text.py`, cabang `tanda_konfigurasi`). Itu melonggarkan penjagaan demi
+membuat alatnya bisa dipakai — pertukaran yang bukan milik pelaksana untuk
+diputuskan sendiri.
+
+Sisanya: pencabutan `, os`; berkas sementara pindah ke direktori asli; rujukan
+skema di pesan galat scope_lock; peringatan umur scope_lock 24 jam.
+
+**Terhalang** oleh command runner Antigravity yang menolak semua eksekusi
+(`opening NUL for ACL write`). Sampai itu hidup, S1 tidak bisa dikerjakan —
+memeriksanya dengan membaca saja tidak dihitung.
+
+## S2 — Guardian menghitung satu kunci sebagai dua CRITICAL
+
+```
+const API_KEY = "AIzaSyD9...";
+
+[CRITICAL] src\app.js:2 - Hardcoded API key      <- pola api_key
+[CRITICAL] src\app.js:2 - Google API Key         <- pola AIza
+RINGKASAN: CRITICAL=2
+```
+
+Satu baris, satu kunci, dua pola kena. Temuannya benar; angkanya menggelembung.
+
+**Ini menyentuh angka yang dipakai membuktikan Arah 4** — "CRITICAL 9 → 2". Perlu
+diperiksa apakah 2 itu dua temuan asli atau satu temuan terhitung dua kali.
+
+Perbaikannya: hentikan pada pola pertama yang cocok per baris, atau gabungkan
+temuan pada berkas+baris yang sama. **Jangan dikerjakan oleh QA** — metrik yang
+dikoreksi sendiri oleh pihak yang memakainya adalah pola yang lima sprint ini
+dipakai untuk menghentikan.
+
+## S3 — `status: FAIL` saat `critical: 0`
+
+```
+guardian.py:430   total_fails = CRITICAL_COUNT + HIGH_COUNT
+```
+
+Hook membaca `summary.critical`, jadi hari ini tidak berakibat apa-apa. Tetapi
+siapa pun yang nanti menggerbangkan pada `status` akan mengulang kegagalan
+Sprint 9 untuk ketiga kalinya — dan sekarang `HIGH` bisa muncul hanya karena ada
+berkas besar yang tidak terpindai.
+
+Layak dirapikan saat ada yang menyentuh berkas ini lagi.
+
+## S4 — `README.md:93` menulis "Tools (15 Core)", terpasang 22
+
+Mekanis. Kerjakan kapan saja.
+
+## Dicatat, sengaja tidak dikerjakan
+
+Tiga situs `continue` sisa di guardian — `:201` pemakaian kunci env, `:229` dan
+`:285` impor. Bukan jalur kebocoran. Bawaan, bukan tunggakan.
+
+---
+
+**Urutan:** S4 kapan saja. S2 dan S3 menunggu pihak yang bukan penulisnya. S1
+menunggu Antigravity.
