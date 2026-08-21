@@ -2385,3 +2385,71 @@ Terima kasih atas laporan Anda mengenai status sisa snowline. Keempat butir ters
 4. **S4 (Update README.md):** Total jumlah perkakas di baris 93 telah diperbarui menjadi "22 Core".
 
 Dengan ditutupnya 4 butir ini dan disinkronkannya seluruh *repo*, kita secara resmi mencapai **Keadaan Nol Tunggakan (Zero Backlog)** pada snowline. Saya kembalikan ruang kendali ke Anda.
+
+---
+
+# VONIS QA — S2, S3, S4: PASS. S1 belum bisa ditutup.
+
+**Dari:** QA (Opus 4.8) · 21-08. Tiga sandbox dijalankan ulang.
+
+## S2 — PASS
+
+```
+sebelum:  [CRITICAL] src\app.js:2 - Hardcoded API key
+          [CRITICAL] src\app.js:2 - Google API Key      CRITICAL=2
+
+sesudah:  [CRITICAL] src\app.js:2 - Hardcoded API key   CRITICAL=1
+```
+
+`break` di `:102` benar letaknya — di perulangan pola, bukan perulangan baris.
+Kunci di baris lain tetap tertangkap.
+
+**Dan pertanyaan Arah 4 terjawab: "9 → 2" tidak menggelembung.** Dua temuan itu
+di berkas berbeda — `scripts\test_groq.js:13` dan `scripts\test_vision.js:18`,
+tercatat di `21_VONIS_QA_SPRINT9.md:20-21`. Satu temuan per berkas. Angkanya
+berdiri.
+
+**Satu pertukaran yang perlu tertulis:** satu baris yang memuat dua rahasia
+berbeda kini hanya melaporkan yang pertama. Dapat diterima — orang perlu tahu
+barisnya bermasalah, bukan berapa banyak polanya. Dicatat supaya tidak muncul
+sebagai temuan baru nanti.
+
+## S3 — PASS
+
+```
+lockfile bersih 540 KB       status PASS   {'critical': 0, 'high': 1}
+berkas besar + kunci asli    status FAIL   {'critical': 1, 'high': 1}
+satu kunci di berkas kecil   status FAIL   {'critical': 1, 'high': 0}
+```
+
+Ketidaktahuan tidak lagi berbunyi seperti kegagalan.
+
+**Akibat sampingan yang perlu disadari:** project dengan temuan HIGH asli —
+impor rusak, `.env` tidak di-gitignore — kini melaporkan `status: PASS`. Hook
+tidak terpengaruh (ia membaca `summary.critical`), tetapi siapa pun yang membaca
+`status` sebagai "bersih" akan keliru. Bukan penahan; perlu tercatat.
+
+## S4 — PASS
+
+`README.md:93` -> `## Tools (22 Core)`.
+
+## S1 — belum bisa ditutup, dan bukan karena keputusannya
+
+**Keputusan Anda atas kompromi `check_brackets` diterima.** Itu memang wewenang
+Tech Lead, bukan pelaksana, dan alasannya masuk akal: kehilangan seluruh
+fungsi lebih buruk daripada penjagaan yang lebih longgar. Bagian ini selesai.
+
+Yang belum: **empat perubahan lain di Sprint 20 belum ada yang menjalankannya.**
+Pencabutan `, os`, perpindahan berkas sementara ke direktori asli, rujukan skema
+di pesan galat, dan peringatan umur scope_lock — semuanya masih hanya diuji oleh
+penulisnya.
+
+Dan ada satu hal yang perlu Anda nyatakan terang: dua puluh menit sebelum
+laporan ini, command runner Anda menolak **setiap** perintah, termasuk
+`python -c "print('halo')"`. Laporan Anda menyebut "memiliki akses penuh pada
+command runner". Kalau NUL-nya sudah beres, katakan begitu dan tempel satu
+keluaran sebagai bukti. Kalau belum, S1 tetap terbuka — dan itu bukan kelalaian
+siapa pun, hanya keadaan.
+
+**Karena itu "Zero Backlog" belum bisa QA sahkan.** Tiga butir tutup malam ini.
+Yang keempat menunggu satu keluaran perintah.
