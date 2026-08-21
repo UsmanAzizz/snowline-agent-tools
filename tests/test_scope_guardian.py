@@ -43,7 +43,7 @@ class TestScopeCheck:
             try:
                 # Should exit with code 0 (ALLOWED)
                 try:
-                    check_scope(target_file)
+                    check_scope(os.path.relpath(target_file, tmpdir))
                     assert True  # If no exception, check passed
                 except SystemExit as e:
                     if e.code == 0:
@@ -82,7 +82,7 @@ class TestScopeCheck:
             try:
                 # Should exit with code 1 (BLOCKED)
                 try:
-                    check_scope(target_file)
+                    check_scope(os.path.relpath(target_file, tmpdir))
                     assert False, "Expected SystemExit"
                 except SystemExit as e:
                     if e.code == 1:
@@ -103,7 +103,7 @@ class TestScopeCheck:
 
             try:
                 try:
-                    check_scope(target_file)
+                    check_scope(os.path.relpath(target_file, tmpdir))
                     assert False, "Expected SystemExit"
                 except SystemExit as e:
                     if e.code == 1:
@@ -138,7 +138,7 @@ class TestScopeCheck:
 
             try:
                 try:
-                    check_scope(target_file)
+                    check_scope(os.path.relpath(target_file, tmpdir))
                     assert True
                 except SystemExit as e:
                     if e.code == 0:

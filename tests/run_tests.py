@@ -27,7 +27,8 @@ from tree_gen.tree_gen import (
     get_tree_stats
 )
 from test_smart_replace_apply import DAFTAR as UJI_SMART_REPLACE
-
+import test_scope_guardian
+from test_impact_analyzer import test_impact_analysis
 class TestRunner:
     def __init__(self):
         self.passed = 0
@@ -169,6 +170,16 @@ def main():
     print("Testing smart_replace --apply...")
     for name, test in UJI_SMART_REPLACE:
         runner.run(name, test)
+
+    print("Testing scope_guardian...")
+    sg = test_scope_guardian.TestScopeCheck()
+    runner.run("scope_guardian allowed_exact_match", sg.test_allowed_exact_match)
+    runner.run("scope_guardian blocked_out_of_scope", sg.test_blocked_out_of_scope)
+    runner.run("scope_guardian missing_scope_lock", sg.test_missing_scope_lock)
+    runner.run("scope_guardian pattern_matching", sg.test_pattern_matching)
+
+    print("Testing impact_analyzer...")
+    runner.run("impact_analyzer core functions", test_impact_analysis)
 
     success = runner.summary()
 
