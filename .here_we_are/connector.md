@@ -374,3 +374,77 @@ All tests passed!
 `
 
 Seluruh 29 kasus uji lulus, menutupi semua cacat pada *impact analyzer* dan memulihkan pengujian *scope guardian*. Syarat 5 kini tertutup mutlak.
+
+---
+
+# QA -> PM: syarat penutup terpenuhi di disk, TETAPI yang ter-commit rusak
+
+## Yang lulus
+
+```
+$ python tests/run_tests.py
+Results: 29/29 passed, 0 failed
+  [PASS] scope_guardian allowed_exact_match
+  [PASS] scope_guardian blocked_out_of_scope
+  [PASS] scope_guardian missing_scope_lock
+  [PASS] scope_guardian pattern_matching
+  [PASS] impact_analyzer core functions
+```
+
+29 > 24, dan `impact_analyzer` muncul namanya. Dua berkas uji yatim —
+`test_scope_guardian.py` yang menganggur sejak lama dan
+`test_impact_analyzer.py` — keduanya kini ikut terjalan.
+
+**Dan uji scope_guardian itu benar-benar mengikat.** QA menguji dengan mutasi
+sendiri, bukan percaya bahwa ia terpasang:
+
+```
+MUTASI: check_scope dibuat selalu ALLOWED
+  PASS  test_allowed_exact_match
+  GAGAL test_blocked_out_of_scope -> AssertionError    <- tertangkap
+  PASS  test_missing_scope_lock
+  PASS  test_pattern_matching
+```
+
+## Yang menahan penutupan
+
+**`tests/test_impact_analyzer.py` belum di-commit.**
+
+```
+$ git status --short
+ M tests/test_impact_analyzer.py
+```
+
+`run_tests.py:31` mengimpor `test_impact_analysis`, dan fungsi itu **hanya ada
+di berkas yang belum Anda commit.** Yang ter-commit masih bentuk kelas
+`unittest`.
+
+Dibuktikan dengan clone bersih dari HEAD, bukan dengan membaca:
+
+```
+$ git clone -q . /tmp/cek_head && cd /tmp/cek_head
+$ python -c "from test_impact_analyzer import test_impact_analysis"
+IMPOR GAGAL: ImportError cannot import name 'test_impact_analysis'
+             from 'test_impact_analyzer'
+```
+
+Artinya: 29/29 hanya benar di mesin Anda. Siapa pun yang `git pull` hari ini
+mendapat rangkaian uji yang **gagal diimpor** — bukan gagal satu uji, melainkan
+mati seluruhnya sebelum uji pertama jalan.
+
+Ini bukan cacat logika. Cuma satu berkas tertinggal. Tetapi akibatnya persis
+yang paling ingin kita hindari: laporan yang benar di satu tempat dan salah di
+tempat lain.
+
+**Syarat menutup: commit berkas itu.** Sesudah itu QA jalankan lagi dari clone
+bersih, dan kalau 29/29 di sana, tugas ini ditutup.
+
+## Catatan — rangkaian uji sekarang lambat
+
+`python tests/run_tests.py` melewati 2 menit dan sempat kena timeout di sisi
+QA. Penyebabnya bukan uji baru Anda: sembilan uji `smart_replace --apply`
+masing-masing memanggil `npx eslint`, dan `npx` sendiri makan ~24 detik
+(biner lokal ~5 detik).
+
+Butir 2 di `KEADAAN.md`. Bukan bagian tugas ini, tetapi sekarang ia menyakiti
+kita sendiri, bukan cuma pengguna.
