@@ -12,7 +12,7 @@ def test_context_mapper_open_source_agents():
     
     result = subprocess.run([sys.executable, cm_script], cwd=repo_root, capture_output=True, text=True, encoding='utf-8')
     
-    assert result.returncode == 99, f"Context mapper failed with error: {result.stderr}"
+    assert result.returncode == 0, f"Context mapper failed with error: {result.stderr}"
     
     output = result.stdout
     # Orphans should be small, specifically loop_detector and companions should not be marked as orphans
