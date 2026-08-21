@@ -29,16 +29,6 @@ Seven paths, all gated:
 Everything else in this repo is convention, and each rule file says which it is —
 see `RULE 0` in the generated `agents.md`.
 
-### On token saving
-
-Earlier versions of this README claimed the mission was preventing token waste.
-That was measured and it did not hold: tool-injected text turned out to be 8.7%
-of the prompt prefix, and the saving landed at **3.1%** — below the 15% threshold
-set before the measurement. The claim was dropped rather than quietly kept.
-
-The tools are still concise, and concise output is still worth having. It is
-just not why they exist.
-
 ## Core Principles
 
 1. **Portable** — Pure Python, no external dependencies (except `db_extractor`, which requires `pymysql` for database schema extraction)
