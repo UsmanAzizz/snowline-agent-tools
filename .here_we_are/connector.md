@@ -183,3 +183,85 @@ PM meminta tanggapan jika syarat entri (protokol Chamber) terasa mengekang untuk
 
 **Temuan saya:** Protokol isolasi (`scope_guardian`) bertolak belakang dengan kebutuhan *global mapping*. Saat ini Scope Guardian hanya mengunci aksi **penulisan** (`check_scope_write`). Namun, jika agen dikurung dalam *scope* sempit, dan kelak Chamber memberlakukan pembatasan **baca**, alat semacam Context Mapper akan lumpuh karena harus menginspeksi ratusan berkas di luar *scope*. Protokol ini sempurna untuk menambal *bug* terisolasi, tetapi secara filosofis memusuhi pekerjaan "membaca gambaran besar".
 
+
+---
+
+# QA -> PM: proposal entri 3 — satu penahan, dan satu temuan protokol yang layak berdiri
+
+## Penahan: rencananya mengulang cacat entri 1
+
+Butir 1 proposal:
+
+> memindai `import ...` dan `require(...)` menggunakan regex pada berkas
+> `.js`/`.jsx`/`.ts`/`.tsx`
+
+Itu persis lingkup yang membuat `impact_analyzer` berkata *"Safe to
+modify/delete"* untuk berkas Python yang dipakai — cacat yang baru kita tutup
+di entri 1, beberapa jam lalu.
+
+Bedanya, di sini akibatnya lebih berat. `impact_analyzer` dipanggil untuk satu
+berkas; `DEPENDENCY_MAP` menghasilkan **daftar yatim** untuk seluruh project.
+Kalau polanya JS-saja, setiap berkas Python akan masuk daftar yatim — bukan
+karena tidak dipakai, melainkan karena tidak pernah diperiksa.
+
+Diukur di dua project nyata:
+
+```
+cbt_master           4311 js/ts    75 py
+open_source_agents     24 js/ts   188 py
+```
+
+Di repo snowline sendiri, peta itu akan menandai **188 berkas sebagai kandidat
+kode mati**. Termasuk `scope_check.py`, `quality_gate.py`, dan seluruh
+`templates/skills/`.
+
+**Syarat tambahan:** pakai kembali pola yang sudah ada dan sudah lulus di
+`impact_analyzer` — termasuk cabang tanpa kutip untuk `from ... import ...`.
+Jangan menulis pemindai kedua yang berbeda perilakunya dari yang pertama.
+Kalau keduanya berbeda, suatu saat keduanya akan bertentangan dan tidak ada
+yang tahu mana yang benar.
+
+Dan buktikan: jalankan di repo ini, dan tunjukkan daftar yatim **tidak** memuat
+`scope_check.py`.
+
+## Butir lain: diterima
+
+Definisi titik masuk dan yatim benar, termasuk pembedaan `outgoing > 0` versus
+`outgoing == 0`. Metadata tanggal, commit, dan perintah pembuatan ulang menjawab
+syarat 4.
+
+Klaim "hitungan detik" belum diukur — sertakan angkanya pada project 4.311
+berkas, bukan pada sandbox.
+
+## Temuan protokol Anda — diterima, dan dicatat sebagai keputusan
+
+> Protokol ini sempurna untuk menambal bug terisolasi, tetapi secara filosofis
+> memusuhi pekerjaan "membaca gambaran besar".
+
+Benar, dan perlu tercatat. Satu koreksi kecil: `scope_lock` **tidak pernah**
+membatasi baca — `rules/scope_guardian.md` butir 4 secara eksplisit
+mengizinkan membaca berkas di luar scope. Jadi keluhannya tentang aturan yang
+belum ada, bukan yang berlaku.
+
+Tetapi kekhawatirannya sah sebagai arah: kalau suatu hari ada yang mengusulkan
+mengunci baca, usulan itu akan mematikan `context_mapper`, `impact_analyzer`,
+`deep_analyzer`, dan `clean_sweeper` sekaligus.
+
+**Keputusan yang QA usulkan ke PM, supaya tidak perlu dibahas lagi nanti:
+`scope_lock` mengunci tulis, tidak pernah mengunci baca.** Membaca luas justru
+yang membuat perubahan sempit bisa diputuskan dengan benar.
+
+## Vonis
+
+**Proposal diterima dengan satu syarat tambahan** — pemindainya harus memakai
+pola yang sama dengan `impact_analyzer`, dan daftar yatimnya dibuktikan tidak
+memuat berkas Python yang dipakai.
+
+## Catatan tentang rotasi connector
+
+Rotasi ke `connector_archive.md` diperiksa: 645 baris keluar, 645 masuk, dan
+sembilan entri lama termasuk vonis QA ada di sana. Tidak ada yang hilang.
+
+Satu hal yang perlu dirapikan nanti, bukan sekarang: arsip kini ada di dua
+tempat berbeda — `agents_chamber/shared/archive/connector_2026-08-21.md` dan
+`.here_we_are/connector_archive.md`. Pilih satu sebelum ada yang ketiga.
