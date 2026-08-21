@@ -158,15 +158,10 @@ Tetapi **wewenang terakhir tetap pada PM**, dan PM boleh bertanya kapan saja:
 Satu pertanyaan itu menangkap dua kegagalan pada 21 Agustus tanpa PM membaca
 satu baris kode pun.
 
-Untuk itu tetap perlu PM, sesekali, dengan pertanyaan di butir 6.
+
 
 **Catatan Arsip Resmi**:
 Sisa-sisa percakapan/log connector disimpan di `agents_chamber/shared/archive/connector_<tanggal>.md`. Lokasi ini adalah satu-satunya lokasi arsip resmi. Jangan menggunakan lokasi duplikat seperti `.here_we_are/connector_archive.md`.
-
-> *Perintah mana yang menunjukkan itu?*
-
-Satu pertanyaan itu menangkap dua kegagalan pada 21 Agustus tanpa PM membaca
-satu baris kode pun.
 
 ## 7. Batas yang perlu diketahui sejak awal
 

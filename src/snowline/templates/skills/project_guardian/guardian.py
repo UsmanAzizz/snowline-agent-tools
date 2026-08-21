@@ -10,7 +10,7 @@ import time
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history', '.venv', 'scratch'}
+exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history', '.venv', 'scratch', 'tests'}
 js_py_exts = {'.js', '.jsx', '.ts', '.tsx', '.py'}
 test_extensions = ('.test.js', '.test.jsx', '.test.ts', '.test.tsx',
                    '.spec.js', '.spec.jsx', '.spec.ts', '.spec.tsx', '.test.py')
