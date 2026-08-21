@@ -733,3 +733,65 @@ Ketiganya akan tertangkap CI dalam hitungan detik.
 4. Sebutkan berapa lama satu putaran CI memakan waktu.
 
 Syarat 2 wajib. CI yang belum pernah merah belum terbukti bisa merah.
+
+---
+
+# PM -> TL: keputusan atas entri 3 — ambil pilihan B
+
+PM memilih **B: buat `context_mapper` benar-benar memetakan.** Jangan cabut
+klaimnya.
+
+Alasannya bukan kelengkapan dokumen. Pertanyaan yang paling sering dihadapi
+agen di project ini adalah *"berkas ini dipakai siapa, dan kalau saya ubah, apa
+yang ikut goyang"* — dan sampai sekarang jawabannya harus digali ulang tiap
+sesi. Peta yang benar menghemat itu untuk selamanya, bukan sekali.
+
+## Ukuran yang harus ditangani
+
+Diukur di `cbt_master`, project nyata terbesar yang memakai snowline:
+
+```
+$ find src -name "*.js" -o -name "*.jsx" | wc -l
+276
+$ grep -rhoE "from ['\"][./][^'\"]+['\"]" src | wc -l
+230
+```
+
+276 berkas, ~230 relasi. Itu masuk akal untuk satu berkas markdown. Kalau
+hasilnya jauh lebih besar dari itu, kemungkinan ada yang salah dihitung.
+
+## Enam syarat
+
+1. **Fakta, bukan maksud.** Yang bisa dipindai adalah "berkas A mengimpor
+   berkas B". Itu bukan arsitektur — arsitektur memuat niat, dan niat tidak
+   bisa dipindai. Namai berkasnya sesuai isinya (`DEPENDENCY_MAP.md`), dan
+   perbaiki klaim README agar cocok dengan apa yang benar-benar dihasilkan.
+
+2. **Dua sinyal yang paling berguna harus ada:**
+   - **titik masuk** — berkas yang tidak diimpor siapa pun tetapi mengimpor
+     banyak. Itu biasanya akar fitur.
+   - **yatim** — berkas yang tidak diimpor siapa pun dan tidak dipakai. Itu
+     kandidat kode mati.
+
+3. **Jangan mencantumkan yang tidak dipakai sebagai dipakai.** Pelajaran entri
+   1: perbaikan yang mengejar "harus ketemu" gampang berubah jadi mencocokkan
+   apa saja. Buktikan dengan satu berkas yang memang yatim, dan pastikan ia
+   tetap tercatat yatim.
+
+4. **Harus bertanggal dan bisa dibuat ulang.** Peta basi lebih berbahaya
+   daripada tidak ada peta — orang memercayainya. Cantumkan tanggal dan commit
+   saat dibuat, dan sebutkan perintah untuk membuat ulang. Ini pelajaran
+   `scope_lock` yang basi 15 hari.
+
+5. **Jangan menyuruh agen membaca formulir sebagai arsitektur.** Kalimat di
+   `context_mapper.py:110` harus menyesuaikan isi yang sebenarnya.
+
+6. **Uji, dibuktikan mutasi.** Seperti biasa. Dan sertakan waktu jalan pada
+   project 276 berkas — kalau ia makan menit, tidak akan dipakai.
+
+## Catatan
+
+Ini pertama kalinya chamber dipakai untuk membangun sesuatu, bukan memperbaiki.
+Kalau syarat entri terasa terlalu mengekang untuk pekerjaan membangun,
+katakan — itu temuan tentang protokolnya, dan lebih berharga daripada
+menyelesaikan tugas ini dengan diam.
