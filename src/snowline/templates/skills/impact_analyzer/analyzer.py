@@ -10,7 +10,7 @@ if sys.stdout.encoding.lower() != 'utf-8':
 def find_usages(project_root, target_name):
     """Scan all files to find import/require usages of target_name (no false positives from comments/strings)."""
     usages = set()
-    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine'}
+    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine', '.backup_replace'}
 
     escaped = re.escape(target_name)
     # Suffix pattern: target name can appear after ./ ../ or folder/ prefixes in quoted paths.
@@ -29,6 +29,8 @@ def find_usages(project_root, target_name):
         re.compile(rf"export\s+.*?\s+from\s+{quoted_suffix}"),
         # Direct bareword import (exact + suffix): import 'Foo' or import './Foo'
         re.compile(rf"import\s+{quoted_suffix}"),
+        # Python/PHP unquoted imports (e.g. from scope_guardian... import scope_check)
+        re.compile(rf"(?:^|\n)\s*(?:from|import|use|include(?:_once)?|require(?:_once)?)\s+.*?\b{escaped}\b")
     ]
 
     for root, dirs, files in os.walk(project_root):
@@ -47,41 +49,45 @@ def find_usages(project_root, target_name):
                 pass
     return usages
 
-def analyze_impact(target_path, project_root):
+def analyze_impact(target_path, project_root, max_depth=2):
     target_filename = os.path.basename(target_path)
     target_base, _ = os.path.splitext(target_filename)
 
     if target_base.lower() == 'index':
         target_base = os.path.basename(os.path.dirname(target_path))
 
-    # Level 1
-    level_1 = find_usages(project_root, target_base)
-    level_1.discard(target_path)
+    levels = []
+    current_level_files = set([target_path])
+    all_found = set([target_path])
+    stats = {}
+    total_impacted = 0
 
-    # Level 2
-    level_2 = set()
-    for l1_file in level_1:
-        l1_base, _ = os.path.splitext(os.path.basename(l1_file))
-        if l1_base.lower() == 'index':
-            l1_base = os.path.basename(os.path.dirname(l1_file))
+    for depth_idx in range(max_depth):
+        next_level = set()
+        for f in current_level_files:
+            base, _ = os.path.splitext(os.path.basename(f))
+            if base.lower() == 'index':
+                base = os.path.basename(os.path.dirname(f))
+            usages = find_usages(project_root, base)
+            next_level.update(usages - all_found)
+            
+        if not next_level:
+            break
+            
+        levels.append(list(next_level))
+        all_found.update(next_level)
+        current_level_files = next_level
+        
+        stats[f"level_{depth_idx+1}_count"] = len(next_level)
+        total_impacted += len(next_level)
 
-        usages = find_usages(project_root, l1_base)
-        usages.discard(l1_file)
-        usages.discard(target_path)
-        level_2.update(usages)
-
-    level_2 = level_2 - level_1
+    stats["total_impacted"] = total_impacted
 
     return {
         'target': target_filename,
         'target_path': target_path,
-        'level_1': list(level_1),
-        'level_2': list(level_2),
-        'stats': {
-            'level_1_count': len(level_1),
-            'level_2_count': len(level_2),
-            'total_impacted': len(level_1) + len(level_2)
-        }
+        'levels': levels,
+        'stats': stats
     }
 
 def print_human(result, project_root):
@@ -89,35 +95,42 @@ def print_human(result, project_root):
     print(f"Project Root: {project_root}")
     print("-" * 50)
 
-    print("\n[Level 1] Direct Dependents:")
-    if not result['level_1']:
-        print("  No dependents found. Safe to modify/delete.")
-    else:
-        for f in result['level_1']:
+    for i, level_files in enumerate(result['levels']):
+        label = "Direct" if i == 0 else "Indirect"
+        print(f"\n[Level {i+1}] {label} Dependents:")
+        for f in level_files:
             print(f"  - {os.path.relpath(f, project_root)}")
 
-    print("\n[Level 2] Indirect Dependents:")
-    if not result['level_2']:
-        print("  No Level 2 dependents found.")
-    else:
-        for f in result['level_2']:
-            print(f"  - {os.path.relpath(f, project_root)}")
+    if not result['levels']:
+        print("\n[Level 1] Direct Dependents:")
+        print("  No dependents found. Safe to modify/delete.")
 
     print("\n" + "=" * 50)
-    print(f"Impact Summary: {result['stats']['level_1_count']} direct, {result['stats']['level_2_count']} indirect")
+    summary_parts = []
+    for i in range(len(result['levels'])):
+        label = "direct" if i == 0 else "indirect"
+        summary_parts.append(f"{result['stats'][f'level_{i+1}_count']} {label}")
+    
+    if not summary_parts:
+        summary_parts = ["0 direct", "0 indirect"]
+    elif len(summary_parts) == 1:
+        summary_parts.append("0 indirect")
+        
+    print(f"Impact Summary: {', '.join(summary_parts)}")
 
 def main():
     parser = argparse.ArgumentParser(description="Impact Analyzer - Dependency Graph")
     parser.add_argument("target", help="Target file path")
     parser.add_argument("project_root", help="Project root directory")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--depth", type=int, default=2, help="Maximum depth to trace dependencies")
     args = parser.parse_args()
 
     if not os.path.exists(args.target):
         print(f"[ERROR] Target file not found: {args.target}")
         sys.exit(1)
 
-    result = analyze_impact(args.target, args.project_root)
+    result = analyze_impact(args.target, args.project_root, args.depth)
 
     if args.json:
         print(json.dumps(result, indent=2))
