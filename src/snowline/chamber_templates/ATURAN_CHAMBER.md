@@ -179,3 +179,7 @@ kerjanya akan mati, dan matinya tidak terlihat sampai ada yang memeriksa.
 Urutan yang boleh dilepas lebih dulu: peran Executor terpisah, lalu subagent
 dingin. Yang **terakhir** dilepas: syarat entri di butir 3. Itu yang menahan
 laporan tanpa bukti, dan itu inti seluruh protokol ini.
+
+## 9. Uji Penolakan (Rejection Tests)
+
+Uji penolakan harus menunjukkan dua hal — bahwa ia menolak, dan bahwa ia menerima saat syaratnya dipenuhi. Gerbang yang selalu tertutup (atau pengujian yang asersinya menerima ketiadaan seperti gagal menulis karena *crash*) tidak bisa dibedakan dari gerbang yang tidak ada.
