@@ -74,7 +74,12 @@ dokumen perannya sekali, sesudah itu sinyal cukup `''`.
 `init`; diuji di proyek bersih bahwa `init` saja tidak ikut memasangnya.
 Templatnya di `src/snowline/chamber_templates/`.
 
+Butir 0 ditambahkan 21-08: penyaring kapan chamber dipakai — *kalau perubahan
+ini salah, apakah langsung kelihatan?* Kelihatan seketika, kerjakan biasa; baru
+ketahuan nanti, lewat chamber.
+
 Belum diuji: apakah subagent Antigravity benar-benar berkonteks bersih.
+Belum dipakai: nol entri lewat aturan baru.
 
 ## Cara memeriksa berkas ini
 

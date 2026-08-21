@@ -5,6 +5,33 @@ Berlaku sejak 21 Agustus 2026. Menggantikan bagian saluran dan alur di
 
 ---
 
+## 0. Kapan chamber dipakai — dan kapan tidak
+
+Chamber punya ongkos: PM jadi jembatan manual, dan tiap iterasi butuh entri
+tertulis. Memakainya untuk segalanya akan membuatnya dilanggar diam-diam, dan
+protokol yang dilanggar diam-diam tidak melindungi apa pun.
+
+Penyaringnya satu pertanyaan:
+
+> **Kalau perubahan ini salah, apakah langsung kelihatan?**
+
+```
+kelihatan seketika     warna, teks, tata letak, salin-tempel  ->  kerjakan biasa
+baru ketahuan nanti    skema data, alur penyimpanan, penilaian,
+                       keamanan, migrasi, apa pun yang menyentuh
+                       data orang lain                        ->  lewat chamber
+```
+
+Bukan "berisiko tinggi" — itu tidak bisa diperiksa dan tiap orang menilainya
+berbeda. Yang bisa diperiksa: seberapa lama kesalahan sempat hidup sebelum ada
+yang menyadarinya.
+
+Tombol salah warna ketahuan dalam sedetik. Jawaban yang tersimpan ke paket yang
+salah baru ketahuan setelah ujian selesai — dan saat itu tidak bisa diulang.
+
+Kalau ragu, pakai chamber. Ongkos memakainya untuk hal kecil cuma waktu;
+ongkos tidak memakainya untuk hal besar dibayar orang lain.
+
 ## 1. Chamber adalah protokol, bukan program
 
 Diputuskan 21-08. `src/snowline/chamber/` kosong dan memang dibiarkan kosong.
