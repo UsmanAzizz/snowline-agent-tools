@@ -4,20 +4,47 @@
 ![No Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-Lightweight Python tools for low-mid tier projects. Work smarter — not harder.
+Lightweight Python tools that stop an AI agent from quietly breaking your project.
 
 ## The Mission
 
-**Prevent token waste in AI agent workflows.**
+**Make the destructive paths refuse, instead of asking politely.**
 
-AI agents often read too much, search too broadly, and act without focus. These tools provide targeted capabilities for faster, more precise results.
+An agent that is told not to do something can still do it. An agent that is
+*refused* cannot. Snowline puts a gate on every path that can damage a project,
+so a mistake gets stopped rather than logged after the fact.
+
+Seven paths, all gated:
+
+| what is refused | by what |
+|---|---|
+| writing any file without an explicit flag | `--apply`, in all four write tools |
+| writing outside the current task's file list | `scope_lock.json`, fail-closed |
+| a command with missing arguments | arity check, `hooks/quality_gate.py` |
+| a replacement that breaks syntax | validation cancels the write |
+| a Medium/High-risk change waved through | requires `--apply-validated` |
+| committing a file with a readable secret | CRITICAL gate in the pre-commit hook |
+| an agent looping on the same failing call | loop detector, stops after 3 |
+
+Everything else in this repo is convention, and each rule file says which it is —
+see `RULE 0` in the generated `agents.md`.
+
+### On token saving
+
+Earlier versions of this README claimed the mission was preventing token waste.
+That was measured and it did not hold: tool-injected text turned out to be 8.7%
+of the prompt prefix, and the saving landed at **3.1%** — below the 15% threshold
+set before the measurement. The claim was dropped rather than quietly kept.
+
+The tools are still concise, and concise output is still worth having. It is
+just not why they exist.
 
 ## Core Principles
 
 1. **Portable** — Pure Python, no external dependencies (except `db_extractor`, which requires `pymysql` for database schema extraction)
-2. **Token Efficient** — Concise output, surgical precision
+2. **Refuses rather than warns** — a rule that only prints a warning is documented as advice, not enforcement
 3. **Safe** — Dry-run modes by default for any operation that writes, modifies, or deletes files. Explicit `--apply` flag required to execute.
-4. **Fast** — Low-mid tier focus, no over-engineering
+4. **Proven by running** — every fix ships with a test that was shown to fail before the fix (see [Tests](#tests))
 
 ## Installation
 
@@ -167,6 +194,32 @@ python .agents/skills/project_guardian/guardian.py --summary
 ```bash
 python .agents/skills/smart_tree/scripts/tree_viewer.py . 3
 ```
+
+## Tests
+
+```bash
+python tests/run_tests.py
+```
+
+31 tests, about 12 seconds. They run the scripts end to end through
+`subprocess` rather than importing their functions — two real defects had
+survived precisely because they only appeared on the `--apply` path of a real
+run.
+
+**Every test here was shown to fail first.** A test that passes against already
+correct code proves nothing, so each fix was verified by breaking it again:
+
+```
+$ # remove the fix, then:
+$ python tests/run_tests.py
+Results: 30/31 passed, 1 failed
+$ # restore it:
+Results: 31/31 passed, 0 failed
+```
+
+That is worth stating plainly, because it caught a real miss: the first test
+written for `smart_replace --apply` passed while the defect was still present.
+The second, written after breaking the code deliberately, did not.
 
 ## Compatibility
 
