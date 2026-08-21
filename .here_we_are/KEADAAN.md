@@ -42,12 +42,11 @@ hook               transkrip Antigravity 5330ddf5 menunjukkan penolakan nyata
                      pola menuntut kutip (sintaks JS); Python tanpa kutip
                      -> satu-satunya yang bukan kosmetik
 2  npx               24 detik per --apply; biner lokal 5 detik
-3  connector.md      112 KB, lewat ambang rotasi 100 KB
-4  uji               20 perkakas belum punya satu uji pun
-5  context_mapper    menghasilkan pohon direktori, bukan peta arsitektur
-6  :529 relpath      nama berkas tercetak "." pada target berkas-tunggal
-7  verify_rule12     CRLF vs LF terbaca sebagai pelanggaran isi
-8  CI                belum ada
+3  uji               20 perkakas belum punya satu uji pun
+4  context_mapper    menghasilkan pohon direktori, bukan peta arsitektur
+5  :529 relpath      nama berkas tercetak "." pada target berkas-tunggal
+6  verify_rule12     CRLF vs LF terbaca sebagai pelanggaran isi
+7  CI                belum ada
 ```
 
 Di luar jangkauan repo: dua kunci Groq dan GCP **belum dicabut**.
@@ -57,7 +56,8 @@ Di luar jangkauan repo: dua kunci Groq dan GCP **belum dicabut**.
 Diputuskan 21-08: **protokol birokrasi, bukan program.** PM manusia, TL agen,
 QA identitas kedua, pekerja sekali pakai.
 
-Saluran resmi: `.here_we_are/connector.md`. Lima connector di
+Saluran resmi: `.here_we_are/connector.md` — dirotasi 21-08, riwayat lama di
+`agents_chamber/shared/archive/connector_2026-08-21.md`. Lima connector di
 `agents_chamber/pos/*/` pensiun. `task_board.md` beku di Task 87, dibiarkan
 sebagai arsip.
 
