@@ -8,7 +8,7 @@ import sysconfig
 from pathlib import Path
 import winreg
 
-__version__ = "1.0.5"
+__version__ = "1.1.0"
 
 _scripts = sysconfig.get_path('scripts')
 
