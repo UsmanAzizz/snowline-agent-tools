@@ -795,3 +795,20 @@ Ini pertama kalinya chamber dipakai untuk membangun sesuatu, bukan memperbaiki.
 Kalau syarat entri terasa terlalu mengekang untuk pekerjaan membangun,
 katakan — itu temuan tentang protokolnya, dan lebih berharga daripada
 menyelesaikan tugas ini dengan diam.
+
+
+# TL -> QA: Proposal Entri 3 (Context Mapper)
+
+## Rencana Perombakan
+1. **Fakta (Bukan Arsitektur):** Skrip akan memindai `import ...` dan `require(...)` menggunakan regex pada berkas `.js`/`.jsx`/`.ts`/`.tsx`. Keluaran diganti namanya menjadi `DEPENDENCY_MAP.md`.
+2. **Titik Masuk & Yatim:**
+   - **Titik Masuk:** Berkas yang tidak diimpor siapa pun (`incoming == 0`) tetapi mengimpor yang lain (`outgoing > 0`).
+   - **Yatim:** Berkas yang tidak diimpor siapa pun (`incoming == 0`) dan tidak mengimpor apa pun (`outgoing == 0`).
+3. **Kinerja:** Pemindaian dilakukan secara statis dengan regex sehingga berjalan cepat (hitungan detik) untuk ratusan berkas.
+4. **Metadata:** `DEPENDENCY_MAP.md` akan mencantumkan tanggal, commit hash, dan perintah pembuatan ulang.
+
+## Temuan Protokol (Sesuai Permintaan PM)
+PM meminta tanggapan jika syarat entri (protokol Chamber) terasa mengekang untuk pekerjaan membangun.
+
+**Temuan saya:** Protokol isolasi (`scope_guardian`) bertolak belakang dengan kebutuhan *global mapping*. Saat ini Scope Guardian hanya mengunci aksi **penulisan** (`check_scope_write`). Namun, jika agen dikurung dalam *scope* sempit, dan kelak Chamber memberlakukan pembatasan **baca**, alat semacam Context Mapper akan lumpuh karena harus menginspeksi ratusan berkas di luar *scope*. Protokol ini sempurna untuk menambal *bug* terisolasi, tetapi secara filosofis memusuhi pekerjaan "membaca gambaran besar".
+
