@@ -179,3 +179,6 @@ pos/*/connector.md      lima berkas   ditandai, tidak dihapus
 shared/task_board.md    beku di Task 87, arsip
 src/snowline/chamber/   kosong, dan memang dibiarkan kosong
 ```
+## 9. Uji Penolakan (Rejection Tests)
+
+Uji penolakan harus menunjukkan dua hal — bahwa ia menolak, dan bahwa ia menerima saat syaratnya dipenuhi. Gerbang yang selalu tertutup (atau pengujian yang asersinya menerima ketiadaan seperti gagal menulis karena *crash*) tidak bisa dibedakan dari gerbang yang tidak ada.
