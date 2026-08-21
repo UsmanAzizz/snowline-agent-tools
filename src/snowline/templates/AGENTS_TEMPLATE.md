@@ -2,23 +2,32 @@
 PROJECT RULES (SNOWLINE AGENT ECOSYSTEM)
 ================================================================
 
-## RULE 1 — CALL COMPANION FIRST (MANDATORY)
-
-Before calling any tool or script, you MUST run:
+## RULE 1 — CALL COMPANION WHEN THE CHOICE IS YOURS
 
     python .agents/skills/companion_cli.py "<instruction>"
 
-Read the output. Use it as reference for which tool to call.
-This applies to ALL technical work instructions, including seemingly simple ones.
+Companion suggests which tool fits an instruction. It is useful exactly when
+you still have to choose. When the choice is already made, it adds a step and
+tells you nothing you did not already know.
 
-EXCEPTIONS — Do NOT call companion for:
-1. Greetings and pleasantries ("hi", "hello", "thank you", etc.)
-2. Ecosystem checks at session start (separate process, not via companion)
-3. Pure conversational questions (not work instructions)
+CALL COMPANION when ANY of these is true:
+1. The operation writes — `--apply`, creating, deleting, or moving files.
+2. The instruction names neither a file nor a tool, so you must pick one.
+3. The task touches more than 3 files (see RULE 10 — task lock).
 
-If uncertain whether a message is work or conversation, apply this heuristic:
-Does answering require touching project files/code? If yes, call companion first.
-If no, answer directly.
+DO NOT call companion when:
+1. The instruction already names the tool or the file, and the operation is
+   read-only (e.g. "read src/form.js", "search for handleSubmit").
+2. Greetings, pleasantries, or conversational questions.
+3. Ecosystem checks at session start (separate process).
+
+If uncertain, ask one question: **is a tool still to be chosen?**
+If yes, call companion. If no, act.
+
+NOTE — this rule governs companion as an ADVISOR only. Companion also runs
+inside `hooks/quality_gate.py` as a gate (arity check, and `--apply` with low
+confidence). That gate is not optional and is not affected by this rule: it
+runs on its own, without a step from you.
 
 Before creating a new function: define all variables to be used first
 (to avoid ReferenceError or uninitialized variables).
