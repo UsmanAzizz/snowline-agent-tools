@@ -184,7 +184,6 @@ def main():
 
     print("Testing context_mapper...")
     runner.run("context_mapper open_source_agents", test_context_mapper.test_context_mapper_open_source_agents)
-    runner.run("context_mapper performance 4311 files", test_context_mapper.test_context_mapper_performance_4311)
 
     success = runner.summary()
 

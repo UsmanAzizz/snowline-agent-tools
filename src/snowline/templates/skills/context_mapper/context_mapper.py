@@ -72,7 +72,7 @@ def main():
     map_file = os.path.join(knowledge_path, 'DEPENDENCY_MAP.md')
     patterns_file = os.path.join(knowledge_path, 'COMMON_PATTERNS.md')
 
-    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine', '.backup_replace'}
+    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine', '.backup_replace', '.venv', 'venv', 'env', '.env'}
     
     start_time = time.time()
     
@@ -123,11 +123,46 @@ def main():
             pass
     t3 = time.time()
     # print(f"Extract time: {t3-t2}")
-            
+    # Load config mentions
+    config_mentions = set()
+    for config_file in ['hooks.json', 'package.json', 'pyproject.toml']:
+        config_path = os.path.join(project_root, config_file)
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config_content = f.read()
+                    config_mentions.update(WORD_PATTERN.findall(config_content))
+            except Exception:
+                pass
+
     # Find Entry Points and Orphans
-    entry_points = [f for f in all_files if len(incoming[f]) == 0 and len(outgoing[f]) > 0]
-    orphans = [f for f in all_files if len(incoming[f]) == 0 and len(outgoing[f]) == 0]
+    entry_points = set()
+    orphans = set()
     
+    for f in all_files:
+        if len(incoming[f]) > 0:
+            continue
+            
+        is_entry = len(outgoing[f]) > 0
+        
+        # Check CLI / Config definitions
+        if not is_entry:
+            base = os.path.basename(f).split('.')[0]
+            if base in config_mentions:
+                is_entry = True
+            elif f.endswith('.py'):
+                try:
+                    with open(f, 'r', encoding='utf-8', errors='ignore') as pfile:
+                        pcontent = pfile.read()
+                        if '__main__' in pcontent or 'argparse' in pcontent:
+                            is_entry = True
+                except Exception:
+                    pass
+                    
+        if is_entry:
+            entry_points.add(f)
+        else:
+            orphans.add(f)
     end_time = time.time()
     
     # Build Markdown Content
@@ -166,8 +201,8 @@ def main():
     if not os.path.exists(patterns_path):
         patterns_content = "# 🧩 Common Patterns & Conventions\n\n"
         patterns_content += "This file contains the fundamental rules of the project. The AI MUST read this file before writing code.\n\n"
-        patterns_content += "## 1. Architecture\n"
-        patterns_content += "- Document architecture conventions here (e.g. all APIs are in `src/services`).\n\n"
+        patterns_content += "## 1. Core Logic\n"
+        patterns_content += "- Document logic conventions here.\n\n"
         patterns_content += "## 2. Code Style\n"
         patterns_content += "- Document styling rules here (e.g. no Tailwind, use Vanilla CSS).\n\n"
         patterns_content += "## 3. Security\n"

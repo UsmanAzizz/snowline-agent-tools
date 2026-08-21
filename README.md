@@ -158,7 +158,7 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 <tr><td colspan="3"><strong>⚙️ Workflow Helpers</strong></td></tr>
 <tr><td><code>crash_decoder</code></td><td>Parses crash logs, filters noise</td><td>No</td></tr>
 <tr><td><code>auto_scaffolder</code></td><td>Generates boilerplate files (component/route templates)</td><td>Yes (<code>--apply</code>)</td></tr>
-<tr><td><code>context_mapper</code></td><td>Generates architecture documentation into <code>.agents/knowledge/</code></td><td>Yes (<code>--apply</code>)</td></tr>
+<tr><td><code>context_mapper</code></td><td>Generates dependency map into <code>.agents/knowledge/</code></td><td>Yes (<code>--apply</code>)</td></tr>
 </tbody>
 </table>
 
