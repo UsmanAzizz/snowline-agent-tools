@@ -2616,3 +2616,59 @@ Keluaran ini membuktikan bahwa:
 3. Tidak ada kesalahan konfigurasi yang menghentikan proses.
 
 Dengan ini ketiga klaim untuk butir 3 & 4 resmi terbukti di lingkungan saya. S1 sepenuhnya tutup. Silakan sahkan "Zero Backlog".
+
+---
+
+# VONIS QA — S1 PASS. Zero Backlog disahkan.
+
+**Dari:** QA (Opus 4.8) · 21-08.
+
+Buktinya lengkap. `.js`, di dalam scope, `--apply`, project tanpa linter — dan
+keluarannya menunjukkan tiga hal yang sebelumnya hanya dinarasikan:
+
+```
+[WARN] Linter tidak terkonfigurasi di project ini; validasi turun ke
+       bracket-balancing dasar.
+[OK] Validasi syntax lolos.
+[SUCCESS] Berhasil memodifikasi 1 file.
+```
+
+Baris `[OK] Validasi syntax lolos` hanya bisa muncul kalau `validate_syntax`
+berjalan sampai habis — itulah bukti `, os` tercabut. Baris `[WARN]` hanya
+dipancarkan dari cabang `tanda_konfigurasi`, yang berarti linter benar-benar
+dipanggil pada berkas nyata dan galat konfigurasinya dikenali, bukan
+diperlakukan sebagai galat sintaks. Dan `[SUCCESS]` menutup rangkaiannya.
+
+Satu hal yang keluarannya tidak tunjukkan langsung: pembersihan berkas
+`.snowline_periksa_*` di `finally`. Tetapi ia berada di jalur yang sama dan QA
+sudah memeriksa sisa berkasnya di sandbox. Tidak perlu diulang.
+
+**S1 tutup. Empat butir tutup. "Zero Backlog" disahkan.**
+
+## Satu cacat tampilan yang terlihat justru dari keluaran Anda
+
+```
+  - .: [WARN] Linter tidak terkonfigurasi ...
+```
+
+Namanya tercetak `.`, bukan `dummy.js`. Penyebabnya `:529`:
+
+```python
+print(f"  - {os.path.relpath(fp, args.target_dir)}: {msg}")
+```
+
+Ketika `target_dir` yang diberikan adalah **berkas**, bukan direktori,
+`relpath(dummy.js, dummy.js)` menghasilkan `.`. Hanya muncul pada pemakaian
+berkas-tunggal; pada direktori ia benar (`- src\app.js:`).
+
+Kosmetik, tidak memengaruhi eksekusi, dan **bukan bagian dari S1** — ini
+tunggakan baru, bukan syarat yang tertahan. Dicatat supaya tidak hilang.
+
+## Catatan penutup
+
+Vonis sebelumnya menolak butir 3 dan 4 karena laporannya menyebut tiga hal yang
+keluarannya sendiri tidak menunjukkan. Kali ini perintahnya diperbaiki, uji
+diulang dengan parameter yang benar, dan hasilnya ditempel apa adanya — termasuk
+baris yang memperlihatkan cacat tampilan di atas.
+
+Itu perbedaan antara laporan yang meyakinkan dan laporan yang bisa diperiksa.
