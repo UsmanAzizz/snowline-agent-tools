@@ -626,3 +626,110 @@ dengan merusak kode lebih dulu.
 Catatan: pilihan mendahulukan biner lokal juga memperbaiki hal yang tidak
 diminta — probe pada project tanpa ESLint kini instan, bukan menunggu `npx`
 gagal selama belasan detik. Itu sebabnya delapan uji turun ke bawah satu detik.
+
+---
+
+# PM -> TL: entri 3 — `context_mapper` menjanjikan peta arsitektur, memberi pohon direktori
+
+Butir 0 terpenuhi: berkas yang dihasilkannya dibaca agen di awal tiap sesi
+sebagai gambaran proyek. Kalau isinya menyesatkan, yang salah bukan tampilan —
+melainkan setiap keputusan yang diambil di atasnya, dan itu tidak langsung
+kelihatan.
+
+## Yang dijanjikan
+
+`README.md:144`
+
+```
+context_mapper | Generates architecture documentation into .agents/knowledge/
+```
+
+## Yang benar-benar dihasilkan
+
+Dijalankan di proyek uji berisi 6 berkas:
+
+```
+PROJECT_STRUCTURE.md   21 baris   pohon direktori + hitungan berkas
+COMMON_PATTERNS.md     12 baris   formulir kosong
+```
+
+Isi `COMMON_PATTERNS.md` seluruhnya:
+
+```
+## 1. Architecture
+- Document architecture conventions here (e.g. all APIs are in `src/services`).
+## 2. Code Style
+- Document styling rules here (e.g. no Tailwind, use Vanilla CSS).
+## 3. Security
+- Never store credentials in code. Always use `.env`.
+```
+
+Itu templat untuk diisi manusia, bukan hasil analisis. Dan `PROJECT_STRUCTURE.md`
+isinya sama dengan keluaran `smart_tree` — tidak ada relasi antarberkas, tidak
+ada ketergantungan, tidak ada titik masuk.
+
+Lalu ia menutup dengan menyuruh agen membaca keduanya lebih dulu sebelum
+mencari atau menulis kode (`context_mapper.py:110`). Agen diarahkan membaca
+formulir kosong sebagai "arsitektur proyek".
+
+## Pilihannya dua, dan keduanya sah
+
+**A. Cabut klaimnya.** Ubah README jadi apa adanya — "project structure snapshot"
+— dan hapus kalimat di `:110` yang menyuruh agen memperlakukannya sebagai
+arsitektur. Jujur, dan selesai dalam sepuluh menit.
+
+**B. Buat ia benar-benar memetakan.** Bahannya sudah ada di repo ini:
+`impact_analyzer` sudah bisa menelusuri ketergantungan dengan `--depth`.
+`DEPENDENCY_MAP.md` yang berisi berkas mana dipakai berkas mana akan menjadikan
+klaim itu benar.
+
+**Jangan pilih C: membiarkan klaimnya berdiri sambil isinya tetap formulir.**
+
+Sebutkan mana yang Anda pilih dan alasannya sebelum mengerjakan.
+
+## Syarat lulus
+
+1. Kalau A: `README.md:144` tidak lagi menyebut "architecture documentation",
+   dan `:110` tidak lagi menyuruh agen membacanya sebagai arsitektur.
+2. Kalau B: berkas hasilnya memuat relasi antarberkas yang **bisa diperiksa** —
+   tunjukkan satu berkas nyata beserta pemakainya, dan pastikan berkas yang
+   memang tidak dipakai tidak dicantumkan sebagai dipakai.
+3. Apa pun pilihannya: uji ditambahkan ke `tests/`, dibuktikan dengan mutasi.
+4. `python tests/run_tests.py` tetap hijau, tetap di bawah 60 detik.
+
+---
+
+# PM -> TL: entri 4 — tidak ada CI, jadi 31 uji hanya jalan kalau ada yang ingat
+
+Butir 0 terpenuhi dengan telak: kalau uji berhenti dijalankan, **tidak ada yang
+memberi tahu.** Itu definisi "baru ketahuan nanti".
+
+## Keadaan
+
+```
+$ ls .github/workflows/
+(tidak ada)
+```
+
+31 uji ada dan hijau. Tetapi malam ini sudah dua kali terbukti bahwa yang
+menjalankan hanya kebetulan:
+
+- `run_tests.py` mati berminggu-minggu karena `ModuleNotFoundError`, dan tidak
+  ada yang menyadarinya sampai ada yang mengetiknya lagi.
+- `test_scope_guardian.py` ada sejak lama, tidak pernah ikut terjalan.
+- Entri 1 lolos di mesin TL tetapi gagal impor dari clone bersih.
+
+Ketiganya akan tertangkap CI dalam hitungan detik.
+
+## Syarat lulus
+
+1. `.github/workflows/` memuat alur yang menjalankan `python tests/run_tests.py`
+   pada setiap push dan pull request.
+2. **Dibuktikan gagal lebih dulu.** Dorong satu commit yang sengaja merusak satu
+   uji, tunjukkan CI merah, lalu perbaiki dan tunjukkan hijau. Tempel tautan
+   atau keluaran keduanya.
+3. Alurnya berjalan di runner bersih — bukan mesin Anda. Kalau ada yang lulus
+   di lokal tetapi gagal di CI, itu temuan, bukan gangguan: laporkan apa adanya.
+4. Sebutkan berapa lama satu putaran CI memakan waktu.
+
+Syarat 2 wajib. CI yang belum pernah merah belum terbukti bisa merah.
