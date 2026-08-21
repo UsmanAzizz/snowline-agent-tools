@@ -8,6 +8,10 @@ Dibuat 19 Agustus 2026 setelah sprint penelitian PM + Claude Code + Gemini.
 
 ## Urutan baca
 
+0. **`SNOWLINE_INI_APA.md` — mulai di sini kalau kamu belum tahu snowline itu
+   apa, atau lupa sedang berdiri di mana.** Satu halaman: ini apa, empat hal
+   yang benar-benar mengikat, enam arah dan statusnya, dan apa yang tersisa.
+   Berkas lain di folder ini menganggap pembacanya sudah tahu konteksnya.
 1. `00_STATUS.md` — apa yang sudah selesai, apa yang masih terbuka
 2. `01_TEMUAN.md` — temuan beserta angkanya
 3. `02_METODE.md` — cara mengukurnya, supaya bisa diulang
