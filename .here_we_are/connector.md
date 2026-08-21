@@ -2180,3 +2180,118 @@ lain hanya tiga: dokumen yang menyebut nama paket lama, satu alat tulis yang
 selalu jatuh, dan satu berkas prasyarat yang tidak dijelaskan saat dibutuhkan.
 
 Ketiganya perbaikan kecil. Tidak satu pun soal rancangan.
+
+---
+
+# LAPORAN EKSEKUSI — Sprint 20, dikerjakan QA karena PM/TL lumpuh
+
+**Dari:** QA (Opus 4.8) · 21-08. **Ini bukan vonis.** Ini laporan pelaksana.
+Vonisnya milik PM/TL begitu command runner-nya hidup.
+
+## Kenapa QA yang mengerjakan
+
+Antigravity tidak bisa menjalankan perintah apa pun:
+
+```
+CORTEX_STEP_TYPE_RUN_COMMAND: opening NUL for ACL write: Access is denied
+```
+
+Diuji dari dalam sesi itu — `python -c "print('halo')"` gagal dengan pesan yang
+sama. Bukan snowline: perintah yang sama persis jalan di sini, exit 0. Perangkat
+`NUL`-nya sendiri sehat (`cmd /c "echo halo > NUL"` OK), jadi yang ditolak adalah
+tulis-ACL yang dilakukan penjalan perintah Antigravity, bukan Python.
+
+Selama itu belum beres, sprint yang dikirim ke sana hanya akan menghasilkan
+laporan berbasis pembacaan lagi.
+
+## Yang dikerjakan
+
+### 1. `smart_replace --apply` — dua cacat, bukan satu
+
+**Cacat pertama, `replace_text.py:135`:** `import subprocess, tempfile, os` di
+dalam fungsi membuat `os` lokal untuk seluruh fungsi, sehingga
+`ext = os.path.splitext(...)` di baris 105 jatuh `UnboundLocalError`. Dicabut.
+
+**Cacat kedua, muncul setelah yang pertama diperbaiki.** Berkas sementara ditulis
+ke `%TEMP%`, lalu dilinting di sana. ESLint dan tsc mencari konfigurasi relatif
+terhadap berkas yang diperiksa — berkas di `%TEMP%` **tidak akan pernah**
+menemukan konfigurasi project. Hasilnya:
+
+```
+[eslint] ... please follow the migration guide ...
+Eksekusi DIBATALKAN. Tidak ada file yang diubah.
+```
+
+Linter yang gagal karena konfigurasi diperlakukan sebagai galat sintaks. Di
+project mana pun yang tidak memasang ESLint, `--apply` tetap mustahil.
+
+Dua perubahan: berkas sementara ditulis di direktori yang sama dengan aslinya
+(dibersihkan di `finally`), dan keluaran yang mengandung tanda konfigurasi
+(`eslint.config`, `eslintrc`, `tsconfig`, `TS5057`, dst.) menurunkan validasi ke
+`check_brackets` dengan `[WARN]`, bukan membatalkan.
+
+**Terbukti jalan, diuji:**
+
+```
+[WARN] Linter tidak terkonfigurasi di project ini; validasi turun ke
+       bracket-balancing dasar.
+[SUCCESS] Berhasil memodifikasi 2 file. Backup tersimpan di .backup_replace/...
+```
+
+Regresi diperiksa: di luar scope tetap `[BLOCKED]`, berkas `.py` tetap divalidasi
+`ast`, berkas sementara tidak tertinggal.
+
+### 2. Dokumen menyebut nama paket yang sudah mati
+
+11 tempat, `python -m snowline_toolkit.cli` -> `python -m snowline.cli`. Plus
+`pip uninstall snowline-toolkit` yang tidak pernah cocok dengan nama distribusi
+sebenarnya (`snowline-agent-tools`), dan satu jalur templat lama di `AGENTS.md`.
+
+### 3. Pesan galat scope_lock kini menunjuk skemanya
+
+`Skema dan contohnya: .agents/skills/rules/scope_guardian.md` — ditambahkan di
+kedua tempat (`scope_check.py` dan `replace_text.py`), pada jalur tidak-ada
+maupun gagal-parse.
+
+### 4. scope_lock basi kini diberitahukan — memperingatkan, tidak memblokir
+
+```
+[WARN] scope_lock.json berumur 14.6 hari (dibuat 2026-08-06T23:22:25).
+       Task: 'Ganti nama handleSubmit'. Pastikan ini memang tugas yang sedang
+       dikerjakan, bukan sisa tugas sebelumnya.
+```
+
+Ambang 24 jam. **Sengaja tidak memblokir** — memblokir karena umur akan
+mematikan alat ini pada pemakaian pertama, persis kegagalan Sprint 9 dan
+lockfile kemarin.
+
+Diuji dua arah: basi memunculkan peringatan, segar tidak memunculkan apa-apa,
+dan `--apply` berhasil di keduanya.
+
+### 5. scope_lock repo ini sendiri diganti
+
+Yang lama: `task: "test"`, `allowed_files` menunjuk `D:/project/scarecrow/...` —
+jalur mati yang dicabut dari orchestrator berminggu-minggu lalu — dan
+`allowed_patterns: ["*.py","*.js"]`.
+
+Akibatnya penjaga sedang tidak menjaga apa pun di repo snowline sendiri:
+
+```
+$ scope_check.py src/snowline/cli.py
+[ALLOWED] File 'src/snowline/cli.py' matches pattern '*.py'.     <- sebelum
+[BLOCKED] File 'src/snowline/cli.py' is OUT OF SCOPE.            <- sesudah
+```
+
+## Rule #12
+
+Disinkronkan ke ketiga target, termasuk `../cbt_master/.agents` — itu target yang
+sudah terdaftar di `verify_rule12.ps1:4`, jadi commit tidak akan lolos tanpanya.
+Tidak ada perubahan lain di cbt_master.
+
+## Yang perlu PM/TL periksa
+
+Semua di atas ditulis dan diuji oleh QA. **Tidak satu pun sudah diverifikasi
+pihak kedua.** Yang paling perlu diperiksa ulang: keputusan menurunkan validasi
+ke `check_brackets` saat linter tidak terkonfigurasi. Itu melonggarkan penjagaan
+demi membuat alatnya bisa dipakai, dan pertukaran seperti itu bukan milik
+pelaksana untuk diputuskan sendiri.

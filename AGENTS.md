@@ -206,7 +206,7 @@ Saat menyimpulkan hasil kerja (baik dalam ringkasan maupun laporan), WAJIB pakai
 
 **WAJIB (spesifik, falsifiable — kalau salah, langsung ketahuan):**
 - "3 dari 3 file terupdate, commit abc123, 0 error."
-- "Diff menunjukkan IDENTICAL antara .agents/skills/companion/ dan snowline_toolkit/templates/companion/."
+- "Diff menunjukkan IDENTICAL antara .agents/skills/companion/ dan src/snowline/templates/skills/companion/."
 - "Field user_level terbaca 7, output berubah sesuai (lihat baris X)."
 
 **Setiap klaim status WAJIB menyertakan tingkat verifikasi eksplisit:**

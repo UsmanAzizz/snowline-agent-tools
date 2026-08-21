@@ -65,6 +65,7 @@ def check_scope(pending_writes):
     # Fail-closed: no lock = BLOCK (security boundary, not workflow gate)
     if not os.path.exists(lock_file):
         print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
+        print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
 
     try:
@@ -72,7 +73,31 @@ def check_scope(pending_writes):
             scope_data = json.load(f)
     except Exception:
         print("[BLOCKED] Failed to parse scope_lock.json.")
+        print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
+
+    try:
+        from scope_guardian.scripts.scope_check import peringatan_kesegaran
+    except ImportError:
+        # Fallback, sama polanya dengan is_file_in_scope di atas: scope_guardian
+        # tidak selalu bisa diimpor dari lokasi pemanggilan.
+        def peringatan_kesegaran(scope_data, _maks_jam=24):
+            from datetime import datetime as _dt
+            dibuat = scope_data.get('created_at')
+            if not dibuat:
+                return ["scope_lock.json tidak punya 'created_at' — umurnya tidak bisa diperiksa."]
+            try:
+                umur = (_dt.now() - _dt.fromisoformat(dibuat)).total_seconds() / 3600
+            except (ValueError, TypeError):
+                return [f"'created_at' tidak terbaca: {dibuat!r}"]
+            if umur > _maks_jam:
+                return [f"scope_lock.json berumur {umur / 24:.1f} hari (dibuat {dibuat}). "
+                        f"Task: {scope_data.get('task', '?')!r}. Pastikan ini memang tugas "
+                        f"yang sedang dikerjakan, bukan sisa tugas sebelumnya."]
+            return []
+
+    for pesan in peringatan_kesegaran(scope_data):
+        print(f"[WARN] {pesan}")
 
     allowed_files = scope_data.get('allowed_files', [])
     allowed_patterns = scope_data.get('allowed_patterns', [])
@@ -132,8 +157,11 @@ def validate_syntax(filepath, content):
                 return False, f"Unclosed bracket '{top_char}' opened at line {line}"
             return True, None
 
-        import subprocess, tempfile, os
-        
+        # Jangan impor os di sini: itu membuat os jadi variabel lokal untuk
+        # seluruh fungsi, sehingga baris ext = os.path.splitext(...) di atas
+        # jatuh dengan UnboundLocalError sebelum sampai ke sini.
+        import subprocess, tempfile
+
         # Cek ketersediaan Linter
         linter_available = False
         linter_cmd = []
@@ -148,22 +176,44 @@ def validate_syntax(filepath, content):
             pass
             
         if linter_available:
-            with tempfile.NamedTemporaryFile(suffix=ext, delete=False, mode='w', encoding='utf-8') as f:
-                f.write(content)
-                temp_path = f.name
-            
+            # Tulis berkas sementara di direktori yang sama dengan aslinya. ESLint dan
+            # tsc mencari konfigurasi relatif terhadap berkas yang diperiksa; berkas di
+            # %TEMP% tidak akan pernah menemukan konfigurasi project.
+            induk = os.path.dirname(os.path.abspath(filepath)) or '.'
+            temp_path = os.path.join(induk, f".snowline_periksa_{os.getpid()}{ext}")
+
             try:
+                with open(temp_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
                 # Need shell=True on Windows for npx
                 cmd = linter_cmd + [temp_path]
                 result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
-                os.unlink(temp_path)
+                keluaran = f"{result.stdout.strip()}\n{result.stderr.strip()}".strip()
+
                 if result.returncode != 0:
-                    return False, f"Linter Syntax Error:\n{result.stdout.strip()}\n{result.stderr.strip()}"
+                    # Linter yang gagal karena konfigurasi tidak sedang menilai kode.
+                    # Memperlakukannya sebagai galat sintaks akan memblokir setiap
+                    # --apply di project yang tidak memasang ESLint/tsc.
+                    tanda_konfigurasi = (
+                        'configuration file', 'eslint.config', 'eslintrc',
+                        'migration-guide', 'no eslint configuration',
+                        'failed to load config', 'cannot read config',
+                        'tsconfig', 'ts5057', 'ts5058',
+                    )
+                    rendah = keluaran.lower()
+                    if any(t in rendah for t in tanda_konfigurasi):
+                        is_valid, err = check_brackets(content)
+                        if not is_valid:
+                            return False, err
+                        return True, ("[WARN] Linter tidak terkonfigurasi di project ini; "
+                                      "validasi turun ke bracket-balancing dasar.")
+                    return False, f"Linter Syntax Error:\n{keluaran}"
                 return True, None
             except Exception as e:
+                return False, f"Failed to run linter: {e}"
+            finally:
                 if os.path.exists(temp_path):
                     os.unlink(temp_path)
-                return False, f"Failed to run linter: {e}"
         else:
             is_valid, err = check_brackets(content)
             if not is_valid:

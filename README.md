@@ -27,12 +27,12 @@ pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git
 
 Initialize in your project:
 ```bash
-python -m snowline_toolkit.cli init --apply
+python -m snowline.cli init --apply
 ```
 
 To update after a fix has been pushed (regular `pip install` does not always refresh an already-installed package):
 ```bash
-pip uninstall snowline-toolkit -y
+pip uninstall snowline-agent-tools -y
 pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-reinstall --no-cache-dir
 ```
 
@@ -40,30 +40,30 @@ pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-r
 
 ### Status Check (Dual-Layer)
 ```bash
-python -m snowline_toolkit.cli status
+python -m snowline.cli status
 ```
 Checks both **package version** (Python package from GitHub) and **project layer** (`.agents/` skills from local templates) simultaneously. Shows actionable commands when updates are available.
 
 ### Reinstall
 ```bash
 # Restore from local package (dry-run)
-python -m snowline_toolkit.cli reinstall
+python -m snowline.cli reinstall
 
 # Execute reinstall from local package
-python -m snowline_toolkit.cli reinstall --apply
+python -m snowline.cli reinstall --apply
 
 # Download and apply latest version from GitHub (dry-run)
-python -m snowline_toolkit.cli reinstall --latest
+python -m snowline.cli reinstall --latest
 
 # Download latest from GitHub and execute reinstall
-python -m snowline_toolkit.cli reinstall --apply --latest
+python -m snowline.cli reinstall --apply --latest
 ```
 If the GitHub download fails, the local installation is left untouched.
 
 ### Init (with Force)
 ```bash
-python -m snowline_toolkit.cli init --apply
-python -m snowline_toolkit.cli init --apply --force  # overwrite existing skills
+python -m snowline.cli init --apply
+python -m snowline.cli init --apply --force  # overwrite existing skills
 ```
 Use `--force` to restore all skills from templates, overwriting any local modifications.
 

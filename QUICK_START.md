@@ -13,7 +13,7 @@ pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git
 
 # 2. Initialize project
 cd your-project-folder
-python -m snowline_toolkit.cli init --apply
+python -m snowline.cli init --apply
 
 # 3. Verify
 ls .agents/
@@ -99,7 +99,7 @@ pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git
 
 ### PATH not set
 ```bash
-python -m snowline_toolkit.cli path
+python -m snowline.cli path
 # Follow instructions to add to PATH
 ```
 

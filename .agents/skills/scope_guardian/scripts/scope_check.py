@@ -2,6 +2,39 @@ import sys
 import os
 import json
 import fnmatch
+from datetime import datetime
+
+# Umur maksimal scope_lock sebelum dianggap sisa tugas lama. Memperingatkan,
+# tidak memblokir: lock yang basi menyesatkan, tetapi memblokir karenanya akan
+# mematikan alat ini pada pemakaian pertama.
+MAX_UMUR_JAM = 24
+
+
+def peringatan_kesegaran(scope_data):
+    """Kembalikan daftar peringatan bila scope_lock tampak sisa tugas lama."""
+    peringatan = []
+    created_at = scope_data.get('created_at')
+
+    if not created_at:
+        peringatan.append(
+            "scope_lock.json tidak punya 'created_at' — umurnya tidak bisa diperiksa."
+        )
+        return peringatan
+
+    try:
+        umur_jam = (datetime.now() - datetime.fromisoformat(created_at)).total_seconds() / 3600
+    except (ValueError, TypeError):
+        peringatan.append(f"'created_at' tidak terbaca: {created_at!r}")
+        return peringatan
+
+    if umur_jam > MAX_UMUR_JAM:
+        peringatan.append(
+            f"scope_lock.json berumur {umur_jam / 24:.1f} hari (dibuat {created_at}). "
+            f"Task: {scope_data.get('task', '?')!r}. Pastikan ini memang tugas yang "
+            f"sedang dikerjakan, bukan sisa tugas sebelumnya."
+        )
+
+    return peringatan
 
 
 def is_file_in_scope(filepath, allowed_files, allowed_patterns):
@@ -37,15 +70,20 @@ def check_scope(target_file):
     
     if not os.path.exists(lock_file_path):
         print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
+        print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
-        
+
     try:
         with open(lock_file_path, 'r', encoding='utf-8') as f:
             scope_data = json.load(f)
     except Exception as e:
         print(f"[BLOCKED] Failed to parse scope_lock.json: {e}")
+        print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
-        
+
+    for pesan in peringatan_kesegaran(scope_data):
+        print(f"[WARN] {pesan}")
+
     task = scope_data.get('task', 'Unknown task')
     allowed_files = [f.replace('\\', '/') for f in scope_data.get('allowed_files', [])]
     allowed_patterns = scope_data.get('allowed_patterns', [])
