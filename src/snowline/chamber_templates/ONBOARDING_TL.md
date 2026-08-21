@@ -28,3 +28,15 @@ TL  -X- QA             tidak ada jalur langsung
 ## SELESAI
 Tulis hasilnya ke connector, lalu katakan "selesai — silakan sinyal PM".
 Tidak ada yang terjadi otomatis.
+
+## KALAU PINTU TERKUNCI
+
+Kalau `--apply` ditolak dengan:
+
+```
+[BLOCKED] Pseudocode untuk task ini belum disetujui user.
+```
+
+itu bukan galat. PM sengaja mengunci: entri ini menuntut usulan lebih dulu.
+Tulis rencanamu ke connector, lalu minta PM meninjau. Jangan mencari jalan
+lain untuk menulis.

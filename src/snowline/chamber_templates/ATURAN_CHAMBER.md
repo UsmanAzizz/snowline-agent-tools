@@ -88,6 +88,53 @@ Akibat sampingnya yang paling berharga: laporan yang malas langsung terasa.
 Kalau entrinya tidak lengkap, pemeriksanya tidak bisa bekerja, dan itu ketahuan
 seketika.
 
+## 4b. Kunci usulan — TL tidak bisa membangun sebelum mengusulkan
+
+Butir 4 menuntut entri memuat perintah dan keluaran. Butir ini menuntut sesuatu
+yang lebih awal: **usulan sebelum kode ditulis.** Bedanya, yang ini tidak
+diminta — ia dikunci.
+
+Mekanismenya sudah ada di snowline dan tinggal dipakai:
+
+```
+PM   tulis entri  +  buat .agents/task_state.json      ->  pintu terkunci
+TL   boleh membaca, memindai, mengusulkan              ->  tidak bisa menulis
+PM   setujui usulannya, hapus berkas itu               ->  pintu terbuka
+```
+
+Isi berkasnya:
+
+```json
+{"phase": "pseudocode_pending", "task": "<judul entri>"}
+```
+
+Selama berkas itu ada, setiap `--apply` ditolak:
+
+```
+[BLOCKED] Pseudocode untuk task ini belum disetujui user.
+Task: <judul entri>
+Minta user approve pseudocode dulu sebelum --apply bisa dijalankan.
+```
+
+Ditegakkan di `smart_replace/replace_text.py:22` (`check_task_state`), dan
+sudah diuji: dengan berkas itu `--apply` ditolak, tanpa berkas itu `--apply`
+berhasil.
+
+**Kenapa dikunci, bukan diminta.** Selama ini TL mengusulkan lebih dulu hanya
+ketika entri PM memintanya. Aturan yang bergantung pada seseorang mengingat
+untuk memintanya bukan aturan — itu kebiasaan, dan kebiasaan patah saat
+tergesa.
+
+**Batasnya, dan ini harus diketahui sejak awal:** gerbang ini hanya menahan
+alat tulis snowline. Kalau agen memakai editor bawaan harness-nya, ia lewat
+begitu saja. Untuk menutup itu perlu hook di sisi harness, dan itu di luar
+jangkauan berkas ini. Jangan memperlakukan kunci ini sebagai jaminan; ia
+menahan jalur yang lewat snowline, tidak lebih.
+
+**Kapan dipakai:** untuk entri yang membangun sesuatu. Untuk perbaikan yang
+letaknya sudah jelas dan bukti kerusakannya sudah ditempel PM, mengunci hanya
+menambah putaran.
+
 ## 5. Siapa yang menutup
 
 QA memvonis PASS / REJECT / TIDAK BISA DIUJI. TL tidak bisa menutup tugas tanpa

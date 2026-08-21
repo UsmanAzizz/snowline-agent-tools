@@ -29,3 +29,21 @@ yang tidak berdasar tanpa kamu perlu membaca satu baris kode.
 ## LANGKAH PERTAMA
 1. `.agents/chamber/KEADAAN.md` — posisi sekarang.
 2. `.agents/chamber/ATURAN_CHAMBER.md` — aturan yang berlaku.
+
+## MENGUNCI USULAN (untuk entri yang membangun)
+
+Sebelum melempar entri yang menyuruh TL membangun sesuatu, buat berkas ini:
+
+```json
+.agents/task_state.json
+{"phase": "pseudocode_pending", "task": "<judul entri>"}
+```
+
+Selama berkas itu ada, TL **tidak bisa** menulis lewat alat snowline — ia hanya
+bisa membaca, memindai, dan mengusulkan. Setelah usulannya Anda setujui, hapus
+berkas itu.
+
+Ini bukan permintaan yang diulang tiap kali. Ini kunci.
+
+Untuk entri perbaikan yang letaknya sudah jelas, tidak perlu dikunci — hanya
+menambah putaran.
