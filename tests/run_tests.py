@@ -12,8 +12,12 @@ from pathlib import Path
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Skill hidup di src/snowline/templates/skills/ sejak paket dipindah dari
+# snowline_toolkit ke snowline. Jalur lama membuat runner ini mati diam-diam.
+AKAR = Path(__file__).parent.parent
+SKILLS = AKAR / "src" / "snowline" / "templates" / "skills"
+sys.path.insert(0, str(AKAR))
+sys.path.insert(0, str(SKILLS))
 
 from tree_gen.tree_gen import (
     parse_gitignore,
@@ -22,6 +26,7 @@ from tree_gen.tree_gen import (
     generate_simple_tree,
     get_tree_stats
 )
+from test_smart_replace_apply import DAFTAR as UJI_SMART_REPLACE
 
 class TestRunner:
     def __init__(self):
@@ -159,6 +164,10 @@ def main():
     ]
 
     for name, test in tests:
+        runner.run(name, test)
+
+    print("Testing smart_replace --apply...")
+    for name, test in UJI_SMART_REPLACE:
         runner.run(name, test)
 
     success = runner.summary()
