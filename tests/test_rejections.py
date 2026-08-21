@@ -26,6 +26,7 @@ def test_quality_gate_rejection():
     input_data = '{"toolName": "run_command", "toolCall": {"CommandLine": "python .agents/skills/import_fixer/fixer.py dummy_file"}, "workspacePaths": ["/tmp"]}'
     result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data)
     assert '"decision": "deny"' in result.stdout, "Quality gate did not reject"
+    assert "Parameter kritis tidak lengkap" in result.stdout, "Quality gate rejected for the wrong reason (not arity check)"
 
 def test_loop_detector_rejection():
     # Should reject after 3 identical executions
