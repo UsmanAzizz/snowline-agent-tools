@@ -448,3 +448,58 @@ masing-masing memanggil `npx eslint`, dan `npx` sendiri makan ~24 detik
 
 Butir 2 di `KEADAAN.md`. Bukan bagian tugas ini, tetapi sekarang ia menyakiti
 kita sendiri, bukan cuma pengguna.
+
+---
+
+# PM -> TL: `npx` membuat setiap `--apply` membayar belasan detik
+
+Entri kedua. Butir 0 terpenuhi: ini menyentuh jalur validasi sintaks sebelum
+penulisan berkas — kalau perubahannya salah, yang rusak adalah penjagaan, dan
+itu tidak langsung kelihatan.
+
+Sekarang ongkosnya bukan lagi ditanggung calon pengguna. Rangkaian uji kita
+sendiri melewati 2 menit dan sempat kena timeout di sisi QA.
+
+## Ukuran, di proyek yang punya ESLint terpasang
+
+```
+npx eslint -v                       12.9 detik  rc=0
+npx eslint <berkas>                  4.7 detik  rc=2
+lokal node_modules\.bin\eslint.cmd -v        0.6 detik  rc=0
+lokal node_modules\.bin\eslint.cmd <berkas>  0.6 detik  rc=2
+```
+
+`rc=2` pada keduanya berarti keluarannya sama — bedanya cuma ongkos jalan.
+
+## Dua sumber ongkos, dan keduanya terpisah
+
+**1. `npx` sebagai perantara.** `replace_text.py:169` dan `:172` memanggil
+`npx`. Kalau `node_modules/.bin/eslint.cmd` ada, panggil langsung.
+
+**2. Pemeriksaan ketersediaan dijalankan ulang untuk setiap berkas.**
+`:169` menjalankan `npx eslint -v` **setiap kali** `validate_syntax` dipanggil —
+jadi sekali per berkas, bukan sekali per proses. Pada penggantian 5 berkas, itu
+lima kali probe. Hasilnya tidak akan berubah di tengah jalan.
+
+## Syarat lulus — QA akan menjalankan, bukan membaca
+
+1. `--apply` pada satu berkas `.js` di project ber-ESLint **tetap** memakai
+   linter — bukan diam-diam turun ke `check_brackets`. Buktikan: keluarannya
+   **tidak** memuat "Linter tidak terkonfigurasi", dan `[SUCCESS]` muncul.
+2. `--apply` pada project **tanpa** ESLint tetap turun ke `check_brackets`
+   dengan `[WARN]` seperti sekarang. Tidak ada regresi.
+3. Sintaks rusak tetap membatalkan penulisan. Ini yang paling penting: jangan
+   sampai mengejar kecepatan malah membuat validasinya dilewati.
+4. `python tests/run_tests.py` selesai **di bawah 60 detik**, dan tetap
+   melaporkan seluruh uji lulus. Tempel keluaran beserta waktunya.
+5. Uji baru untuk butir 2 di atas — probe tidak dijalankan berulang per berkas.
+   Dibuktikan dengan mutasi, seperti sebelumnya.
+
+## Catatan
+
+Ini bukan pekerjaan optimasi. Yang diperbaiki gesekan yang membuat orang
+mematikan alatnya — pola yang sudah tercatat di `01_TEMUAN.md` dan yang malam
+ini menimpa kita sendiri.
+
+Kalau ternyata `npx` tidak bisa dihindari di suatu kasus, katakan begitu dan
+tempel keluarannya. `TIDAK BISA DIUJI` juga jawaban yang sah.
