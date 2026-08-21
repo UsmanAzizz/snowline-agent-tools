@@ -521,13 +521,14 @@ def main():
         print("\n[INFO] Melakukan validasi syntax pada file yang akan diubah...")
         for fp, old_content, new_content in pending_writes:
             is_valid, msg = validate_syntax(fp, new_content)
+            display_name = os.path.basename(fp) if os.path.isfile(args.target_dir) else os.path.relpath(fp, args.target_dir)
             if not is_valid:
-                print(f"\n[BLOCKED] Syntax validation failed in {os.path.relpath(fp, args.target_dir)}")
+                print(f"\n[BLOCKED] Syntax validation failed in {display_name}")
                 print(msg)
                 print("Eksekusi DIBATALKAN. Tidak ada file yang diubah.")
                 sys.exit(1)
             elif msg:
-                print(f"  - {os.path.relpath(fp, args.target_dir)}: {msg}")
+                print(f"  - {display_name}: {msg}")
         print("[OK] Validasi syntax lolos.")
 
         # Tampilkan diff untuk setiap file
