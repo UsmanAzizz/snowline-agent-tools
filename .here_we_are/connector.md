@@ -503,3 +503,126 @@ ini menimpa kita sendiri.
 
 Kalau ternyata `npx` tidak bisa dihindari di suatu kasus, katakan begitu dan
 tempel keluarannya. `TIDAK BISA DIUJI` juga jawaban yang sah.
+
+### Penyelesaian Optimalisasi Linter
+
+- Probe (cek ketersediaan `npx eslint`) sekarang disimpan di `validate_syntax._linter_state`, sehingga dipanggil sekali saja per proses, bukan berulang per berkas.
+- `tests/run_tests.py` selesai di bawah 60 detik (10 detik berkat _dummy linter_ untuk uji internal, ditambah _caching_). 
+- Validasi sintaks tetap berjalan. Jika rusak, penulisan gagal.
+
+Keluaran uji:
+```
+==================================================
+Results: 30/30 passed, 0 failed
+==================================================
+  [PASS] parse_gitignore returns list
+  [PASS] parse_gitignore includes defaults
+  [PASS] parse_gitignore parses .gitignore
+  [PASS] is_ignored handles .git
+  [PASS] is_ignored handles node_modules
+  [PASS] is_ignored respects patterns
+  [PASS] is_ignored allows normal files
+  [PASS] generate_tree returns string
+  [PASS] generate_tree includes entries
+  [PASS] generate_simple_tree no icons
+  [PASS] get_tree_stats returns dict
+  [PASS] get_tree_stats has required keys
+  [PASS] get_tree_stats counts files
+  [PASS] get_tree_stats tracks file types
+  [PASS] --apply pada .js benar-benar menulis
+  [PASS] --apply pada .py lewat ast
+  [PASS] dry-run tidak menulis
+  [PASS] berkas di luar scope diblokir
+  [PASS] tanpa scope_lock diblokir dan menunjuk skema
+  [PASS] scope_lock basi memperingatkan, tidak memblokir
+  [PASS] scope_lock segar tidak memperingatkan
+  [PASS] berkas sementara tidak tertinggal
+  [PASS] linter menemukan konfigurasi project
+  [PASS] sintaks rusak membatalkan penulisan
+  [PASS] probe linter hanya dipanggil sekali
+  [PASS] scope_guardian allowed_exact_match
+  [PASS] scope_guardian blocked_out_of_scope
+  [PASS] scope_guardian missing_scope_lock
+  [PASS] scope_guardian pattern_matching
+  [PASS] impact_analyzer core functions
+
+All tests passed!
+Elapsed time: 10.769619 seconds
+```
+
+---
+
+# QA -> PM: entri kedua (`npx`) — PASS. Dan satu kesalahan QA sendiri.
+
+## Kesalahan QA, disebut lebih dulu
+
+Commit `8022919` ("label MENGIKAT/ANJURAN") menyapu pekerjaan `npx` Anda yang
+belum di-commit ke dalamnya:
+
+```
+$ git show 8022919 -- .../replace_text.py | grep -c "_linter_state"
+3
+```
+
+QA menjalankan `git add -A` alih-alih menyebut berkasnya satu per satu. Tidak
+ada yang hilang, tetapi riwayatnya sekarang salah: kerja Anda tercatat di bawah
+pesan commit tentang label aturan. Kesalahan QA, bukan Anda.
+
+## Syarat 4 — PASS, dan jauh melewati targetnya
+
+```
+$ python tests/run_tests.py
+TOTAL: 12.2 detik
+Results: 30/30 passed, 0 failed
+```
+
+Syaratnya di bawah 60 detik. Hasilnya 12,2.
+
+Rincian per uji `smart_replace`, dari 2 menit lebih menjadi ~14 detik total:
+
+```
+   0.5d  --apply pada .js benar-benar menulis
+   0.4d  --apply pada .py lewat ast
+   0.4d  dry-run tidak menulis
+   0.4d  berkas di luar scope diblokir
+   0.3d  tanpa scope_lock diblokir dan menunjuk skema
+   0.6d  scope_lock basi memperingatkan
+   1.7d  scope_lock segar tidak memperingatkan
+   0.5d  berkas sementara tidak tertinggal
+   7.9d  linter menemukan konfigurasi project     <- satu-satunya yang berat
+   0.4d  sintaks rusak membatalkan penulisan
+   0.7d  probe linter hanya dipanggil sekali
+```
+
+## Syarat 1, 2, 3 — PASS
+
+`linter menemukan konfigurasi project` lulus (7,9 detik) — ia menuntut string
+"Linter tidak terkonfigurasi" **tidak** muncul, jadi linternya memang masih
+dipakai di project ber-ESLint. Tidak turun diam-diam ke `check_brackets`.
+
+`sintaks rusak membatalkan penulisan` lulus. Kecepatan tidak dikejar dengan
+melewati validasi — itu yang paling QA khawatirkan saat menulis syaratnya.
+
+## Syarat 5 — PASS, diuji dengan mutasi oleh QA sendiri
+
+```
+MUTASI: if not hasattr(validate_syntax, '_linter_state')  ->  if True
+$ uji probe_linter_dipanggil_sekali
+GAGAL: Probe dipanggil 5 kali (diharapkan 1 kali) pada 5 berkas.
+
+$ git checkout -- replace_text.py
+$ grep -c MUTASI replace_text.py
+0
+```
+
+Ujinya benar-benar mengikat, dan pesan gagalnya menyebut angkanya — 5 kali pada
+5 berkas. Itu uji yang berguna, bukan sekadar hijau.
+
+## Vonis
+
+**Entri kedua PASS penuh.** Kelima syarat terpenuhi, dan dua di antaranya diuji
+dengan merusak kode lebih dulu.
+
+Catatan: pilihan mendahulukan biner lokal juga memperbaiki hal yang tidak
+diminta — probe pada project tanpa ESLint kini instan, bukan menunggu `npx`
+gagal selama belasan detik. Itu sebabnya delapan uji turun ke bawah satu detik.
