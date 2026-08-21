@@ -207,6 +207,18 @@ def test_linter_menemukan_konfigurasi_project():
         assert "[SUCCESS]" in h.stdout, f"tidak ada [SUCCESS]:\n{h.stdout}"
 
 
+def test_nama_berkas_tercetak_benar_pada_target_tunggal():
+    """Saat target berupa berkas (bukan direktori), namanya harus tercetak.
+
+    `os.path.relpath(berkas, berkas)` menghasilkan "." — jadi laporan validasi
+    dulu menyebut berkasnya sebagai titik, bukan namanya.
+    """
+    with ProyekUji({"satu.js": JS_SATU_BARIS}) as p:
+        h = p.jalankan("satu.js", "namaLama", "namaBaru", "--apply")
+        assert "  - .:" not in h.stdout, f"nama berkas tercetak sebagai titik:\n{h.stdout}"
+        assert "[SUCCESS]" in h.stdout, f"tidak ada [SUCCESS]:\n{h.stdout}"
+
+
 def test_sintaks_rusak_membatalkan_penulisan():
     """Penggantian yang merusak kurung harus ditolak, berkas tetap utuh."""
     asli = "function a() {\n  return 1;\n}\n"
@@ -240,6 +252,7 @@ DAFTAR = [
     ("scope_lock segar tidak memperingatkan", test_scope_lock_segar_tidak_memperingatkan),
     ("berkas sementara tidak tertinggal", test_berkas_sementara_tidak_tertinggal),
     ("linter menemukan konfigurasi project", test_linter_menemukan_konfigurasi_project),
+    ("nama berkas benar pada target tunggal", test_nama_berkas_tercetak_benar_pada_target_tunggal),
     ("sintaks rusak membatalkan penulisan", test_sintaks_rusak_membatalkan_penulisan),
     ("probe linter hanya dipanggil sekali", test_probe_linter_dipanggil_sekali),
 ]

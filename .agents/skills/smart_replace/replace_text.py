@@ -113,17 +113,24 @@ def check_scope(pending_writes):
             sys.exit(1)
 
 def find_project_root(start_path):
-    current = os.path.abspath(start_path)
+    # Kalau target berupa berkas, naik ke direktorinya dulu — termasuk pada
+    # kedua jalur kembali di bawah. Tanpa ini, backup_dir menjadi
+    # "<berkas>/.backup_replace" dan SETIAP --apply pada target berkas-tunggal
+    # jatuh dengan FileNotFoundError saat mencadangkan, tanpa pesan di stdout.
+    awal = os.path.abspath(start_path)
+    if os.path.isfile(awal):
+        awal = os.path.dirname(awal)
+    current = awal
     start_drive = os.path.splitdrive(current)[0]
     while True:
         if os.path.exists(os.path.join(current, 'package.json')) or os.path.exists(os.path.join(current, '.git')):
             return current
         parent = os.path.dirname(current)
         if parent == current:
-            return os.path.abspath(start_path)
+            return awal
         current_drive = os.path.splitdrive(parent)[0]
         if current_drive != start_drive:
-            return os.path.abspath(start_path)
+            return awal
         current = parent
 
 def validate_syntax(filepath, content):
