@@ -41,6 +41,39 @@ class ProyekUji:
             with open(jalur, "w", encoding="utf-8") as f:
                 f.write(isi)
 
+        # Buat dummy linter untuk mempercepat pengujian (melewati npx yang lambat)
+        dummy_linter_dir = os.path.join(self.dir, "node_modules", ".bin")
+        os.makedirs(dummy_linter_dir, exist_ok=True)
+        dummy_linter_path = os.path.join(dummy_linter_dir, "eslint.cmd" if sys.platform == "win32" else "eslint")
+        
+        dummy_script = """@echo off
+if "%~1"=="-v" (
+    echo v8.0.0
+    exit /b 0
+)
+if exist "eslint.config.mjs" (
+    exit /b 0
+) else (
+    echo failed to load config
+    exit /b 1
+)
+""" if sys.platform == "win32" else """#!/bin/sh
+if [ "$1" = "-v" ]; then
+    echo "v8.0.0"
+    exit 0
+fi
+if [ -f "eslint.config.mjs" ]; then
+    exit 0
+else
+    echo "failed to load config"
+    exit 1
+fi
+"""
+        with open(dummy_linter_path, "w", encoding="utf-8") as f:
+            f.write(dummy_script)
+        if sys.platform != "win32":
+            os.chmod(dummy_linter_path, 0o755)
+
         if self.dengan_lock:
             os.makedirs(os.path.join(self.dir, ".agents"), exist_ok=True)
             lock = {
