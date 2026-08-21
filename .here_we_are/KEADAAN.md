@@ -3,7 +3,7 @@
 **Berkas ini ditimpa, tidak ditambah.** Riwayat ada di `connector.md`.
 Siapa pun yang mengubah sesuatu, memperbarui berkas ini di giliran yang sama.
 
-Diperbarui: 21 Agustus 2026 · commit `2c24e07` · 0 belum commit, 0 belum push
+Diperbarui: 21 Agustus 2026 · commit `2b49585` · 0 belum commit, 0 belum push
 
 ---
 
@@ -12,7 +12,8 @@ Diperbarui: 21 Agustus 2026 · commit `2c24e07` · 0 belum commit, 0 belum push
 ```
 companion       tunggakan terbuka       0          tutup
 chamber         kode di pohon git       0 berkas   protokol, bukan program
-tools           berujii                 2 / 22     tree_gen, smart_replace
+tools           berujii                 4 / 22     tree_gen, smart_replace,
+                                                   scope_guardian, impact_analyzer
 undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
                 mengikat lewat kode     4 gerbang  lihat RULE 0 di agents.md
 ```
@@ -39,15 +40,15 @@ hook               transkrip Antigravity 5330ddf5 menunjukkan penolakan nyata
 ## Terbuka
 
 ```
-1  impact_analyzer   "Safe to modify/delete" untuk berkas Python yang dipakai
-                     pola menuntut kutip (sintaks JS); Python tanpa kutip
-                     -> satu-satunya yang bukan kosmetik
-2  npx               24 detik per --apply; biner lokal 5 detik
-3  uji               20 perkakas belum punya satu uji pun
-4  context_mapper    menghasilkan pohon direktori, bukan peta arsitektur
-5  :529 relpath      nama berkas tercetak "." pada target berkas-tunggal
-6  verify_rule12     CRLF vs LF terbaca sebagai pelanggaran isi
-7  CI                belum ada
+1  uji               18 perkakas belum punya satu uji pun
+2  context_mapper    menghasilkan pohon direktori, bukan peta arsitektur
+3  :529 relpath      nama berkas tercetak "." pada target berkas-tunggal
+4  verify_rule12     CRLF vs LF terbaca sebagai pelanggaran isi
+5  CI                belum ada
+
+TUTUP 21-08 lewat chamber:
+   impact_analyzer   entri 1 - negatif palsu Python, .backup_replace, --depth
+   npx               entri 2 - suite 2 menit -> 12,2 detik
 ```
 
 Di luar jangkauan repo: dua kunci Groq dan GCP **belum dicabut**.
@@ -80,7 +81,9 @@ ini salah, apakah langsung kelihatan?* Kelihatan seketika, kerjakan biasa; baru
 ketahuan nanti, lewat chamber.
 
 Belum diuji: apakah subagent Antigravity benar-benar berkonteks bersih.
-Belum dipakai: nol entri lewat aturan baru.
+**Dipakai 21-08: dua entri, dua-duanya tutup.** Aturannya menahan sesuatu yang
+nyata di keduanya — entri 1 menangkap uji yatim yang tidak ikut terjalan, entri
+2 menuntut bukti mutasi yang ternyata bekerja.
 
 ## Cara memeriksa berkas ini
 
