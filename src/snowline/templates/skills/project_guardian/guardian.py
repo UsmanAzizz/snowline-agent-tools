@@ -99,6 +99,7 @@ def scan_secrets():
                                     'issue': desc,
                                     'snippet': line.strip()[:100]
                                 })
+                                break
             except UnicodeDecodeError: pass
     return findings
 
@@ -433,7 +434,7 @@ def main():
     if args.json:
         # JSON output (machine-readable)
         result = {
-            'status': 'FAIL' if total_fails > 0 else 'PASS',
+            'status': 'FAIL' if all_findings['CRITICAL_COUNT'] > 0 else 'PASS',
             'summary': {
                 'critical': all_findings['CRITICAL_COUNT'],
                 'high': all_findings['HIGH_COUNT'],

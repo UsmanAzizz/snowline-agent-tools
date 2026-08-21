@@ -90,7 +90,7 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 
 **Verified working with:** Claude Code (reliably auto-invoked per `.agents/agents.md` instructions) and Gemini/Antigravity (works when instructions are present in `agents.md`, though tool-call approval behavior varies by platform/IDE settings and is outside this project's control).
 
-## Tools (15 Core)
+## Tools (22 Core)
 
 <table>
 <thead>
