@@ -10,7 +10,7 @@ import time
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history', '.venv'}
+exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history', '.venv', 'scratch'}
 js_py_exts = {'.js', '.jsx', '.ts', '.tsx', '.py'}
 test_extensions = ('.test.js', '.test.jsx', '.test.ts', '.test.tsx',
                    '.spec.js', '.spec.jsx', '.spec.ts', '.spec.tsx', '.test.py')
@@ -231,8 +231,14 @@ def check_physical_imports():
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
+                
+                # Strip comments but preserve newlines for accurate line numbers
+                clean_content = re.sub(r'//.*', lambda m: ' ' * len(m.group(0)), content)
+                clean_content = re.sub(r'#.*', lambda m: ' ' * len(m.group(0)), clean_content)
+                clean_content = re.sub(r'/\*.*?\*/', lambda m: ''.join('\n' if c == '\n' else ' ' for c in m.group(0)), clean_content, flags=re.DOTALL)
+
                 # Find all imports (single or multi-line) with line number
-                for match in import_pattern.finditer(content):
+                for match in import_pattern.finditer(clean_content):
                     import_str = match.group(1)
                     if import_str.startswith('.'):
                         dir_path = os.path.dirname(filepath)
@@ -287,7 +293,12 @@ def check_dependencies():
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
-                for match in import_pattern.findall(content):
+                    
+                clean_content = re.sub(r'//.*', lambda m: ' ' * len(m.group(0)), content)
+                clean_content = re.sub(r'#.*', lambda m: ' ' * len(m.group(0)), clean_content)
+                clean_content = re.sub(r'/\*.*?\*/', lambda m: ''.join('\n' if c == '\n' else ' ' for c in m.group(0)), clean_content, flags=re.DOTALL)
+
+                for match in import_pattern.findall(clean_content):
                     pkg_name = match.split('/')[0]
                     if pkg_name.startswith('@'):
                         parts = match.split('/')

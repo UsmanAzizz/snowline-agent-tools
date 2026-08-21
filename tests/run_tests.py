@@ -30,6 +30,8 @@ from test_smart_replace_apply import DAFTAR as UJI_SMART_REPLACE
 import test_scope_guardian
 from test_impact_analyzer import test_impact_analysis
 import test_context_mapper
+import test_rejections
+
 class TestRunner:
     def __init__(self):
         self.passed = 0
@@ -184,6 +186,14 @@ def main():
 
     print("Testing context_mapper...")
     runner.run("context_mapper open_source_agents", test_context_mapper.test_context_mapper_open_source_agents)
+
+    print("Testing rejections (Entry 6)...")
+    runner.run("rejection project_guardian", test_rejections.test_project_guardian_rejection)
+    runner.run("rejection quality_gate", test_rejections.test_quality_gate_rejection)
+    runner.run("rejection loop_detector", test_rejections.test_loop_detector_rejection)
+    runner.run("rejection rollback_enforcer", test_rejections.test_rollback_enforcer_rejection)
+    runner.run("rejection auto_scaffolder", test_rejections.test_auto_scaffolder_rejection)
+    runner.run("rejection import_fixer", test_rejections.test_import_fixer_rejection)
 
     success = runner.summary()
 

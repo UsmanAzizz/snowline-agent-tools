@@ -25,10 +25,17 @@ foreach ($targetBase in $targets) {
             continue
         }
 
+        function Get-NormalizedHash($path) {
+            $content = [System.IO.File]::ReadAllText($path).Replace("`r`n", "`n")
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
+            $hash = [System.Security.Cryptography.MD5]::Create().ComputeHash($bytes)
+            return [System.BitConverter]::ToString($hash).Replace("-", "").ToLower()
+        }
+
         # If it's a file (hooks.json)
         if ((Get-Item $sourcePath) -is [System.IO.FileInfo]) {
-            $sHash = (Get-FileHash $sourcePath).Hash
-            $tHash = (Get-FileHash $targetPath).Hash
+            $sHash = Get-NormalizedHash $sourcePath
+            $tHash = Get-NormalizedHash $targetPath
             if ($sHash -ne $tHash) {
                 Write-Host "ERROR: File divergence $item in $targetBase"
                 $hasError = $true
@@ -43,13 +50,13 @@ foreach ($targetBase in $targets) {
         $sDict = @{}
         foreach ($f in $sFiles) {
             $rel = $f.FullName.Substring((Resolve-Path $sourcePath).Path.Length + 1)
-            $sDict[$rel] = (Get-FileHash $f.FullName).Hash
+            $sDict[$rel] = Get-NormalizedHash $f.FullName
         }
 
         $tDict = @{}
         foreach ($f in $tFiles) {
             $rel = $f.FullName.Substring((Resolve-Path $targetPath).Path.Length + 1)
-            $tDict[$rel] = (Get-FileHash $f.FullName).Hash
+            $tDict[$rel] = Get-NormalizedHash $f.FullName
         }
 
         $allKeys = $sDict.Keys + $tDict.Keys | Sort-Object -Unique
