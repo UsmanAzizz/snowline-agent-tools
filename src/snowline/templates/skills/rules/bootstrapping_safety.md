@@ -1,3 +1,12 @@
+<!-- Label ini menjawab satu pertanyaan: kalau aturan ini dilanggar, apakah
+     ada yang menahan? MENGIKAT = ditolak oleh kode. ANJURAN = tidak ada yang
+     menahan, dan pelanggarannya tidak terdeteksi. Jangan disamakan. -->
+
+> **ANJURAN** — tidak ada kode yang menahannya. Isinya kewaspadaan, bukan
+> gerbang: perkakas yang memeriksa dirinya sendiri bisa buta pada cacatnya
+> sendiri. Yang menahan risiko itu bukan berkas ini, melainkan uji di `tests/`
+> dan pemeriksa kedua di chamber.
+
 # Bootstrapping Safety (Self-Improvement)
 
 ## Konteks

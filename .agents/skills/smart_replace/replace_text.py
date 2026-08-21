@@ -162,18 +162,41 @@ def validate_syntax(filepath, content):
         # jatuh dengan UnboundLocalError sebelum sampai ke sini.
         import subprocess, tempfile
 
-        # Cek ketersediaan Linter
-        linter_available = False
-        linter_cmd = []
-        try:
-            if subprocess.run(['npx', 'eslint', '-v'], capture_output=True, shell=True).returncode == 0:
-                linter_available = True
-                linter_cmd = ['npx', 'eslint', '--quiet']
-            elif subprocess.run(['npx', 'tsc', '-v'], capture_output=True, shell=True).returncode == 0:
-                linter_available = True
-                linter_cmd = ['npx', 'tsc', '--noEmit']
-        except Exception:
-            pass
+        if not hasattr(validate_syntax, '_linter_state'):
+            # Baris ini diamati oleh test_smart_replace_apply.py untuk memastikan
+            # probing hanya terjadi satu kali per proses.
+            print("[DEBUG] Melakukan probe linter lokal/npx...")
+            linter_available = False
+            linter_cmd = []
+            
+            # Prioritaskan linter lokal
+            local_eslint = os.path.join(os.getcwd(), 'node_modules', '.bin', 'eslint')
+            if sys.platform == 'win32':
+                local_eslint += '.cmd'
+                
+            if os.path.exists(local_eslint):
+                try:
+                    if subprocess.run([local_eslint, '-v'], capture_output=True).returncode == 0:
+                        linter_available = True
+                        linter_cmd = [local_eslint, '--quiet']
+                except Exception:
+                    pass
+            
+            # Fallback ke npx jika lokal tidak ditemukan
+            if not linter_available:
+                try:
+                    if subprocess.run(['npx', 'eslint', '-v'], capture_output=True, shell=True).returncode == 0:
+                        linter_available = True
+                        linter_cmd = ['npx', 'eslint', '--quiet']
+                    elif subprocess.run(['npx', 'tsc', '-v'], capture_output=True, shell=True).returncode == 0:
+                        linter_available = True
+                        linter_cmd = ['npx', 'tsc', '--noEmit']
+                except Exception:
+                    pass
+                    
+            validate_syntax._linter_state = (linter_available, linter_cmd)
+            
+        linter_available, linter_cmd = validate_syntax._linter_state
             
         if linter_available:
             # Tulis berkas sementara di direktori yang sama dengan aslinya. ESLint dan

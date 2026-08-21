@@ -183,6 +183,18 @@ def test_sintaks_rusak_membatalkan_penulisan():
             f"berkas berubah padahal sintaksnya rusak:\n{h.stdout}"
 
 
+def test_probe_linter_dipanggil_sekali():
+    """Probe (npx eslint -v) memakan waktu lama, harus dipanggil sekali saja walau mengubah banyak berkas."""
+    # Kita buat 5 berkas, dan semuanya diedit
+    berkas = {f"kode{i}.js": JS_SATU_BARIS for i in range(5)}
+    with ProyekUji(berkas) as p:
+        h = p.jalankan(".", "namaLama", "namaBaru", "--apply-validated")
+        assert "[SUCCESS]" in h.stdout, f"Gagal mengubah:\n{h.stdout}"
+        
+        # Harus ada tepat satu "[DEBUG] Melakukan probe linter lokal/npx..."
+        jumlah_probe = h.stdout.count("[DEBUG] Melakukan probe linter")
+        assert jumlah_probe == 1, f"Probe dipanggil {jumlah_probe} kali (diharapkan 1 kali) pada 5 berkas."
+
 DAFTAR = [
     ("--apply pada .js benar-benar menulis", test_apply_js_benar_benar_menulis),
     ("--apply pada .py lewat ast", test_apply_py_lewat_ast),
@@ -196,4 +208,5 @@ DAFTAR = [
     ("berkas sementara tidak tertinggal", test_berkas_sementara_tidak_tertinggal),
     ("linter menemukan konfigurasi project", test_linter_menemukan_konfigurasi_project),
     ("sintaks rusak membatalkan penulisan", test_sintaks_rusak_membatalkan_penulisan),
+    ("probe linter hanya dipanggil sekali", test_probe_linter_dipanggil_sekali),
 ]

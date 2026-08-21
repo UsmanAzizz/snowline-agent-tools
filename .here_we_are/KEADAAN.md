@@ -13,7 +13,8 @@ Diperbarui: 21 Agustus 2026 · commit `2c24e07` · 0 belum commit, 0 belum push
 companion       tunggakan terbuka       0          tutup
 chamber         kode di pohon git       0 berkas   protokol, bukan program
 tools           berujii                 2 / 22     tree_gen, smart_replace
-undang-undang   mengikat lewat kode     4 / 14     sisanya tulisan
+undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
+                mengikat lewat kode     4 gerbang  lihat RULE 0 di agents.md
 ```
 
 ## Empat yang mengikat

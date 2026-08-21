@@ -1,3 +1,10 @@
+<!-- Label ini menjawab satu pertanyaan: kalau aturan ini dilanggar, apakah
+     ada yang menahan? MENGIKAT = ditolak oleh kode. ANJURAN = tidak ada yang
+     menahan, dan pelanggarannya tidak terdeteksi. Jangan disamakan. -->
+
+> **ANJURAN** — tidak ada kode yang menahannya. Agen boleh melanggarnya dan
+> pelanggarannya tidak terdeteksi.
+
 ## ðŸ—£ï¸ Communication Efficiency
 
 **Language Handling**

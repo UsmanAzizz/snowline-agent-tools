@@ -2,6 +2,35 @@
 PROJECT RULES (SNOWLINE AGENT ECOSYSTEM)
 ================================================================
 
+## RULE 0 — WHICH RULES ACTUALLY BIND
+
+Not every rule here is enforced. Confusing the two is how rules get broken
+quietly and nobody notices. Each file in `.agents/skills/rules/` now carries a
+label at the top:
+
+```
+MENGIKAT   ditolak oleh kode          scope_guardian
+SEPARUH    sebagian ditegakkan        guardrail_compliance, plan_first,
+                                      tech_lead_disciplines
+ANJURAN    tidak ada yang menahan     bootstrapping_safety, communication,
+                                      session_control, tool_usage
+```
+
+Four gates actually refuse:
+
+```
+scope_lock.json     writing outside allowed_files       scope_check.py
+arity check         commands with missing arguments     hooks/quality_gate.py
+--apply             any write without the flag          each write tool
+risk Medium/High    apply without --apply-validated     replace_text.py:536
+```
+
+Breaking an ANJURAN rule is not detected by anything. That is not permission to
+break it — it is a statement of fact you should know when you weigh a shortcut
+under pressure.
+
+================================================================
+
 ## RULE 1 — CALL COMPANION WHEN THE CHOICE IS YOURS
 
     python .agents/skills/companion_cli.py "<instruction>"

@@ -1,3 +1,12 @@
+<!-- Label ini menjawab satu pertanyaan: kalau aturan ini dilanggar, apakah
+     ada yang menahan? MENGIKAT = ditolak oleh kode. ANJURAN = tidak ada yang
+     menahan, dan pelanggarannya tidak terdeteksi. Jangan disamakan. -->
+
+> **MENGIKAT** — ditegakkan di `scope_guardian/scripts/scope_check.py` dan
+> `smart_replace/replace_text.py:39` (`check_scope`). Berkas di luar
+> `allowed_files` **ditolak**, bukan sekadar diperingatkan. Tanpa
+> `scope_lock.json`, penulisan diblokir sama sekali (gagal-tertutup).
+
 ## Scope Guardian v2 â€” Hybrid Validation (MANDATORY)
 
 To prevent the agent from accidentally modifying files outside the context of the current task, you MUST follow this strict procedure:

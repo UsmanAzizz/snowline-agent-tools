@@ -1,3 +1,13 @@
+<!-- Label ini menjawab satu pertanyaan: kalau aturan ini dilanggar, apakah
+     ada yang menahan? MENGIKAT = ditolak oleh kode. ANJURAN = tidak ada yang
+     menahan, dan pelanggarannya tidak terdeteksi. Jangan disamakan. -->
+
+> **SEPARUH MENGIKAT.** Kalau `.agents/task_state.json` bertanda
+> `phase: pseudocode_pending`, `smart_replace/replace_text.py:22`
+> (`check_task_state`) **menolak** `--apply`. Selebihnya — satu tugas dalam
+> satu waktu, kontrak sebelum baris pertama — anjuran yang tidak terdeteksi
+> kalau dilanggar.
+
 ## One-Task-One-Time Protocol (Plan-First)
 
 **Problem Solved:**

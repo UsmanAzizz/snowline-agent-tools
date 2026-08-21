@@ -1,3 +1,10 @@
+<!-- Label ini menjawab satu pertanyaan: kalau aturan ini dilanggar, apakah
+     ada yang menahan? MENGIKAT = ditolak oleh kode. ANJURAN = tidak ada yang
+     menahan, dan pelanggarannya tidak terdeteksi. Jangan disamakan. -->
+
+> **ANJURAN** — tidak ada kode yang menahannya. END/CONTINUE/KILL bergantung
+> sepenuhnya pada kepatuhan agen.
+
 ## END, CONTINUE & KILL Command â€” Exit, Resume, and Abort Mechanism
 
 **Purpose:**

@@ -1,3 +1,11 @@
+<!-- Label ini menjawab satu pertanyaan: kalau aturan ini dilanggar, apakah
+     ada yang menahan? MENGIKAT = ditolak oleh kode. ANJURAN = tidak ada yang
+     menahan, dan pelanggarannya tidak terdeteksi. Jangan disamakan. -->
+
+> **ANJURAN** — tidak ada kode yang menahannya. Tidak ada yang memaksa
+> `selective_reader` dipanggil sebelum membaca berkas; kalau dilewati, tidak
+> ada yang tahu.
+
 ## ðŸ“– Mandatory Reading Protocol (Selective Reader)
 
 **Primary Rule**

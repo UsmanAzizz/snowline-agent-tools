@@ -1,3 +1,13 @@
+<!-- Label ini menjawab satu pertanyaan: kalau aturan ini dilanggar, apakah
+     ada yang menahan? MENGIKAT = ditolak oleh kode. ANJURAN = tidak ada yang
+     menahan, dan pelanggarannya tidak terdeteksi. Jangan disamakan. -->
+
+> **SEPARUH MENGIKAT.** Butir 1 dan 2 — dry-run sebagai bawaan dan `--apply`
+> untuk mengeksekusi — ditegakkan di tiap alat tulis (`replace_text.py`,
+> `scaffolder.py`, `fixer.py`, `context_mapper.py`). Butir 3, keharusan
+> menyertakan bukti live-test, **anjuran**: tidak ada kode yang menahan klaim
+> tanpa bukti. Yang menahannya syarat entri chamber, bukan berkas ini.
+
 ## Guardrail Compliance â€” Non-Negotiable
 
 Any new tool or modification to an existing tool MUST preserve the following guardrail principles, without exception:
