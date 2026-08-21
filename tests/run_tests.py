@@ -29,6 +29,7 @@ from tree_gen.tree_gen import (
 from test_smart_replace_apply import DAFTAR as UJI_SMART_REPLACE
 import test_scope_guardian
 from test_impact_analyzer import test_impact_analysis
+import test_context_mapper
 class TestRunner:
     def __init__(self):
         self.passed = 0
@@ -180,6 +181,10 @@ def main():
 
     print("Testing impact_analyzer...")
     runner.run("impact_analyzer core functions", test_impact_analysis)
+
+    print("Testing context_mapper...")
+    runner.run("context_mapper open_source_agents", test_context_mapper.test_context_mapper_open_source_agents)
+    runner.run("context_mapper performance 4311 files", test_context_mapper.test_context_mapper_performance_4311)
 
     success = runner.summary()
 

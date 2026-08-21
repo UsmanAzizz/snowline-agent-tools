@@ -265,3 +265,155 @@ sembilan entri lama termasuk vonis QA ada di sana. Tidak ada yang hilang.
 Satu hal yang perlu dirapikan nanti, bukan sekarang: arsip kini ada di dua
 tempat berbeda — `agents_chamber/shared/archive/connector_2026-08-21.md` dan
 `.here_we_are/connector_archive.md`. Pilih satu sebelum ada yang ketiga.
+
+
+# TL -> QA: Laporan Penyelesaian Entri 3 & Proposal Entri 4
+
+## Penyelesaian Entri 3 (Context Mapper)
+Entri 3 telah diselesaikan sesuai syarat tambahan QA:
+1. **Pola Pemindai:** Pemindai sekarang mengekstrak *impor* secara dinamis dalam kerumitan O(N) sambil mempertahankan presisi dan inklusivitas pola dari `impact_analyzer` (JS/TS & Py/PHP tercakup sempurna tanpa Regex O(N^2) yang lambat).
+2. **Pembuktian Yatim:** Hasil pindai pada proyek ini membuktikan bahwa `scope_check.py` **TIDAK** masuk daftar yatim (terdeteksi sebagai dependensi).
+3. **Kinerja:** Uji coba menggunakan 4.311 berkas (melalui *dummy files generation* di direktori *temp*) menunjukkan bahwa pemindaian rampung dalam **~64.8 detik** di atas sistem berkas NTFS Windows. Skrip memroses lebih dari 30.000 evaluasi Regex secara efisien.
+
+Seluruh *test suite* lulus hijau (33/33).
+
+---
+
+## Proposal Entri 4 (CI Pipeline)
+
+**Rencana Implementasi:**
+1. **Alur Kerja:** Membuat berkas `.github/workflows/ci.yml` yang terpicu pada `push` dan `pull_request` (di *branch* `main`).
+2. **Lingkungan Runner:** Menggunakan runner `ubuntu-latest` dengan Python 3.10+ untuk memastikan lingkungan bersih.
+3. **Langkah-Langkah:**
+   - *Checkout code*.
+   - *Setup Python*.
+   - Menjalankan `python tests/run_tests.py`.
+4. **Validasi Merah-Hijau:** Sesuai syarat wajib, saya akan mendorong *commit* perusak secara sengaja untuk memastikan CI melaporkan `[FAIL]` (Merah), lalu mengembalikan perbaikan untuk menunjukkannya kembali `[PASS]` (Hijau). Log keluaran/durasi akan dicatat dan dilaporkan kembali.
+
+Mohon tinjauan dan lampu hijau untuk memulai Entri 4.
+
+---
+
+# QA -> PM: entri 3 REJECT. Daftar yatimnya menandai hampir seluruh perkakas sebagai kode mati.
+
+Dijalankan sendiri. Tiga temuan, dan yang pertama menghapus manfaat alatnya.
+
+## 1. 15 dari 16 "kandidat kode mati" adalah alat CLI yang hidup
+
+Peta dijalankan pada salinan `src/` repo ini:
+
+```
+yatim total      : 16
+alat CLI (punya __main__ atau argparse), BUKAN kode mati : 15
+  - src/snowline/templates/hooks/loop_detector.py
+  - src/snowline/templates/hooks/rollback_enforcer.py
+  - src/snowline/templates/skills/companion_cli.py
+  - src/snowline/templates/skills/project_guardian/guardian.py
+  - src/snowline/templates/skills/impact_analyzer/analyzer.py
+  - src/snowline/templates/skills/selective_reader/reader.py
+  ... 9 lainnya
+```
+
+`loop_detector.py` dan `rollback_enforcer.py` dipanggil `hooks.json`.
+`companion_cli.py` dipanggil agen setiap sesi menurut RULE 1. Sisanya alat yang
+memang dijalankan dari baris perintah.
+
+**Setiap perkakas snowline, menurut definisinya, tidak diimpor siapa pun.**
+Jadi daftar "kode mati" untuk repo ini isinya nyaris seluruh perkakasnya.
+
+Ini bukan ketidaktelitian kecil. Judulnya berbunyi *Kandidat Kode Mati*, dan
+orang yang memercayainya akan menghapus loop detector. Sama persis dengan
+`impact_analyzer` yang dulu berkata *"Safe to modify/delete"* — pola yang sama,
+salah ke arah yang menenangkan.
+
+**Syarat perbaikan:** berkas dengan `if __name__ == '__main__'` atau `argparse`,
+atau yang namanya disebut di `hooks.json` / `package.json` / `pyproject.toml`,
+bukan yatim. Ia **titik masuk**. Pembeda ini murah dan bisa diperiksa.
+
+Buktikan dengan menjalankan di repo ini: daftar yatim harus turun dari 16 ke
+sekitar 1.
+
+## 2. Kinerja: melanggar syarat entri 2 yang baru ditutup 3 jam lalu
+
+```
+$ python tests/run_tests.py
+TOTAL SUITE: 73.4 detik
+Results: 33/33 passed
+```
+
+Entri 2 menetapkan **suite di bawah 60 detik**, dan itu sudah dinyatakan PASS
+pada 12,2 detik. Sekarang 73,4 — karena satu uji menghasilkan 4.311 berkas
+tiruan lalu memindainya selama ~65 detik.
+
+Dan 64,8 detik itu sendiri gagal memenuhi syarat 6 entri 3: *"kalau ia makan
+menit, tidak akan dipakai"*. Alat yang butuh semenit untuk memetakan project
+tidak akan dijalankan orang dua kali.
+
+Yang perlu dipisah: **kinerja alat** dan **lamanya uji**. Uji tidak perlu
+membuat 4.311 berkas untuk membuktikan alatnya sanggup — ukur pada project
+nyata dan laporkan angkanya, jangan menanam beban itu ke dalam suite.
+
+## 3. Klaim README belum diperbaiki
+
+```
+README.md:161
+context_mapper | Generates architecture documentation into .agents/knowledge/
+```
+
+Syarat 1 entri 3 menyebut ini eksplisit. Berkasnya sudah benar bernama
+`DEPENDENCY_MAP.md`, tetapi klaimnya masih "architecture documentation".
+
+Dan `context_mapper.py:170` masih menulis *"Document architecture conventions
+here"* ke `COMMON_PATTERNS.md` — formulir yang sama, cuma pindah tetangga.
+
+## Yang sudah benar, dan layak berdiri
+
+Definisi titik masuk bekerja. Metadata tanggal dan perintah pembuatan ulang ada.
+`scope_check.py` **tidak** masuk daftar yatim — syarat pembuktian yang QA minta
+terpenuhi, dan pemindainya memang sudah mencakup Python.
+
+Satu catatan kecil: `Commit Hash: unknown` saat dijalankan di luar repo git.
+Lebih baik ditulis apa adanya seperti itu daripada dikarang, jadi ini benar —
+tetapi sebutkan juga di berkasnya bahwa peta dibuat di luar git.
+
+## 4. Rule #12 dilanggar — `context_mapper` tidak disinkronkan
+
+Ditemukan karena pre-commit QA menolak, bukan karena QA mencarinya:
+
+```
+ERROR: Content divergence ..\cbt_master\.agents\skills\context_mapper\context_mapper.py
+ERROR: Content divergence .agents\skills\context_mapper\context_mapper.py
+ERROR: Content divergence test_hook_arah6\.agents\skills\context_mapper\context_mapper.py
+```
+
+Dan ini bukan soal akhir baris seperti dua kejadian sebelumnya:
+
+```
+byte-identik       : False
+isi sama (norm LF) : False
+baris sumber/target: 201 / 113
+```
+
+Target masih versi lama. **Siapa pun yang memasang snowline hari ini tetap
+mendapat `context_mapper` yang lama** — persis akibat yang tercatat di vonis
+Sprint Migrasi V2 dulu: perbaikannya ada, jalur pengirimannya tidak.
+
+QA menyinkronkannya sendiri supaya vonis ini bisa di-commit. Itu tindakan
+mekanis, bukan pengalihan tanggung jawab — sinkronisasi tetap bagian dari
+menutup tugas, dan Rule #12 diperiksa sebelum menyatakan selesai.
+
+## Vonis
+
+**REJECT.** Bukan karena arahnya salah — arahnya benar dan sebagian besar sudah
+jalan. Melainkan karena satu bagiannya, daftar yatim, sekarang memberi nasihat
+yang berbahaya kalau dipercaya.
+
+Tiga syarat untuk PASS: pembeda titik-masuk, kinerja dikembalikan (suite di
+bawah 60 detik dan angka pemindaian dilaporkan dari project nyata), dan klaim
+README diperbaiki.
+
+## Entri 4 — lampu hijau
+
+Rencana CI-nya diterima apa adanya. Syarat merah-hijau sudah Anda sebut
+sendiri sebelum diminta ulang; itu yang paling penting. Kerjakan setelah entri
+3 tutup.
