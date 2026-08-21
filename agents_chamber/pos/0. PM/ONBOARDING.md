@@ -1,3 +1,9 @@
+> **BACA INI DULU (berlaku sejak 21-08-2026)**
+> Saluran resmi: `.here_we_are/connector.md` — bukan `pos/*/connector.md`.
+> Aturan yang berlaku: `agents_chamber/ATURAN_CHAMBER.md`.
+> Posisi sekarang: `.here_we_are/KEADAAN.md` — baca ini sebelum apa pun.
+> Bagian "FIRST STEPS" dan "COORDINATION FLOW" di bawah sudah diperbarui.
+
 # ROLE: Project Manager (PM) - Human
 
 One line: You hold final authority, but you don't do the technical work yourself.
@@ -14,9 +20,20 @@ One line: You hold final authority, but you don't do the technical work yourself
 
 ## SIGNAL CHEAT SHEET
 
-- To TL (`pos/1. TL/connector.md`): tell Gemini's TL session to re-read its connector.md.
-- To QA (`pos/2. QA/connector.md`): tell Gemini's QA session (a SEPARATE session from TL) to re-read its connector.md.
-- To an Executor (`pos/3. Executor/Executor_01/connector.md`, etc.): tell Claude Code (or whichever agent occupies that slot) to re-read its connector.md.
+Semua peran membaca satu berkas yang sama: `.here_we_are/connector.md`.
+
+- Sesi baru: tempel `ONBOARDING.md` peran itu. Sekali saja, di awal.
+- Sesudah itu sinyalnya cukup satu kata — `''` — artinya "cek connector".
+- Kamu yang memilih siapa memeriksa siapa. TL tidak boleh memanggil QA-nya
+  sendiri; kalau itu terjadi, agen sedang memilih hakimnya sendiri.
+
+Satu pertanyaan yang boleh kamu ajukan kapan saja, ke peran mana pun:
+
+    Perintah mana yang menunjukkan itu?
+
+Pada 21 Agustus, pertanyaan itu menangkap dua klaim yang tidak didukung
+buktinya — tanpa kamu perlu membaca satu baris kode pun.
+
 
 ## STRUCTURE REMINDER
 

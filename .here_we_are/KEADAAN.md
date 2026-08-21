@@ -61,9 +61,15 @@ Saluran resmi: `.here_we_are/connector.md` — dirotasi 21-08, riwayat lama di
 `agents_chamber/pos/*/` pensiun. `task_board.md` beku di Task 87, dibiarkan
 sebagai arsip.
 
-Aturan yang sedang dirumuskan: **apa yang tidak ada di connector, identitas
-kedua tidak tahu** — ditegakkan dengan memberi subagent hanya entri itu, tanpa
-riwayat induk.
+Aturannya ditulis di `agents_chamber/ATURAN_CHAMBER.md` (21-08). Intinya:
+**apa yang tidak ada di connector, identitas kedua tidak tahu** — ditegakkan
+dengan memberi subagent hanya entri itu, tanpa riwayat induk. TL tidak boleh
+memanggil QA-nya sendiri; PM yang memilih pemeriksa.
+
+Empat `ONBOARDING.md` sudah diarahkan ke saluran resmi. Sesi baru: tempel
+dokumen perannya sekali, sesudah itu sinyal cukup `''`.
+
+Belum diuji: apakah subagent Antigravity benar-benar berkonteks bersih.
 
 ## Cara memeriksa berkas ini
 
