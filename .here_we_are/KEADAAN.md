@@ -69,6 +69,11 @@ memanggil QA-nya sendiri; PM yang memilih pemeriksa.
 Empat `ONBOARDING.md` sudah diarahkan ke saluran resmi. Sesi baru: tempel
 dokumen perannya sekali, sesudah itu sinyal cukup `''`.
 
+**Masuk instalasi 21-08** sebagai perintah opsional:
+`snowline init_chamber --apply` -> `.agents/chamber/` (7 berkas). Terpisah dari
+`init`; diuji di proyek bersih bahwa `init` saja tidak ikut memasangnya.
+Templatnya di `src/snowline/chamber_templates/`.
+
 Belum diuji: apakah subagent Antigravity benar-benar berkonteks bersih.
 
 ## Cara memeriksa berkas ini

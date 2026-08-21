@@ -17,4 +17,4 @@ where = ["src"]
 include = ["snowline"]
 
 [tool.setuptools.package-data]
-snowline = ["py.typed", "snowline.bat", "templates/**/*"]
+snowline = ["py.typed", "snowline.bat", "templates/**/*", "chamber_templates/*.md"]

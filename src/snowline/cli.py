@@ -737,6 +737,58 @@ def status():
 
 
 
+def init_chamber(dry=True, force=False):
+    """Pasang chamber — protokol kerja PM/TL/QA. Opsional, terpisah dari init."""
+    templates = Path(__file__).parent / "chamber_templates"
+    target = Path.cwd() / ".agents" / "chamber"
+
+    print_header("Snowline Chamber - Installer")
+
+    if not templates.exists():
+        print_error("Folder chamber_templates tidak ditemukan!")
+        print_info(f"Dicari di: {templates}")
+        return
+
+    berkas = sorted(f for f in templates.glob("*.md") if f.is_file())
+    if not berkas:
+        print_error("Tidak ada templat chamber untuk dipasang.")
+        return
+
+    sudah_ada = [f.name for f in berkas if (target / f.name).exists()]
+    if sudah_ada and not force:
+        print_warninging(f"Chamber sudah terpasang ({len(sudah_ada)} berkas).")
+        print_info("Tidak ada yang diubah. Gunakan --force untuk menimpa.")
+        print_info("Catatan: --force menimpa connector.md dan KEADAAN.md juga.")
+        return
+
+    if dry:
+        print_info("DRY RUN - tidak ada berkas yang ditulis.")
+        print()
+
+    for f in berkas:
+        print_list_item(f"{'akan dipasang' if dry else 'dipasang'}: .agents/chamber/{f.name}")
+        if not dry:
+            target.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(f, target / f.name)
+
+    print()
+    if dry:
+        print_info("Jalankan ulang dengan --apply untuk benar-benar memasang.")
+        return
+
+    print_success(f"Chamber terpasang di {target}")
+    print()
+    safe_print(f"{Colors.BOLD}Langkah berikutnya:{Colors.RESET}")
+    print_list_item("Baca .agents/chamber/ATURAN_CHAMBER.md")
+    print_list_item("Tempel ONBOARDING_TL.md ke sesi agen pertama")
+    print_list_item("Tempel ONBOARDING_QA.md ke sesi agen KEDUA yang terpisah")
+    print_list_item("Sesudah itu, sinyal cukup satu kata: ''")
+    print()
+    safe_print(f"{Colors.DIM}TL dan QA harus sesi berbeda. Kalau satu sesi memegang"
+               f" keduanya,{Colors.RESET}")
+    safe_print(f"{Colors.DIM}ia sedang memeriksa pekerjaannya sendiri.{Colors.RESET}\n")
+
+
 def show_path():
     scripts = sysconfig.get_path('scripts')
     python_exe = sys.executable
@@ -769,6 +821,9 @@ def main():
     p_reinstall = subparsers.add_parser("reinstall", help="Reinstall skills (uninstall then init)")
     p_reinstall.add_argument("--apply", action="store_true", help="Apply reinstall")
     p_reinstall.add_argument("--latest", action="store_true", help="Also download latest package from GitHub")
+    p_chamber = subparsers.add_parser("init_chamber", help="Install chamber protocol (PM/TL/QA) into .agents/chamber")
+    p_chamber.add_argument("--apply", action="store_true", help="Apply installation")
+    p_chamber.add_argument("--force", action="store_true", help="Overwrite existing chamber files")
     subparsers.add_parser("path", help="Show installation paths")
     subparsers.add_parser("status", help="Check package + project layers for updates")
 
@@ -782,6 +837,8 @@ def main():
         uninstall(apply=args.apply)
     elif args.command == "reinstall":
         reinstall(apply=args.apply, latest=args.latest)
+    elif args.command == "init_chamber":
+        init_chamber(dry=not args.apply, force=args.force)
     elif args.command == "path":
         show_path()
     elif args.command == "status":
@@ -792,6 +849,7 @@ def main():
         safe_print("")
         safe_print(f"{Colors.BOLD}Commands:{Colors.RESET}")
         print_list_item("init --apply  - Install skills to .agents folder")
+        print_list_item("init_chamber  - Install chamber protocol (PM/TL/QA), optional")
         print_list_item("update        - Check for new/modified skills")
         print_list_item("status        - Check package + project layers")
         print_list_item("path          - Show installation paths")
