@@ -866,3 +866,101 @@ Entri 5, 7, 8 **PASS**. Entri 6 **PASS BERSYARAT** — lima uji berdiri, satu
 perlu diperbaiki agar memeriksa alasan penolakannya.
 
 Dan butir 4b tidak dilanggar kali ini.
+
+---
+
+# QA -> PM: `quality_gate` PASS. Tetapi pola yang sama ada di tiga uji lain.
+
+## `quality_gate` — PASS, diuji dengan mutasi presisi yang sama
+
+```
+MUTASI: min_args import_fixer 2 -> 0
+Results: 37/38 passed, 1 failed
+  [FAIL] rejection quality_gate: Quality gate rejected for the wrong reason (not arity check)
+```
+
+Dan tanpa mutasi, alasan penolakannya memang datang dari arity:
+
+```
+{"decision": "deny", "reason": "[Companion Gate] Parameter kritis tidak lengkap
+untuk 'import_fixer'. Diperlukan minimal 2 argumen posisi, tetapi menerima 1."}
+```
+
+Jadi arity check memang tercapai — kekhawatiran QA sebelumnya bahwa jalur
+gagal-tertutup menutupi segalanya ternyata hanya berlaku setelah arity lolos.
+Itu koreksi atas kalimat QA sendiri.
+
+Penjelasan Anda tentang mutasi `return False -> return True` juga masuk akal
+dan menjelaskan bedanya. Diterima.
+
+## Tetapi QA melanjutkan ke uji lain, dan polanya berulang
+
+**`auto_scaffolder` — tidak bisa menangkap pencabutan gerbang `--apply`.**
+
+```
+MUTASI: if not apply_mode:  ->  if False:
+Results: 38/38 passed, 0 failed
+```
+
+Gerbang `--apply` dicabut seluruhnya, uji tetap hijau. Sebabnya terlihat saat
+perintah ujinya dijalankan tangan:
+
+```
+$ python scaffolder.py component MyButton
+[FAIL] Invalid type. Choose 'react' or 'api'.
+```
+
+`component` bukan tipe yang sah — usage-nya `<react|api>`. Skrip berhenti di
+validasi tipe dan tidak pernah sampai ke logika tulis. Jadi asersi *"berkas
+tidak ditulis"* terpenuhi karena tipenya ditolak, bukan karena gerbang
+`--apply` bekerja.
+
+Dan dengan tipe yang sah pun, di direktori kosong ia berhenti di
+`[BLOCKED] scope_lock.json not found` — juga bukan gerbang yang dimaksud.
+
+**Perbaikan:** pakai tipe yang sah, sediakan `scope_lock.json` yang mengizinkan,
+lalu uji dua arah — tanpa `--apply` berkas tidak ada, dengan `--apply` berkas
+ada. Tanpa arah kedua, tidak ada bukti gerbangnya pernah dilewati.
+
+**`import_fixer` — asersinya bisa lulus dengan sendirinya.**
+
+```python
+assert "DRY RUN" in result.stdout or "Applying fixes..." not in result.stdout
+```
+
+Sisi kanan `or` benar setiap kali skripnya **tidak** menulis apa pun — termasuk
+kalau skripnya jatuh, salah argumen, atau berhenti karena scope. Asersi yang
+menerima "tidak terjadi apa-apa" sebagai bukti gerbang bekerja tidak menjaga
+apa pun.
+
+**`project_guardian` — belum QA mutasi**, tetapi asersinya memakai pola yang
+sama:
+
+```python
+assert '"status": "FAIL"' in result.stdout or '"CRITICAL"' in result.stdout
+```
+
+Dua kemungkinan digabung `or`, dan `status: FAIL` bisa muncul dari temuan HIGH
+mana pun — bukan hanya dari rahasia yang ditanam uji itu. Periksa sendiri
+dengan mematikan pola `Hardcoded password` saja, lalu lihat apakah ujinya
+gagal.
+
+## Pola yang perlu ditulis, bukan sekadar diperbaiki
+
+Tiga dari enam uji lulus karena sesuatu **selain** yang mereka klaim uji.
+Penyebabnya satu: asersi yang menerima ketiadaan sebagai bukti — "tidak
+ditulis", "tidak muncul", "ada kata deny".
+
+Aturan yang QA usulkan, dan yang berlaku untuk uji penolakan mana pun:
+
+> **Uji penolakan harus menunjukkan dua hal: bahwa ia menolak, dan bahwa ia
+> menerima saat syaratnya dipenuhi.** Tanpa arah kedua, tidak ada bukti
+> gerbangnya pernah terbuka — dan gerbang yang selalu tertutup tidak bisa
+> dibedakan dari gerbang yang tidak ada.
+
+## Vonis
+
+`quality_gate` PASS. Tiga uji lain — `auto_scaffolder`, `import_fixer`,
+`project_guardian` — perlu diperbaiki dengan aturan dua arah di atas.
+
+`loop_detector` sudah terbukti benar. `rollback_enforcer` belum QA periksa.
