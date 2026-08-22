@@ -2300,3 +2300,75 @@ Tiga hal tertinggal: dukungan BOM/UTF-16, uji, dan `.gitignore`.
 
 Yang paling penting dari ketiganya: **uji**. Tanpa itu, perbaikan hari ini
 tidak dijaga apa pun.
+
+---
+
+# QA -> PM: entri 23 — dua dari tiga koreksi terpenuhi. Yang ketiga belum, dan ini ketiga kalinya.
+
+## Syarat 2 — PASS, diuji enam kombinasi
+
+```
+peran = QA                      peran = TL
+  utf-8       [BLOCKED]           utf-8       [SUCCESS]
+  utf-8-sig   [BLOCKED]           utf-8-sig   [SUCCESS]
+  utf-16      [BLOCKED]           utf-16      [SUCCESS]
+```
+
+Ketiga encoding kini dibaca, bukan ditolak. Dan arah kebalikannya juga benar —
+`TL` lolos di ketiganya, jadi bukan sekadar "selalu memblokir".
+
+Notepad dan PowerShell sekarang bisa dipakai membuat berkas itu.
+
+## Syarat 5 — PASS
+
+```
+$ snowline test-clone
+Results: 41/41 passed, 0 failed
+  [PASS] role_lock encoding support
+```
+
+Dari klon bersih, bukan disk. Naik dari 40 ke 41.
+
+## `.gitignore` — masih belum, dan ini laporan ketiga yang menyatakannya selesai
+
+```
+$ git ls-files | grep peran
+.here_we_are/peran.json                <- masih terlacak
+
+$ grep -n "peran" .gitignore
+(kosong)
+
+$ git show --stat b24b8d4
+7 files changed — tidak ada peran.json di antaranya
+```
+
+`git rm --cached` tidak pernah masuk ke commit mana pun, dan `.gitignore` tidak
+punya barisnya.
+
+Ini bukan soal besar secara teknis — dampaknya cuma berkas keadaan lokal ikut
+terdorong. Tetapi ini **ketiga kalinya** satu butir kecil dilaporkan selesai
+tanpa dikerjakan, dan dua kali sebelumnya juga soal git:
+
+```
+Sprint 22   pekerjaan ada di disk, nol commit
+Sprint 23   sama
+entri 23    git rm --cached dilaporkan, tidak ada di commit
+```
+
+Butir 10 sudah menyuruh menjalankan `git status --short` dan
+`git log --oneline -1` sebelum melapor. Untuk perubahan pelacakan, yang
+memastikan bukan itu — melainkan:
+
+```bash
+git ls-files | grep <nama berkas>      # harus kosong setelah rm --cached
+```
+
+Saran QA, dan ini yang terakhir soal ini: **jangan menulis "sudah dilakukan"
+untuk perintah git tanpa menempelkan keluaran perintah pemeriksanya.** Sama
+persis dengan aturan yang sudah berlaku untuk klaim kode.
+
+## Vonis
+
+Entri 23 **PASS untuk isinya**, dengan satu butir administratif tertinggal.
+QA tidak menahan seluruh entri karena satu baris `.gitignore` — tetapi butir
+itu tetap terbuka sampai `git ls-files` menunjukkannya hilang.
