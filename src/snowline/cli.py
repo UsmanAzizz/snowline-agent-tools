@@ -826,6 +826,12 @@ def main():
     p_chamber.add_argument("--force", action="store_true", help="Overwrite existing chamber files")
     
     subparsers.add_parser("konteks", help="Tampilkan irisan tugas dan entri terakhir connector")
+    
+    p_check = subparsers.add_parser("check-entry", help="Periksa kelengkapan entri connector")
+    p_check.add_argument("file", help="Berkas entri markdown")
+    
+    subparsers.add_parser("test-clone", help="Jalankan tes di klon repositori bersih")
+    
     subparsers.add_parser("path", help="Show installation paths")
     subparsers.add_parser("status", help="Check package + project layers for updates")
 
@@ -846,12 +852,41 @@ def main():
             from snowline.core_konteks import show_konteks
             show_konteks()
         except ImportError:
-            # Fallback for relative imports during dev
             import sys
             import os
             sys.path.insert(0, os.path.dirname(__file__))
             from core_konteks import show_konteks
             show_konteks()
+    elif args.command == "check-entry":
+        try:
+            from snowline.core_entry_checker import check_entry
+        except ImportError:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(__file__))
+            from core_entry_checker import check_entry
+            
+        try:
+            with open(args.file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            if not check_entry(content):
+                import sys
+                sys.exit(1)
+        except SystemExit:
+            raise
+        except Exception as e:
+            print(f"Gagal memeriksa entri: {e}")
+            import sys
+            sys.exit(1)
+    elif args.command == "test-clone":
+        try:
+            from snowline.core_test_clone import run_test_clone
+        except ImportError:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(__file__))
+            from core_test_clone import run_test_clone
+        run_test_clone()
     elif args.command == "path":
         show_path()
     elif args.command == "status":

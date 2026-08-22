@@ -65,8 +65,28 @@ def extract_dependencies(content, target_names_set):
         
     return found
 
+def check_role_permission(is_apply=False):
+    if is_apply:
+        import json
+        try:
+            root_dir = os.getcwd()
+            paths = [
+                os.path.join(root_dir, '.here_we_are', 'peran.json'),
+                os.path.join(root_dir, '.agents', 'chamber', 'peran.json')
+            ]
+            for p in paths:
+                if os.path.exists(p):
+                    with open(p, 'r', encoding='utf-8') as f:
+                        peran_data = json.load(f)
+                    if peran_data.get('peran') == 'QA':
+                        print("[BLOCKED] Akses tulis (--apply) ditolak untuk peran QA.")
+                        sys.exit(1)
+        except Exception:
+            pass
+
 def main():
     apply_mode = "--apply" in sys.argv
+    check_role_permission(apply_mode)
     project_root = os.getcwd()
     knowledge_path = os.path.join(project_root, KNOWLEDGE_DIR)
     map_file = os.path.join(knowledge_path, 'DEPENDENCY_MAP.md')

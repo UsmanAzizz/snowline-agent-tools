@@ -19,7 +19,24 @@ if sys.stdout.encoding.lower() != 'utf-8':
 DEFAULT_EXCLUDES = {'.git', 'node_modules', '.history', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents'}
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 
-def check_task_state():
+def check_task_state(is_apply=False):
+    if is_apply:
+        try:
+            root_dir = os.getcwd()
+            paths = [
+                os.path.join(root_dir, '.here_we_are', 'peran.json'),
+                os.path.join(root_dir, '.agents', 'chamber', 'peran.json')
+            ]
+            for p in paths:
+                if os.path.exists(p):
+                    with open(p, 'r', encoding='utf-8') as f:
+                        peran_data = json.load(f)
+                    if peran_data.get('peran') == 'QA':
+                        print("[BLOCKED] Akses tulis (--apply) ditolak untuk peran QA.")
+                        sys.exit(1)
+        except Exception:
+            pass
+
     state_file = os.path.join(os.getcwd(), '.agents', 'task_state.json')
     if not os.path.exists(state_file):
         return
@@ -453,7 +470,7 @@ def main():
         
     backup_dir = None
     if args.apply or args.apply_validated:
-        check_task_state()
+        check_task_state(is_apply=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         project_root = find_project_root(args.target_dir)
         backup_dir = os.path.join(project_root, '.backup_replace', timestamp)

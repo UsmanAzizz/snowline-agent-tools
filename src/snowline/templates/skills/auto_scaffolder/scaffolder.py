@@ -37,7 +37,24 @@ def check_scope_write(write_target):
         sys.exit(1)
 
 
-def check_task_state():
+def check_task_state(is_apply=False):
+    if is_apply:
+        try:
+            root_dir = os.getcwd()
+            paths = [
+                os.path.join(root_dir, '.here_we_are', 'peran.json'),
+                os.path.join(root_dir, '.agents', 'chamber', 'peran.json')
+            ]
+            for p in paths:
+                if os.path.exists(p):
+                    with open(p, 'r', encoding='utf-8') as f:
+                        peran_data = json.load(f)
+                    if peran_data.get('peran') == 'QA':
+                        print("[BLOCKED] Akses tulis (--apply) ditolak untuk peran QA.")
+                        sys.exit(1)
+        except Exception:
+            pass
+
     state_file = os.path.join(os.getcwd(), '.agents', 'task_state.json')
     if not os.path.exists(state_file):
         return
@@ -151,8 +168,9 @@ def generate_scaffold(file_type, name, target_dir, apply_mode):
             print(f"[FAIL] Error generating file: {e}")
 
 def main():
-    check_task_state()  # Block if pseudocode not approved
-
+    apply_mode = "--apply" in sys.argv
+    check_task_state(is_apply=apply_mode)  # Block if pseudocode not approved
+    
     if len(sys.argv) < 3:
         print("Usage: python scaffolder.py <react|api> <ComponentName> [target_dir] [--apply]")
         sys.exit(1)

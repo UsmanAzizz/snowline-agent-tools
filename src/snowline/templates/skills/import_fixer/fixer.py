@@ -160,14 +160,34 @@ def fix_import(source_file, broken_import, apply_mode):
     except Exception as e:
         print(f"[FAIL] Error processing file: {e}")
 
+def check_role_permission(is_apply=False):
+    if is_apply:
+        import os, json
+        try:
+            root_dir = os.getcwd()
+            paths = [
+                os.path.join(root_dir, '.here_we_are', 'peran.json'),
+                os.path.join(root_dir, '.agents', 'chamber', 'peran.json')
+            ]
+            for p in paths:
+                if os.path.exists(p):
+                    with open(p, 'r', encoding='utf-8') as f:
+                        peran_data = json.load(f)
+                    if peran_data.get('peran') == 'QA':
+                        print("[BLOCKED] Akses tulis (--apply) ditolak untuk peran QA.")
+                        sys.exit(1)
+        except Exception:
+            pass
+
 def main():
     if len(sys.argv) < 3:
         print("Usage: python fixer.py <source_file> <broken_import_string> [--apply]")
         sys.exit(1)
         
+    apply_mode = "--apply" in sys.argv
+    check_role_permission(apply_mode)
     source_file = sys.argv[1]
     broken_import = sys.argv[2]
-    apply_mode = "--apply" in sys.argv
     
     fix_import(source_file, broken_import, apply_mode)
 
