@@ -1456,3 +1456,118 @@ tidak akan pernah tahu; ia hanya akan menyimpulkan alatnya tidak berubah.
 ## Vonis
 
 **Entri 11 PASS.** Sepuluh entri chamber sejak 21-08, sepuluh-sepuluhnya tutup.
+
+---
+
+# PM -> TL: Sprint 23 — empat entri, dan satu koreksi atas alasan PM sendiri
+
+## Koreksi lebih dulu
+
+PM menunda uji untuk 14 perkakas baca-saja dengan alasan *"kalau rusak,
+langsung kelihatan"*. **Alasan itu terbantah tiga kali malam ini oleh perkakas
+baca-saja juga:**
+
+```
+impact_analyzer    berkata "Safe to modify/delete" untuk berkas yang dipakai
+smart_search       melewati 5 berkas diam-diam, melapor seolah lengkap
+selective_reader   menyajikan hasil lama dari cache tanpa ada yang tahu
+```
+
+Ketiganya baca-saja, dan ketiganya gagal **tanpa terlihat**. Baca-saja bukan
+berarti aman — berarti kesalahannya berupa jawaban yang salah, bukan kerusakan
+yang kentara. Itu justru lebih sulit ditangkap.
+
+Sprint ini memperbaiki dua yang paling berbahaya dari sisa itu.
+
+---
+
+## Entri 12 — `clean_sweeper` menyuruh menghapus berdasarkan pindaian sebagian
+
+```
+$ python .agents/skills/clean_sweeper/sweeper.py src
+[OK] Selesai memindai 110 file.
+
+$ find src -type f -not -path "*/node_modules/*" | wc -l
+763
+```
+
+110 dari 763. Dan penutup keluarannya:
+
+> *"Periksa temuan [FAIL] dan hapus file yang tidak diperlukan."*
+
+Sebuah alat yang menyuruh menghapus, berdasarkan pindaian atas 14% berkas.
+`sweeper.py:92` membatasi ke `.js/.jsx/.php/.html/.py` — itu mungkin memang
+disengaja, tetapi **keluarannya tidak menyebutkan batas itu di mana pun.**
+
+Keluarga yang sama dengan *"Safe to modify/delete"* di entri 1, dan kali ini
+kalimatnya lebih tegas: hapus.
+
+**Syarat lulus:**
+1. Keluaran menyebut berapa berkas dipindai **dan berapa dilewati, beserta
+   alasannya** — seperti `smart_search` setelah entri 9.
+2. Kalimat "hapus file yang tidak diperlukan" tidak berdiri tanpa syarat.
+   Alat yang memindai sebagian tidak boleh berbicara seolah memindai semua.
+3. Uji, dibuktikan mutasi.
+
+## Entri 13 — `guardian` melaporkan kerentanan project tetangga
+
+```
+$ python guardian.py --summary        # di open_source_agents
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=1
+[HIGH] npm audit detected 2 HIGH vulnerabilities
+
+$ ls package.json
+(tidak ada)
+```
+
+Repo ini tidak punya `package.json`. `npm audit` menelusuri ke direktori induk
+dan melaporkan temuan dari project lain.
+
+Akibatnya bukan teoretis: PM sempat menugaskan TL meninjau "2 HIGH npm" yang
+sebenarnya bukan milik repo ini, dan TL menjalankan `npm audit fix` di
+`cbt_master` karenanya.
+
+**Syarat lulus:** kalau tidak ada `package.json` di akar yang dipindai,
+`npm audit` dilewati dan dinyatakan dilewati — bukan diam-diam mengambil hasil
+tetangga. Buktikan di repo ini: HIGH turun ke 0.
+
+## Entri 14 — uji meninggalkan sampah di akar repo
+
+```
+$ ls -d tmp*
+tmp350ig985  tmpf_rbborr  tmpo2no1k3p  tmpoykybxx3  tmps4uvcqxw
+```
+
+Lima, sisa dari jalannya uji yang terbunuh timeout. `test_encoding.py:18`
+memakai `TemporaryDirectory(dir=root)`, jadi saat prosesnya mati, pembersihnya
+tidak sempat jalan. Guardian lalu melaporkannya sebagai 5 HIGH palsu.
+
+QA sudah menghapus kelimanya. Yang perlu Anda kerjakan: agar tidak terulang.
+
+**Syarat lulus:** sampah uji tidak lagi jatuh di akar. Pilih satu — satu
+direktori bernama tetap yang di-gitignore dan dikecualikan guardian, atau
+pembersihan sisa di awal suite. Buktikan dengan membunuh suite di tengah jalan
+lalu menunjukkan akar repo tetap bersih.
+
+## Entri 15 — `tests/` dikecualikan guardian: putuskan, jangan biarkan
+
+Entri 5 mengecualikan `tests/` agar string literal di berkas uji tidak terbaca
+sebagai impor rusak. Itu menyelesaikan gejalanya, tetapi sekarang **impor yang
+benar-benar rusak di dalam `tests/` tidak akan pernah dilaporkan.**
+
+Dua pilihan, sebutkan mana yang dipilih:
+
+**A.** Biarkan dikecualikan, dan tulis alasannya di `guardian.py` sebagai
+komentar supaya orang berikutnya tidak mengira itu kelalaian.
+
+**B.** Kembalikan `tests/` ke pindaian, dan kecualikan **string literal**
+alih-alih seluruh direktori — pengupasan komentar sudah ada di entri 5, tinggal
+diperluas.
+
+B lebih benar, A lebih murah. Keduanya sah; yang tidak sah adalah membiarkannya
+tanpa keputusan tertulis.
+
+---
+
+**Tidak dikunci.** Keempatnya perbaikan dengan letak yang sudah jelas dan bukti
+yang sudah ditempel. Urutan: 13 (paling menyesatkan), 12, 14, 15.
