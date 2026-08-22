@@ -205,7 +205,7 @@ def extract_js_body(content, start_idx):
 
 def splice(fp, fn):
     try:
-        with open(fp) as f:
+        with open(fp, encoding='utf-8') as f:
             c = f.read()
     except Exception as e:
         sys.stderr.write(f"[ERROR] {e}\n")

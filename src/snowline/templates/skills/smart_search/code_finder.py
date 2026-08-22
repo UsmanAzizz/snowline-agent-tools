@@ -187,7 +187,7 @@ def extract_js_body(content, start_idx):
 def search_files(directory, keyword, extensions):
     results = []
     scanned = 0
-    skipped = 0
+    skipped_files = []
     for root, dirs, files in os.walk(directory):
         dirs[:] = [d for d in dirs if d not in DEFAULT_EXCLUDES]
         for fname in files:
@@ -195,7 +195,7 @@ def search_files(directory, keyword, extensions):
                 continue
             fpath = os.path.join(root, fname)
             if os.path.getsize(fpath) > MAX_FILE_SIZE:
-                skipped += 1
+                skipped_files.append(fpath)
                 continue
             scanned += 1
             try:
@@ -203,6 +203,8 @@ def search_files(directory, keyword, extensions):
                     content = f.read()
                     lines = content.splitlines(keepends=True)
             except:
+                skipped_files.append(fpath)
+                scanned -= 1
                 continue
             if fpath.endswith('.py'):
                 rngs, err = get_python_ranges(content)
@@ -251,7 +253,7 @@ def search_files(directory, keyword, extensions):
                 if cur:
                     blocks.append(cur)
                 results.append({'file': fpath, 'blocks': blocks, 'lines': lines})
-    return results, scanned, skipped
+    return results, scanned, skipped_files
 
 def get_project_root(start_path):
     curr = os.path.abspath(start_path)
@@ -266,7 +268,7 @@ def get_project_root(start_path):
 def load_cache(f):
     if os.path.exists(f):
         try:
-            with open(f, 'r') as fp:
+            with open(f, 'r', encoding='utf-8') as fp:
                 return json.load(fp)
         except:
             pass
@@ -298,7 +300,7 @@ def save_cache(f, data):
         d = os.path.dirname(f)
         if d:
             os.makedirs(d, exist_ok=True)
-        with open(f, 'w') as fp:
+        with open(f, 'w', encoding='utf-8') as fp:
             json.dump(data, fp, indent=2)
     except:
         pass
@@ -319,7 +321,7 @@ def get_dir_sig(directory, exts):
                 pass
     return hashlib.md5("".join(sorted(parts)).encode()).hexdigest()
 
-def print_human(results, kw, scanned, skipped):
+def print_human(results, kw, scanned, skipped_files):
     total = 0
     for r in results:
         rel = os.path.relpath(r['file'], os.getcwd())
@@ -334,10 +336,14 @@ def print_human(results, kw, scanned, skipped):
                     total += 1
             print("-" * 30)
     print("\n" + "=" * 60)
-    print(f"[OK] Selesai: {total} kecocokan di {len(results)} file (dari {scanned} dipindai, {skipped} dilewati)")
+    print(f"[OK] Selesai: {total} kecocokan di {len(results)} file (dari {scanned} dipindai, {len(skipped_files)} dilewati)")
+    if skipped_files:
+        print(f"[WARN] File dilewati (terlalu besar atau non-UTF8):")
+        for sf in skipped_files:
+            print(f"  - {sf}")
 
-def print_json(results, kw, scanned, skipped):
-    out = {'status': 'FOUND' if results else 'NOT_FOUND', 'keyword': kw, 'stats': {'total': 0, 'files': len(results), 'scanned': scanned, 'skipped': skipped}, 'results': []}
+def print_json(results, kw, scanned, skipped_files):
+    out = {'status': 'FOUND' if results else 'NOT_FOUND', 'keyword': kw, 'stats': {'total': sum(len(b['matches']) for r in results for b in r['blocks']), 'files': len(results), 'scanned': scanned, 'skipped': len(skipped_files)}, 'results': []}
     for r in results:
         rel = os.path.relpath(r['file'], os.getcwd())
         fr = {'file': rel, 'absolute': r['file'], 'matches': []}
@@ -370,23 +376,27 @@ def main():
         print("[INFO] Cache hit")
         results = data[key]['results']
         scanned = data[key]['scanned']
-        skipped = data[key]['skipped']
+        skipped_files = data[key].get('skipped_files', [])
     else:
-        results, scanned, skipped = search_files(args.target, args.keyword, exts)
-        data[key] = {'sig': sig, 'mtime': str(time.time()), 'results': results, 'scanned': scanned, 'skipped': skipped}
+        results, scanned, skipped_files = search_files(args.target, args.keyword, exts)
+        data[key] = {'sig': sig, 'mtime': str(time.time()), 'results': results, 'scanned': scanned, 'skipped_files': skipped_files}
         save_cache(cf, data)
     if not results:
         if args.json:
-            print(json.dumps({'status': 'NOT_FOUND', 'keyword': args.keyword, 'stats': {'scanned': scanned, 'skipped': skipped}}))
+            print(json.dumps({'status': 'NOT_FOUND', 'keyword': args.keyword, 'stats': {'scanned': scanned, 'skipped': len(skipped_files)}}))
         else:
-            print(f"[OK] Keyword '{args.keyword}' not found in {scanned} files")
+            print(f"[OK] Keyword '{args.keyword}' not found in {scanned} files (skipped {len(skipped_files)} files)")
+            if skipped_files:
+                print(f"[WARN] File dilewati (terlalu besar atau non-UTF8):")
+                for sf in skipped_files:
+                    print(f"  - {sf}")
         return
     if args.json:
-        print_json(results, args.keyword, scanned, skipped)
+        print_json(results, args.keyword, scanned, skipped_files)
     else:
         print(f"SEARCH: '{args.keyword}'")
         print("=" * 60)
-        print_human(results, args.keyword, scanned, skipped)
+        print_human(results, args.keyword, scanned, skipped_files)
 
 if __name__ == "__main__":
     try:

@@ -26,7 +26,7 @@ def main():
     
     if os.path.exists(history_file):
         try:
-            with open(history_file, "r") as f:
+            with open(history_file, "r", encoding='utf-8') as f:
                 history = json.load(f)
         except:
             history = []
@@ -35,7 +35,7 @@ def main():
         
     history.append(action_hash)
     
-    with open(history_file, "w") as f:
+    with open(history_file, "w", encoding='utf-8') as f:
         json.dump(history, f)
         
     # C4 Check: Apakah 3 eksekusi terakhir identik?

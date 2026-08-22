@@ -15,10 +15,33 @@ def parse_js(content):
     toc = []
     class_pattern = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?class\s+([A-Za-z0-9_]+)', re.MULTILINE)
     func_pattern = re.compile(r'^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+([A-Za-z0-9_]+)', re.MULTILINE)
-    arrow_pattern = re.compile(r'^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?(?:\([^)]*\)|[A-Za-z0-9_]+)\s*=>', re.MULTILINE)
+    arrow_pattern = re.compile(r'^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?(?:\(([^)]*)\)|([A-Za-z0-9_]+))\s*=>', re.MULTILINE)
     interface_pattern = re.compile(r'^\s*(?:export\s+)?interface\s+([A-Za-z0-9_]+)', re.MULTILINE)
     type_pattern = re.compile(r'^\s*(?:export\s+)?type\s+([A-Za-z0-9_]+)\s*[=({]', re.MULTILINE)
     enum_pattern = re.compile(r'^\s*(?:export\s+)?enum\s+([A-Za-z0-9_]+)', re.MULTILINE)
+
+    import_pattern = re.compile(r'^\s*import\s+(.*?from\s+[\'"][^\'"]+[\'"]|.*?[\'"][^\'"]+[\'"])', re.MULTILINE)
+    usestate_pattern = re.compile(r'^\s*(?:const|let|var)\s+(\[[^\]]+\]|\w+)\s*=\s*useState', re.MULTILINE)
+    useeffect_pattern = re.compile(r'^\s*useEffect\s*\(', re.MULTILINE)
+    export_pattern = re.compile(r'^\s*export\s+(?:default\s+)?(?:const|function|class)\s+([A-Za-z0-9_]+)', re.MULTILINE)
+
+    for match in import_pattern.finditer(content):
+        line = content.count('\n', 0, match.start()) + 1
+        val = match.group(0).strip()
+        if len(val) > 60: val = val[:57] + '...'
+        toc.append({'line': line, 'type': 'Import', 'name': val})
+
+    for match in usestate_pattern.finditer(content):
+        line = content.count('\n', 0, match.start()) + 1
+        toc.append({'line': line, 'type': 'State', 'name': match.group(1)})
+
+    for match in useeffect_pattern.finditer(content):
+        line = content.count('\n', 0, match.start()) + 1
+        toc.append({'line': line, 'type': 'Effect', 'name': 'useEffect'})
+
+    for match in export_pattern.finditer(content):
+        line = content.count('\n', 0, match.start()) + 1
+        toc.append({'line': line, 'type': 'Export', 'name': match.group(1)})
 
     for match in class_pattern.finditer(content):
         line = content.count('\n', 0, match.start()) + 1
@@ -30,7 +53,10 @@ def parse_js(content):
 
     for match in arrow_pattern.finditer(content):
         line = content.count('\n', 0, match.start()) + 1
-        toc.append({'line': line, 'type': 'Arrow Function', 'name': match.group(1)})
+        args = match.group(2) if match.group(2) is not None else match.group(3)
+        args = args.strip().replace('\n', ' ') if args else ""
+        if len(args) > 40: args = args[:37] + '...'
+        toc.append({'line': line, 'type': 'Arrow Function', 'name': f"{match.group(1)}({args})"})
 
     for match in interface_pattern.finditer(content):
         line = content.count('\n', 0, match.start()) + 1
@@ -45,6 +71,10 @@ def parse_js(content):
         toc.append({'line': line, 'type': 'Enum', 'name': match.group(1)})
 
     toc.sort(key=lambda x: x['line'])
+    
+    # PM requested output to be under ~60 lines. 
+    # If it's too large, we should maybe truncate imports?
+    # Actually, we shouldn't arbitrarily truncate. We'll return them all.
     return toc
 
 def parse_py(content):

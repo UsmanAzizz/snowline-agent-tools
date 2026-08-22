@@ -31,6 +31,8 @@ import test_scope_guardian
 from test_impact_analyzer import test_impact_analysis
 import test_context_mapper
 import test_rejections
+import test_encoding
+import test_selective_reader
 
 class TestRunner:
     def __init__(self):
@@ -194,6 +196,12 @@ def main():
     runner.run("rejection rollback_enforcer", test_rejections.test_rollback_enforcer_rejection)
     runner.run("rejection auto_scaffolder", test_rejections.test_auto_scaffolder_rejection)
     runner.run("rejection import_fixer", test_rejections.test_import_fixer_rejection)
+
+    print("Testing encoding bugfixes (Entry 9)...")
+    runner.run("encoding code_finder, splicer, loop_detector", test_encoding.test_encoding_tools)
+
+    print("Testing selective_reader (Entry 10)...")
+    runner.run("selective_reader new regex captures", test_selective_reader.test_selective_reader_extracted_items)
 
     success = runner.summary()
 

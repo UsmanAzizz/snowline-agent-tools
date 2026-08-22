@@ -387,7 +387,7 @@ def update(apply=False):
             direct_url_path = os.path.join(matches[0], 'direct_url.json')
             if os.path.exists(direct_url_path):
                 try:
-                    with open(direct_url_path, 'r') as f:
+                    with open(direct_url_path, 'r', encoding='utf-8') as f:
                         data = _json.load(f)
                     installed_commit = data.get('vcs_info', {}).get('commit_id', '')
                 except Exception as e:
@@ -603,7 +603,7 @@ def status():
             direct_url_path = os.path.join(matches[0], 'direct_url.json')
             if os.path.exists(direct_url_path):
                 try:
-                    with open(direct_url_path, 'r') as f:
+                    with open(direct_url_path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
                     vcs_info = data.get('vcs_info', {})
                     installed_commit = vcs_info.get('commit_id', '')
