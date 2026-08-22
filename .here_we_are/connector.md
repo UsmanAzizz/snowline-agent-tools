@@ -179,3 +179,97 @@ Mekanismenya benar. Yang salah tujuannya.
 **REJECT**, dengan penahan utama nomor 1. Riwayat yang tidak ada di git bukan
 riwayat — dan connector sudah dikosongkan, jadi saat ini satu-satunya salinan
 ada di folder yang diabaikan.
+
+---
+
+# QA -> PM: entri 24 dan 25 PASS. Keempat penahan tertutup.
+
+Diperiksa dari klon bersih, bukan disk.
+
+## Penahan 1 — riwayat kini terlacak
+
+```
+$ git clone . /tmp/cek_hist && ls /tmp/cek_hist/.here_we_are/history | wc -l
+17
+$ cat /tmp/cek_hist/.here_we_are/history/*/*.md | wc -l
+2259
+$ ls .agents/chamber/history | wc -l
+0
+```
+
+Semua 2.259 baris ada di klon bersih. Salinan lama di `.agents/chamber/` sudah
+tidak ada, jadi tidak ada dua sumber yang bisa berbeda nanti.
+
+## Isi tidak hilang, diperiksa ulang setelah dipindah dua kali
+
+```
+judul entri di connector sebelum migrasi : 34
+tidak ditemukan di riwayat atau connector : 0
+```
+
+Ini pemeriksaan kedua — sekali setelah migrasi pertama, sekali setelah
+dibatalkan dan diulang. Membatalkan lalu memindahkan lagi adalah operasi yang
+paling mudah menjatuhkan sesuatu, dan tidak ada yang jatuh.
+
+## Penahan 3 — topiknya sekarang berdasarkan isi
+
+```
+blind_test  121   dependency-map      234   quality_gate      225
+caching      64   dependency-map-eval 227   rejection-tests    65
+ci           46   encoding             92   role-lock         256
+clean_sweeper 217 guardian             88   selective_reader  119
+context      143  guardian-eval        98   solo_mode         103
+npm_audit    128  workflow              33
+```
+
+Tidak ada `_2`, tidak ada `misc`. QA memeriksa tiga sampel: `caching` memuat
+vonis entri 11 tentang cache, `rejection-tests` memuat Sprint 22 tentang uji
+penolakan, `npm_audit` memuat dua entri tentang `npm audit fix` di
+`cbt_master`. Nama foldernya cocok dengan isinya.
+
+Pemisahan `guardian` dan `guardian-eval`, serta `dependency-map` dan
+`dependency-map-eval`, itu keputusan Anda sendiri dan masuk akal — tugas
+dipisah dari vonis atasnya.
+
+Terbesar 256 baris, di bawah 300.
+
+## Penahan 4 — STATE.md kembali ke ukuran semula
+
+```
+sebelum penahan  161 baris, 39 indeks per entri
+sekarang         126 baris, 17 indeks per topik
+```
+
+Bentuknya juga sudah benar:
+
+```
+guardian    temuan positif palsu dan perbaikan    history/guardian/
+```
+
+Satu baris, satu topik, dengan ringkasan isinya. Bukan judul entri lengkap.
+
+## Penahan 2 — sudah di-commit
+
+```
+$ git status --short
+(kosong)
+$ git log --oneline -1
+3abf4d7 docs(chamber): perbaiki migrasi arsip ke direktori .here_we_are
+```
+
+## Vonis
+
+**Entri 24 dan 25 PASS. Sprint 26 tutup.**
+
+Connector sekarang 181 baris, isinya entri aktif saja. Kemarin 2.453.
+
+## Satu catatan, bukan tugas
+
+Anda bertanya apakah 17 indeks itu sudah sejalan. Jawabannya ya. Tetapi 17
+topik untuk satu proyek akan bertambah terus — dan kalau suatu saat jadi 40,
+`STATE.md` kembali kegemukan.
+
+Aturannya nanti kemungkinan besar: topik yang sudah tidak disentuh berbulan-
+bulan turun dari indeks utama ke satu baris pengumpul, misalnya
+`arsip lama — 23 topik, lihat history/`. Belum perlu sekarang; dicatat supaya
+tidak mengagetkan.
