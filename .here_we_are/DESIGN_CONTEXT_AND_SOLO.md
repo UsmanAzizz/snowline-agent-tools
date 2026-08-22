@@ -213,3 +213,57 @@ mode penuh      TL dan QA sesi terpisah                          yang berlaku
 ```
 
 Mode tunggal **belum berlaku** sampai ketiga uji di atas dijalankan.
+
+---
+
+# Catatan 22-08: chamber sebagian besar alat bantu ingatan
+
+Temuan dadakan PM, bukan bagian dari rancangan di atas. Ditulis karena berguna
+untuk memutuskan ke mana investasi berikutnya.
+
+## Kelemahan jendela konteks yang membuat chamber tumbuh
+
+Kalau jendela konteks tidak terbatas, permanen, bisa dibagi antar agen, dan
+bisa diperiksa dari luar — sebagian besar chamber tidak perlu ada:
+
+```
+STATE.md          ada karena keadaan mati bersama sesi
+connector.md      ada karena dua agen tidak bisa berbagi konteks
+bentuk entri      ada karena "saya sudah menjalankannya" tidak bisa diperiksa
+klon bersih       ada karena keadaan lokal tidak terlihat dari konteks
+kunci peran       ada karena satu agen tidak bisa memegang dua sikap sekaligus
+irisan tugas      ada karena temuan kecil hilang saat sesi ditutup
+```
+
+Enam mekanisme, semuanya menambal keterbatasan penyimpanan.
+
+## Yang tetap berlaku meski konteksnya sempurna
+
+```
+klaim butuh bukti                      soal kejujuran, bukan ingatan
+yang menilai bukan yang mengerjakan    soal kepentingan, bukan ingatan
+```
+
+Dua ini tidak menambal apa pun. Agen dengan memori tak terbatas tetap bisa
+melaporkan sesuatu selesai padahal buktinya tidak menunjukkannya — itu terjadi
+tiga kali pada 21-22 Agustus, dan tidak satu pun karena lupa.
+
+## Kenapa pembagian ini berguna
+
+Kira-kira 70% chamber adalah alat bantu ingatan, 30% aturan penilaian.
+
+Yang 70% **akan usang** kalau harness berkembang: konteks makin besar, memori
+persisten, subagent yang benar-benar terisolasi. Kalau Antigravity besok punya
+memori permanen, `STATE.md` dan `connector.md` jadi pekerjaan yang tidak perlu.
+
+Yang 30% tidak akan usang, karena masalahnya bukan teknis.
+
+**Akibatnya untuk keputusan:** jangan membangun terlalu dalam di bagian
+ingatan. Cukup sampai ia bekerja hari ini. Bagian penilaian layak dibangun
+sedalam mungkin, karena ia tidak akan dibuat mubazir oleh pembaruan harness.
+
+## Cara memeriksa catatan ini nanti
+
+Kalau suatu hari harness punya memori persisten dan konteks bersama, jalankan
+ulang pembagian di atas. Kalau enam mekanisme pertama masih terasa perlu,
+catatan ini salah dan sebaiknya dicabut.
