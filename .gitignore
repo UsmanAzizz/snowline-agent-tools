@@ -15,7 +15,6 @@ dump/
 # OS generated files
 .DS_Store
 Thumbs.db
-.agents/
 PROJECT_STRUCTURE.md
 # Repositori git tertanam milik prototipe uji, bukan bagian repo ini
 .here_we_are/v2_prototypes/sandbox_app/
@@ -25,4 +24,6 @@ archive/main_chain.jsonl
 *.jsonl
 tests/tmp/
 peran.json
-peran.json
+
+# Sisa klon uji (snowline test-clone memakai %TEMP%, ini dari percobaan manual)
+temp_clone/

@@ -34,7 +34,7 @@ see `RULE 0` in the generated `agents.md`.
 1. **Portable** — Pure Python, no external dependencies (except `db_extractor`, which requires `pymysql` for database schema extraction)
 2. **Refuses rather than warns** — a rule that only prints a warning is documented as advice, not enforcement
 3. **Safe** — Dry-run modes by default for any operation that writes, modifies, or deletes files. Explicit `--apply` flag required to execute.
-4. **Proven by running** — every fix ships with a test that was shown to fail before the fix (see [Tests](#tests))
+4. **Proven by running** — every fix ships with a test that was shown to fail before the fix (see [Development](docs/DEVELOPMENT.md))
 
 ## Installation
 
@@ -185,31 +185,14 @@ python .agents/skills/project_guardian/guardian.py --summary
 python .agents/skills/smart_tree/scripts/tree_viewer.py . 3
 ```
 
-## Tests
+## Development
+
+Working on snowline itself — tests, Rule #12, CI, releasing: see
+[`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
 ```bash
-python tests/run_tests.py
+python tests/run_tests.py     # 41 tests, ~24 seconds
 ```
-
-31 tests, about 12 seconds. They run the scripts end to end through
-`subprocess` rather than importing their functions — two real defects had
-survived precisely because they only appeared on the `--apply` path of a real
-run.
-
-**Every test here was shown to fail first.** A test that passes against already
-correct code proves nothing, so each fix was verified by breaking it again:
-
-```
-$ # remove the fix, then:
-$ python tests/run_tests.py
-Results: 30/31 passed, 1 failed
-$ # restore it:
-Results: 31/31 passed, 0 failed
-```
-
-That is worth stating plainly, because it caught a real miss: the first test
-written for `smart_replace --apply` passed while the defect was still present.
-The second, written after breaking the code deliberately, did not.
 
 ## Compatibility
 
