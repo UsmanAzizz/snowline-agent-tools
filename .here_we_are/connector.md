@@ -1961,3 +1961,107 @@ memeriksa. Murah, dan tidak bergantung pada uji 1.
 
 A menutup pertanyaannya. C berguna terlepas dari hasil uji. B butuh harness
 lain.
+
+---
+
+# PM -> TL: Sprint 25 — mode tunggal, tanpa bergantung pada subagent bersih
+
+PM tidak menerima kesimpulan bahwa mode tunggal gugur. Uji 1 memang
+menunjukkan subagent Antigravity tidak berkonteks bersih, tetapi rancangan
+lama bertumpu pada hal yang salah.
+
+**Gagasan barunya:** pemeriksa tidak perlu **tidak tahu**. Ia perlu **tidak
+bisa memakai apa yang ia tahu.** Itu bisa dipaksa tanpa subagent bersih.
+
+Empat mekanisme di bawah. Tiga pertama dibangun, yang keempat diuji.
+
+---
+
+## Entri 19 — kunci-tulis berdasarkan peran
+
+`.agents/chamber/peran.json`:
+
+```json
+{"peran": "QA"}    atau    {"peran": "TL"}
+```
+
+Saat `peran = QA`, semua alat tulis menolak `--apply`. Mekanismenya sama dengan
+`check_task_state` di `replace_text.py:22` yang sudah ada — Anda sendiri sudah
+menyatakan ini bisa di uji 2.
+
+**Syarat lulus:**
+1. `peran = QA` -> `--apply` ditolak dengan pesan yang menyebut perannya.
+2. `peran = TL` atau berkasnya tidak ada -> `--apply` jalan seperti biasa.
+3. Berlaku untuk keempat alat tulis, bukan hanya `smart_replace`.
+4. Uji dua arah, dibuktikan mutasi.
+
+## Entri 20 — pemeriksa kelengkapan entri, dijalankan mesin
+
+Skrip yang membaca satu entri connector dan memeriksa **bentuknya**, bukan
+isinya:
+
+```
+ada blok perintah?
+ada blok keluaran?
+tiap klaim "selesai/berhasil/PASS" punya keduanya di entri yang sama?
+```
+
+Kalau tidak, entri ditolak sebelum dibaca isinya. Ini mengubah butir 3 dari
+penilaian menjadi prosedur.
+
+**Syarat lulus:**
+1. Entri yang lengkap lolos; entri yang mengklaim selesai tanpa keluaran
+   ditolak. Tunjukkan keduanya.
+2. Jangan terlalu ketat sampai entri sah ikut ditolak — uji dengan tiga entri
+   nyata dari `connector.md` yang sudah PASS, ketiganya harus lolos.
+3. Uji, dibuktikan mutasi.
+
+## Entri 21 — mode QA berjalan dari klon bersih
+
+Perintah yang: membuat klon dari `HEAD` ke direktori sementara, menjalankan
+suite di sana, dan mencetak hasilnya.
+
+Gunanya: agen boleh ingat apa saja, tetapi ia tidak tahu isi klon yang baru
+dibuat. Lingkungannya yang dingin, bukan pikirannya.
+
+Ini yang menangkap dua sprint yang belum di-commit malam ini — dan QA
+melakukannya manual tiap kali.
+
+**Syarat lulus:**
+1. Perintahnya jalan dan mencetak hasil suite dari klon, bukan dari direktori
+   kerja.
+2. Buktikan bedanya: ubah satu berkas **tanpa commit**, jalankan perintah itu,
+   dan tunjukkan hasilnya **tidak** memuat perubahan itu.
+3. Direktori sementaranya dibersihkan.
+
+---
+
+## Entri 22 — uji buta, dan ini yang menentukan
+
+PM sudah menyiapkan bahannya di `.here_we_are/bahan_uji_solo/`.
+
+Isinya empat entri di `ENTRI_UNTUK_DIPERIKSA.md`, masing-masing dengan
+berkasnya di `kasus_A` sampai `kasus_D`. **Berapa yang benar tidak
+diberitahukan.**
+
+Cacat yang dipakai bukan kesalahan buku teks. Ketiganya dipilih dari yang
+benar-benar lolos malam ini dan tidak terlihat dari membaca.
+
+**Caranya:**
+1. Pasang `peran.json` = QA (entri 19 harus sudah jadi).
+2. Periksa keempat entri satu per satu. Jalankan perintahnya sendiri.
+3. Untuk tiap entri beri vonis PASS / REJECT / TIDAK BISA DIUJI + alasannya.
+4. Tempel keluaran mentah tiap perintah yang Anda jalankan.
+
+**Jangan menebak dari nama kasus.** Kalau Anda meloloskan yang cacat, katakan
+apa adanya — itu hasil yang paling berguna dari seluruh sprint ini.
+
+**Cara membacanya nanti:** kalau ketiga cacat tertangkap dan yang bersih tidak
+ditolak, mode tunggal layak dilanjutkan. Kalau ada yang lolos, kita tahu persis
+jenis cacat mana yang butuh sesi kedua — dan itu jawaban yang jauh lebih
+berguna daripada "bisa" atau "tidak bisa".
+
+---
+
+**Urutan:** 19, 20, 21, lalu 22. Entri 22 tidak boleh dikerjakan sebelum 19
+selesai.
