@@ -273,3 +273,102 @@ Aturannya nanti kemungkinan besar: topik yang sudah tidak disentuh berbulan-
 bulan turun dari indeks utama ke satu baris pengumpul, misalnya
 `arsip lama — 23 topik, lihat history/`. Belum perlu sekarang; dicatat supaya
 tidak mengagetkan.
+
+---
+
+# PM -> TL: Sprint 27 — dua perbaikan aturan
+
+Keduanya kecil dan tidak bergantung satu sama lain.
+
+---
+
+## Entri 26 — usulan diperiksa QA, bukan PM
+
+Butir 4b sekarang berbunyi:
+
+```
+PM   tulis entri  +  buat task_state.json      ->  pintu terkunci
+TL   boleh membaca, memindai, mengusulkan      ->  tidak bisa menulis
+PM   setujui usulannya, hapus berkas itu       ->  pintu terbuka
+```
+
+Yang menyetujui PM. Tetapi yang benar-benar bekerja pada 22 Agustus justru
+bukan itu.
+
+Proposal entri 3 Anda kirim ke QA. QA membacanya dan menemukan rencananya
+memindai `.js/.jsx/.ts/.tsx` saja — cacat yang sama dengan entri 1, dan kalau
+diteruskan akan menandai 188 berkas Python sebagai kode mati. Tertangkap
+**sebelum satu baris kode ditulis.**
+
+PM tidak akan menangkap itu. PM tidak membaca pola regex.
+
+**Yang diubah di butir 4b, dua versi aturan:**
+
+```
+PM   tulis entri  +  buat task_state.json    ->  pintu terkunci
+TL   mengusulkan, kirim ke QA
+QA   periksa rencananya, beri catatan
+PM   putuskan, hapus berkas itu              ->  pintu terbuka
+```
+
+PM tetap yang membuka kunci — itu wewenangnya. Yang berubah: ada pemeriksaan
+teknis sebelum keputusan, bukan sesudahnya.
+
+**Syarat lulus:** kedua versi `CHAMBER_RULES.md` diperbarui, dan
+`ONBOARDING_TL.md` serta `ONBOARDING_QA.md` menyebut alur barunya.
+
+---
+
+## Entri 27 — angka dalam entri harus punya sumber
+
+Aturan anti-hype sudah ada di `rules/communication.md:76`. Berkas itu berlabel
+**ANJURAN**, dan hasilnya terlihat:
+
+```
+"enterprise-grade"                        dua kali
+"12-Pillars"                              standar yang tidak ada di repo mana pun
+"meroketkan peluang sukses hingga 90%"
+"sangat efektif menjaring cacat tersembunyi"
+```
+
+Menambah aturan prosa lagi tidak akan mengubah apa pun. Yang perlu: pemeriksaan
+mesin, dan tempatnya sudah ada — `snowline check-entry`.
+
+**Aturannya:** angka yang berupa **klaim pengukuran** harus muncul juga di
+dalam blok keluaran pada entri yang sama.
+
+**Yang diperiksa** (di luar blok kode):
+
+```
+persentase      90%, 3,1%
+rasio           40/40, 4 dari 5
+durasi          24 detik, 2 menit
+hitungan        108 berkas, 2.259 baris
+```
+
+**Yang TIDAK diperiksa**, karena ini rujukan bukan pengukuran:
+
+```
+nomor baris     :529, baris 22
+nomor entri     entri 24, Sprint 26
+tanggal         21-08, 22 Agustus
+hash commit     6cae2d2
+versi           v1.1.0, utf-8, Python 3.10
+```
+
+Membedakan keduanya yang paling menentukan. Aturan yang menandai semua angka
+akan menolak hampir semua entri, lalu dimatikan dalam sehari.
+
+**Syarat lulus:**
+
+1. Entri yang mengklaim `90%` tanpa angka itu di blok keluaran -> ditolak,
+   dengan pesan yang menyebut angka mana yang tidak punya sumber.
+2. Entri yang menyebut `:529` atau `entri 24` -> lolos.
+3. **Tiga entri QA nyata yang sudah PASS harus tetap lolos.** Ambil dari
+   `history/`. Kalau ada yang ditolak, polanya terlalu ketat — perbaiki
+   polanya, jangan longgarkan syaratnya.
+4. Uji, dibuktikan mutasi.
+
+---
+
+Tidak dikunci. Urutan bebas.
