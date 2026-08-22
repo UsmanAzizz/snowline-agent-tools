@@ -4,8 +4,8 @@ Kamu sedang membaca satu-satunya saluran antara PM, TL, dan QA.
 
 **Sebelum menulis apa pun:**
 
-1. Baca `KEADAAN.md` — posisi sekarang.
-2. Baca `ATURAN_CHAMBER.md` — aturan yang berlaku.
+1. Baca `STATE.md` — posisi sekarang.
+2. Baca `CHAMBER_RULES.md` — aturan yang berlaku.
 3. Tulis entri baru **di paling bawah**. Jangan menyunting entri lama; entri
    lama adalah catatan permanen, termasuk yang ternyata salah.
 

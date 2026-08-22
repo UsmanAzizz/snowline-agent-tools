@@ -5,14 +5,14 @@ import re
 
 def get_keadaan_content(root_dir):
     paths = [
-        os.path.join(root_dir, '.here_we_are', 'KEADAAN.md'),
-        os.path.join(root_dir, '.agents', 'chamber', 'KEADAAN.md')
+        os.path.join(root_dir, '.here_we_are', 'STATE.md'),
+        os.path.join(root_dir, '.agents', 'chamber', 'STATE.md')
     ]
     for p in paths:
         if os.path.exists(p):
             with open(p, 'r', encoding='utf-8') as f:
-                return f.read().strip(), "KEADAAN.md"
-    return "", "KEADAAN.md (Tidak ditemukan)"
+                return f.read().strip(), "STATE.md"
+    return "", "STATE.md (Tidak ditemukan)"
 
 def get_scope_lock_content(root_dir):
     lock_path = os.path.join(root_dir, '.agents', 'scope_lock.json')
@@ -73,7 +73,7 @@ def get_last_connector_entry(root_dir):
     else:
         return content.strip(), "Entri Terakhir Connector"
 
-def show_konteks():
+def show_context():
     root_dir = os.getcwd()
     
     keadaan, k_name = get_keadaan_content(root_dir)

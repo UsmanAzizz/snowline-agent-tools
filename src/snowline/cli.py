@@ -758,7 +758,7 @@ def init_chamber(dry=True, force=False):
     if sudah_ada and not force:
         print_warninging(f"Chamber sudah terpasang ({len(sudah_ada)} berkas).")
         print_info("Tidak ada yang diubah. Gunakan --force untuk menimpa.")
-        print_info("Catatan: --force menimpa connector.md dan KEADAAN.md juga.")
+        print_info("Catatan: --force menimpa connector.md dan STATE.md juga.")
         return
 
     if dry:
@@ -779,7 +779,7 @@ def init_chamber(dry=True, force=False):
     print_success(f"Chamber terpasang di {target}")
     print()
     safe_print(f"{Colors.BOLD}Langkah berikutnya:{Colors.RESET}")
-    print_list_item("Baca .agents/chamber/ATURAN_CHAMBER.md")
+    print_list_item("Baca .agents/chamber/CHAMBER_RULES.md")
     print_list_item("Tempel ONBOARDING_TL.md ke sesi agen pertama")
     print_list_item("Tempel ONBOARDING_QA.md ke sesi agen KEDUA yang terpisah")
     print_list_item("Sesudah itu, sinyal cukup satu kata: ''")
@@ -825,7 +825,7 @@ def main():
     p_chamber.add_argument("--apply", action="store_true", help="Apply installation")
     p_chamber.add_argument("--force", action="store_true", help="Overwrite existing chamber files")
     
-    subparsers.add_parser("konteks", help="Tampilkan irisan tugas dan entri terakhir connector")
+    subparsers.add_parser("context", help="Tampilkan irisan tugas dan entri terakhir connector")
     
     p_check = subparsers.add_parser("check-entry", help="Periksa kelengkapan entri connector")
     p_check.add_argument("file", help="Berkas entri markdown")
@@ -847,16 +847,16 @@ def main():
         reinstall(apply=args.apply, latest=args.latest)
     elif args.command == "init_chamber":
         init_chamber(dry=not args.apply, force=args.force)
-    elif args.command == "konteks":
+    elif args.command == "context":
         try:
-            from snowline.core_konteks import show_konteks
-            show_konteks()
+            from snowline.core_context import show_context
+            show_context()
         except ImportError:
             import sys
             import os
             sys.path.insert(0, os.path.dirname(__file__))
-            from core_konteks import show_konteks
-            show_konteks()
+            from core_context import show_context
+            show_context()
     elif args.command == "check-entry":
         try:
             from snowline.core_entry_checker import check_entry

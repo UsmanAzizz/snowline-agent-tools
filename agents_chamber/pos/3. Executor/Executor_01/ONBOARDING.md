@@ -1,7 +1,7 @@
 > **BACA INI DULU (berlaku sejak 21-08-2026)**
 > Saluran resmi: `.here_we_are/connector.md` — bukan `pos/*/connector.md`.
-> Aturan yang berlaku: `agents_chamber/ATURAN_CHAMBER.md`.
-> Posisi sekarang: `.here_we_are/KEADAAN.md` — baca ini sebelum apa pun.
+> Aturan yang berlaku: `agents_chamber/CHAMBER_RULES.md`.
+> Posisi sekarang: `.here_we_are/STATE.md` — baca ini sebelum apa pun.
 > Bagian "FIRST STEPS" dan "COORDINATION FLOW" di bawah sudah diperbarui.
 
 # ROLE: Executor
@@ -26,8 +26,8 @@ One line: You implement what's approved - propose before you write any code.
 When you finish a task: write your response to your OUTBOX, then explicitly say "Task complete - please signal TL" in your terminal response. The Manager relays manually.
 
 ## FIRST STEPS (do this every fresh session)
-1. Read `.here_we_are/KEADAAN.md` — where things stand, one page.
-2. Read `agents_chamber/ATURAN_CHAMBER.md` — the rules in force.
+1. Read `.here_we_are/STATE.md` — where things stand, one page.
+2. Read `agents_chamber/CHAMBER_RULES.md` — the rules in force.
 3. Read the LAST section of `.here_we_are/connector.md` — not the whole file.
 
 ## COORDINATION FLOW

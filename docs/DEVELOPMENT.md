@@ -98,15 +98,15 @@ This repo is developed through the chamber protocol: a human PM relays between
 a TL session and a QA session, and every claim of completion must carry the
 command and its raw output.
 
-Rules: `agents_chamber/ATURAN_CHAMBER.md` (Indonesian).
-Current state: `.here_we_are/KEADAAN.md`.
+Rules: `agents_chamber/CHAMBER_RULES.md` (Indonesian).
+Current state: `.here_we_are/STATE.md`.
 Working channel: `.here_we_are/connector.md`.
 
 Two rules there are worth knowing even if you never use the protocol:
 
 - **An entry is not done until `git log` shows it.** Passing on your own disk
   is not passing; a clean clone decides.
-- **State files are overwritten, logs are appended.** `KEADAAN.md` is rewritten
+- **State files are overwritten, logs are appended.** `STATE.md` is rewritten
   in place; `connector.md` only grows and gets rotated when it passes ~100 KB.
 
 ## Releasing

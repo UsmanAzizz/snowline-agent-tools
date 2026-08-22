@@ -6,7 +6,7 @@ import json
 
 def test_role_lock_encodings():
     """
-    Tests that peran.json works with utf-8, utf-8-sig (BOM), and utf-16 encodings.
+    Tests that role.json works with utf-8, utf-8-sig (BOM), and utf-16 encodings.
     """
     script = """import sys, json, os
 from smart_replace.replace_text import check_task_state
@@ -23,7 +23,7 @@ except SystemExit:
     with tempfile.TemporaryDirectory() as tmpdir:
         here_we_are = os.path.join(tmpdir, '.here_we_are')
         os.makedirs(here_we_are)
-        peran_file = os.path.join(here_we_are, 'peran.json')
+        peran_file = os.path.join(here_we_are, 'role.json')
         
         script_file = os.path.join(tmpdir, 'test_script.py')
         with open(script_file, 'w', encoding='utf-8') as f:
@@ -37,7 +37,7 @@ except SystemExit:
         encodings = ['utf-8', 'utf-8-sig', 'utf-16']
         for enc in encodings:
             with open(peran_file, 'w', encoding=enc) as f:
-                json.dump({"peran": "QA"}, f)
+                json.dump({"role": "QA"}, f)
                 
             r = subprocess.run([sys.executable, script_file, tmpdir], env=env, capture_output=True, text=True)
             assert "BLOCKED" in r.stdout or "BLOCKED" in r.stderr, f"Failed to block QA role with encoding {enc}. Output: {r.stdout} {r.stderr}"
@@ -45,7 +45,7 @@ except SystemExit:
         # Also test that it doesn't block if role is not QA
         for enc in encodings:
             with open(peran_file, 'w', encoding=enc) as f:
-                json.dump({"peran": "TL"}, f)
+                json.dump({"role": "TL"}, f)
                 
             r = subprocess.run([sys.executable, script_file, tmpdir], env=env, capture_output=True, text=True)
             assert "PASS_NOT_BLOCKED" in r.stdout, f"Blocked unexpectedly with role TL and encoding {enc}. Output: {r.stdout} {r.stderr}"

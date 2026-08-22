@@ -35,7 +35,7 @@ PENGETAHUAN diturunkan   dibaca saat perlu  bisa dibuat ulang, tidak disimpan
 Snowline sudah punya ketiganya:
 
 ```
-KEADAAN.md              keadaan
+STATE.md              keadaan
 connector.md            riwayat
 DEPENDENCY_MAP.md       pengetahuan turunan
 selective_reader        pengetahuan turunan, sesuai permintaan
@@ -52,7 +52,7 @@ kecil yang dipelajari agen selama satu tugas:
 - apa yang sudah dicoba dan gagal
 - pertanyaan yang belum terjawab
 
-Itu tidak ada di `KEADAAN.md` (terlalu rinci) dan tidak praktis dicari di
+Itu tidak ada di `STATE.md` (terlalu rinci) dan tidak praktis dicari di
 `connector.md` (terkubur). Jadi tiap sesi baru menggalinya ulang.
 
 **Usulan: `scope_lock.json` naik pangkat menjadi irisan tugas.** Ia sudah
@@ -89,7 +89,7 @@ snowline konteks
 Mencetak, dalam urutan itu:
 
 ```
-KEADAAN.md                        ~100 baris
+STATE.md                        ~100 baris
 irisan tugas dari scope_lock      ~20 baris
 entri connector TERAKHIR saja     ~40 baris
 ```
@@ -144,7 +144,7 @@ Yang membuatnya bukan teater, tiga hal, dan semuanya soal konstruksi:
 **1. Peran ditandai berkas, bukan niat.**
 
 ```json
-.agents/chamber/peran.json    {"peran": "TL"}  |  {"peran": "QA"}
+.agents/chamber/role.json    {"role": "TL"}  |  {"role": "QA"}
 ```
 
 **2. Mode QA terkunci-tulis.** Ini intinya. Bukan "saya berjanji tidak menulis
@@ -166,7 +166,7 @@ pelengkap.
 
 ```
 1  Agen (TL)  kerjakan, tulis entri ke connector: perintah + keluaran mentah
-2  Agen       tulis peran.json = QA          -> --apply terkunci
+2  Agen       tulis role.json = QA          -> --apply terkunci
 3  Agen (QA)  panggil subagent, masukannya HANYA entri itu + jalur repo
 4  Subagent   jalankan sendiri, kembalikan keluaran mentah
 5  Agen (QA)  tempel apa adanya, beri vonis
@@ -192,7 +192,7 @@ yang menunjukkan itu?*
 
 ```
 1  apakah subagent Antigravity benar-benar berkonteks bersih
-2  apakah kunci-tulis berdasarkan peran.json benar-benar menahan
+2  apakah kunci-tulis berdasarkan role.json benar-benar menahan
 3  apakah agen yang sama, dalam mode QA, benar-benar menolak pekerjaannya
    sendiri — atau justru lebih lunak
 ```

@@ -50,7 +50,7 @@ hook               transkrip Antigravity 5330ddf5 menunjukkan penolakan nyata
                      bukan menurut baca-saja atau bukan.
 2  npm_audit         baris "dilewati" dicetak [HIGH] padahal dihitung nol —
                      pencetak modul memaku labelnya, pola sama dengan :344
-3  mode tunggal      rancangan ada di RANCANGAN_KONTEKS_DAN_SOLO.md,
+3  mode tunggal      rancangan ada di DESIGN_CONTEXT_AND_SOLO.md,
                      tiga hal belum diuji, belum berlaku
 
 TUTUP lewat chamber, lima belas entri:
@@ -87,7 +87,7 @@ Saluran resmi: `.here_we_are/connector.md` — dirotasi 21-08, riwayat lama di
 `agents_chamber/pos/*/` pensiun. `task_board.md` beku di Task 87, dibiarkan
 sebagai arsip.
 
-Aturannya ditulis di `agents_chamber/ATURAN_CHAMBER.md` (21-08). Intinya:
+Aturannya ditulis di `agents_chamber/CHAMBER_RULES.md` (21-08). Intinya:
 **apa yang tidak ada di connector, identitas kedua tidak tahu** — ditegakkan
 dengan memberi subagent hanya entri itu, tanpa riwayat induk. TL tidak boleh
 memanggil QA-nya sendiri; PM yang memilih pemeriksa.

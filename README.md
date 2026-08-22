@@ -94,7 +94,7 @@ python -m snowline.cli init_chamber --apply
 ```
 
 Creates `.agents/chamber/` with the rules, a shared `connector.md`, a
-`KEADAAN.md` state file, and one onboarding document per role (PM, TL, QA,
+`STATE.md` state file, and one onboarding document per role (PM, TL, QA,
 Executor). Paste a role's onboarding into a fresh session once; after that a
 one-word signal is enough.
 
@@ -103,7 +103,7 @@ something is done without including the command **and** its raw output. TL and
 QA must be separate sessions — a single session holding both is reviewing its
 own work.
 
-Re-running is refused unless `--force`, so `connector.md` and `KEADAAN.md` are
+Re-running is refused unless `--force`, so `connector.md` and `STATE.md` are
 never wiped by accident.
 
 ## AGENTS.md — How the Ecosystem Is Used

@@ -8,10 +8,10 @@ Dibuat 19 Agustus 2026 setelah sprint penelitian PM + Claude Code + Gemini.
 
 ## Urutan baca
 
-00. **`KEADAAN.md` — di mana kita sekarang.** Ditimpa, tidak ditambah. Baca ini
+00. **`STATE.md` — di mana kita sekarang.** Ditimpa, tidak ditambah. Baca ini
     dulu kalau yang kamu butuhkan cuma posisi, bukan cerita. Siapa pun yang
     mengubah sesuatu wajib memperbaruinya di giliran yang sama.
-0. **`SNOWLINE_INI_APA.md` — mulai di sini kalau kamu belum tahu snowline itu
+0. **`WHAT_IS_SNOWLINE.md` — mulai di sini kalau kamu belum tahu snowline itu
    apa, atau lupa sedang berdiri di mana.** Satu halaman: ini apa, empat hal
    yang benar-benar mengikat, enam arah dan statusnya, dan apa yang tersisa.
    Berkas lain di folder ini menganggap pembacanya sudah tahu konteksnya.

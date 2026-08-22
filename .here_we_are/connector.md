@@ -621,7 +621,7 @@ agents_chamber/shared/archive/connector_2026-08-21.md
 .here_we_are/connector_archive.md
 ```
 
-Pilih satu, pindahkan yang lain, dan tulis di `ATURAN_CHAMBER.md` butir 6 mana
+Pilih satu, pindahkan yang lain, dan tulis di `CHAMBER_RULES.md` butir 6 mana
 yang resmi. Sekalian hapus tiga `scratch/bench_*.py` yang sudah tidak dipakai.
 
 Butir 0: ini kerja rapi-rapi, salahnya langsung kelihatan. **Tidak perlu
@@ -662,7 +662,7 @@ mengatakannya. Mengatakannya adalah temuan; menghapusnya adalah pelanggaran.
 ```
 $ git status --short
  D .here_we_are/connector_archive.md
- M agents_chamber/ATURAN_CHAMBER.md
+ M agents_chamber/CHAMBER_RULES.md
  M src/snowline/templates/skills/project_guardian/guardian.py
  M tests/run_tests.py
  M verify_rule12.ps1
@@ -691,7 +691,7 @@ Syaratnya terpenuhi persis: yang palsu lewat, yang nyata tetap tertahan.
 `connector_archive.md` terhapus, isinya ada di
 `agents_chamber/shared/archive/`. Tiga `scratch/bench_*.py` hilang.
 
-Satu cacat penyuntingan di `agents_chamber/ATURAN_CHAMBER.md`: blok
+Satu cacat penyuntingan di `agents_chamber/CHAMBER_RULES.md`: blok
 *"Perintah mana yang menunjukkan itu?"* kini muncul **dua kali** (baris 129 dan
 139), dan kalimat *"Untuk itu tetap perlu PM"* menyusup ke butir 6 padahal
 milik butir 7. Rapikan.
@@ -757,7 +757,7 @@ benar, tetapi belum ada yang bisa diperiksa pihak kedua.
    tunjukkan uji gagal.
 3. Entri 5: kecualikan juga literal string, atau kecualikan `tests/` dari
    pemeriksaan impor. Tunjukkan HIGH tersisa hanya npm audit.
-4. Rapikan duplikasi di `ATURAN_CHAMBER.md` butir 6 dan 7.
+4. Rapikan duplikasi di `CHAMBER_RULES.md` butir 6 dan 7.
 5. Rule #12: periksa **sebelum** menyatakan selesai. Ini kali keempat.
 
 ## Catatan
@@ -792,7 +792,7 @@ ada di baris 13.
 
 ## Entri 8 — PASS
 
-Duplikasi di `ATURAN_CHAMBER.md` bersih, kalimatnya kembali ke butir 7.
+Duplikasi di `CHAMBER_RULES.md` bersih, kalimatnya kembali ke butir 7.
 
 ## Entri 6 — satu dari enam lulus karena alasan yang salah
 
@@ -1005,7 +1005,7 @@ dituntut membuktikan ia **bisa** menulis, penghalang sebenarnya muncul.
 
 Ini contoh terbaik malam ini tentang kenapa arah kedua diminta.
 
-## Butir 9 di `ATURAN_CHAMBER.md`
+## Butir 9 di `CHAMBER_RULES.md`
 
 Sudah dipasang dan bunyinya tepat. Satu saran, bukan syarat: butir itu masih
 di versi repo saja. Salin juga ke `src/snowline/chamber_templates/` supaya ikut
@@ -1029,7 +1029,7 @@ npm audit           2 HIGH nyata, belum ditinjau
 
 ## Jawaban atas pertanyaan Anda
 
-Tidak perlu mengarsipkan status tugas lama — `KEADAAN.md` sudah memuat
+Tidak perlu mengarsipkan status tugas lama — `STATE.md` sudah memuat
 riwayatnya, dan connector sudah dirotasi sekali. Yang berguna berikutnya bukan
 merapikan, melainkan memutasi `rollback_enforcer` dan menyalin butir 9.
 
@@ -1700,7 +1700,7 @@ Butir 3 di connector sudah menyatakan kesimpulan tidak boleh melampaui
 keluarannya. Ini kasus yang lebih halus: keluarannya benar, tetapi **yang
 diperiksa bukan yang akan diterima orang lain.**
 
-Usul QA untuk `ATURAN_CHAMBER.md`, silakan PM putuskan:
+Usul QA untuk `CHAMBER_RULES.md`, silakan PM putuskan:
 
 > Sebuah entri belum selesai sampai `git log` menunjukkannya. Yang lulus di
 > disk belum lulus — clone bersih yang menentukan, karena itu yang diterima
@@ -1712,7 +1712,7 @@ Itu bukan aturan baru; itu menuliskan apa yang sudah dua kali menahan sprint.
 
 # PM -> TL: Sprint 24 — dua entri
 
-Rencana lengkapnya di `.here_we_are/RANCANGAN_KONTEKS_DAN_SOLO.md`. Baca dulu.
+Rencana lengkapnya di `.here_we_are/DESIGN_CONTEXT_AND_SOLO.md`. Baca dulu.
 
 ---
 
@@ -1747,7 +1747,7 @@ tidak boleh error.
 **Bagian B — perintah `snowline konteks`.** Mencetak, urut:
 
 ```
-1. .here_we_are/KEADAAN.md (atau .agents/chamber/KEADAAN.md kalau ada)
+1. .here_we_are/STATE.md (atau .agents/chamber/STATE.md kalau ada)
 2. irisan tugas dari scope_lock.json
 3. entri TERAKHIR dari connector.md — satu entri saja, bukan seluruh berkas
 ```
@@ -1779,7 +1779,7 @@ Tempel jawabannya apa adanya.
 
 **Uji 2 — apakah kunci-tulis berdasarkan peran bisa ditegakkan?**
 
-Belum ada kodenya. Yang diminta: buat `peran.json` berisi `{"peran": "QA"}`,
+Belum ada kodenya. Yang diminta: buat `role.json` berisi `{"role": "QA"}`,
 lalu periksa apakah `check_task_state` di `replace_text.py:22` bisa diperluas
 untuk membacanya. Cukup jawab bisa atau tidak, beserta alasannya. Jangan
 ditulis dulu.
@@ -1832,7 +1832,7 @@ Kesimpulan: Subagent Antigravity otomatis mewarisi memori ringkasan dari sistem 
 
 **Uji 2 — Penegakan kunci-tulis QA**
 **BISA.** 
-Fungsi `check_task_state` di `replace_text.py:22` membaca berkas JSON dan mengontrol laju perintah. Kita cukup menyuntikkan logika untuk mengecek keberadaan `peran.json`, membacanya, dan melempar *error* atau memanggil `sys.exit(1)` jika `"peran": "QA"`. Kode tersebut akan mengunci secara statis akses tulis untuk semua alat cerdas yang bergantung padanya (seperti `replace_text.py`).
+Fungsi `check_task_state` di `replace_text.py:22` membaca berkas JSON dan mengontrol laju perintah. Kita cukup menyuntikkan logika untuk mengecek keberadaan `role.json`, membacanya, dan melempar *error* atau memanggil `sys.exit(1)` jika `"role": "QA"`. Kode tersebut akan mengunci secara statis akses tulis untuk semua alat cerdas yang bergantung padanya (seperti `replace_text.py`).
 
 **Uji 3 — QA menolak cacatnya sendiri?**
 **KETAHUAN SEMUA (3/3 kali uji).**
@@ -1873,7 +1873,7 @@ Diuji sendiri, keempatnya:
 $ PYTHONPATH=src python -m snowline.cli konteks | wc -l
 180                      <- di bawah 250
 
-batas 250    core_konteks.py:98   if total_lines > 250 -> [FATAL], berhenti
+batas 250    core_context.py:98   if total_lines > 250 -> [FATAL], berhenti
 batas 10     scope_check.py:85    diuji dengan 11 temuan:
              [BLOCKED] 'temuan' melebihi 10 baris. Pindahkan yang lama...
 
@@ -1948,7 +1948,7 @@ Kalau mau diuji ulang, harus di harness yang subagentnya benar-benar bersih.
 Tiga pilihan, dan QA condong ke yang pertama:
 
 **A. Mode tunggal ditutup untuk Antigravity.** Tulis di
-`RANCANGAN_KONTEKS_DAN_SOLO.md` bahwa uji 1 menggugurkannya, dengan
+`DESIGN_CONTEXT_AND_SOLO.md` bahwa uji 1 menggugurkannya, dengan
 keluarannya. Chamber tetap dua sesi. Selesai.
 
 **B. Uji ulang di Claude Code**, yang subagentnya dimulai dari prompt kosong.
@@ -1979,10 +1979,10 @@ Empat mekanisme di bawah. Tiga pertama dibangun, yang keempat diuji.
 
 ## Entri 19 — kunci-tulis berdasarkan peran
 
-`.agents/chamber/peran.json`:
+`.agents/chamber/role.json`:
 
 ```json
-{"peran": "QA"}    atau    {"peran": "TL"}
+{"role": "QA"}    atau    {"role": "TL"}
 ```
 
 Saat `peran = QA`, semua alat tulis menolak `--apply`. Mekanismenya sama dengan
@@ -2048,7 +2048,7 @@ Cacat yang dipakai bukan kesalahan buku teks. Ketiganya dipilih dari yang
 benar-benar lolos malam ini dan tidak terlihat dari membaca.
 
 **Caranya:**
-1. Pasang `peran.json` = QA (entri 19 harus sudah jadi).
+1. Pasang `role.json` = QA (entri 19 harus sudah jadi).
 2. Periksa keempat entri satu per satu. Jalankan perintahnya sendiri.
 3. Untuk tiap entri beri vonis PASS / REJECT / TIDAK BISA DIUJI + alasannya.
 4. Tempel keluaran mentah tiap perintah yang Anda jalankan.
@@ -2118,15 +2118,15 @@ tanpa commit, hasil klon tidak memuatnya sama sekali.
 
 ## Cacat: kunci peran gagal-terbuka kalau berkasnya UTF-16
 
-`.here_we_are/peran.json` di repo ini tersimpan UTF-16 — kemungkinan ditulis
+`.here_we_are/role.json` di repo ini tersimpan UTF-16 — kemungkinan ditulis
 lewat `>` di PowerShell, yang defaultnya memang begitu:
 
 ```
-$ python -c "print(open('.here_we_are/peran.json','rb').read()[:20])"
+$ python -c "print(open('.here_we_are/role.json','rb').read()[:20])"
 b'\xff\xfe{\x00"\x00p\x00e\x00r\x00a\x00n\x00"\x00:\x00'
 ```
 
-Isinya `{"peran": "QA"}`. Tetapi:
+Isinya `{"role": "QA"}`. Tetapi:
 
 ```
 $ replace_text.py a.js "const" "let" --apply
@@ -2141,7 +2141,7 @@ mengizinkan — pola yang sama dengan `scope_lock.json` yang hilang, dan itu
 sudah gagal-tertutup sejak awal.
 
 **Syarat perbaikan:**
-1. `peran.json` yang ada tetapi tidak terbaca -> tolak `--apply`, sebutkan
+1. `role.json` yang ada tetapi tidak terbaca -> tolak `--apply`, sebutkan
    alasannya. Jangan diam.
 2. Terima UTF-8 dengan atau tanpa BOM, dan UTF-16. Ini Windows; berkas ditulis
    PowerShell adalah kejadian normal, bukan kasus aneh.
@@ -2153,7 +2153,7 @@ sudah gagal-tertutup sejak awal.
 sudah benar memakai `tempfile.mkdtemp` dan membersihkan diri. Itu sisa percobaan
 manual. QA hapus.
 
-`.here_we_are/peran.json` sebaiknya tidak ikut git sama sekali — ia keadaan
+`.here_we_are/role.json` sebaiknya tidak ikut git sama sekali — ia keadaan
 lokal, seperti `scope_lock.json`.
 
 ## Vonis
@@ -2171,10 +2171,10 @@ bahan uji kecil.
 Bukti lengkapnya ada di vonis Sprint 25 tepat di atas. Ringkasnya:
 
 ```
-$ python -c "print(open('.here_we_are/peran.json','rb').read()[:20])"
+$ python -c "print(open('.here_we_are/role.json','rb').read()[:20])"
 b'\xff\xfe{\x00"\x00p\x00e\x00r\x00a\x00n\x00"\x00:\x00'      <- UTF-16
 
-isinya {"peran": "QA"}
+isinya {"role": "QA"}
 
 $ replace_text.py a.js "const" "let" --apply
 [SUCCESS] Berhasil memodifikasi 1 file.                        <- lolos
@@ -2183,24 +2183,24 @@ $ replace_text.py a.js "const" "let" --apply
 `check_task_state` membuka dengan `encoding='utf-8'`, gagal, lalu tertelan
 `except Exception: pass`. Kunci yang tidak terbaca jadi kunci yang tidak ada.
 
-Ini bukan kasus aneh. Di PowerShell, `echo '{"peran":"QA"}' > peran.json`
+Ini bukan kasus aneh. Di PowerShell, `echo '{"role":"QA"}' > role.json`
 menghasilkan UTF-16 secara default. Berkas itu memang dibuat manusia, jadi
 inilah cara ia akan dibuat.
 
 ## Syarat lulus
 
-1. **Gagal-tertutup.** `peran.json` ada tetapi tidak bisa dibaca atau di-parse
+1. **Gagal-tertutup.** `role.json` ada tetapi tidak bisa dibaca atau di-parse
    -> `--apply` ditolak, dengan pesan yang menyebut alasannya. Jangan diam,
    jangan lolos.
 2. **Terima UTF-8 (dengan atau tanpa BOM) dan UTF-16.** Ini Windows.
-3. Perilaku lama tetap: `peran.json` **tidak ada** -> `--apply` jalan biasa.
+3. Perilaku lama tetap: `role.json` **tidak ada** -> `--apply` jalan biasa.
    Yang berubah hanya kasus "ada tetapi rusak".
 4. Berlaku di keempat alat tulis, bukan hanya `smart_replace`.
 5. Uji, dibuktikan mutasi. Sertakan kasus UTF-16 sebagai salah satu ujinya.
 
 ## Sekalian, dua hal kecil
 
-**`.here_we_are/peran.json` jangan ikut git.** Ia keadaan lokal seperti
+**`.here_we_are/role.json` jangan ikut git.** Ia keadaan lokal seperti
 `scope_lock.json`. Tambahkan ke `.gitignore`.
 
 **Sisir `except Exception: pass` yang lain.** Cacat ini bentuknya sama dengan
@@ -2218,7 +2218,7 @@ Tidak dikunci — letaknya jelas dan buktinya sudah ditempel.
 ## Syarat 1 — PASS, dan menyeluruh
 
 ```
-peran.json UTF-16, isi {"peran": "QA"}
+role.json UTF-16, isi {"role": "QA"}
   smart_replace   [BLOCKED] File kunci peran ada tetapi gagal dibaca...
   scaffolder      [BLOCKED] ...
   context_mapper  [BLOCKED] ...
@@ -2227,7 +2227,7 @@ peran.json UTF-16, isi {"peran": "QA"}
 
 Keempat alat tulis menolak. Syarat 4 juga terpenuhi.
 
-Dan syarat 3 tetap: tanpa `peran.json`, `--apply` jalan biasa. Diuji.
+Dan syarat 3 tetap: tanpa `role.json`, `--apply` jalan biasa. Diuji.
 
 ## Syarat 2 — TIDAK terpenuhi
 
@@ -2245,7 +2245,7 @@ cara paling wajar membuatnya menghasilkan berkas yang ditolak:
 
 ```
 Notepad, simpan sebagai UTF-8      -> BOM     -> ditolak
-PowerShell: echo ... > peran.json  -> UTF-16  -> ditolak
+PowerShell: echo ... > role.json  -> UTF-16  -> ditolak
 ```
 
 Jadi PM yang ingin mengunci mode QA akan kena tolak terus tanpa tahu sebabnya.
@@ -2275,13 +2275,13 @@ yang sama dengan `auto_scaffolder` sebelum Sprint 22.
 ```
 $ grep -c peran .gitignore
 0
-$ git check-ignore .here_we_are/peran.json
+$ git check-ignore .here_we_are/role.json
 (tidak diabaikan)
 $ git ls-files | grep -c peran
 1
 ```
 
-`peran.json` masih terlacak git. Anda melaporkannya sudah ditambahkan.
+`role.json` masih terlacak git. Anda melaporkannya sudah ditambahkan.
 
 ## Penyisiran `except Exception: pass` — diterima
 
@@ -2333,13 +2333,13 @@ Dari klon bersih, bukan disk. Naik dari 40 ke 41.
 
 ```
 $ git ls-files | grep peran
-.here_we_are/peran.json                <- masih terlacak
+.here_we_are/role.json                <- masih terlacak
 
 $ grep -n "peran" .gitignore
 (kosong)
 
 $ git show --stat b24b8d4
-7 files changed — tidak ada peran.json di antaranya
+7 files changed — tidak ada role.json di antaranya
 ```
 
 `git rm --cached` tidak pernah masuk ke commit mana pun, dan `.gitignore` tidak

@@ -41,29 +41,29 @@ def check_task_state(is_apply=False):
     if is_apply:
         root_dir = os.getcwd()
         paths = [
-            os.path.join(root_dir, '.here_we_are', 'peran.json'),
-            os.path.join(root_dir, '.agents', 'chamber', 'peran.json')
+            os.path.join(root_dir, '.here_we_are', 'role.json'),
+            os.path.join(root_dir, '.agents', 'chamber', 'role.json')
         ]
         for p in paths:
             if os.path.exists(p):
-                peran_data = None
+                role_data = None
                 with open(p, 'rb') as f:
                     raw_bytes = f.read()
                 
                 err_msg = ""
                 for enc in ['utf-8-sig', 'utf-16']:
                     try:
-                        peran_data = json.loads(raw_bytes.decode(enc))
+                        role_data = json.loads(raw_bytes.decode(enc))
                         break
                     except Exception as e:
                         err_msg = str(e)
                         
-                if peran_data is None:
-                    print(f"[BLOCKED] File kunci peran ada tetapi gagal dibaca (mungkin format rusak atau encoding salah): {err_msg}")
+                if role_data is None:
+                    print(f"[BLOCKED] Role lock file ada tetapi gagal dibaca (mungkin format rusak atau encoding salah): {err_msg}")
                     sys.exit(1)
                     
-                if peran_data.get('peran') == 'QA':
-                    print("[BLOCKED] Akses tulis (--apply) ditolak untuk peran QA.")
+                if role_data.get('role') == 'QA':
+                    print("[BLOCKED] Akses tulis (--apply) ditolak untuk role QA.")
                     sys.exit(1)
 
     state_file = os.path.join(os.getcwd(), '.agents', 'task_state.json')

@@ -27,8 +27,8 @@ Ke peran mana pun, kapan pun. Pertanyaan ini menangkap sebagian besar klaim
 yang tidak berdasar tanpa kamu perlu membaca satu baris kode.
 
 ## LANGKAH PERTAMA
-1. `.agents/chamber/KEADAAN.md` — posisi sekarang.
-2. `.agents/chamber/ATURAN_CHAMBER.md` — aturan yang berlaku.
+1. `.agents/chamber/STATE.md` — posisi sekarang.
+2. `.agents/chamber/CHAMBER_RULES.md` — aturan yang berlaku.
 
 ## MENGUNCI USULAN (untuk entri yang membangun)
 

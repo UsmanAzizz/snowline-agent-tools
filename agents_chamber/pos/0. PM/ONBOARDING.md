@@ -1,7 +1,7 @@
 > **BACA INI DULU (berlaku sejak 21-08-2026)**
 > Saluran resmi: `.here_we_are/connector.md` — bukan `pos/*/connector.md`.
-> Aturan yang berlaku: `agents_chamber/ATURAN_CHAMBER.md`.
-> Posisi sekarang: `.here_we_are/KEADAAN.md` — baca ini sebelum apa pun.
+> Aturan yang berlaku: `agents_chamber/CHAMBER_RULES.md`.
+> Posisi sekarang: `.here_we_are/STATE.md` — baca ini sebelum apa pun.
 > Bagian "FIRST STEPS" dan "COORDINATION FLOW" di bawah sudah diperbarui.
 
 # ROLE: Project Manager (PM) - Human

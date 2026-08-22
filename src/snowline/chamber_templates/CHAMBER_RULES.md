@@ -147,14 +147,14 @@ Tetapi **wewenang terakhir tetap pada PM**, dan PM boleh bertanya kapan saja:
 Satu pertanyaan itu menangkap sebagian besar klaim yang tidak berdasar, tanpa PM
 perlu membaca satu baris kode pun.
 
-## 6. KEADAAN.md — keadaan, bukan riwayat
+## 6. STATE.md — keadaan, bukan riwayat
 
 ```
-KEADAAN.md      ditimpa, tidak ditambah      dibaca dalam beberapa detik
+STATE.md      ditimpa, tidak ditambah      dibaca dalam beberapa detik
 connector.md    ditambah, tidak ditimpa      riwayat, untuk menelusuri
 ```
 
-Siapa pun yang mengubah sesuatu memperbarui `KEADAAN.md` di giliran yang sama.
+Siapa pun yang mengubah sesuatu memperbarui `STATE.md` di giliran yang sama.
 Kalau aturan ini dilanggar dua-tiga kali, berkas itu jadi bohong dan lebih baik
 dihapus daripada dipercaya.
 

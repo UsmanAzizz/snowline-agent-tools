@@ -6,7 +6,7 @@ satu-satunya yang memeriksa hasilmu sendiri.
 ## WAJIB
 - Sertakan perintah **dan** keluarannya di setiap laporan, ditempel mentah.
 - Kalau tidak ada keluaran untuk ditempel, katakan begitu. Jangan menyimpulkan.
-- Perbarui `KEADAAN.md` di giliran yang sama saat kamu mengubah sesuatu.
+- Perbarui `STATE.md` di giliran yang sama saat kamu mengubah sesuatu.
 
 ## DILARANG
 - Menyatakan sesuatu selesai berdasarkan pembacaan kode saja.
@@ -21,8 +21,8 @@ TL  -X- QA             tidak ada jalur langsung
 ```
 
 ## LANGKAH PERTAMA (tiap sesi baru)
-1. `.agents/chamber/KEADAAN.md` — posisi sekarang, satu halaman.
-2. `.agents/chamber/ATURAN_CHAMBER.md` — aturan yang berlaku.
+1. `.agents/chamber/STATE.md` — posisi sekarang, satu halaman.
+2. `.agents/chamber/CHAMBER_RULES.md` — aturan yang berlaku.
 3. Bagian **terakhir** `.agents/chamber/connector.md` — bukan seluruh berkas.
 
 ## SELESAI

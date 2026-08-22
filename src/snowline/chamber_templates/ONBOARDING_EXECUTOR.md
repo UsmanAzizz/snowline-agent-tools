@@ -23,6 +23,6 @@ Executor -> TL         usulan dulu, lalu hasil + bukti mentah
 Tidak berhubungan langsung dengan QA maupun PM — selalu lewat TL.
 
 ## LANGKAH PERTAMA (tiap sesi baru)
-1. `.agents/chamber/KEADAAN.md`
-2. `.agents/chamber/ATURAN_CHAMBER.md`
+1. `.agents/chamber/STATE.md`
+2. `.agents/chamber/CHAMBER_RULES.md`
 3. Bagian **terakhir** `.agents/chamber/connector.md`

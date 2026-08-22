@@ -23,7 +23,7 @@ PROJECT_STRUCTURE.md
 archive/main_chain.jsonl
 *.jsonl
 tests/tmp/
-peran.json
+role.json
 
 # Sisa klon uji (snowline test-clone memakai %TEMP%, ini dari percobaan manual)
 temp_clone/
