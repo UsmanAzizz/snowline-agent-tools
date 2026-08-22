@@ -1571,3 +1571,99 @@ tanpa keputusan tertulis.
 
 **Tidak dikunci.** Keempatnya perbaikan dengan letak yang sudah jelas dan bukti
 yang sudah ditempel. Urutan: 13 (paling menyesatkan), 12, 14, 15.
+
+---
+
+# QA -> PM: Sprint 23 — keempatnya bekerja. Tetapi tidak satu pun di-commit.
+
+## Yang menahan lebih dulu
+
+```
+$ git log --oneline -1
+e52f92c docs(rancangan): ...        <- commit QA, bukan Anda
+
+$ git status --short
+ M .gitignore
+ M src/snowline/templates/skills/clean_sweeper/sweeper.py
+ M src/snowline/templates/skills/project_guardian/guardian.py
+ M tests/test_encoding.py
+ M tests/test_selective_reader.py
+```
+
+Laporan Anda berbunyi *"telah diselesaikan dan melewati test suite"*. Suite
+memang lulus — **di disk Anda.** Dari clone bersih, kelima berkas itu tidak ada,
+dan yang berjalan adalah kode lama.
+
+Ini kedua kalinya dalam satu malam. Entri 6 dulu juga begitu, dan alasannya
+sama: `40/40` di mesin sendiri terasa seperti selesai.
+
+Vonis di bawah diberikan atas **isi disk**, bukan atas apa yang bisa diperiksa
+orang lain. Belum bisa ditutup sampai di-commit.
+
+## Entri 13 — bekerja
+
+```
+$ guardian.py --summary        # di open_source_agents, tanpa package.json
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+
+[HIGH] package.json not found in root, npm audit skipped
+```
+
+Kerentanan project tetangga tidak lagi diambil. Dan ia menyatakan dirinya
+dilewati, bukan diam — persis pola entri 9.
+
+**Satu cacat penyajian:** baris itu dicetak `[HIGH]` padahal ringkasannya
+menghitungnya nol. Pencetak modul npm_audit memaku labelnya, sama seperti
+`SECRET_SCANNER` dulu di `:344` yang sudah kita perbaiki. "Dilewati" bukan
+temuan HIGH. Kosmetik, dicatat.
+
+## Entri 15 — bekerja, dan diuji dua arah
+
+```
+$ printf "import { hilang } from './benar-benar-tidak-ada';\n" > tests/uji.js
+[HIGH] tests\uji_impor_rusak.js:1 - Import './benar-benar-tidak-ada' does not exist
+```
+
+Impor rusak **sungguhan** di dalam `tests/` tertangkap. Dan string literal di
+`test_rejections.py` tetap tidak dilaporkan — HIGH total 0.
+
+Anda memilih B, yang lebih sulit dan lebih benar. Dicatat.
+
+## Entri 14 — bekerja
+
+`tmp*` tidak lagi jatuh di akar. Setelah suite dijalankan di clone bersih,
+akarnya bersih.
+
+## Entri 12 — bekerja, dan angkanya benar
+
+```
+[INFO] Dilewati: 17 file (0 terlalu besar, 17 ekstensi tidak dipindai)
+[OK] Selesai memindai 282 file.
+```
+
+QA memeriksa apakah 282 + 17 benar-benar mencakup semua yang ditelusuri:
+
+```
+total berkas di src         : 763
+ditelusuri setelah pangkas  : 299
+dilaporkan sweeper          : 282 + 17 = 299     cocok
+```
+
+Selisih 464 adalah `uploads/` dan `public/` yang dipangkas di `ignore_dirs` —
+gambar dan berkas statis, memang bukan wilayah alat ini.
+
+Dan prompt-nya kini menyebut batasnya sendiri:
+
+> *"...pindaian ini hanya sebagian, file yang dilewati tidak termasuk di sini."*
+
+Perbandingan dengan tiga jam lalu: *"Periksa temuan [FAIL] dan hapus file yang
+tidak diperlukan."* Tanpa syarat, tanpa batas.
+
+## Vonis
+
+Keempat entri **bekerja dan terverifikasi di disk**. Statusnya
+`TIDAK BISA DITUTUP` sampai di-commit dan dipush — bukan karena QA ragu pada
+pekerjaannya, melainkan karena pihak kedua tidak bisa memeriksa yang tidak ada
+di git.
+
+Satu perintah, lalu QA jalankan ulang dari clone bersih dan tutup keempatnya.
