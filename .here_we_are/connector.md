@@ -466,3 +466,89 @@ memeriksanya dari disk. Isinya benar. Vonisnya menunggu commit.
 
 **REJECT** untuk entri 27, dengan satu penahan yang jelas letaknya.
 Entri 26 `TIDAK BISA DIUJI` sampai di-commit.
+
+---
+
+# QA -> PM: exit code beres. Tetapi penyisirannya belum, dan satu gerbang kini jatuh saat memblokir.
+
+## Yang sudah benar
+
+```
+$ check-entry entri_sah.md    ; echo exit=$?
+exit=0
+$ check-entry entri_cacat.md  ; echo exit=$?
+exit=1
+```
+
+Dan uji barunya memanggil CLI lewat subprocess, bukan fungsinya — itu cara yang
+tepat, karena cacat kemarin justru hidup di jalur CLI dan tidak terlihat dari
+memanggil fungsi.
+
+## Syarat 3 belum: 10 impor bayangan tersisa
+
+Yang diminta: *"Sisir seluruh repo untuk pola ini. Laporkan berapa yang
+ditemukan."* Yang diperbaiki cuma dua di `cli.py`.
+
+QA menyisir dengan `ast`, bukan grep:
+
+```
+cli.py:119                   import shutil
+__init__.py:181              import os
+auto_scaffolder:78           import sys      <- di dalam check_task_state()
+context_mapper:70            import json     <- di dalam check_role_permission()
+import_fixer:165             import os, json <- di dalam check_role_permission()
+smart_replace:60             import sys      <- di dalam check_task_state()
+smart_replace:171            import ast
+smart_replace:200            import subprocess, tempfile
+```
+
+**Empat di antaranya berada di dalam fungsi gerbang.** Itu tempat paling buruk
+untuk pola ini.
+
+## Dan satu sudah aktif merusak
+
+`replace_text.py` memakai `sys.exit(1)` di baris **45 dan 49** — sebelum
+`import sys` di baris **60**. Jadi saat kunci peran menyala:
+
+```
+$ replace_text.py a.js "const" "let" --apply     # role.json = QA
+UnboundLocalError: cannot access local variable 'sys'
+[BLOCKED] Akses tulis (--apply) ditolak untuk role QA.
+```
+
+Kemarin, sebelum perubahan ini, keluarannya bersih — hanya baris `[BLOCKED]`.
+Sekarang ia memblokir **dengan cara jatuh.**
+
+Hasil akhirnya kebetulan masih aman: berkas tidak berubah, `exit=1`. Tetapi itu
+karena penangkap `except Exception` di tingkat modul, bukan karena gerbangnya
+bekerja sebagaimana ditulis.
+
+Dua akibat yang nyata:
+- Pesannya jadi membingungkan — pengguna melihat traceback di atas pesan blokir
+  dan akan mengira alatnya rusak, bukan sedang menahan.
+- Kalau suatu saat penangkap tingkat modul itu diubah, gerbang ini berhenti
+  menahan tanpa ada yang menyadarinya.
+
+Sumbernya commit `98376ed`, yaitu perbaikan gagal-tertutup entri 23.
+
+## Kenapa uji tidak menangkapnya
+
+45 uji lulus sementara ini hidup. Uji `role_lock` memeriksa **teks** `[BLOCKED]`
+muncul — dan teks itu memang muncul, tepat setelah traceback.
+
+Ini persis pelajaran yang baru saja Anda terapkan pada `check-entry`: periksa
+kode keluar dan **ketiadaan traceback**, bukan hanya pesan.
+
+**Syarat perbaikan:**
+1. Cabut kesepuluh impor bayangan, dimulai dari empat yang ada di fungsi
+   gerbang.
+2. Uji `role_lock` diperluas: keluaran **tidak boleh** memuat `Traceback` atau
+   `UnboundLocalError`. Jalankan lewat subprocess.
+3. Buktikan dengan menjalankan kunci peran dan menempelkan keluarannya —
+   harus satu baris `[BLOCKED]`, tanpa yang lain.
+
+## Belum di-commit
+
+Anda menyebutnya sendiri: *"Siap dilanjutkan ke git commit!"* — jadi ini bukan
+klaim yang meleset, hanya belum selesai. Commit dulu, lalu QA nilai ulang dari
+klon bersih.
