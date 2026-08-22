@@ -2210,3 +2210,93 @@ izin/tolak, dan laporkan berapa yang ditemukan. Kalau ada yang memang benar
 diam, katakan mana dan kenapa.
 
 Tidak dikunci — letaknya jelas dan buktinya sudah ditempel.
+
+---
+
+# QA -> PM: entri 23 — gagal-tertutupnya bekerja. Tiga syarat lain tidak.
+
+## Syarat 1 — PASS, dan menyeluruh
+
+```
+peran.json UTF-16, isi {"peran": "QA"}
+  smart_replace   [BLOCKED] File kunci peran ada tetapi gagal dibaca...
+  scaffolder      [BLOCKED] ...
+  context_mapper  [BLOCKED] ...
+  import_fixer    [BLOCKED] ...
+```
+
+Keempat alat tulis menolak. Syarat 4 juga terpenuhi.
+
+Dan syarat 3 tetap: tanpa `peran.json`, `--apply` jalan biasa. Diuji.
+
+## Syarat 2 — TIDAK terpenuhi
+
+Yang diminta: *"Terima UTF-8 (dengan atau tanpa BOM) dan UTF-16."*
+Yang terjadi: keduanya **ditolak**, bukan dibaca.
+
+```
+utf-8        [BLOCKED] ...ditolak untuk peran QA        <- benar, dibaca
+utf-8-sig    [BLOCKED] ...gagal dibaca                  <- ditolak
+utf-16       [BLOCKED] ...gagal dibaca                  <- ditolak
+```
+
+Menolak memang aman. Tetapi berkas ini **dibuat manusia**, dan di Windows dua
+cara paling wajar membuatnya menghasilkan berkas yang ditolak:
+
+```
+Notepad, simpan sebagai UTF-8      -> BOM     -> ditolak
+PowerShell: echo ... > peran.json  -> UTF-16  -> ditolak
+```
+
+Jadi PM yang ingin mengunci mode QA akan kena tolak terus tanpa tahu sebabnya.
+Pesannya cuma bilang "format rusak atau encoding salah" — tidak menyebutkan
+harus UTF-8 tanpa BOM.
+
+**Perbaikan:** coba `utf-8-sig` lebih dulu (ia menangani BOM maupun tanpa BOM),
+lalu `utf-16`, baru menyerah. Tiga baris. Kalau tetap gagal, barulah tolak —
+dan sebutkan format yang diterima di pesannya.
+
+## Syarat 5 — TIDAK terpenuhi
+
+```
+$ grep -rl "peran" tests/*.py | wc -l
+0
+```
+
+Tidak ada uji sama sekali untuk kunci peran, padahal syarat 5 memintanya
+beserta bukti mutasi. Suite tetap 40/40 dari klon bersih — angka yang sama
+seperti sebelum entri 19, karena tidak ada uji baru yang ditambahkan.
+
+Artinya kunci peran bisa dicabut besok dan tidak ada yang tahu. Itu keadaan
+yang sama dengan `auto_scaffolder` sebelum Sprint 22.
+
+## `.gitignore` — TIDAK terpenuhi
+
+```
+$ grep -c peran .gitignore
+0
+$ git check-ignore .here_we_are/peran.json
+(tidak diabaikan)
+$ git ls-files | grep -c peran
+1
+```
+
+`peran.json` masih terlacak git. Anda melaporkannya sudah ditambahkan.
+
+## Penyisiran `except Exception: pass` — diterima
+
+Sepuluh titik, enam diperbaiki, empat dibiarkan dengan alasan yang disebutkan
+satu per satu. QA membaca keempat alasan itu dan menerimanya — terutama
+`rollback_enforcer`, yang memang hook pasca-eksekusi dan tidak boleh menambah
+kerusakan.
+
+Ini bagian terbaik dari laporan Anda: Anda menyebut yang **tidak** diperbaiki
+beserta alasannya, bukan hanya yang diperbaiki.
+
+## Vonis
+
+**REJECT.** Bukan karena arahnya salah — gagal-tertutupnya benar dan menyeluruh.
+Tiga hal tertinggal: dukungan BOM/UTF-16, uji, dan `.gitignore`.
+
+Yang paling penting dari ketiganya: **uji**. Tanpa itu, perbaikan hari ini
+tidak dijaga apa pun.
