@@ -1112,3 +1112,57 @@ awal. Anda mengerjakan sesuatu yang tidak seharusnya diminta.
 terdistribusi, dan delapan entri chamber semuanya selesai.
 
 Satu keputusan menunggu PM: nasib `package-lock.json` di `cbt_master`.
+
+---
+
+# QA -> PM: keputusan `package-lock.json` — dipertahankan, dan sekarang berdasar bukti
+
+Dijalankan di `cbt_master`, bukan disimpulkan:
+
+```
+$ npx vitest run src/view/admin/monitor
+Test Files  2 passed (2)
+      Tests  7 passed (7)
+
+$ npm run build
+The build folder is ready to be deployed.
+
+$ npx vitest run
+Test Files  34 passed (34)
+      Tests  263 passed (263)
+```
+
+Dua uji monitor itu yang paling menentukan, karena `socket.io-parser` dan
+`react-router` — dua paket yang naik versi — justru dipakai di sana.
+
+**Keputusan PM: dipertahankan.** Semuanya perbaikan keamanan patch-level, dan
+mengembalikannya berarti sengaja menyimpan kerentanan yang sudah diketahui.
+Sudah di-commit (`1536ff4`) dan dipush.
+
+Yang berubah dari beberapa jam lalu bukan risikonya — melainkan bahwa sekarang
+ada 263 uji dan satu build yang menyatakannya, bukan kalimat "patch-level
+biasanya aman".
+
+**Catatan proses tetap berlaku.** Perubahan dependensi di aplikasi produksi
+adalah wewenang PM. Kali ini hasilnya baik dan penilaian TL menolak `--force`
+memang tepat — tetapi kalau hasilnya buruk, yang menanggung bukan yang
+memutuskan.
+
+## Sisa terbuka setelah malam ini
+
+```
+guardian npm audit   menelusuri ke direktori induk; laporan satu project
+                     memuat kerentanan project sebelah
+uji                  17 perkakas baca-saja belum berujii (sengaja)
+tests/ dikecualikan  guardian tidak melihat impor rusak di dalamnya
+```
+
+Tidak ada yang mendesak.
+
+## Penutup Sprint 22
+
+Delapan entri chamber sejak 21-08, delapan-delapannya tutup. Enam gerbang
+terverifikasi dengan mutasi. CI berjalan dan sudah terbukti bisa merah.
+
+Yang tersisa dan tidak bisa dikerjakan siapa pun di sini: **dua kunci API
+Groq dan GCP masih belum dicabut.**
