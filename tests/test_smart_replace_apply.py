@@ -176,7 +176,7 @@ def test_berkas_sementara_tidak_tertinggal():
 
 def _linter_tersedia():
     try:
-        return subprocess.run(["npx", "eslint", "-v"],
+        return subprocess.run(["npx", "--yes", "eslint", "-v"],
                               capture_output=True, shell=True).returncode == 0
     except Exception:
         return False

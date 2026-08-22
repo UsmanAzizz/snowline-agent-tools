@@ -43,7 +43,7 @@ def test_encoding_tools():
             
         os.environ["SNOWLINE_HISTORY"] = history_file
         try:
-            rc, out, err = run_cmd(f"{sys.executable} {loop_detector} \"test non ascii áéí\"")
+            rc, out, err = run_cmd(f"echo {{}} | {sys.executable} {loop_detector} \"test non ascii áéí\"")
             assert rc == 0, f"loop_detector.py crashed on non-ASCII file. Err: {err}"
         finally:
             if "SNOWLINE_HISTORY" in os.environ:
