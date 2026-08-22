@@ -10,7 +10,22 @@ ini tidak.
 
 ## Ini apa
 
-Perangkat yang membuat agen AI **tidak bisa diam-diam merusak proyek nyata.**
+Seperangkat **aturan, perkakas, companion, dan chamber** yang membuat agen AI
+tidak bisa diam-diam merusak proyek nyata.
+
+Empat bagian, dan tiap bagian punya tugas yang berbeda:
+
+```
+companion   pintu masuk      menerjemahkan maksud jadi perkakas yang tepat
+perkakas    yang bekerja     tujuh jalur perusakan bergerbang di sini
+aturan      yang membatasi   4 mengikat lewat kode, 10 tata tertib
+chamber     yang memeriksa   apakah pekerjaan itu nyata
+```
+
+Yang membedakan chamber dari tiga lainnya: ia bekerja pada **keluaran**, bukan
+pada kode. Tiga yang lain menahan tindakan; chamber menahan klaim. Itu juga
+sebabnya chamber tidak bisa dijadikan perkakas — laporan bukan berkas yang bisa
+dipindai.
 
 Proyek nyatanya konkret: aplikasi CBT yang dipakai untuk ujian di sekolah.
 Ribuan jawaban siswa, dinilai sebagian oleh model. Kalau agen salah mengubah
