@@ -3,7 +3,7 @@
 **Berkas ini ditimpa, tidak ditambah.** Riwayat ada di `connector.md`.
 Siapa pun yang mengubah sesuatu, memperbarui berkas ini di giliran yang sama.
 
-Diperbarui: 21 Agustus 2026 · commit `d346975` · 0 belum commit, 0 belum push
+Diperbarui: 22 Agustus 2026 · commit `14efe7f` · 0 belum commit, 0 belum push
 
 ---
 
@@ -12,9 +12,10 @@ Diperbarui: 21 Agustus 2026 · commit `d346975` · 0 belum commit, 0 belum push
 ```
 companion       tunggakan terbuka       0          tutup
 chamber         kode di pohon git       0 berkas   protokol, bukan program
-tools           berujii                 5 / 22     tree_gen, smart_replace,
+tools           berujii                 8 / 22     tree_gen, smart_replace,
                                                    scope_guardian, impact_analyzer,
-                                                   context_mapper
+                                                   context_mapper, selective_reader,
+                                                   smart_search, surgical_splicer
 undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
                 mengikat lewat kode     4 gerbang  lihat RULE 0 di agents.md
 ```
@@ -41,18 +42,28 @@ hook               transkrip Antigravity 5330ddf5 menunjukkan penolakan nyata
 ## Terbuka
 
 ```
-1  uji               17 perkakas belum punya satu uji pun
-2  verify_rule12     CRLF vs LF terbaca sebagai pelanggaran isi
-3  arsip connector   ada di dua tempat; pilih satu sebelum ada yang ketiga
-4  guardian HIGH     6 temuan belum ditinjau
+1  uji               14 perkakas baca-saja belum berujii (sengaja ditunda)
+2  tmp* di akar repo uji memakai TemporaryDirectory(dir=root); kalau proses
+                     terbunuh, sampahnya tertinggal di akar dan guardian
+                     melaporkannya sebagai HIGH. 5 sisa dihapus QA 22-08.
+3  npm audit         guardian menelusuri ke direktori induk, jadi 2 HIGH itu
+                     milik project tetangga — bukan repo ini
+4  tests/ dikecualikan  guardian tidak melihat impor rusak di dalamnya
 
-TUTUP 21-08 lewat chamber, empat entri:
+TUTUP lewat chamber, sebelas entri:
    1  impact_analyzer   negatif palsu Python, .backup_replace, --depth
    2  npx               suite 2 menit -> 24 detik, probe sekali per proses
    3  context_mapper    DEPENDENCY_MAP; yatim 16 -> 1; pindai 64,8s -> 0,07s
-   4  CI                .github/workflows/ci.yml, terbukti merah lalu hijau
+   4  CI                terbukti merah lalu hijau, 14 detik per putaran
+   5  guardian          positif palsu HIGH: komentar & scratch/ dikecualikan
+   6  uji penolakan     enam gerbang, semuanya terverifikasi mutasi
+   7  verify_rule12     beda akhir baris tidak lagi dibaca sebagai beda isi
+   8  arsip connector   satu lokasi resmi
+   9  encoding          open() tanpa utf-8 menjatuhkan splicer di 39% berkas
+  10  selective_reader  impor/useState/useEffect/export masuk TOC
+  11  cache             batal sendiri saat kode alatnya berubah
 
-Di luar chamber, malam yang sama:
+Di luar chamber:
    smart_replace     --apply pada berkas tunggal tidak pernah berhasil
    :529 relpath      nama berkas tercetak sebagai titik
 ```
@@ -87,7 +98,7 @@ ini salah, apakah langsung kelihatan?* Kelihatan seketika, kerjakan biasa; baru
 ketahuan nanti, lewat chamber.
 
 Belum diuji: apakah subagent Antigravity benar-benar berkonteks bersih.
-**Dipakai 21-08: dua entri, dua-duanya tutup.** Aturannya menahan sesuatu yang
+**Dipakai: sebelas entri, sebelas-belasnya tutup.** Aturannya menahan sesuatu yang
 nyata di keduanya — entri 1 menangkap uji yatim yang tidak ikut terjalan, entri
 2 menuntut bukti mutasi yang ternyata bekerja.
 
@@ -96,7 +107,7 @@ nyata di keduanya — entri 1 menangkap uji yatim yang tidak ikut terjalan, entr
 Jangan percaya angka di atas. Jalankan:
 
 ```bash
-python tests/run_tests.py                                   # 32/32, ~24 detik
+python tests/run_tests.py                                   # 40/40, ~24 detik
 python .agents/skills/project_guardian/guardian.py --summary # CRITICAL=0
 git log --oneline -5
 ```
