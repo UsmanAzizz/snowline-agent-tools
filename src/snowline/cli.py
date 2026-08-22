@@ -830,6 +830,9 @@ def main():
     p_check = subparsers.add_parser("check-entry", help="Periksa kelengkapan entri connector")
     p_check.add_argument("file", help="Berkas entri markdown")
     
+    p_close = subparsers.add_parser("close-entry", help="Pindahkan satu entri dari connector ke history/<topik>")
+    p_close.add_argument("topik", help="Nama topik, misal 'caching', 'encoding'")
+    
     subparsers.add_parser("test-clone", help="Jalankan tes di klon repositori bersih")
     
     subparsers.add_parser("path", help="Show installation paths")
@@ -860,24 +863,24 @@ def main():
     elif args.command == "check-entry":
         try:
             from snowline.core_entry_checker import check_entry
-        except ImportError:
-            import sys
-            import os
-            sys.path.insert(0, os.path.dirname(__file__))
-            from core_entry_checker import check_entry
-            
-        try:
             with open(args.file, 'r', encoding='utf-8') as f:
                 content = f.read()
-            if not check_entry(content):
-                import sys
+            if check_entry(content):
+                sys.exit(0)
+            else:
                 sys.exit(1)
-        except SystemExit:
-            raise
         except Exception as e:
-            print(f"Gagal memeriksa entri: {e}")
-            import sys
+            safe_print(f"{Colors.RED}Gagal memeriksa entri: {e}{Colors.RESET}")
             sys.exit(1)
+
+    elif args.command == "close-entry":
+        try:
+            from snowline.core_close_entry import close_entry_command
+            close_entry_command(args.topik)
+        except Exception as e:
+            safe_print(f"{Colors.RED}Gagal menutup entri: {e}{Colors.RESET}")
+            sys.exit(1)
+            
     elif args.command == "test-clone":
         try:
             from snowline.core_test_clone import run_test_clone

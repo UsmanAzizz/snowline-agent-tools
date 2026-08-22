@@ -53,22 +53,26 @@ hook               transkrip Antigravity 5330ddf5 menunjukkan penolakan nyata
 3  mode tunggal      rancangan ada di DESIGN_CONTEXT_AND_SOLO.md,
                      tiga hal belum diuji, belum berlaku
 
-TUTUP lewat chamber, lima belas entri:
-   1  impact_analyzer   negatif palsu Python, .backup_replace, --depth
-   2  npx               suite 2 menit -> 24 detik, probe sekali per proses
-   3  context_mapper    DEPENDENCY_MAP; yatim 16 -> 1; pindai 64,8s -> 0,07s
-   4  CI                terbukti merah lalu hijau, 14 detik per putaran
-   5  guardian          positif palsu HIGH: komentar & scratch/ dikecualikan
-   6  uji penolakan     enam gerbang, semuanya terverifikasi mutasi
-   7  verify_rule12     beda akhir baris tidak lagi dibaca sebagai beda isi
-   8  arsip connector   satu lokasi resmi
-   9  encoding          open() tanpa utf-8 menjatuhkan splicer di 39% berkas
-  10  selective_reader  impor/useState/useEffect/export masuk TOC
-  11  cache             batal sendiri saat kode alatnya berubah
-  12  clean_sweeper     melapor cakupan; berhenti menyuruh hapus tanpa syarat
-  13  npm audit         berhenti mengambil kerentanan project tetangga
-  14  sampah uji        tmp* tidak lagi jatuh di akar repo
-  15  tests/            kembali dipindai; string literal dikupas selektif
+TUTUP lewat chamber, arsip per topik:
+```
+dependency-map       peta arsitektur, daftar yatim          history/dependency-map/
+dependency-map-eval  vonis atas context_mapper              history/dependency-map-eval/
+ci                   setup alur CI                          history/ci/
+guardian             temuan positif palsu dan perbaikan     history/guardian/
+guardian-eval        vonis atas perbaikan guardian          history/guardian-eval/
+rejection-tests      gerbang tolakan                        history/rejection-tests/
+encoding             utf-8 dan baca fungsi tunggal          history/encoding/
+selective_reader     pemindai daftar fungsi                 history/selective_reader/
+caching              batal saat kode alatnya berubah        history/caching/
+clean_sweeper        melapor cakupan hapus sisa             history/clean_sweeper/
+context              snowline konteks dan irisan tugas      history/context/
+role-lock            kunci-tulis berdasarkan peran          history/role-lock/
+solo_mode            pengujian tiga hal mode tunggal        history/solo_mode/
+quality_gate         rule12, beda akhir baris               history/quality_gate/
+npm_audit            audit project tetangga                 history/npm_audit/
+blind_test           pengujian buta 4 mekanisme             history/blind_test/
+workflow             arsip connector, rotasi sprint         history/workflow/
+```
 
 Di luar chamber:
    smart_replace     --apply pada berkas tunggal tidak pernah berhasil
