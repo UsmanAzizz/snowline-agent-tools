@@ -855,8 +855,6 @@ def main():
             from snowline.core_context import show_context
             show_context()
         except ImportError:
-            import sys
-            import os
             sys.path.insert(0, os.path.dirname(__file__))
             from core_context import show_context
             show_context()
@@ -885,8 +883,6 @@ def main():
         try:
             from snowline.core_test_clone import run_test_clone
         except ImportError:
-            import sys
-            import os
             sys.path.insert(0, os.path.dirname(__file__))
             from core_test_clone import run_test_clone
         run_test_clone()

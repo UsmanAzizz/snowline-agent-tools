@@ -203,7 +203,13 @@ def main():
     runner.run("role_lock encoding support", test_role_lock.test_role_lock_encodings)
 
     print("Testing selective_reader (Entry 10)...")
-    runner.run("selective_reader new regex captures", test_selective_reader.test_selective_reader_extracted_items)
+    import test_entry_checker
+    print("Testing entry checker (Entry 27)...")
+    runner.run("entry checker exceptions", test_entry_checker.test_exemption_line_numbers)
+    runner.run("entry checker claim rejected", test_entry_checker.test_quantitative_claim_rejected)
+    runner.run("entry checker claim accepted", test_entry_checker.test_quantitative_claim_accepted)
+    runner.run("entry checker history validation", test_entry_checker.test_real_qa_entries)
+    runner.run("entry checker cli exit code", test_entry_checker.test_cli_exit_code)
 
     success = runner.summary()
 

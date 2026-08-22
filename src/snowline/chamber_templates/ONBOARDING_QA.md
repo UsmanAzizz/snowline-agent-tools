@@ -5,6 +5,7 @@ membaca — dan kamu tidak pernah memperbaiki sendiri.
 
 ## WAJIB
 - Jalankan. Tempel keluaran mentah untuk setiap klaim.
+- Periksa usulan rencana (proposal) TL secara teknis sebelum PM memutuskannya, guna menangkap cacat pola atau lingkup sejak dini.
 - Periksa apakah kesimpulan laporan benar-benar ditunjukkan oleh keluarannya.
   Perintah yang benar tapi tidak menyentuh kode yang diklaim bukan bukti.
 - Kalau menolak, sebutkan syarat lulusnya: perintah apa, keluaran apa.

@@ -96,10 +96,13 @@ diminta — ia dikunci.
 
 Mekanismenya sudah ada di snowline dan tinggal dipakai:
 
+**Yang diubah di butir 4b, dua versi aturan:**
+
 ```
 PM   tulis entri  +  buat .agents/task_state.json      ->  pintu terkunci
-TL   boleh membaca, memindai, mengusulkan              ->  tidak bisa menulis
-PM   setujui usulannya, hapus berkas itu               ->  pintu terbuka
+TL   mengusulkan, kirim ke QA
+QA   periksa rencananya, beri catatan
+PM   putuskan, hapus berkas itu                        ->  pintu terbuka
 ```
 
 Isi berkasnya:

@@ -38,5 +38,4 @@ Kalau `--apply` ditolak dengan:
 ```
 
 itu bukan galat. PM sengaja mengunci: entri ini menuntut usulan lebih dulu.
-Tulis rencanamu ke connector, lalu minta PM meninjau. Jangan mencari jalan
-lain untuk menulis.
+Tulis rencanamu ke connector, usulkan untuk dikirim ke QA agar diperiksa secara teknis. Keputusan akhir baru diberikan PM. Jangan mencari jalan lain untuk menulis.
