@@ -1707,3 +1707,105 @@ Usul QA untuk `ATURAN_CHAMBER.md`, silakan PM putuskan:
 > orang lain.
 
 Itu bukan aturan baru; itu menuliskan apa yang sudah dua kali menahan sprint.
+
+---
+
+# PM -> TL: Sprint 24 — dua entri
+
+Rencana lengkapnya di `.here_we_are/RANCANGAN_KONTEKS_DAN_SOLO.md`. Baca dulu.
+
+---
+
+## Entri 16 — irisan tugas dan `snowline konteks`
+
+**Masalahnya:** apa yang agen pelajari selama satu tugas hilang saat sesi
+ditutup. Sesi berikutnya menggali ulang hal yang sama.
+
+**Yang dikerjakan, dua bagian.**
+
+**Bagian A — `scope_lock.json` menyimpan temuan tugas.** Tambahkan tiga medan
+opsional:
+
+```json
+{
+  "task": "...",
+  "allowed_files": ["..."],
+  "created_at": "...",
+
+  "temuan": ["satu baris per temuan"],
+  "pertanyaan_terbuka": ["satu baris per pertanyaan"],
+  "berkas_terkait": ["diturunkan DEPENDENCY_MAP, bukan diketik tangan"]
+}
+```
+
+Aturan: maksimal 10 temuan. Kalau lebih, tolak dengan pesan yang menyuruh
+memindahkan yang lama ke connector. Jangan diam-diam memotong.
+
+Medan lama harus tetap bekerja — `scope_lock.json` tanpa ketiga medan ini
+tidak boleh error.
+
+**Bagian B — perintah `snowline konteks`.** Mencetak, urut:
+
+```
+1. .here_we_are/KEADAAN.md (atau .agents/chamber/KEADAAN.md kalau ada)
+2. irisan tugas dari scope_lock.json
+3. entri TERAKHIR dari connector.md — satu entri saja, bukan seluruh berkas
+```
+
+**Syarat lulus:**
+1. Keluaran di bawah 250 baris pada repo ini. Kalau lewat, perintahnya berhenti
+   dan menyebutkan bagian mana yang kegemukan — bukan mencetak apa adanya.
+2. Bagian 3 benar-benar satu entri terakhir. Buktikan: connector punya 20+
+   entri, keluarannya cuma memuat yang terakhir.
+3. `scope_lock.json` lama (tanpa medan baru) tetap jalan di semua alat yang
+   membacanya — `scope_check.py` dan `replace_text.py`.
+4. Uji, dibuktikan mutasi.
+5. Butir 10: commit dan push sebelum melapor.
+
+---
+
+## Entri 17 — uji tiga hal sebelum mode tunggal dibangun
+
+Jangan bangun apa pun di entri ini. Yang diminta hasil pengujian.
+
+**Uji 1 — apakah subagent Antigravity berkonteks bersih?**
+
+Panggil subagent, beri tugas: "sebutkan apa yang kamu ketahui tentang
+percakapan sebelumnya". Kalau ia menyebut hal yang cuma ada di konteks induk,
+berarti tidak bersih, dan seluruh rancangan mode tunggal gugur untuk
+Antigravity.
+
+Tempel jawabannya apa adanya.
+
+**Uji 2 — apakah kunci-tulis berdasarkan peran bisa ditegakkan?**
+
+Belum ada kodenya. Yang diminta: buat `peran.json` berisi `{"peran": "QA"}`,
+lalu periksa apakah `check_task_state` di `replace_text.py:22` bisa diperluas
+untuk membacanya. Cukup jawab bisa atau tidak, beserta alasannya. Jangan
+ditulis dulu.
+
+**Uji 3 — apakah agen yang sama di mode QA menolak pekerjaannya sendiri?**
+
+Ini yang paling penting dan paling mudah dibuat palsu, jadi caranya ditentukan
+di sini:
+
+1. Kerjakan satu perubahan kecil di sandbox — bukan di repo ini.
+2. **Tanam satu cacat yang Anda tahu ada.** Contoh: uji yang asersinya selalu
+   benar, atau perbaikan yang tidak menyentuh jalur yang diklaim.
+3. Tulis entri connector seperti biasa, seolah pekerjaan itu selesai.
+4. Ganti mode ke QA. Periksa entri itu.
+5. Laporkan: ketahuan atau tidak.
+
+Ulangi tiga kali dengan jenis cacat berbeda. Sekali tidak cukup — kalau
+ketahuan sekali lalu Anda menyimpulkan mode tunggal aman, itu satu sampel.
+
+Kalau tidak ketahuan, katakan. Hasil negatif di sini lebih berharga daripada
+hasil positif, karena ia menghemat kita membangun sesuatu yang tidak bekerja.
+
+**Syarat lulus:** ketiga jawaban ditulis di connector, dengan keluaran mentah
+untuk uji 1 dan 3. Tidak ada kode baru di entri ini.
+
+---
+
+**Urutan:** 16 dulu (bisa dikerjakan), 17 sesudahnya (menentukan apakah ada
+sprint berikutnya).
