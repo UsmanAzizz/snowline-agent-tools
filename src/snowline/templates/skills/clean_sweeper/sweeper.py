@@ -54,6 +54,7 @@ def sweep(target):
     todo_count = 0
     comment_blocks = []
     scanned_files = 0
+    skipped_files = {'too_large': 0, 'unsupported_ext': 0}
 
     for root, dirs, files in os.walk(target):
         dirs[:] = [d for d in dirs if d not in ignore_dirs]
@@ -68,11 +69,19 @@ def sweep(target):
 
         for f in files:
             filepath = os.path.join(root, f)
-            if os.path.getsize(filepath) > MAX_FILE_SIZE:
+            try:
+                if os.path.getsize(filepath) > MAX_FILE_SIZE:
+                    skipped_files['too_large'] += 1
+                    continue
+            except Exception:
+                continue
+
+            f_lower = f.lower()
+            if not f_lower.endswith(('.js', '.jsx', '.php', '.html', '.py', '.bak', '.old', '.log', '.db', '.sqlite', '.tmp')) and f != 'database.db' and not re.search(r'(?<=[_\- /])copy(?=[_\-. /])', f_lower, re.IGNORECASE):
+                skipped_files['unsupported_ext'] += 1
                 continue
 
             scanned_files += 1
-            f_lower = f.lower()
 
             if f_lower.endswith(('.bak', '.old', '.log', '.db', '.sqlite', '.tmp')) or re.search(r'(?<=[_\- /])copy(?=[_\-. /])', f_lower, re.IGNORECASE):
                 if f_lower not in ['database.db'] and not f_lower.endswith('.test.js'):
@@ -114,9 +123,9 @@ def sweep(target):
                 except Exception:
                     pass
 
-    return residue_files, todo_count, comment_blocks, scanned_files
+    return residue_files, todo_count, comment_blocks, scanned_files, skipped_files
 
-def print_human(residue_files, todo_count, comment_blocks, scanned_files):
+def print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files):
     print("CLEAN SWEEPER REPORT")
     print("=" * 50)
 
@@ -134,6 +143,10 @@ def print_human(residue_files, todo_count, comment_blocks, scanned_files):
             print(f"[WARN] {rel} (Lines {c['start_line']}-{c['end_line']}): {c['count']} consecutive commented lines")
 
     print("\n" + "=" * 50)
+    
+    total_skipped = skipped_files['too_large'] + skipped_files['unsupported_ext']
+    if total_skipped > 0:
+        print(f"[INFO] Dilewati: {total_skipped} file ({skipped_files['too_large']} terlalu besar, {skipped_files['unsupported_ext']} ekstensi tidak dipindai)")
 
     total_issues = len(residue_files) + (1 if todo_count > 0 else 0) + len(comment_blocks)
     if total_issues == 0:
@@ -141,9 +154,9 @@ def print_human(residue_files, todo_count, comment_blocks, scanned_files):
     else:
         print(f"[OK] Selesai memindai {scanned_files} file.")
         print("\n💡 PROMPT:")
-        print('"Periksa temuan [FAIL] dan hapus file yang tidak diperlukan. Untuk [WARN], periksa apakah bisa dihapus."')
+        print('"Periksa temuan [FAIL] dan hapus file residu HANYA jika Anda yakin file tersebut tidak diperlukan lagi. Ingat bahwa pindaian ini hanya sebagian, file yang dilewati tidak termasuk di sini. Untuk [WARN], periksa apakah komentar/tag bisa dihapus."')
 
-def print_json(residue_files, todo_count, comment_blocks, scanned_files):
+def print_json(residue_files, todo_count, comment_blocks, scanned_files, skipped_files):
     result = {
         'status': 'CLEAN' if len(residue_files) == 0 and todo_count == 0 and len(comment_blocks) == 0 else 'NEEDS_CLEANUP',
         'stats': {
@@ -187,14 +200,16 @@ def main():
         todo_count = cached['todo_count']
         comment_blocks = cached['comment_blocks']
         scanned_files = cached['scanned_files']
+        skipped_files = cached.get('skipped_files', {'too_large': 0, 'unsupported_ext': 0})
     else:
-        residue_files, todo_count, comment_blocks, scanned_files = sweep(target)
+        residue_files, todo_count, comment_blocks, scanned_files, skipped_files = sweep(target)
         cache_data[cache_key] = {
             'signature': dir_sig,
             'residue_files': residue_files,
             'todo_count': todo_count,
             'comment_blocks': comment_blocks,
-            'scanned_files': scanned_files
+            'scanned_files': scanned_files,
+            'skipped_files': skipped_files
         }
         try:
             os.makedirs(os.path.dirname(cache_file), exist_ok=True)
@@ -203,9 +218,9 @@ def main():
         except: pass
 
     if args.json:
-        print_json(residue_files, todo_count, comment_blocks, scanned_files)
+        print_json(residue_files, todo_count, comment_blocks, scanned_files, skipped_files)
     else:
-        print_human(residue_files, todo_count, comment_blocks, scanned_files)
+        print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files)
 
 if __name__ == "__main__":
     main()

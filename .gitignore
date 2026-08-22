@@ -29,3 +29,4 @@ PROJECT_STRUCTURE.md
 # Dump jejak sesi - memuat rahasia, jangan pernah di-commit
 archive/main_chain.jsonl
 *.jsonl
+tests/tmp/

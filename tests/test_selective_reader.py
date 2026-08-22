@@ -14,8 +14,9 @@ def run_cmd(cmd):
 
 def test_selective_reader_extracted_items():
     root = get_root_dir()
-    
-    with tempfile.TemporaryDirectory(dir=root) as tmpdir:
+    test_tmp = os.path.join(root, 'tests', 'tmp')
+    os.makedirs(test_tmp, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=test_tmp) as tmpdir:
         js_file = os.path.join(tmpdir, "test_component.jsx")
         content = """
 import React, { useState, useEffect } from 'react';

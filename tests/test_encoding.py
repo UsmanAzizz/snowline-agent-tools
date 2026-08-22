@@ -14,8 +14,9 @@ def run_cmd(cmd):
 
 def test_encoding_tools():
     root = get_root_dir()
-    
-    with tempfile.TemporaryDirectory(dir=root) as tmpdir:
+    test_tmp = os.path.join(root, 'tests', 'tmp')
+    os.makedirs(test_tmp, exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=test_tmp) as tmpdir:
         # Create a JS file with non-ASCII characters
         js_file = os.path.join(tmpdir, "test_non_ascii.js")
         non_ascii_content = "import { dummy } from './dummy';\n// Komentar bahasa indonesia dengan karakter non-ASCII: á é í ó úñ ☺ ☻ 💡\nfunction handlePinSubmit() {\n  const x = 'ini ada data non ascii: ã';\n}\n"

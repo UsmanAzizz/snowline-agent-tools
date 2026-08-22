@@ -10,7 +10,7 @@ import time
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history', '.venv', 'scratch', 'tests'}
+exclude_dirs = {'.git', 'node_modules', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.history', '.venv', 'scratch', 'tmp'}
 js_py_exts = {'.js', '.jsx', '.ts', '.tsx', '.py'}
 test_extensions = ('.test.js', '.test.jsx', '.test.ts', '.test.tsx',
                    '.spec.js', '.spec.jsx', '.spec.ts', '.spec.tsx', '.test.py')
@@ -236,6 +236,14 @@ def check_physical_imports():
                 clean_content = re.sub(r'//.*', lambda m: ' ' * len(m.group(0)), content)
                 clean_content = re.sub(r'#.*', lambda m: ' ' * len(m.group(0)), clean_content)
                 clean_content = re.sub(r'/\*.*?\*/', lambda m: ''.join('\n' if c == '\n' else ' ' for c in m.group(0)), clean_content, flags=re.DOTALL)
+                
+                # Strip string literals that contain fake imports to avoid false positives (e.g. inside tests)
+                def strip_fake_imports(m):
+                    val = m.group(0)
+                    if re.search(r'(?:import\s+.*?\s+from\s+|require\()', val):
+                        return ''.join('\n' if c == '\n' else ' ' for c in val)
+                    return val
+                clean_content = re.sub(r'([\'"`])((?:(?!\1)[^\\]|\\.)*)\1', strip_fake_imports, clean_content, flags=re.DOTALL)
 
                 # Find all imports (single or multi-line) with line number
                 for match in import_pattern.finditer(clean_content):
@@ -316,11 +324,21 @@ def check_dependencies():
             })
     return warns, fails
 
-def run_npm_audit():
+def run_npm_audit(target):
     """Run npm audit for security vulnerabilities."""
     findings = []
+    pkg_json = os.path.join(target, 'package.json')
+    if not os.path.exists(pkg_json):
+        findings.append({
+            'severity': 'INFO',
+            'module': 'NPM_AUDIT',
+            'file': 'package.json',
+            'issue': 'package.json not found in root, npm audit skipped'
+        })
+        return findings
+
     try:
-        result = subprocess.run('npm audit --json', shell=True, capture_output=True, text=True, check=False, timeout=30)
+        result = subprocess.run('npm audit --json', shell=True, capture_output=True, text=True, check=False, cwd=target, timeout=30)
         try:
             audit_data = json.loads(result.stdout)
             vulns = audit_data.get('metadata', {}).get('vulnerabilities', {})
@@ -347,7 +365,11 @@ def run_npm_audit():
 def get_npm_audit_signature():
     pkg_lock = os.path.join(target_dir, 'package-lock.json')
     mtime = os.path.getmtime(pkg_lock) if os.path.exists(pkg_lock) else 0
-    return f"{mtime}_{time.time() // 86400}"
+    try:
+        guardian_hash = hashlib.md5(open(__file__, 'rb').read()).hexdigest()
+    except Exception:
+        guardian_hash = "unknown"
+    return f"{mtime}_{time.time() // 86400}_{guardian_hash}"
 
 def print_human_output(all_findings, total_fails, total_warns):
     """Print human-readable output."""
@@ -415,7 +437,7 @@ def main():
         audit_findings = cached_data.get('audit_findings', [])
     else:
         if not args.summary and not args.json: print("\nRunning npm audit (this may take a while)...")
-        audit_findings = run_npm_audit()
+        audit_findings = run_npm_audit(target_dir)
         cached_data.update({'audit_signature': audit_sig, 'audit_findings': audit_findings})
 
     cache_data[cache_key] = cached_data
