@@ -173,7 +173,11 @@ def main():
     cache_data = load_cache(cache_file)
 
     file_mtime = str(os.path.getmtime(filepath))
-    cache_key = f"reader_{hashlib.md5(filepath.encode()).hexdigest()}"
+    try:
+        reader_hash = hashlib.md5(open(__file__, 'rb').read()).hexdigest()
+    except Exception:
+        reader_hash = "unknown"
+    cache_key = f"reader_{hashlib.md5((filepath + reader_hash).encode()).hexdigest()}"
 
     if cache_key in cache_data:
         cached_entry = cache_data[cache_key]

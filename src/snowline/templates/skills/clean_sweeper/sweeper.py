@@ -42,6 +42,11 @@ def get_dir_signature(target):
                     mtimes.append(str(os.path.getmtime(filepath)))
             except Exception:
                 pass
+    try:
+        tool_hash = hashlib.md5(open(__file__, 'rb').read()).hexdigest()
+        mtimes.append(f"tool_hash:{tool_hash}")
+    except Exception:
+        pass
     return hashlib.md5("".join(sorted(mtimes)).encode()).hexdigest()
 
 def sweep(target):

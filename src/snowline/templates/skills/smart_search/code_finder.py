@@ -319,6 +319,11 @@ def get_dir_sig(directory, exts):
                     parts.append(f"{rel}:{os.path.getsize(fp)}")
             except:
                 pass
+    try:
+        tool_hash = hashlib.md5(open(__file__, 'rb').read()).hexdigest()
+        parts.append(f"tool_hash:{tool_hash}")
+    except Exception:
+        pass
     return hashlib.md5("".join(sorted(parts)).encode()).hexdigest()
 
 def print_human(results, kw, scanned, skipped_files):
