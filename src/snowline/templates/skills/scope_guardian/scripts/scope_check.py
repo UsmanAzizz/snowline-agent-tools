@@ -81,6 +81,11 @@ def check_scope(target_file):
         print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
 
+    temuan = scope_data.get('temuan', [])
+    if isinstance(temuan, list) and len(temuan) > 10:
+        print("[BLOCKED] scope_lock.json: 'temuan' melebihi 10 baris. Pindahkan temuan lama ke connector.md untuk menjaga fokus agen.")
+        sys.exit(1)
+
     for pesan in peringatan_kesegaran(scope_data):
         print(f"[WARN] {pesan}")
 

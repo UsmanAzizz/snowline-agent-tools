@@ -824,6 +824,8 @@ def main():
     p_chamber = subparsers.add_parser("init_chamber", help="Install chamber protocol (PM/TL/QA) into .agents/chamber")
     p_chamber.add_argument("--apply", action="store_true", help="Apply installation")
     p_chamber.add_argument("--force", action="store_true", help="Overwrite existing chamber files")
+    
+    subparsers.add_parser("konteks", help="Tampilkan irisan tugas dan entri terakhir connector")
     subparsers.add_parser("path", help="Show installation paths")
     subparsers.add_parser("status", help="Check package + project layers for updates")
 
@@ -839,6 +841,17 @@ def main():
         reinstall(apply=args.apply, latest=args.latest)
     elif args.command == "init_chamber":
         init_chamber(dry=not args.apply, force=args.force)
+    elif args.command == "konteks":
+        try:
+            from snowline.core_konteks import show_konteks
+            show_konteks()
+        except ImportError:
+            # Fallback for relative imports during dev
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(__file__))
+            from core_konteks import show_konteks
+            show_konteks()
     elif args.command == "path":
         show_path()
     elif args.command == "status":
