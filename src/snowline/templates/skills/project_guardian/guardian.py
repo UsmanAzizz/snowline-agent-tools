@@ -91,8 +91,16 @@ def scan_secrets():
                         for pattern, desc in compiled:
                             if pattern.search(line):
                                 rel_path = os.path.relpath(filepath, target_dir)
+                                severity = 'CRITICAL'
+                                
+                                # Entri 28: Kunci Firebase publik jangan diblokir (CRITICAL), turunkan ke HIGH
+                                if desc == 'Google API Key':
+                                    basename = os.path.basename(filepath)
+                                    if basename in ['google-services.json', 'GoogleService-Info.plist', 'firebase_options.dart']:
+                                        severity = 'HIGH'
+                                        
                                 findings.append({
-                                    'severity': 'CRITICAL',
+                                    'severity': severity,
                                     'module': 'SECRET_SCANNER',
                                     'file': rel_path,
                                     'line': line_num,
