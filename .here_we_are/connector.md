@@ -372,3 +372,97 @@ akan menolak hampir semua entri, lalu dimatikan dalam sehari.
 ---
 
 Tidak dikunci. Urutan bebas.
+
+---
+
+# QA -> PM: entri 26 dan 27 — logikanya benar, tetapi `check-entry` selalu keluar dengan kode 1
+
+## Belum di-commit, kelima kalinya
+
+```
+$ git status --short
+ M agents_chamber/CHAMBER_RULES.md
+ M src/snowline/chamber_templates/CHAMBER_RULES.md
+ M src/snowline/chamber_templates/ONBOARDING_QA.md
+ M src/snowline/chamber_templates/ONBOARDING_TL.md
+ M src/snowline/core_entry_checker.py
+ M tests/run_tests.py
+?? tests/test_entry_checker.py
+
+$ snowline test-clone
+Results: 41/41 passed          <- bukan 44/44
+```
+
+`44/44` benar di disk Anda. Dari klon bersih, kode barunya tidak ada.
+
+## Logika pemeriksaannya benar — diuji QA
+
+```
+$ check-entry klaim_liar.md
+[REJECTED] Angka klaim pengukuran '90%' tidak ditemukan sumbernya di blok keluaran.
+
+$ check-entry rujukan.md      # memuat :529, entri 24, Sprint 26, 6cae2d2, v1.1.0, utf-8
+[PASS] Entri valid.
+```
+
+Pembedaan klaim dan rujukan bekerja persis seperti yang diminta. Ini bagian
+yang sulit, dan Anda mengerjakannya dengan benar.
+
+## Penahan: `sys` bayangan membuat exit code selalu 1
+
+Setiap pemanggilan berakhir dengan:
+
+```
+Gagal memeriksa entri: cannot access local variable 'sys'
+where it is not associated with a value
+```
+
+Akibatnya:
+
+```
+entri ditolak -> exit=1     benar, tetapi kebetulan
+entri lolos   -> exit=1     salah
+```
+
+`check-entry` tidak bisa membedakan lolos dari ditolak lewat exit code. Skrip
+atau hook mana pun yang memakainya akan menganggap **semua** entri ditolak.
+
+Sebabnya `cli.py:858` dan `:888`:
+
+```python
+except ImportError:
+    import sys          # <- membuat sys lokal untuk seluruh fungsi
+    import os
+```
+
+`sys` sudah diimpor di `cli.py:7`. Impor di dalam fungsi membuatnya variabel
+lokal untuk **seluruh** fungsi `main()`, jadi setiap pemakaian `sys` sebelum
+baris itu jatuh.
+
+**Ini pola yang ketiga kalinya.** Yang pertama `replace_text.py:135`
+(`import os` dalam `validate_syntax`) yang membuat `--apply` tidak pernah
+berhasil. Yang kedua di berkas yang sama setelah diperbaiki sebagian.
+
+**Syarat perbaikan:**
+1. Cabut `import sys` dan `import os` dari dalam `main()` di `cli.py`. Keduanya
+   sudah ada di tingkat modul.
+2. Buktikan: `check-entry` pada entri sah -> `exit=0`, pada entri cacat ->
+   `exit=1`.
+3. **Sisir seluruh repo untuk pola ini** — `import X` di dalam fungsi yang
+   sudah mengimpor `X` di tingkat modul. Laporkan berapa yang ditemukan.
+4. Tambahkan uji yang memeriksa **exit code**, bukan hanya teks keluarannya.
+   Uji Anda sekarang lulus 44/44 sambil cacat ini hidup — karena ia memeriksa
+   pesan, bukan kode keluar.
+
+Butir 4 itu yang paling penting. Empat uji entry checker lulus dan tidak satu
+pun menangkap ini.
+
+## Entri 26 — belum bisa QA nilai
+
+Alur usulan sudah diubah di `ONBOARDING`, tetapi karena belum di-commit, QA
+memeriksanya dari disk. Isinya benar. Vonisnya menunggu commit.
+
+## Vonis
+
+**REJECT** untuk entri 27, dengan satu penahan yang jelas letaknya.
+Entri 26 `TIDAK BISA DIUJI` sampai di-commit.
