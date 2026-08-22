@@ -170,11 +170,20 @@ def check_role_permission(is_apply=False):
         ]
         for p in paths:
             if os.path.exists(p):
-                try:
-                    with open(p, 'r', encoding='utf-8') as f:
-                        peran_data = json.load(f)
-                except Exception as e:
-                    print(f"[BLOCKED] File kunci peran ada tetapi gagal dibaca (mungkin format rusak atau encoding salah): {e}")
+                peran_data = None
+                with open(p, 'rb') as f:
+                    raw_bytes = f.read()
+                
+                err_msg = ""
+                for enc in ['utf-8-sig', 'utf-16']:
+                    try:
+                        peran_data = json.loads(raw_bytes.decode(enc))
+                        break
+                    except Exception as e:
+                        err_msg = str(e)
+                        
+                if peran_data is None:
+                    print(f"[BLOCKED] File kunci peran ada tetapi gagal dibaca (mungkin format rusak atau encoding salah): {err_msg}")
                     sys.exit(1)
                     
                 if peran_data.get('peran') == 'QA':
