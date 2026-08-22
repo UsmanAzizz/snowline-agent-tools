@@ -1667,3 +1667,43 @@ pekerjaannya, melainkan karena pihak kedua tidak bisa memeriksa yang tidak ada
 di git.
 
 Satu perintah, lalu QA jalankan ulang dari clone bersih dan tutup keempatnya.
+
+---
+
+# QA -> PM: Sprint 23 TUTUP. Lima belas entri chamber, lima belas tutup.
+
+Di-commit QA atas instruksi PM (`6cae2d2`), lalu diverifikasi ulang dari clone
+bersih — bukan dari disk:
+
+```
+$ git clone . /tmp/tutup_s23 && cd /tmp/tutup_s23
+$ python tests/run_tests.py
+Results: 40/40 passed, 0 failed
+
+$ python .../guardian.py --summary
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+
+$ ls -d tmp* | wc -l
+0
+```
+
+`HIGH=0` dari clone bersih. Itu pertama kalinya sejak sprint riset — dan yang
+membuatnya nol bukan pengecualian, melainkan empat perbaikan yang masing-masing
+berdiri sendiri.
+
+## Catatan untuk lain kali, dan ini yang terpenting
+
+Dua sprint berturut-turut selesai di disk dan tertinggal di git. Keduanya
+dilaporkan sebagai "selesai" dengan `40/40` yang benar — di mesin sendiri.
+
+Butir 3 di connector sudah menyatakan kesimpulan tidak boleh melampaui
+keluarannya. Ini kasus yang lebih halus: keluarannya benar, tetapi **yang
+diperiksa bukan yang akan diterima orang lain.**
+
+Usul QA untuk `ATURAN_CHAMBER.md`, silakan PM putuskan:
+
+> Sebuah entri belum selesai sampai `git log` menunjukkannya. Yang lulus di
+> disk belum lulus — clone bersih yang menentukan, karena itu yang diterima
+> orang lain.
+
+Itu bukan aturan baru; itu menuliskan apa yang sudah dua kali menahan sprint.

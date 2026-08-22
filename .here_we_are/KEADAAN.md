@@ -3,7 +3,7 @@
 **Berkas ini ditimpa, tidak ditambah.** Riwayat ada di `connector.md`.
 Siapa pun yang mengubah sesuatu, memperbarui berkas ini di giliran yang sama.
 
-Diperbarui: 22 Agustus 2026 · commit `14efe7f` · 0 belum commit, 0 belum push
+Diperbarui: 22 Agustus 2026 · commit `6cae2d2` · 0 belum commit, 0 belum push
 
 ---
 
@@ -42,15 +42,18 @@ hook               transkrip Antigravity 5330ddf5 menunjukkan penolakan nyata
 ## Terbuka
 
 ```
-1  uji               14 perkakas baca-saja belum berujii (sengaja ditunda)
-2  tmp* di akar repo uji memakai TemporaryDirectory(dir=root); kalau proses
-                     terbunuh, sampahnya tertinggal di akar dan guardian
-                     melaporkannya sebagai HIGH. 5 sisa dihapus QA 22-08.
-3  npm audit         guardian menelusuri ke direktori induk, jadi 2 HIGH itu
-                     milik project tetangga — bukan repo ini
-4  tests/ dikecualikan  guardian tidak melihat impor rusak di dalamnya
+1  uji               14 perkakas baca-saja belum berujii
+                     CATATAN: alasan lama "kalau rusak langsung kelihatan"
+                     sudah terbantah — impact_analyzer, smart_search, dan
+                     selective_reader semuanya baca-saja dan gagal tanpa
+                     terlihat. Yang tersisa perlu dipilih menurut bahayanya,
+                     bukan menurut baca-saja atau bukan.
+2  npm_audit         baris "dilewati" dicetak [HIGH] padahal dihitung nol —
+                     pencetak modul memaku labelnya, pola sama dengan :344
+3  mode tunggal      rancangan ada di RANCANGAN_KONTEKS_DAN_SOLO.md,
+                     tiga hal belum diuji, belum berlaku
 
-TUTUP lewat chamber, sebelas entri:
+TUTUP lewat chamber, lima belas entri:
    1  impact_analyzer   negatif palsu Python, .backup_replace, --depth
    2  npx               suite 2 menit -> 24 detik, probe sekali per proses
    3  context_mapper    DEPENDENCY_MAP; yatim 16 -> 1; pindai 64,8s -> 0,07s
@@ -62,6 +65,10 @@ TUTUP lewat chamber, sebelas entri:
    9  encoding          open() tanpa utf-8 menjatuhkan splicer di 39% berkas
   10  selective_reader  impor/useState/useEffect/export masuk TOC
   11  cache             batal sendiri saat kode alatnya berubah
+  12  clean_sweeper     melapor cakupan; berhenti menyuruh hapus tanpa syarat
+  13  npm audit         berhenti mengambil kerentanan project tetangga
+  14  sampah uji        tmp* tidak lagi jatuh di akar repo
+  15  tests/            kembali dipindai; string literal dikupas selektif
 
 Di luar chamber:
    smart_replace     --apply pada berkas tunggal tidak pernah berhasil
@@ -98,7 +105,7 @@ ini salah, apakah langsung kelihatan?* Kelihatan seketika, kerjakan biasa; baru
 ketahuan nanti, lewat chamber.
 
 Belum diuji: apakah subagent Antigravity benar-benar berkonteks bersih.
-**Dipakai: sebelas entri, sebelas-belasnya tutup.** Aturannya menahan sesuatu yang
+**Dipakai: lima belas entri, lima belas-limabelasnya tutup.** Aturannya menahan sesuatu yang
 nyata di keduanya — entri 1 menangkap uji yatim yang tidak ikut terjalan, entri
 2 menuntut bukti mutasi yang ternyata bekerja.
 
