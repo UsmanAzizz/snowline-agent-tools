@@ -155,8 +155,8 @@ def check_arah6_guardian(target_cwd: str):
 def main():
     try:
         input_data = json.load(sys.stdin)
-    except Exception:
-        print(json.dumps({"decision": "allow"}))
+    except Exception as e:
+        print(json.dumps({"decision": "deny", "reason": f"Input tidak valid (gagal parse JSON): {e}"}))
         return
 
     tool_name = input_data.get("toolName", "")

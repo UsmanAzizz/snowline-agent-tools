@@ -9,8 +9,8 @@ MAX_REPEATS = 3
 def main():
     try:
         input_data = json.load(sys.stdin)
-    except Exception:
-        print(json.dumps({"decision": "allow"}))
+    except Exception as e:
+        print(json.dumps({"decision": "deny", "reason": f"Input tidak valid: {e}"}))
         return
 
     conv_id = input_data.get("conversationId", "unknown")

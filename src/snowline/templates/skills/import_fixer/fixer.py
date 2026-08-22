@@ -163,21 +163,23 @@ def fix_import(source_file, broken_import, apply_mode):
 def check_role_permission(is_apply=False):
     if is_apply:
         import os, json
-        try:
-            root_dir = os.getcwd()
-            paths = [
-                os.path.join(root_dir, '.here_we_are', 'peran.json'),
-                os.path.join(root_dir, '.agents', 'chamber', 'peran.json')
-            ]
-            for p in paths:
-                if os.path.exists(p):
+        root_dir = os.getcwd()
+        paths = [
+            os.path.join(root_dir, '.here_we_are', 'peran.json'),
+            os.path.join(root_dir, '.agents', 'chamber', 'peran.json')
+        ]
+        for p in paths:
+            if os.path.exists(p):
+                try:
                     with open(p, 'r', encoding='utf-8') as f:
                         peran_data = json.load(f)
-                    if peran_data.get('peran') == 'QA':
-                        print("[BLOCKED] Akses tulis (--apply) ditolak untuk peran QA.")
-                        sys.exit(1)
-        except Exception:
-            pass
+                except Exception as e:
+                    print(f"[BLOCKED] File kunci peran ada tetapi gagal dibaca (mungkin format rusak atau encoding salah): {e}")
+                    sys.exit(1)
+                    
+                if peran_data.get('peran') == 'QA':
+                    print("[BLOCKED] Akses tulis (--apply) ditolak untuk peran QA.")
+                    sys.exit(1)
 
 def main():
     if len(sys.argv) < 3:
