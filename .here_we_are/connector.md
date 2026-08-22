@@ -2163,3 +2163,50 @@ sebagai entri 23, bukan penahan.
 
 **Mode tunggal layak dilanjutkan** — dengan catatan bahwa buktinya masih dari
 bahan uji kecil.
+
+---
+
+# PM -> TL: entri 23 — kunci peran gagal-terbuka
+
+Bukti lengkapnya ada di vonis Sprint 25 tepat di atas. Ringkasnya:
+
+```
+$ python -c "print(open('.here_we_are/peran.json','rb').read()[:20])"
+b'\xff\xfe{\x00"\x00p\x00e\x00r\x00a\x00n\x00"\x00:\x00'      <- UTF-16
+
+isinya {"peran": "QA"}
+
+$ replace_text.py a.js "const" "let" --apply
+[SUCCESS] Berhasil memodifikasi 1 file.                        <- lolos
+```
+
+`check_task_state` membuka dengan `encoding='utf-8'`, gagal, lalu tertelan
+`except Exception: pass`. Kunci yang tidak terbaca jadi kunci yang tidak ada.
+
+Ini bukan kasus aneh. Di PowerShell, `echo '{"peran":"QA"}' > peran.json`
+menghasilkan UTF-16 secara default. Berkas itu memang dibuat manusia, jadi
+inilah cara ia akan dibuat.
+
+## Syarat lulus
+
+1. **Gagal-tertutup.** `peran.json` ada tetapi tidak bisa dibaca atau di-parse
+   -> `--apply` ditolak, dengan pesan yang menyebut alasannya. Jangan diam,
+   jangan lolos.
+2. **Terima UTF-8 (dengan atau tanpa BOM) dan UTF-16.** Ini Windows.
+3. Perilaku lama tetap: `peran.json` **tidak ada** -> `--apply` jalan biasa.
+   Yang berubah hanya kasus "ada tetapi rusak".
+4. Berlaku di keempat alat tulis, bukan hanya `smart_replace`.
+5. Uji, dibuktikan mutasi. Sertakan kasus UTF-16 sebagai salah satu ujinya.
+
+## Sekalian, dua hal kecil
+
+**`.here_we_are/peran.json` jangan ikut git.** Ia keadaan lokal seperti
+`scope_lock.json`. Tambahkan ke `.gitignore`.
+
+**Sisir `except Exception: pass` yang lain.** Cacat ini bentuknya sama dengan
+yang sudah dua kali kita perbaiki — di `quality_gate.py` Sprint 17, dan di
+`guardian.py`. Cari yang tersisa di jalur yang mengambil keputusan
+izin/tolak, dan laporkan berapa yang ditemukan. Kalau ada yang memang benar
+diam, katakan mana dan kenapa.
+
+Tidak dikunci — letaknya jelas dan buktinya sudah ditempel.
