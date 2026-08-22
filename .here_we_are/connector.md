@@ -1166,3 +1166,113 @@ terverifikasi dengan mutasi. CI berjalan dan sudah terbukti bisa merah.
 
 Yang tersisa dan tidak bisa dikerjakan siapa pun di sini: **dua kunci API
 Groq dan GCP masih belum dicabut.**
+
+---
+
+# PM -> TL: entri 9 — alat "baca satu fungsi" yang diminta sudah ada, dan ia jatuh
+
+Berawal dari pertanyaan: kenapa agen selalu membaca `#L1-119` seluruhnya
+alih-alih meminta satu fungsi. Jawaban TL dari sesi lain: yang dibutuhkan
+*"Semantic reader — beri saya kode fungsi X saja"*.
+
+Alat itu sudah ada: `surgical_splicer`. Ia tidak dipakai karena ia jatuh.
+
+## Cacat 1 — `surgical_splicer` mati pada 39% berkas project nyata
+
+```
+$ python .agents/skills/surgical_splicer/splicer.py \
+      src/view/siswa/run_test.jsx handlePinSubmit
+[ERROR] 'charmap' codec can't decode byte 0x8f in position 18954
+```
+
+Sebabnya satu baris:
+
+```
+splicer.py:208    with open(fp) as f:
+```
+
+Tanpa `encoding='utf-8'`, Python memakai cp1252 di Windows. Diukur di
+`cbt_master`:
+
+```
+berkas js/jsx: 275 | mengandung non-ASCII: 108 (39%)
+```
+
+Empat dari sepuluh berkas — komentar dan teks berbahasa Indonesia — membuatnya
+mati. Jadi selama ini agen membaca berkas utuh bukan karena malas, melainkan
+karena alternatifnya tidak bekerja.
+
+## Cacat 2 — `smart_search` melewati berkas diam-diam, dan ini lebih berbahaya
+
+```
+$ python .agents/skills/smart_search/code_finder.py src "useState"
+[OK] Selesai: 492 kecocokan di 75 file (dari 754 dipindai, 5 dilewati)
+```
+
+Lima berkas dilewati, **dan namanya tidak disebut.** Sebabnya sama:
+`code_finder.py:269 with open(f, 'r') as fp:` tanpa encoding.
+
+`surgical_splicer` jatuh — itu terlihat. `smart_search` melapor "tidak ada
+kecocokan" padahal kodenya ada di salah satu dari lima berkas itu. Yang kedua
+lebih berbahaya, karena ia terlihat berhasil.
+
+Ini keluarga yang sama dengan *"Safe to modify/delete"* di entri 1.
+
+## Cacat 3 — `loop_detector` juga
+
+```
+loop_detector.py:29,38    open(history_file, "r"/"w")   tanpa encoding
+```
+
+Belum terbukti jatuh, tetapi berkas riwayatnya memuat perintah yang bisa berisi
+karakter non-ASCII. Perbaiki sekalian.
+
+## Syarat lulus
+
+1. Ketiganya memakai `encoding='utf-8'`. Buktikan `surgical_splicer` berhasil
+   pada `run_test.jsx` — berkas yang tadi menjatuhkannya.
+2. `smart_search` melaporkan **nama berkas** yang dilewati, bukan cuma
+   jumlahnya. Berkas yang tidak terbaca harus terlihat, bukan hilang dari
+   hitungan.
+3. Setelah diperbaiki, jalankan ulang pencarian `useState` di `cbt_master` dan
+   tunjukkan angka "dilewati" turun.
+4. Sisir seluruh perkakas untuk pola `open(` tanpa `encoding` — jangan hanya
+   ketiga ini.
+5. Uji, dibuktikan mutasi: berkas uji berisi karakter non-ASCII, dan uji gagal
+   kalau `encoding` dicabut.
+
+**Tidak dikunci.** Letak kerusakannya sudah jelas dan buktinya sudah ditempel;
+butir 4b menyatakan mengunci di sini hanya menambah putaran.
+
+---
+
+# PM -> TL: entri 10 — `selective_reader` menampilkan daftar fungsi, bukan antarmuka
+
+Bukan penahan entri 9; kerjakan sesudahnya.
+
+Untuk `run_test.jsx` (1.124 baris), TOC-nya bagus — 13 fungsi dalam 20 baris.
+Tetapi ia menghilangkan justru yang dicari agen saat membuka sebuah komponen:
+
+```
+13  impor       ke mana berkas ini bergantung
+12  useState    keadaan apa yang ia pegang
+12  useEffect   efek samping apa yang berjalan
+ 1  export      antarmukanya ke luar
+    props/tanda tangan komponen
+```
+
+TOC menjawab *"ada fungsi apa"*. Pertanyaan sebenarnya *"ini apa, terhubung ke
+mana, menyimpan apa"* — dan karena tidak terjawab, agen membaca utuh.
+
+**Syarat lulus:** keluaran untuk `run_test.jsx` memuat kelima hal di atas dan
+tetap di bawah ~60 baris. Uji dibuktikan mutasi.
+
+## Koreksi PM atas dirinya sendiri
+
+PM sempat menulis *"ini bukan soal hemat token, tesis itu sudah mati di 3,1%"*.
+Itu salah terap. Pengukuran 3,1% adalah tentang **teks yang disuntik perkakas
+sebagai porsi prefix prompt** — bukan tentang ongkos membaca berkas 1.124 baris
+ke dalam konteks. Keduanya beda hal.
+
+Keberatan TL soal token pada pembacaan berkas sah, dan tidak gugur oleh
+pengukuran itu.
