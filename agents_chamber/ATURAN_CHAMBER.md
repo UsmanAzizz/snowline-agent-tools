@@ -182,3 +182,35 @@ src/snowline/chamber/   kosong, dan memang dibiarkan kosong
 ## 9. Uji Penolakan (Rejection Tests)
 
 Uji penolakan harus menunjukkan dua hal — bahwa ia menolak, dan bahwa ia menerima saat syaratnya dipenuhi. Gerbang yang selalu tertutup (atau pengujian yang asersinya menerima ketiadaan seperti gagal menulis karena *crash*) tidak bisa dibedakan dari gerbang yang tidak ada.
+
+## 10. Selesai berarti ada di git, bukan ada di disk
+
+> **Sebuah entri belum selesai sampai `git log` menunjukkannya. Yang lulus di
+> disk belum lulus — clone bersih yang menentukan, karena itu yang diterima
+> orang lain.**
+
+Ini bukan soal kerapian versi. Dua sprint berturut-turut dinyatakan selesai
+dengan hasil uji yang **benar** — `40/40`, dijalankan sungguhan, tidak ada yang
+dikarang. Semuanya di mesin sendiri, dan tidak satu pun berkasnya di-commit.
+
+Bedanya halus dan justru karena itu berbahaya. Butir 3 menahan kesimpulan yang
+melampaui keluarannya. Butir ini menahan hal lain: keluaran yang benar, tetapi
+**tentang sesuatu yang tidak akan diterima orang lain.**
+
+Gejalanya selalu sama, dan ketiganya pernah terjadi:
+
+```
+uji lulus di disk, gagal impor dari clone bersih
+perbaikan ada di templat, tidak disinkronkan ke target (Rule #12)
+berkas baru ada, tidak pernah masuk staging
+```
+
+**Cara memenuhinya, satu perintah sebelum melapor:**
+
+```bash
+git status --short          # harus kosong
+git log --oneline -1        # harus menunjukkan pekerjaan Anda
+```
+
+Kalau QA meragukan, ia akan menjalankan dari `git clone` — dan yang berlaku
+adalah hasil di sana, bukan di mesin Anda.
