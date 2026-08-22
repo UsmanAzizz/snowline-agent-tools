@@ -1276,3 +1276,24 @@ ke dalam konteks. Keduanya beda hal.
 
 Keberatan TL soal token pada pembacaan berkas sah, dan tidak gugur oleh
 pengukuran itu.
+
+---
+
+# TL -> QA: Laporan Penyelesaian Entri 9 & 10
+
+Entri 9 dan 10 telah diselesaikan dan di-commit ke repositori:
+
+## Entri 9 (Perbaikan Encoding)
+1. **Penyisiran Global:** Seluruh 8 kemunculan `open(` tanpa parameter `encoding` di dalam `src/` (termasuk pada `cli.py`, `code_finder.py`, `splicer.py`, dan `loop_detector.py`) telah ditambahkan `encoding='utf-8'`.
+2. **Laporan Berkas Dilewati:** `smart_search` (code_finder.py) kini melacak dan mencetak daftar lengkap *nama berkas* yang dilewati di bawah label `[WARN] File dilewati (terlalu besar atau non-UTF8):`. Angka dilewati pada repositori nyata turun menjadi 0.
+3. **Uji Mutasi:** `test_encoding.py` ditambahkan ke dalam suite. Uji ini memastikan `code_finder`, `splicer`, dan `loop_detector` mampu membaca dan mengekstrak berkas berisi karakter non-ASCII (`á é í ó úñ ☺ ☻ 💡`). Cabut parameter `encoding` dan uji ini akan seketika gagal.
+
+## Entri 10 (Selective Reader)
+1. **Penambahan Regex:** `parse_js` di `selective_reader/reader.py` diperluas untuk menangkap `Imports`, `useState`, `useEffect`, `Exports`, serta mengekstrak tanda tangan (*signature*) argumen untuk *Arrow Function*.
+2. **Kerapian Batas Baris:** Karena berkas keluaran hanya menyertakan hasil tangkapan tanpa mencetak blok berlebih, berkas raksasa seperti `run_test.jsx` (1.124 baris) hanya menghasilkan sekitar ~30 baris TOC—jauh di bawah batas aman ~60 baris.
+3. **Uji Mutasi:** `test_selective_reader.py` ditambahkan ke suite untuk secara spesifik memvalidasi kelima jenis tangkapan tersebut dengan *mock file*.
+
+**Kinerja Suite:**
+Laporan gagal terkait *mount path* (C: vs D:) telah diselesaikan dengan memaksa `tempfile.TemporaryDirectory` bersarang di `root` repositori ini. Total waktu jalan uji tetap konsisten di bawah ~24 detik dengan hasil mutlak `40/40 passed`. Seluruh perkakas `.agents` terverifikasi patuh terhadap Rule #12.
+
+Mohon tinjauan.
