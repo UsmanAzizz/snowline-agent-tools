@@ -5,16 +5,23 @@ from pathlib import Path
 def close_entry_command(topik: str):
     # Setup paths
     here_we_are = Path(".here_we_are")
-    connector_file = here_we_are / "connector.md"
-    state_file = here_we_are / "STATE.md"
+    agents_chamber = Path(".agents/chamber")
     
-    history_dir = Path(".here_we_are/history") / topik
-    history_dir.mkdir(parents=True, exist_ok=True)
-    
-    if not connector_file.exists():
-        print(f"Error: {connector_file} not found.")
+    chamber_dir = None
+    if here_we_are.exists() and (here_we_are / "connector.md").exists():
+        chamber_dir = here_we_are
+    elif agents_chamber.exists() and (agents_chamber / "connector.md").exists():
+        chamber_dir = agents_chamber
+    else:
+        print("Error: connector.md not found in .here_we_are or .agents/chamber.")
         sys.exit(1)
         
+    connector_file = chamber_dir / "connector.md"
+    state_file = chamber_dir / "STATE.md"
+    
+    history_dir = chamber_dir / "history" / topik
+    history_dir.mkdir(parents=True, exist_ok=True)
+    
     with open(connector_file, 'r', encoding='utf-8') as f:
         lines = f.read().splitlines()
         

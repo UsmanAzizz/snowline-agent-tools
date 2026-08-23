@@ -210,6 +210,11 @@ def main():
     runner.run("entry checker claim accepted", test_entry_checker.test_quantitative_claim_accepted)
     runner.run("entry checker history validation", test_entry_checker.test_real_qa_entries)
     runner.run("entry checker cli exit code", test_entry_checker.test_cli_exit_code)
+    
+    import test_chamber_integration
+    print("Testing chamber integration (Entry 29)...")
+    runner.run("chamber full lifecycle", test_chamber_integration.test_chamber_integration)
+
 
     success = runner.summary()
 
