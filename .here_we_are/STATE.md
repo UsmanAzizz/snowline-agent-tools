@@ -124,3 +124,6 @@ git log --oneline -5
 ```
 
 Kalau tidak cocok, berkas ini basi — perbarui, jangan diamkan.
+Sprint 26       (entri baru)                             history/Sprint 26/
+entri 24 dan 25 (entri baru)                             history/entri 24 dan 25/
+Sprint 27       (entri baru)                             history/Sprint 27/

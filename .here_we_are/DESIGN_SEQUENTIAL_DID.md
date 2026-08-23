@@ -125,7 +125,8 @@ PENGUKURAN   jalankan mutasi, hitung AST, ambil status CI, diff dua berkas,
              pasang di venv bersih, jalankan suite dari klon
              -> tidak peduli siapa yang bertanya
              -> subagent tercemar sekalipun sah
-             -> bisa dipakai hari ini, di harness mana pun
+             -> DIBATALKAN: subagent terhalang prompt izin eksekusi (timeout)
+             -> subagent tidak bisa mengukur tanpa interaksi manusia
 
 PENILAIAN    apakah ujinya menguji yang benar
              apakah klaim cakupannya jujur
@@ -219,7 +220,7 @@ tidak ada lagi dua agen bersamaan     tidak ada masalah sinyal darurat
 satu jendela hidup pada satu waktu    ongkos separuh
 sesi mulai kecil                      hanya himpunan baca perannya
 dingin dijamin harness                tidak bergantung perilaku subagent
-berlaku di harness mana pun           Antigravity, Claude Code, apa saja
+batasan harness untuk perintah        Antigravity memblokir subagent (timeout izin)
 ```
 
 Yang terakhir penting untuk snowline sebagai paket yang dikirim: mode tunggal
