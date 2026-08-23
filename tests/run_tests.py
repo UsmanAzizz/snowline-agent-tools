@@ -219,6 +219,10 @@ def main():
     print("Testing Guardian Firebase rules (Entry 28)...")
     runner.run("guardian firebase AIza", test_guardian_firebase.test_guardian_firebase)
 
+    import test_version_sync
+    print("Testing version sync...")
+    runner.run("version sync across files", test_version_sync.test_version_sync)
+
     success = runner.summary()
 
     if success:
