@@ -14,7 +14,8 @@ def parse_gitignore(dir_path: str, project_root: str = None) -> List[str]:
     default_ignore = [
         '.git', '.agents', 'node_modules', 'vendor', '__pycache__',
         '.DS_Store', 'dist', 'build', '.idea', '.vscode', '.history',
-        'quarantine', '.backup_replace', 'uploads', 'public'
+        'quarantine', '.backup_replace', 'uploads', 'public',
+        '.dart_tool', '.gradle', '.pub-cache', 'Pods'
     ]
 
     gitignore_path = os.path.join(dir_path, '.gitignore')

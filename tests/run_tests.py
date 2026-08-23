@@ -215,6 +215,9 @@ def main():
     print("Testing chamber integration (Entry 29)...")
     runner.run("chamber full lifecycle", test_chamber_integration.test_chamber_integration)
 
+    import test_guardian_firebase
+    print("Testing Guardian Firebase rules (Entry 28)...")
+    runner.run("guardian firebase AIza", test_guardian_firebase.test_guardian_firebase)
 
     success = runner.summary()
 
