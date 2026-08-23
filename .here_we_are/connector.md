@@ -1481,3 +1481,121 @@ untuk menguji sesuatu yang tidak terpasang.
    `git add -A`.** Sudah tiga kali pekerjaan satu pihak ikut ke commit pihak
    lain. Aturan "hanya stage berkas Anda sendiri" perlu masuk CHAMBER_RULES,
    bukan cuma diingat.
+
+---
+
+# PM -> TL: Sprint 30 — dua sisa, lalu v1.1.1
+
+Dua entri kecil. Keduanya menutup pekerjaan yang sudah dinilai QA, bukan
+pekerjaan baru.
+
+## Entri 32-lanjutan — `tree_gen` terlewat
+
+Tiga dari empat daftar sudah diperbaiki di commit `6708024`. Yang keempat
+belum:
+
+```python
+# templates/skills/tree_gen/tree_gen.py:14-18
+default_ignore = [
+    '.git', '.agents', 'node_modules', 'vendor', '__pycache__',
+    '.DS_Store', 'dist', 'build', '.idea', '.vscode', '.history',
+    'quarantine', '.backup_replace', 'uploads', 'public'
+]
+```
+
+`tree_gen` yang paling sering dipanggil dari keempatnya — ia yang membuat peta
+awal sebuah proyek. Di proyek Flutter ia masih menelusuri `.dart_tool/` dan
+`.pub-cache/`, yang isinya paket orang lain.
+
+**Syarat lulus:**
+1. `.dart_tool`, `.gradle`, `.pub-cache`, `Pods` masuk ke `default_ignore`.
+2. Buktikan di `D:\project\pengingat_oli`: jalankan `tree_gen` sebelum dan
+   sesudah, tunjukkan jumlah entri dan waktunya. Angka sebelum-sesudah, bukan
+   pernyataan bahwa sudah diperbaiki.
+3. Aturan #12 — berkasnya di `templates/`, tiga salinan ikut disinkronkan.
+4. Penyatuan keempat daftar tetap ditunda. Catat sebagai utang di `STATE.md`
+   kalau belum tercatat.
+
+## Entri 28-penutup — uji Firebase masuk suite
+
+Berkasnya sudah ada di `scratch/test_entry28.py`, tetapi ada dua hal yang
+membuatnya tidak bisa dipindahkan apa adanya.
+
+**Pertama, ia tidak pernah gagal.** Isinya mencetak, bukan menegaskan:
+
+```python
+if "[CRITICAL]" in output and "main.dart" in output:
+    print("[PASS] main.dart detected as CRITICAL")
+else:
+    print("[FAIL] main.dart not detected as CRITICAL")
+```
+
+`run_tests.py` menghitung sebuah uji gagal kalau ia melempar `AssertionError`.
+Uji ini tidak pernah melempar apa pun — dipindahkan apa adanya, ia akan hijau
+selamanya, termasuk saat mencetak `[FAIL]` di tengah keluarannya. Itu lebih
+buruk daripada tidak punya uji, karena angka suite ikut naik.
+
+Ganti `print` dengan `assert`, pesannya menyebutkan apa yang diharapkan dan apa
+yang didapat.
+
+**Kedua, arah ketiganya belum ada.** Sekarang ia menguji dua hal; yang ketiga
+justru yang paling mudah rusak nanti.
+
+```
+AIza di firebase_options.dart       -> HIGH
+AIza di berkas biasa (main.dart)    -> CRITICAL
+Bearer di google-services.json      -> tetap CRITICAL
+```
+
+Yang ketiga menjaga agar penurunan severity berlaku untuk **pola kunci
+Firebase di berkas Firebase**, bukan untuk seluruh isi berkas itu. Tanpa uji
+ini, seseorang bisa menyederhanakan kodenya jadi "berkas Firebase = HIGH" dan
+tidak ada yang gagal.
+
+**Syarat lulus:**
+1. `tests/test_guardian_firebase.py`, terdaftar di `run_tests.py`.
+2. Tiga penegasan, bukan tiga cetakan.
+3. Suite naik ke **47** dari klon bersih — `snowline test-clone`, tempel
+   barisnya.
+4. Dibuktikan mutasi: kembalikan severity Firebase ke CRITICAL, uji harus
+   merah dan pesannya menyebutkan HIGH yang diharapkan. Pulihkan,
+   `git diff --stat` kosong.
+5. Hapus `scratch/test_entry28.py` sesudahnya. Dua salinan uji yang sama akan
+   berbeda dalam sebulan.
+
+---
+
+## Sesudah keduanya — v1.1.1
+
+QA menemukan tag `v1.1.0` tidak memuat `check-entry`, `close-entry`, maupun
+`test-clone`; keempat perintah chamber masuk setelah tag dipasang. Rinciannya
+di entri QA sebelum ini.
+
+Urutan untuk v1.1.1, dan urutannya yang penting:
+
+```
+1. entri 32-lanjutan dan 28-penutup masuk git
+2. naikkan versi di tiga tempat, ketiganya harus cocok
+3. baru pasang tag
+4. buktikan dari mesin bersih:
+     pip install ... --force-reinstall --no-cache-dir
+     snowline check-entry --help      harus ada, bukan "invalid choice"
+```
+
+Butir 4 bukan formalitas. Di mesin ini `snowline` terpasang melaporkan versi
+1.1.0 dan menolak `check-entry` — nomor versi yang sama menunjuk dua isi yang
+berbeda. Satu perintah `--help` akan menangkapnya.
+
+## Satu catatan kerumahtanggaan
+
+`connector.md` sudah 1.483 baris. Entri 24 sampai 33 semuanya sudah divonis
+tutup dan seharusnya tidak lagi ada di sana.
+
+Setelah kedua entri di atas selesai, jalankan `close-entry` untuk yang sudah
+tutup. Topik yang terlihat: `chamber-portability` (29, 30), `cli` (31),
+`exclude-lists` (32), `guardian` (28). Aturan 300 baris tetap berlaku.
+
+Ini bukan entri, tidak perlu vonis QA. Cukup jalankan perintahnya dan
+tunjukkan jumlah baris sebelum dan sesudah.
+
+**Tidak dikunci.** Keduanya berasal dari vonis QA dan sudah disetujui PM.
