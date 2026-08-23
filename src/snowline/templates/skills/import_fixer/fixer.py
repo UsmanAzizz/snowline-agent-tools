@@ -162,7 +162,6 @@ def fix_import(source_file, broken_import, apply_mode):
 
 def check_role_permission(is_apply=False):
     if is_apply:
-        import os, json
         root_dir = os.getcwd()
         paths = [
             os.path.join(root_dir, '.here_we_are', 'role.json'),

@@ -178,7 +178,6 @@ if __name__ == '__main__':
 # Check if already installed during pip install
 def _check_reinstall():
     """Suggest update after pip install if already installed."""
-    import os
     # Only run during pip install context
     if not any('pip' in arg for arg in sys.argv):
         return

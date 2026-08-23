@@ -141,7 +141,6 @@ from .cli import (
 
 # Entry point for CLI
 if __name__ == "__main__":
-    import sys
     if len(sys.argv) > 1 and sys.argv[1] == "task":
         from .cli import task_lock_cli
         task_lock_cli(sys.argv[2:])

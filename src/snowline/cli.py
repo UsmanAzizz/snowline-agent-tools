@@ -116,7 +116,7 @@ def print_list_item(text, indent=2):
 
 def _clear_pip_cache():
     """Clear pip build cache."""
-    import tempfile, shutil, glob
+    import glob
     patterns = [
         tempfile.gettempdir() + "/pip-req-build-*",
         tempfile.gettempdir() + "/pip-ephem-wheel-cache-*",
@@ -351,7 +351,6 @@ def update(apply=False):
     print_info(f"Current skills: {total_current}")
 
     # Check package commit (mirrors status() logic for consistency)
-    import subprocess
     import glob
     import json as _json
 
@@ -555,7 +554,6 @@ def reinstall(apply=False, latest=False):
             os.system(cmd_str)
             sys.exit(0)
         else:
-            import subprocess
             res = subprocess.run([sys.executable, '-m', 'pip', 'install', '--force-reinstall', '--no-cache-dir', package_url])
             if res.returncode == 0:
                 print_success("Package terupdate!")
@@ -575,8 +573,6 @@ def reinstall(apply=False, latest=False):
 
 def status():
     """Check package (GitHub) and project (.agents) layers."""
-    import subprocess
-    import json
 
     # ---- Layer 1: Package (GitHub) ----
     installed_commit = None

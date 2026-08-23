@@ -75,7 +75,6 @@ def check_task_state(is_apply=False):
             state = json.load(f)
     except Exception as e:
         print(f"[BLOCKED] Gagal membaca state file: {e}")
-        import sys
         sys.exit(1)
         
     if state.get('phase') == 'pseudocode_pending':

@@ -41,6 +41,8 @@ except SystemExit:
                 
             r = subprocess.run([sys.executable, script_file, tmpdir], env=env, capture_output=True, text=True)
             assert "BLOCKED" in r.stdout or "BLOCKED" in r.stderr, f"Failed to block QA role with encoding {enc}. Output: {r.stdout} {r.stderr}"
+            assert "Traceback" not in r.stdout and "Traceback" not in r.stderr, "Traceback leaked in output"
+            assert "UnboundLocalError" not in r.stdout and "UnboundLocalError" not in r.stderr, "UnboundLocalError leaked in output"
             
         # Also test that it doesn't block if role is not QA
         for enc in encodings:

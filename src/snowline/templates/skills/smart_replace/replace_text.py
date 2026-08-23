@@ -57,7 +57,6 @@ def check_task_state(is_apply=False):
             state = json.load(f)
     except Exception as e:
         print(f"[BLOCKED] Gagal membaca state file: {e}")
-        import sys
         sys.exit(1)
         
     if state.get('phase') == 'pseudocode_pending':
@@ -168,7 +167,6 @@ def validate_syntax(filepath, content):
     
     if ext == '.py':
         try:
-            import ast
             ast.parse(content)
             return True, None
         except SyntaxError as e:
@@ -197,7 +195,6 @@ def validate_syntax(filepath, content):
         # Jangan impor os di sini: itu membuat os jadi variabel lokal untuk
         # seluruh fungsi, sehingga baris ext = os.path.splitext(...) di atas
         # jatuh dengan UnboundLocalError sebelum sampai ke sini.
-        import subprocess, tempfile
 
         if not hasattr(validate_syntax, '_linter_state'):
             # Baris ini diamati oleh test_smart_replace_apply.py untuk memastikan
@@ -608,7 +605,6 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         import traceback
-        import sys
         print(file=sys.stderr)
         print("[TOOL ERROR - ini bug internal snowline, BUKAN masalah di kode project Anda]", file=sys.stderr)
         print(f"Error: {type(e).__name__}: {e}", file=sys.stderr)

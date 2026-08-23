@@ -67,7 +67,6 @@ def extract_dependencies(content, target_names_set):
 
 def check_role_permission(is_apply=False):
     if is_apply:
-        import json
         root_dir = os.getcwd()
         paths = [
             os.path.join(root_dir, '.here_we_are', 'role.json'),
