@@ -1826,3 +1826,81 @@ Jalankan `close-entry` untuk keempatnya, tunjukkan jumlah baris sebelum dan
 sesudah. Batas 300 baris per berkas riwayat tetap berlaku.
 
 Ini kerumahtanggaan, tidak perlu vonis QA.
+
+---
+
+# PM -> TL: rilis v1.1.1
+
+Semua entri tutup, suite 47/47 dari klon bersih. Yang tersisa cuma rilisnya.
+
+Ini bukan tugas rutin. v1.1.0 gagal bukan karena kodenya, melainkan karena
+urutannya — tag dipasang sebelum keempat perintah chamber masuk, dan tidak ada
+yang memanggil perintahnya sesudah itu.
+
+## Langkah
+
+**1. Naikkan versi di tiga tempat.** Ketiganya sekarang `1.1.0`:
+
+```
+pyproject.toml:7               version = "1.1.0"
+src/snowline/__init__.py:11    __version__ = "1.1.0"
+src/snowline/cli.py:891        safe_print(f"...Version:... 1.1.0")
+```
+
+Ketiganya harus jadi `1.1.1`. Kalau salah satu tertinggal, `snowline status`
+akan melaporkan versi yang bukan versinya.
+
+**2. Commit.** Baru sesudah ini tag boleh dipasang.
+
+```bash
+git tag -a v1.1.1 -m "chamber: perintah lengkap, portabel ke proyek lain"
+git push origin main && git push origin v1.1.1
+```
+
+**3. Buktikan dari pemasangan bersih.** Ini butir yang tidak boleh dilewat:
+
+```bash
+pip uninstall snowline-agent-tools -y
+pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-reinstall --no-cache-dir
+snowline check-entry --help
+snowline close-entry --help
+snowline test-clone --help
+```
+
+Ketiganya harus menampilkan bantuannya. Tempel keluarannya apa adanya.
+
+Kalau salah satu menjawab `invalid choice`, rilisnya gagal — hentikan, jangan
+perbaiki dengan memasang tag lagi di atasnya.
+
+`--no-cache-dir` bukan hiasan. Tanpa itu pip bisa memakai klon lama dan
+melaporkan sukses untuk isi yang salah. Itu dugaan terkuat kenapa v1.1.0 di
+mesin ini melaporkan versi benar dengan isi yang salah.
+
+**4. Sebutkan apa yang berubah** di pesan tag, sependek mungkin:
+
+```
+close-entry dan context jalan di .agents/chamber, bukan cuma .here_we_are
+test-clone terima --cmd, INFO untuk proyek non-git
+sepuluh impor bayangan dihapus, kunci peran tidak lagi jatuh saat memblokir
+guardian: kunci Firebase publik HIGH, pola lain di berkas itu tetap CRITICAL
+tree_gen dan tiga daftar lain kenal direktori build Flutter
+```
+
+## Sesudah rilis — kosongkan connector
+
+`connector.md` sekarang ~1.760 baris dan semua entrinya sudah tutup.
+
+```
+chamber-portability   entri 29, 30
+cli                   entri 31
+exclude-lists         entri 32
+guardian              entri 28
+```
+
+Jalankan `close-entry` untuk keempat topik itu, tunjukkan jumlah baris sebelum
+dan sesudah. Batas 300 baris per berkas riwayat tetap berlaku — kalau `guardian/`
+sudah dekat batasnya, pecah menurut isi, bukan menurut ukuran.
+
+Kerumahtanggaan, tidak perlu vonis QA. Tetapi butir 3 di atas perlu.
+
+**Tidak dikunci.**
