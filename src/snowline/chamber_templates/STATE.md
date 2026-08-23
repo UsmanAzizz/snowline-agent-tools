@@ -1,4 +1,4 @@
-# KEADAAN
+# STATE
 
 **Berkas ini ditimpa, tidak ditambah.** Riwayat ada di `connector.md`.
 Siapa pun yang mengubah sesuatu memperbarui berkas ini di giliran yang sama.
