@@ -102,7 +102,7 @@ def main():
     map_file = os.path.join(knowledge_path, 'DEPENDENCY_MAP.md')
     patterns_file = os.path.join(knowledge_path, 'COMMON_PATTERNS.md')
 
-    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine', '.backup_replace', '.venv', 'venv', 'env', '.env'}
+    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine', '.backup_replace', '.venv', 'venv', 'env', '.env', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
     
     start_time = time.time()
     

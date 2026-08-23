@@ -9,7 +9,7 @@ if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
 MAX_FILE_SIZE = 500 * 1024
-ignore_dirs = {'node_modules', '.git', 'build', 'dist', 'uploads', 'public', '.vscode', '.history', 'quarantine', '.native_browser', '.exambro_android', '.plan', '.skills', '.backup_replace', '.agents'}
+ignore_dirs = {'node_modules', '.git', 'build', 'dist', 'uploads', 'public', '.vscode', '.history', 'quarantine', '.native_browser', '.exambro_android', '.plan', '.skills', '.backup_replace', '.agents', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
 
 def clean_cache(cache_data):
     """Remove entries where scanned folder no longer exists or too old."""

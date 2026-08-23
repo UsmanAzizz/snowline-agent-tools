@@ -16,7 +16,7 @@ if sys.stdout.encoding != 'utf-8':
 
 MAX_FILE_SIZE = 500 * 1024
 MAX_AGE_DAYS = 7
-DEFAULT_EXCLUDES = {'node_modules', '.git', 'vendor', 'build', 'dist', '.idea', '.vscode', '.history', '.backup_replace', '.agents'}
+DEFAULT_EXCLUDES = {'node_modules', '.git', 'vendor', 'build', 'dist', '.idea', '.vscode', '.history', '.backup_replace', '.agents', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
 
 JS_PATTERNS = [
     r'(?:export\s+)?(?:async\s+)?function\s+\w+\s*\(',

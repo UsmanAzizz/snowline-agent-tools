@@ -16,7 +16,7 @@ from pathlib import Path
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-DEFAULT_EXCLUDES = {'.git', 'node_modules', '.history', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents'}
+DEFAULT_EXCLUDES = {'.git', 'node_modules', '.history', 'vendor', 'dist', 'build', 'quarantine', '.backup_replace', '.agents', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
 MAX_FILE_SIZE = 500 * 1024 # 500 KB
 
 def check_task_state(is_apply=False):

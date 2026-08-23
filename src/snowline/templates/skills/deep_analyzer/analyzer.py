@@ -62,7 +62,7 @@ def analyze_project(target_dir):
             pass
 
     # 3. Directory Stats
-    hardcoded_ignore = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history', 'quarantine'}
+    hardcoded_ignore = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history', 'quarantine', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
     ignore_dirs = set(hardcoded_ignore)
     ignore_dirs.update(_read_gitignore(target_dir))
     total_files = 0

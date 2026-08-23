@@ -10,7 +10,7 @@ if sys.stdout.encoding.lower() != 'utf-8':
 def find_usages(project_root, target_name):
     """Scan all files to find import/require usages of target_name (no false positives from comments/strings)."""
     usages = set()
-    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine', '.backup_replace'}
+    exclude_dirs = {'.git', 'node_modules', 'dist', 'build', '.agents', 'vendor', '.history', 'quarantine', '.backup_replace', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
 
     escaped = re.escape(target_name)
     # Suffix pattern: target name can appear after ./ ../ or folder/ prefixes in quoted paths.

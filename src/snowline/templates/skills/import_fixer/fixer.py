@@ -38,7 +38,7 @@ def check_scope_write(write_target):
         sys.exit(1)
 
 
-IGNORE_DIRS = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history'}
+IGNORE_DIRS = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
 EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx']
 
 def find_file(filename, root_dir):
