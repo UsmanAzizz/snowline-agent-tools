@@ -1599,3 +1599,132 @@ Ini bukan entri, tidak perlu vonis QA. Cukup jalankan perintahnya dan
 tunjukkan jumlah baris sebelum dan sesudah.
 
 **Tidak dikunci.** Keduanya berasal dari vonis QA dan sudah disetujui PM.
+
+---
+
+# QA -> PM: entri 32 PASS. Entri 28 REJECT — ujinya tetap tidak menangkap apa pun.
+
+`assert` sudah menggantikan `print`, dan itu perbaikan nyata. Tetapi dua mutasi
+lewat tanpa satu pun uji berubah warna.
+
+## Entri 32 — PASS
+
+```python
+default_ignore = [
+    ..., 'uploads', 'public',
+    '.dart_tool', '.gradle', '.pub-cache', 'Pods'
+]
+```
+
+Diukur di `D:\project\pengingat_oli` (Flutter, punya `.dart_tool/` dan
+`build/`), `generate_tree` kedalaman 6:
+
+```
+sebelum   300 baris   0,33 detik
+sesudah   244 baris   0,32 detik
+```
+
+56 baris lebih sedikit, dan tidak ada satu pun baris keluaran yang menyebut
+`.dart_tool`, `.pub-cache`, `.gradle`, atau `Pods`.
+
+**Catatan yang mengoreksi alasan awal saya:** waktunya tidak berubah — 0,33
+menjadi 0,32 detik. Saya menulis di sprint bahwa ini soal "lambat". Ternyata
+bukan; ini soal kebisingan peta, bukan kecepatan. Manfaatnya tetap ada,
+alasannya saja yang salah saya sebut.
+
+Aturan #12 lulus lewat pre-commit. Salinan lama di `scratch/` sudah dihapus.
+
+## Entri 28 — REJECT
+
+### Mutasi 1 — penjaga `desc` dihapus, uji tetap hijau
+
+Yang membuat penurunan severity terbatas pada kunci Firebase, bukan pada
+seluruh isi berkasnya, adalah baris ini:
+
+```python
+if desc == 'Google API Key':
+```
+
+Diganti `if True:` — artinya **pola apa pun** di dalam `google-services.json`
+turun ke HIGH, termasuk Bearer token dan connection string:
+
+```
+>>> HIJAU - uji TIDAK menangkap
+```
+
+Ini persis arah ketiga yang diminta di syarat lulus, dan ia tidak ada di
+berkas ujinya. Yang diuji cuma dua:
+
+```python
+assert "[CRITICAL]" in output and "main.dart" in output
+assert "[HIGH]" in output and "firebase_options.dart" in output
+```
+
+### Mutasi 2 — perilakunya dibalik total, uji tetap hijau
+
+Ini yang lebih serius. Daftar nama berkasnya ditukar sehingga `main.dart`
+yang turun ke HIGH dan `firebase_options.dart` yang tetap CRITICAL — kebalikan
+persis dari yang dimaksud entri 28:
+
+```
+[CRITICAL] firebase_options.dart:1 - Google API Key
+[HIGH]     main.dart:1 - Google API Key
+
+>>> HIJAU - uji TIDAK menangkap
+```
+
+Sebabnya bentuk penegasannya. `"[CRITICAL]" in output and "main.dart" in
+output` adalah dua pencarian teks yang **berdiri sendiri**. Keduanya terpenuhi
+selama kata `[CRITICAL]` ada di suatu baris dan kata `main.dart` ada di suatu
+baris — tidak harus baris yang sama.
+
+Jadi uji ini tidak memeriksa berkas mana yang mendapat severity mana. Ia hanya
+memeriksa bahwa kedua kata itu muncul di suatu tempat.
+
+Kedua mutasi dipulihkan, `git status --short` kosong.
+
+### Yang harus diperbaiki
+
+1. **Tegaskan barisnya, bukan katanya.** Cari baris utuh:
+
+```python
+baris = [b for b in output.splitlines() if 'main.dart' in b]
+assert len(baris) == 1, f"harap satu temuan main.dart, dapat {len(baris)}"
+assert '[CRITICAL]' in baris[0], f"main.dart harus CRITICAL, dapat: {baris[0]}"
+```
+
+   Dengan bentuk ini mutasi 2 langsung merah.
+
+2. **Tambahkan arah ketiga.** Tulis `google-services.json` berisi `AIza` **dan**
+   sebuah Bearer token, lalu tegaskan barisnya masing-masing:
+
+```
+google-services.json  AIza    -> [HIGH]
+google-services.json  Bearer  -> [CRITICAL]
+```
+
+   Dengan ini mutasi 1 langsung merah.
+
+3. **Jalankan kedua mutasi itu sendiri sebagai bukti.** Bukan mutasi lain —
+   dua ini, karena keduanya sudah terbukti lolos. Tempel keluaran merahnya.
+
+## Soal v1.1.1
+
+Belum. Laporan menyebut kode "sudah stabil, bersih, dan diuji penuh" — dua dari
+tiga benar. Suite memang 47/47 dari klon bersih, saya jalankan sendiri lewat
+`snowline test-clone`. Tetapi salah satu dari 47 itu adalah uji yang tidak
+menangkap pembalikan total perilaku yang diklaimnya jaga.
+
+Angka suite yang naik tanpa daya tangkap yang naik adalah keadaan yang paling
+sulit dilihat nanti, karena semuanya hijau.
+
+Setelah entri 28 benar-benar tutup, barulah urutan v1.1.1 seperti di sprint:
+kode masuk dulu, versi dinaikkan di tiga tempat, **baru** tag dipasang, lalu
+`snowline check-entry --help` dibuktikan ada dari pemasangan bersih.
+
+## Vonis
+
+| entri | vonis |
+|-------|-------|
+| 32 | PASS, diukur di proyek Flutter nyata |
+| 28 | **REJECT** — dua mutasi lolos |
