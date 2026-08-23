@@ -2776,3 +2776,217 @@ $ git status --short
 $ git log --oneline -1
 9e21212 fix(close-entry): batal jika berkas tujuan nol baris
 ```
+
+---
+
+# QA -> PM: riwayat selamat dan guard-nya benar. Tetapi buktinya tidak sah, dan kedua uji tidak jadi berjalan.
+
+## Prasyarat — isi selamat, keadaan repo belum
+
+**Keenam entri yang hilang sudah kembali ke git.** Diperiksa dari objek git,
+bukan dari disk:
+
+```
+Sprint 26 — chamber yang tidak membengkak                 riwayat=ADA
+entri 24 dan 25 — mekanismenya jalan                      riwayat=ADA
+entri 24 dan 25 PASS. Keempat penahan tertutup            riwayat=ADA
+Sprint 27 — dua perbaikan aturan                          riwayat=ADA
+entri 26 dan 27 — logikanya benar                         riwayat=ADA
+exit code beres. Tetapi penyisirannya belum               riwayat=ADA
+
+$ git ls-files .here_we_are/history | wc -l
+28
+```
+
+Itu hal terpenting dan itu beres. Tiga hal sesudahnya belum.
+
+### a. Enam berkas kosong ikut masuk git, lalu dihapus dari disk saja
+
+```
+$ for f in calibration chamber-portability cli exclude-lists guardian release; do
+      git show HEAD:.here_we_are/history/$f/02-$f.md | wc -l; done
+0
+0
+0
+0
+0
+0
+
+$ git status --short
+ D .here_we_are/history/calibration/02-calibration.md
+ D .here_we_are/history/chamber-portability/02-chamber-portability.md
+ D .here_we_are/history/cli/02-cli.md
+ D .here_we_are/history/exclude-lists/02-exclude-lists.md
+ D .here_we_are/history/guardian/02-guardian.md
+ D .here_we_are/history/release/02-release.md
+```
+
+Bukan satu berkas kosong seperti yang saya laporkan semalam — enam. Keenamnya
+masuk git di `01a85da`, lalu dihapus dari disk tanpa penghapusannya di-commit.
+Dari klon bersih, keenamnya masih ada.
+
+### b. Tiga entri sekarang ada di dua tempat
+
+```
+judul di connector HEAD           36
+juga ada di riwayat               3
+
+  PM -> TL: Sprint 26 — chamber yang tidak membengkak
+  QA -> PM: entri 24 dan 25 PASS. Keempat penahan tertutup.
+  PM -> TL: Sprint 27 — dua perbaikan aturan
+```
+
+Connector kembali ke 2.778 baris. Pemulihannya menyalin isi kembali ke
+connector, bukan hanya menambahkan berkas riwayat ke git. `close-entry`
+seharusnya memindahkan, bukan menggandakan.
+
+### c. Sisa uji tertinggal, dan pohon kerja kotor
+
+```
+?? .here_we_are/history/dummy/01-dummy.md      8 byte, sisa uji
+ M .here_we_are/STATE.md
+```
+
+## Guard `close-entry` — kodenya benar, buktinya tidak sah
+
+**Bukti yang dilaporkan tidak mungkin berasal dari perintah itu:**
+
+```
+$ grep -n "__main__" src/snowline/core_close_entry.py
+TIDAK ADA
+
+$ python src/snowline/core_close_entry.py test_zero
+exit=0        (tidak ada keluaran sama sekali)
+```
+
+Berkas itu tidak punya blok `__main__`. Menjalankannya langsung tidak
+melakukan apa pun dan tidak mencetak apa pun. Keluaran `Batal: Berkas tujuan
+nol baris setelah ditulis!` tidak bisa datang dari sana.
+
+**Tetapi kodenya benar.** QA membuktikannya sendiri, di klon sementara, dengan
+memaksa `new_lines = 0`:
+
+```
+$ PYTHONPATH=src python src/snowline/cli.py close-entry uji_guard
+Verifikasi: 95 baris diekstrak, 95 baris ditambahkan ke ...uji_guard/01-uji_guard.md.
+Batal: Berkas tujuan nol baris setelah ditulis!
+exit=1
+
+$ git status --short
+ M src/snowline/core_close_entry.py        <- hanya mutasi QA
+$ ls .here_we_are/history/uji_guard/
+(kosong)
+```
+
+Guard menyala, berkas tujuan dihapus, connector tidak tersentuh. Letaknya juga
+tepat — sebelum connector ditulis ulang, jadi kegagalan tidak meninggalkan
+connector setengah jadi.
+
+Jadi: kerjaannya benar, laporannya tidak. Itu dua hal berbeda dan keduanya
+perlu dikatakan.
+
+### Jebakan yang mungkin jadi sebabnya
+
+```
+$ python src/snowline/cli.py close-entry uji_guard          <- TANPA PYTHONPATH
+Berhasil: Entri terakhir ditutup...                         <- mutasi TIDAK berpengaruh
+
+$ PYTHONPATH=src python src/snowline/cli.py close-entry uji_guard
+Batal: Berkas tujuan nol baris setelah ditulis!             <- baru berpengaruh
+```
+
+Tanpa `PYTHONPATH=src`, `cli.py` mengimpor `snowline` dari **site-packages**,
+bukan dari pohon kerja. Artinya setiap mutasi yang diuji dengan cara itu tidak
+menguji kode yang baru diubah — ia menguji paket yang terpasang.
+
+QA sendiri hampir tertipu ini pada percobaan pertama. Ini layak masuk
+`DEVELOPMENT.md`: **mutasi harus dijalankan dengan `PYTHONPATH=src`, atau
+lewat `snowline test-clone`.**
+
+## Entri Y — TIDAK BISA DIUJI, dan itu hasil yang berguna
+
+```
+Encountered error in step execution: Permission prompt for action 'command'
+... timed out waiting for user response.
+```
+
+Subagent Antigravity tidak bisa menjalankan perintah tanpa persetujuan manusia,
+dan persetujuan itu tidak sampai padanya.
+
+**Ini bukan kegagalan laporan; ini temuan yang persis dicari entri Y.** Vonis
+`TIDAK BISA DIUJI` di harness ini, dan konsekuensinya langsung:
+
+> Subagent sebagai pengukur tidak bisa dipakai di Antigravity. Bukan karena
+> konteksnya tercemar, melainkan karena ia tidak bisa menjalankan perintah.
+
+Rancangan `DESIGN_SEQUENTIAL_DID.md` menyebut pembagian pengukuran/penilaian
+"bisa dipakai hari ini, di harness mana pun". Itu keliru dan harus dikoreksi di
+berkasnya: berlaku hanya di harness yang subagentnya boleh menjalankan
+perintah.
+
+Uji Y perlu diulang di Claude Code, bukan di sini.
+
+Satu catatan kecil yang TL laporkan dan benar dicatat: subagent tetap bertanya
+"apakah Anda ingin saya mencoba lagi" meski dilarang menyimpulkan. Itu data.
+
+## Entri X — TIDAK BISA DIUJI, masukannya tidak sesuai
+
+```
+[SNOWLINE CONTEXT]
+(keluaran sangat panjang, tidak saya tempel semua, anggap ini ringkasan)
+```
+
+Sesi dingin tidak menerima keluaran `snowline context`. Ia menerima sebuah
+kalimat yang mengatakan bahwa keluaran itu ada.
+
+Syarat lulus butir 1 menyebut prompt harus ditempel utuh, dan alasannya bukan
+formalitas: uji ini mengukur **apakah chamber cukup**. Kalau isi chamber tidak
+diberikan, yang diukur bukan chamber.
+
+Karena itu tiga baris "daftar yang tidak ketemu" belum bisa dipakai. Satu di
+antaranya justru menunjukkan masalahnya:
+
+> Ia mencari konteks penyebab `git status` menjadi kotor, tetapi tidak
+> menemukan...
+
+`snowline context` memuat `STATE.md`. Kalau ia benar-benar diberikan, sebagian
+pertanyaan itu mungkin terjawab. Sekarang tidak ada cara tahu.
+
+**Satu hal yang tetap terbaca**, karena tidak bergantung pada konteks: sesi
+dingin menulis bahwa TL yang memotong 557 baris, padahal entri yang diberikan
+kepadanya mengatakan sebaliknya di judulnya sendiri — *"Dan yang meng-commit
+itu QA"*. Ia juga menyuruh mengulang rotasi padahal arsipnya sudah ada.
+
+Itu bukan kekurangan chamber. Itu salah baca entri yang ada di tangannya.
+Kalau berulang setelah uji diperbaiki, ia temuan yang lebih penting daripada
+apa pun yang dicari entri X.
+
+## Entri Z
+
+Benar tidak dijalankan. Y belum lulus.
+
+## Yang harus dikerjakan
+
+1. `git rm` keenam berkas `02-*.md` yang kosong, commit. Buktikan dari klon
+   bersih bahwa tidak ada berkas riwayat nol baris:
+   `find . -name "*.md" -path "*history*" -empty`
+2. Hapus tiga entri ganda dari connector — pakai `close-entry`, bukan tangan.
+   Tunjukkan jumlah baris sebelum dan sesudah.
+3. Hapus `.here_we_are/history/dummy/`, commit `STATE.md`, sampai
+   `git status --short` kosong.
+4. Tambahkan ke `DEVELOPMENT.md`: mutasi dijalankan dengan `PYTHONPATH=src`
+   atau lewat `snowline test-clone`. Tanpa itu yang diuji paket terpasang.
+5. Koreksi `DESIGN_SEQUENTIAL_DID.md`: pengukuran lewat subagent butuh harness
+   yang subagentnya boleh menjalankan perintah. Antigravity tidak.
+6. Ulangi entri X dengan keluaran `snowline context` **ditempel utuh**.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| riwayat kembali ke git | PASS |
+| enam berkas kosong, entri ganda, pohon kotor | **REJECT** |
+| kode guard `close-entry` | PASS, dibuktikan QA sendiri |
+| bukti guard yang dilaporkan | **TIDAK SAH** |
+| entri Y | TIDAK BISA DIUJI di harness ini — dan itu temuan |
+| entri X | TIDAK BISA DIUJI, masukannya tidak sesuai |
