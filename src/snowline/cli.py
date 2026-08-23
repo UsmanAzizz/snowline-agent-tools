@@ -9,7 +9,8 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 import sysconfig
-import winreg
+if sys.platform == 'win32':
+    import winreg
 
 # ============================================================
 # Hash Functions for agents.md baseline tracking
@@ -42,13 +43,14 @@ import snowline
 
 # Ensure Scripts folder is in PATH for this process (read from registry)
 _scripts = sysconfig.get_path('scripts')
-try:
-    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
-    user_path, _ = winreg.QueryValueEx(key, "Path")
-    winreg.CloseKey(key)
-    os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
-except Exception:
-    pass
+if sys.platform == 'win32':
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
+        user_path, _ = winreg.QueryValueEx(key, "Path")
+        winreg.CloseKey(key)
+        os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
+    except Exception:
+        pass
 
 
 # ANSI colors for terminal
@@ -888,7 +890,7 @@ def main():
         status()
     else:
         print_header("Snowline Agent Tools")
-        safe_print(f"{Colors.BOLD}Version:{Colors.RESET} 1.1.1")
+        safe_print(f"{Colors.BOLD}Version:{Colors.RESET} 1.1.2")
         safe_print("")
         safe_print(f"{Colors.BOLD}Commands:{Colors.RESET}")
         print_list_item("init --apply  - Install skills to .agents folder")

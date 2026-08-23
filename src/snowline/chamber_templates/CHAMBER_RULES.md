@@ -187,11 +187,11 @@ laporan tanpa bukti, dan itu inti seluruh protokol ini.
 
 Uji penolakan harus menunjukkan dua hal — bahwa ia menolak, dan bahwa ia menerima saat syaratnya dipenuhi. Gerbang yang selalu tertutup (atau pengujian yang asersinya menerima ketiadaan seperti gagal menulis karena *crash*) tidak bisa dibedakan dari gerbang yang tidak ada.
 
-## 10. Selesai berarti ada di git, bukan ada di disk
+## 10. Selesai berarti ada di git dan HIJAU DI CI
 
-> **Sebuah entri belum selesai sampai `git log` menunjukkannya. Yang lulus di
-> disk belum lulus — clone bersih yang menentukan, karena itu yang diterima
-> orang lain.**
+> **Sebuah entri belum selesai sampai `git log` menunjukkannya dan lulus di *Continuous Integration* (CI). Yang lulus di
+> disk lokal belum lulus — clone bersih dari server CI (Linux/macOS) yang menentukan, karena itu yang diterima
+> pengguna di sistem lain.**
 
 Ini bukan soal kerapian versi. Dua sprint berturut-turut dinyatakan selesai
 dengan hasil uji yang **benar** — `40/40`, dijalankan sungguhan, tidak ada yang

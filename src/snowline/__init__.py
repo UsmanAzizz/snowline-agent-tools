@@ -6,9 +6,10 @@ import shutil
 import sys
 import sysconfig
 from pathlib import Path
-import winreg
+if sys.platform == 'win32':
+    import winreg
 
-__version__ = "1.1.0"
+__version__ = "1.1.2"
 
 _scripts = sysconfig.get_path('scripts')
 
@@ -121,38 +122,39 @@ def _update_profiles():
             pass
 
 # 4. Update Windows registry PATH for future terminals (with consent)
-try:
-    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
-    user_path, _ = winreg.QueryValueEx(key, "Path")
-    winreg.CloseKey(key)
+if sys.platform == 'win32':
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
+        user_path, _ = winreg.QueryValueEx(key, "Path")
+        winreg.CloseKey(key)
 
-    if _scripts not in user_path:
-        print("")
-        print("[?] Add Python Scripts folder to Windows PATH? (Y/n)")
-        response = input().strip().lower()
-        
-        if response == "" or response == "y":
-            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_WRITE)
-            winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, user_path + ";" + _scripts)
-            winreg.CloseKey(key)
-
-            # Update all profiles
-            _update_profiles()
-
-            # Broadcast change to all windows
-            try:
-                import ctypes
-                HWND_BROADCAST = 0xFFFF
-                WM_SETTINGCHANGE = 0x1A
-                ctypes.windll.user32.SendMessageW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, "Environment")
-            except Exception:
-                pass
+        if _scripts not in user_path:
+            print("")
+            print("[?] Add Python Scripts folder to Windows PATH? (Y/n)")
+            response = input().strip().lower()
             
-            print("[+] PATH updated!")
-        else:
-            print("[*] PATH update skipped. Run 'snowline -h' after manually adding to PATH.")
-except Exception:
-    pass
+            if response == "" or response == "y":
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_WRITE)
+                winreg.SetValueEx(key, "Path", 0, winreg.REG_EXPAND_SZ, user_path + ";" + _scripts)
+                winreg.CloseKey(key)
+
+                # Update all profiles
+                _update_profiles()
+
+                # Broadcast change to all windows
+                try:
+                    import ctypes
+                    HWND_BROADCAST = 0xFFFF
+                    WM_SETTINGCHANGE = 0x1A
+                    ctypes.windll.user32.SendMessageW(HWND_BROADCAST, WM_SETTINGCHANGE, 0, "Environment")
+                except Exception:
+                    pass
+                
+                print("[+] PATH updated!")
+            else:
+                print("[*] PATH update skipped. Run 'snowline -h' after manually adding to PATH.")
+    except Exception:
+        pass
 
 # 5. Auto-add companion.py to PYTHONPATH for all projects
 _companion_script = Path(__file__).parent / "templates" / "companion.py"
@@ -162,13 +164,14 @@ if _companion_script.exists():
         sys.path.insert(0, _companion_dir)
 
 # 6. Read PATH from registry for current session
-try:
-    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
-    user_path, _ = winreg.QueryValueEx(key, "Path")
-    winreg.CloseKey(key)
-    os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
-except Exception:
-    pass
+if sys.platform == 'win32':
+    try:
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
+        user_path, _ = winreg.QueryValueEx(key, "Path")
+        winreg.CloseKey(key)
+        os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
+    except Exception:
+        pass
 
 # Auto-run main() if called directly
 if __name__ == '__main__':
