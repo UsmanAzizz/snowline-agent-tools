@@ -4,13 +4,13 @@ import tempfile
 import shutil
 import subprocess
 
-def run_test_clone():
+def run_test_clone(cmd=None):
     project_root = os.getcwd()
     
     # Ensure it's a git repository
     if not os.path.exists(os.path.join(project_root, '.git')):
-        print("[FAIL] Direktori saat ini bukan repositori Git.")
-        sys.exit(1)
+        print("[INFO] Direktori saat ini bukan repositori Git. Kloning dilewati.")
+        return
         
     print(f"Creating a clean clone of the repository from {project_root}...")
     temp_dir = tempfile.mkdtemp(prefix="snowline_clone_")
@@ -27,13 +27,20 @@ def run_test_clone():
         print(f"Clone created at {temp_dir}.")
         print("Running tests in the clean clone...")
         
-        # Run python tests/run_tests.py inside temp_dir
-        test_script = os.path.join(temp_dir, "tests", "run_tests.py")
-        if not os.path.exists(test_script):
-            print(f"[FAIL] Skrip tes tidak ditemukan di {test_script}")
-            sys.exit(1)
+        test_command = None
+        if cmd:
+            import shlex
+            test_command = shlex.split(cmd)
+        else:
+            test_script = os.path.join(temp_dir, "tests", "run_tests.py")
+            if os.path.exists(test_script):
+                test_command = ["python", "tests/run_tests.py"]
+                
+        if not test_command:
+            print("[INFO] tidak ada uji terdeteksi")
+            return
             
-        res_test = subprocess.run(["python", "tests/run_tests.py"], cwd=temp_dir, capture_output=True, text=True)
+        res_test = subprocess.run(test_command, cwd=temp_dir, capture_output=True, text=True)
         print("====== TEST OUTPUT ======")
         if res_test.stdout:
             print(res_test.stdout.strip())

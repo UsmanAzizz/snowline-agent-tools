@@ -829,8 +829,8 @@ def main():
     p_close = subparsers.add_parser("close-entry", help="Pindahkan satu entri dari connector ke history/<topik>")
     p_close.add_argument("topik", help="Nama topik, misal 'caching', 'encoding'")
     
-    subparsers.add_parser("test-clone", help="Jalankan tes di klon repositori bersih")
-    
+    p_test_clone = subparsers.add_parser("test-clone", help="Jalankan tes di klon repositori bersih")
+    p_test_clone.add_argument("--cmd", help="Perintah khusus untuk menjalankan tes", default=None)
     subparsers.add_parser("path", help="Show installation paths")
     subparsers.add_parser("status", help="Check package + project layers for updates")
 
@@ -881,7 +881,7 @@ def main():
         except ImportError:
             sys.path.insert(0, os.path.dirname(__file__))
             from core_test_clone import run_test_clone
-        run_test_clone()
+        run_test_clone(args.cmd)
     elif args.command == "path":
         show_path()
     elif args.command == "status":
