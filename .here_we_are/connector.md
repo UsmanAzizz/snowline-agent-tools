@@ -2933,3 +2933,203 @@ sini.
 | tiga topik riwayat salah nama | **REJECT** |
 | laporan ulang Entri X | **TIDAK BISA DIUJI** |
 | Entri Z | jangan dimulai, prasyaratnya Y bukan X |
+
+---
+
+# QA -> PM: uji mode tunggal dijalankan di Claude Code. Uji 0, Y, dan X semuanya lulus — dan sesi dingin menemukan empat hal yang QA berkonteks penuh lewatkan.
+
+Dijalankan langsung oleh QA memakai subagent Claude Code, bukan Antigravity.
+Tiga subagent terpisah, masing-masing dari prompt kosong.
+
+## Uji 0 — apakah subagent Claude Code benar-benar dingin
+
+Prompt utuh: lima pertanyaan tentang percakapan induk, dengan larangan memakai
+perkakas apa pun. Jawabannya:
+
+```
+1. TIDAK TAHU.
+2. TIDAK TAHU.
+3. TIDAK TAHU.
+4. TIDAK TAHU.
+5. TIDAK TAHU.
+```
+
+Termasuk pertanyaan "proyek apa yang sedang dikerjakan" dan "apa arti frasa
+'menembus bata' dalam percakapan itu" — frasa yang hanya ada di chat, tidak di
+disk mana pun.
+
+**Ini yang menggugurkan mode tunggal dulu, dan di harness ini ia tidak
+berlaku.** Catatan lama tetap benar untuk Antigravity; ia tidak boleh
+digeneralisasi.
+
+## Uji Y — subagent sebagai pengukur: PASS
+
+Enam perintah, daftar diberikan, kesimpulan dilarang. QA mencatat kebenaran
+dasarnya lebih dulu, lalu membandingkan.
+
+```
+1  git status --short              (kosong)             cocok
+2  git ls-files history | wc -l    25                   cocok
+3  grep PYTHONPATH docs/DEV...     (tidak ada keluaran)  cocok
+4  ls history/                     25 topik, urutan sama cocok
+5  git log --oneline -3            tiga commit sama     cocok
+6  run_tests.py                    All tests passed     cocok
+```
+
+Dan yang sama pentingnya: **nol kesimpulan.** Tidak meringkas, tidak
+menjalankan perintah di luar daftar, tidak bertanya balik. Perintah 3 tidak
+menghasilkan apa-apa — kekosongan yang jelas menandakan sesuatu kurang — dan ia
+tetap hanya menulis "(tidak ada keluaran)".
+
+Bandingkan dengan percobaan di Antigravity, yang berhenti di perintah pertama
+karena prompt izin dan menutup dengan pertanyaan balik.
+
+**Pembagian pengukuran/penilaian berlaku — di harness ini.**
+
+## Uji X — sesi dingin memvonis: PASS, dan lebih tajam
+
+Diberi keluaran `snowline context` (171 baris) dan entri terakhir (157 baris)
+sebagai dua berkas di folder terisolasi, ditambah jalur repo. Tidak ada
+penjelasan, tidak ada riwayat percakapan.
+
+### Ia mereproduksi vonis QA
+
+Keempat PASS diperiksa ulang dan bertahan. Ketiga penahan tetap berdiri. Ia
+juga memeriksa sendiri bahwa Entri Z memang tidak dimulai, dan menemukan
+prasyaratnya di sumbernya — `connector.md:2407`, *"Hanya kalau entri Y lulus."*
+
+### Dan menemukan empat hal yang QA lewatkan
+
+Keempatnya QA verifikasi ulang. Keempatnya benar.
+
+**1. `STATE.md` rusak oleh `close-entry`.**
+
+```
+$ tail -6 .here_we_are/STATE.md
+Kalau tidak cocok, berkas ini basi — perbarui, jangan diamkan.
+Sprint 26       (entri baru)                             history/Sprint 26/
+entri 24 dan 25 (entri baru)                             history/entri 24 dan 25/
+Sprint 27       (entri baru)                             history/Sprint 27/
+```
+
+Tiga baris ditempel **sesudah** kalimat penutup berkasnya sendiri, di luar
+tabel arsip mana pun. Penyebabnya `core_close_entry.py:126-128`:
+
+```python
+with open(state_file, 'a', encoding='utf-8') as f:
+    f.write(f"{topik.ljust(15)} {'(entri baru)'.ljust(40)} {topic_path}\n")
+```
+
+Mode `'a'`, satu baris polos ke ujung berkas. Dan `STATE.md` adalah berkas yang
+aturannya sendiri berbunyi *"ditimpa, tidak ditambah"*.
+
+**2. `STATE.md` basi di tiga tempat sekaligus.**
+
+```
+$ head -6 .here_we_are/STATE.md | tail -1
+Diperbarui: 22 Agustus 2026 · commit `6cae2d2` · 0 belum commit, 0 belum push
+
+$ git rev-list --count 6cae2d2..HEAD
+68
+$ git status -sb | head -1
+## main...origin/main [ahead 8]
+$ grep -n "40/40" .here_we_are/STATE.md
+121:python tests/run_tests.py     # 40/40, ~24 detik
+```
+
+Tertinggal 68 commit, mengaku nol belum push padahal delapan, dan mencantumkan
+40/40 padahal 48/48. Ini berkas pertama yang dibaca setiap sesi baru.
+
+**3. Akar penyebab penahan 2, yang QA tidak sebut.**
+
+`close_entry_command(topik)` tidak pernah memvalidasi nama topik. Tidak ada
+penolakan spasi, tidak ada penolakan nama yang mengulang judul entri. `topik`
+langsung dipakai menyusun jalur di baris 22, 69, 124, 128.
+
+QA menulis penahan 2 sebagai kesalahan penamaan. Sesi dingin menulisnya sebagai
+cacat alat. Yang kedua benar — selama tidak ditutup, penahan 2 akan terulang.
+
+**4. `cache.json` yang membaca nol baris.**
+
+```
+$ wc -l < .here_we_are/bahan_uji_solo/kasus_C/cache.json
+0
+$ wc -c < .here_we_are/bahan_uji_solo/kasus_C/cache.json
+23
+$ cat ...
+{"judul": "LAPORAN v1"}
+```
+
+Nol baris karena tidak berakhir baris baru, tetapi berisi. Ia menandainya lalu
+**menolak menyebutnya cacat** karena tidak bisa memastikan niatnya. Itu
+penilaian yang tepat, dan pelajarannya melampaui berkas ini: `wc -l == 0` bukan
+berarti kosong.
+
+### Tiga hal ia nyatakan TIDAK BISA DIUJI
+
+Laporan ulang Entri X, apakah pembagian topik usulan itu yang benar, dan apakah
+48 memang angka uji yang seharusnya. Ketiganya tepat — tidak satu pun bisa
+dijalankan sebagai perintah.
+
+### Daftar yang tidak ketemu — keluaran sebenarnya dari uji ini
+
+Dua belas baris. Yang terpenting:
+
+```
+definisi "Entri X" dan "Entri Y" tidak ada di kedua berkas; direkonstruksi
+    dari connector.md:2058, :2369-2404, :2729
+nama harness "di sini" tidak pernah disebut; ditebak dari connector.md:223
+ONBOARDING_TL.md dirujuk dengan nama telanjang, ada dua kandidat berkas
+tidak ada aturan tertulis tentang apa yang membuat nama topik sah
+tidak ada patokan berapa uji yang seharusnya lulus
+tidak ada keterangan apakah 8 commit belum dipush itu disengaja
+tidak ada keterangan bagaimana isi DEVELOPMENT.md akar digabung ke docs/
+tidak ada acuan commit untuk "keadaan saat entri ini ditulis"
+```
+
+Itu spesifikasi apa yang harus dipindahkan ke chamber. Tidak perlu
+diperdebatkan — tinggal ditutup satu per satu.
+
+## Dua batas yang harus disebut
+
+**Ia membaca lebih dari dua berkas yang diberikan.** Ia membuka `connector.md`
+sendiri untuk merekonstruksi definisi Entri X dan Y. Spesifikasi uji berbunyi
+"hanya dua berkas".
+
+QA menilai ini **sah**, dan justru versi yang benar: `connector.md` adalah
+chamber. Yang tidak boleh ia punya adalah percakapan induk, dan uji 0
+membuktikan ia tidak punya. Tetapi harus dicatat bahwa uji berjalan dalam
+bentuk yang lebih longgar dari yang tertulis.
+
+**Ia memvonis pekerjaan yang sudah dianalisis.** Entri yang diberikan memuat
+vonis QA lengkap. Jadi yang terbukti: sesi dingin bisa **memeriksa ulang dan
+memperdalam** vonis yang ada. Belum terbukti ia bisa **memulai** vonis dari
+laporan TL mentah. Itu uji berikutnya, dan lebih sulit.
+
+## Vonis
+
+| uji | vonis |
+|-----|-------|
+| 0 — subagent dingin di Claude Code | PASS, lima TIDAK TAHU |
+| Y — subagent sebagai pengukur | PASS, enam perintah cocok, nol kesimpulan |
+| X — sesi dingin memvonis | PASS, dan menemukan empat hal yang QA lewatkan |
+
+**Mode tunggal berlaku di Claude Code.** Tidak untuk Antigravity, dan itu harus
+tertulis sebagai syarat harness, bukan digeneralisasi.
+
+Kekhawatiran yang QA tulis di rancangan — bahwa sesi dingin akan *kurang tahu*
+— tidak terbukti pada entri ini. Yang terjadi kebalikannya: ia memeriksa hal
+yang QA anggap sudah selesai, dan menemukan `STATE.md` rusak sejak tiga entri
+yang lalu tanpa ada yang melihat.
+
+## Yang bertambah ke daftar kerja
+
+```
+STATE.md dirapikan: tiga baris liar dipindah ke tabel, header diperbarui,
+    klaim 40/40 jadi 48/48
+core_close_entry.py:126-128 berhenti memakai mode 'a' pada STATE.md
+close_entry_command menolak nama topik bersspasi dan nama yang mengulang
+    judul entri, dibuktikan mutasi
+```
+
+Ketiganya di luar tiga penahan yang sudah ada.
