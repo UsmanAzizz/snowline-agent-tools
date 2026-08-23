@@ -68,7 +68,8 @@ surat-menyurat.
 
 ## 3. Syarat entri — ditolak sebelum isinya dibaca
 
-- Menyatakan sesuatu selesai tanpa memuat **perintah dan keluarannya**.
+- Laporan TL ditulis HANYA ke connector, bukan sekadar lewat chat ke PM. Chat ke PM hanya berisi "selesai — silakan sinyal PM".
+- Laporan menyatakan sesuatu selesai tanpa memuat **perintah dan keluarannya**.
 - Keluaran diringkas atau dirapikan, bukan ditempel apa adanya.
 - Kesimpulan menyatakan hal yang tidak ditunjukkan keluaran itu sendiri —
   termasuk bila perintahnya benar tetapi tidak menyentuh kode yang diklaim.
@@ -215,6 +216,8 @@ berkas baru ada, tidak pernah masuk staging
 git status --short          # harus kosong
 git log --oneline -1        # harus menunjukkan pekerjaan Anda
 ```
+
+Jalankan Kalibrasi Versi (lihat `ONBOARDING_TL.md` atau `ONBOARDING_QA.md` pada LANGKAH PERTAMA). Kalibrasi tersebut memverifikasi `git log` dan hasil *Continuous Integration* (CI) sekaligus.
 
 Kalau QA meragukan, ia akan menjalankan dari `git clone` — dan yang berlaku
 adalah hasil di sana, bukan di mesin Anda.

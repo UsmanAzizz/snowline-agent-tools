@@ -31,6 +31,25 @@ QA  -X- TL             tidak ada jalur langsung
 ```
 
 ## LANGKAH PERTAMA (tiap sesi baru)
+Sebelum menginisiasi tindakan lain, lakukan kalibrasi versi:
+```bash
+git status --short
+snowline test-clone
+git log --oneline -1
+```
+Bandingkan dengan hasil `GET /repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1` (`head_sha`).
+- sama + hijau: boleh bekerja
+- sama + merah: perbaiki dulu, jangan tambah entri baru
+- beda, commit yang belum dipush milikmu sendiri: catat, lanjut
+- beda, ada commit orang lain yang belum dipush: berhenti
+
+Jalankan ulang kalibrasi ini:
+- setelah vonis REJECT atas laporanmu sendiri
+- setelah kata cakupan ("seluruh", "sepenuhnya", "semua") ditolak QA
+- setelah tiga laporan sejak kalibrasi terakhir
+- sebelum memasang tag rilis apa pun
+
+Setelah itu baru baca:
 1. `.agents/chamber/STATE.md` — posisi sekarang.
 2. `.agents/chamber/CHAMBER_RULES.md` — terutama syarat entri ditolak.
 3. Bagian **terakhir** `.agents/chamber/connector.md`.
