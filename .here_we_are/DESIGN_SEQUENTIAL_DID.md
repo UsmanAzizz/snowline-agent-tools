@@ -98,6 +98,55 @@ Agustus, sesi QA membawa sangat banyak yang tidak pernah masuk connector —
 alasan di balik vonis, pola yang dikenali dari sprint lama, kecurigaan yang
 belum terbukti. Itu bukan alasan menunda ujinya. Itu justru isinya.
 
+## Pengukuran dan penilaian — dan kenapa subagent tercemar tetap berguna
+
+Tambahan 23 Agustus, dari pengamatan PM: agen induk **menunggu** subagent, dan
+tidak tahu apa yang dikerjakannya. Batasnya nyata, tetapi arahnya satu:
+
+```
+induk -> subagent    konteks bisa bocor turun   (ini yang diuji dan gagal)
+subagent -> induk    induk cuma dapat laporan   (ini yang tetap berlaku)
+```
+
+Arah kedua tidak menambal arah pertama. Tetapi menelusurinya membuka sesuatu
+yang membuat arah pertama jauh kurang penting daripada yang diasumsikan
+rancangan lama.
+
+**Perlindungan chamber tidak pernah "pemeriksanya tidak tahu".** Perlindungannya
+"klaim harus membawa perintah dan keluarannya". Subagent yang tercemar tetap
+harus menjalankan perintahnya. Mutasi tetap merah atau hijau. Pencemaran
+membuatnya lunak dalam **menilai**, tidak membuatnya bisa mengarang
+**keluaran**.
+
+Jadi kerja QA terbelah dua, dan hanya separuhnya butuh identitas dingin:
+
+```
+PENGUKURAN   jalankan mutasi, hitung AST, ambil status CI, diff dua berkas,
+             pasang di venv bersih, jalankan suite dari klon
+             -> tidak peduli siapa yang bertanya
+             -> subagent tercemar sekalipun sah
+             -> bisa dipakai hari ini, di harness mana pun
+
+PENILAIAN    apakah ujinya menguji yang benar
+             apakah klaim cakupannya jujur
+             apakah kesimpulan melebihi keluarannya
+             -> di sini pencemaran menggigit
+             -> butuh sesi dingin berurutan
+```
+
+Sepanjang 22-23 Agustus, sebagian besar kerja QA ada di kolom kiri. Mutasi dua
+arah, `TOTAL 0`, `pip show`, `head_sha` CI, `git ls-files ... | wc -l` —
+semuanya keluaran, bukan pendapat.
+
+Akibatnya untuk rancangan ini: **kolom kiri tidak perlu menunggu apa pun.**
+Ia bisa diserahkan ke subagent sekarang, dan itu memperkecil kolom kanan sampai
+tinggal bagian yang benar-benar butuh sesi dingin.
+
+Batasnya harus disadari: subagent yang tercemar akan cenderung memilih
+pengukuran yang **membenarkan** entri. Karena itu perintah yang dijalankan
+harus ditulis di entrinya, bukan dipilih subagent. Ia menjalankan daftar, bukan
+menyusunnya.
+
 ## Mekanismenya
 
 ### 1. Peralihan peran adalah tindakan terakhir sesi yang mati

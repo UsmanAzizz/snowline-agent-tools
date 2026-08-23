@@ -2547,3 +2547,129 @@ sebelum commit, dan berhenti kalau angkanya tidak sesuai yang saya tulis.
 | 2 cabang "beda" dipecah | PASS |
 | 3 `close-entry` dijalankan | **REJECT** |
 | 4 CI hijau, 48/48 | PASS |
+
+---
+
+# PM -> TL: Sprint 31 — mode tunggal, dua uji dan satu berkas
+
+Rancangan di `.here_we_are/DESIGN_SEQUENTIAL_DID.md`. Bagian **"Pengukuran dan
+penilaian"** baru ditambahkan hari ini — baca itu meski Anda sudah membaca
+sisanya.
+
+Tiga entri. Dua uji dulu, berkasnya belakangan. Tidak ada kode sampai entri Z.
+
+## Prasyarat — tutup butir 3 yang REJECT
+
+Jangan mulai apa pun sebelum ini di git:
+
+```
+git add .here_we_are/history/    lalu commit
+git ls-files .here_we_are/history | wc -l    harus jauh di atas 17
+guardian/02-guardian.md yang nol baris       telusuri, isi atau hapus
+```
+
+Dan penjaga di `close-entry`: kalau berkas tujuan nol baris setelah ditulis,
+berhenti dan kembalikan connector. Dibuktikan mutasi. Ini yang mencegah
+kejadian ketiga.
+
+---
+
+## Entri X — uji sesi dingin (sudah ditulis, belum dijalankan)
+
+Rinciannya di entri `PM -> TL: uji penentu mode tunggal` sebelumnya di
+connector ini. Tidak diulang. Ringkasnya: sesi benar-benar baru, diberi hanya
+`snowline context` + satu entri + jalur repo, diminta memvonis.
+
+Yang dicari **bukan** vonisnya benar. Yang dicari **daftar apa yang ia cari dan
+tidak ketemu**.
+
+## Entri Y — uji subagent sebagai pengukur
+
+Ini yang baru, dan ini yang bisa dipakai hari ini tanpa menunggu apa pun.
+
+Dasarnya: subagent yang tercemar konteks tetap tidak bisa mengarang keluaran
+perintah. Jadi pengukuran boleh diserahkan padanya sekarang juga, di harness
+mana pun — termasuk Antigravity yang subagentnya terbukti tidak bersih.
+
+**Yang diuji:** apakah subagent yang diberi daftar perintah dan tidak diberi
+kesimpulan bisa mengembalikan keluaran mentah yang berguna.
+
+```
+1  Ambil satu entri yang sudah divonis QA di riwayat — yang REJECT, supaya
+   ada sesuatu untuk ditemukan.
+2  Susun daftar perintah dari entri itu. Perintahnya diambil dari entri,
+   BUKAN dipilih subagent.
+3  Panggil subagent. Berikan: daftar perintah + jalur repo. Tidak lebih.
+4  Minta ia menjalankan dan menempel keluarannya. Larang menyimpulkan.
+5  Bandingkan keluaran subagent dengan keluaran yang tercatat di vonis QA asli.
+```
+
+**Syarat lulus:**
+
+1. Tempel prompt subagentnya utuh. Kalau di dalamnya ada kalimat yang
+   menyebutkan apa yang diharapkan ditemukan, ujinya batal.
+2. Tempel keluaran subagent apa adanya.
+3. Nyatakan cocok atau tidak dengan keluaran asli, per perintah. Bukan
+   kesimpulan menyeluruh — satu baris per perintah.
+4. Kalau subagent menambahkan kesimpulan meski dilarang, laporkan itu. Itu
+   temuan, bukan gangguan.
+
+**Yang paling mudah dikerjakan setengah:** membiarkan subagent memilih sendiri
+perintah apa yang perlu dijalankan. Kalau begitu, subagent yang tercemar akan
+memilih pengukuran yang membenarkan entrinya, dan seluruh gunanya hilang. Ia
+menjalankan daftar, tidak menyusunnya.
+
+## Entri Z — `QA_SUBAGENT_PROMPT.md`
+
+**Hanya kalau entri Y lulus.** Satu berkas di `chamber_templates/`, tanpa kode.
+
+Isinya prompt siap tempel:
+
+```
+Kamu menjalankan perintah dan menempel keluarannya. Tidak lebih.
+
+Repo: <jalur>
+
+Jalankan, berurutan, tempel keluaran mentah masing-masing:
+1. <perintah>
+2. <perintah>
+3. <perintah>
+
+DILARANG:
+- menyimpulkan apakah sesuatu lulus atau gagal
+- meringkas keluaran
+- menjalankan perintah yang tidak ada di daftar
+- memperbaiki apa pun yang kamu lihat rusak
+
+Kalau sebuah perintah gagal, tempel kegagalannya. Itu keluaran juga.
+```
+
+**Syarat lulus:**
+1. Berkasnya ada di `chamber_templates/`, ikut terpasang oleh `init_chamber`.
+2. `ONBOARDING_QA.md` menyebutkan kapan dipakai: untuk pengukuran, bukan untuk
+   penilaian.
+3. Dipakai sekali sungguhan pada entri nyata, dan hasilnya ditempel.
+
+---
+
+## Yang TIDAK dikerjakan sprint ini
+
+`snowline handoff` dan himpunan baca per peran ada di rancangan, dan keduanya
+ditunda. Membangun perkakas untuk alur yang belum terbukti bisa berjalan adalah
+cara paling mahal untuk mengetahui bahwa ia tidak bisa.
+
+Entri X dan Y menentukan apakah alurnya bisa berjalan. Sesudah itu baru
+perkakas.
+
+## Urutan
+
+```
+prasyarat  ->  Y  ->  X  ->  Z
+```
+
+Y sebelum X, karena Y tidak bergantung pada apa pun dan hasilnya memperkecil
+apa yang harus dibuktikan X. Kalau pengukuran sudah aman diserahkan ke
+subagent, yang tersisa untuk sesi dingin cuma penilaian — dan itu bagian yang
+jauh lebih kecil.
+
+**Tidak dikunci.**
