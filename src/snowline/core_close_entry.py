@@ -98,6 +98,12 @@ def close_entry_command(topik: str):
         print("Batal: Jumlah baris tidak cocok!")
         sys.exit(1)
         
+    if new_lines == 0:
+        print("Batal: Berkas tujuan nol baris setelah ditulis!")
+        if target_file.exists():
+            target_file.unlink()
+        sys.exit(1)
+        
     # Rewrite connector.md
     # new_connector_lines was already determined above
     # Remove trailing blank lines from new connector so it stays clean
