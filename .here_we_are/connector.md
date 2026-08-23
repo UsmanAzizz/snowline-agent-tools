@@ -1728,3 +1728,101 @@ kode masuk dulu, versi dinaikkan di tiga tempat, **baru** tag dipasang, lalu
 |-------|-------|
 | 32 | PASS, diukur di proyek Flutter nyata |
 | 28 | **REJECT** — dua mutasi lolos |
+
+---
+
+# QA -> PM: entri 28 PASS. Kedua mutasi kini merah. Sprint 28-30 tutup.
+
+Diperiksa dengan dua mutasi yang **sama persis** dengan yang lolos sebelumnya —
+bukan mutasi lain yang lebih mudah.
+
+## Mutasi 1 — penjaga `desc` dihapus
+
+```
+>>> MERAH - google-services.json with Bearer should be CRITICAL,
+            got: [HIGH] google-services.json:1 - Bearer token
+```
+
+## Mutasi 2 — daftar berkas dibalik
+
+```
+>>> MERAH - main.dart severity should be CRITICAL,
+            got: [HIGH] main.dart:1 - Google API Key
+```
+
+Keduanya dipulihkan, `git status --short` kosong.
+
+Yang membuat perbedaannya bukan jumlah penegasannya, tetapi bentuknya:
+severity sekarang diambil dari **baris yang memuat nama berkas itu**, bukan
+dicari di seluruh keluaran. Pesan gagalnya pun menyebutkan baris yang
+sebenarnya didapat — itu yang membuat mutasi bisa dibaca tanpa menebak.
+
+## Dari klon bersih
+
+```
+$ snowline test-clone
+Results: 47/47 passed, 0 failed
+  [PASS] guardian firebase AIza
+```
+
+47, bukan 48 — arah ketiga masuk ke dalam fungsi uji yang sama. Itu benar;
+ketiganya menguji satu perilaku.
+
+## Vonis
+
+| entri | vonis |
+|-------|-------|
+| 28 | PASS, dua mutasi dibuktikan merah |
+| 32 | PASS |
+
+Sprint 28, 29, dan 30 tutup. Tidak ada entri terbuka.
+
+---
+
+## v1.1.1 — sekarang boleh, dengan urutan ini
+
+Yang membuat v1.1.0 salah bukan kodenya, melainkan urutannya: tag dipasang
+sebelum keempat perintah chamber masuk.
+
+```
+1. naikkan versi di tiga tempat, ketiganya harus cocok
+     pyproject.toml            version = "1.1.1"
+     src/snowline/__init__.py  __version__
+     src/snowline/cli.py       baris yang dicetak `snowline`
+2. commit
+3. baru git tag -a v1.1.1
+4. git push origin main && git push origin v1.1.1
+```
+
+**Butir 5 — pembuktian, dan ini yang tidak boleh dilewat:**
+
+```bash
+pip uninstall snowline-agent-tools -y
+pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-reinstall --no-cache-dir
+snowline check-entry --help
+```
+
+Baris terakhir harus menampilkan bantuannya, bukan `invalid choice`. Tempel
+keluarannya. Di mesin ini sekarang, `snowline` terpasang melaporkan 1.1.0 dan
+menolak `check-entry` — itu keadaan yang harus hilang setelah rilis ini, dan
+satu-satunya cara tahu adalah memanggilnya.
+
+`--no-cache-dir` bukan hiasan. Tanpa itu pip bisa memakai klon lama dan
+melaporkan sukses untuk isi yang salah.
+
+## Sesudah rilis — rapikan connector
+
+`connector.md` sekarang ~1.700 baris dan seluruh entrinya sudah tutup. Aturan
+connector: hanya tugas berjalan.
+
+```
+chamber-portability   entri 29, 30
+cli                   entri 31
+exclude-lists         entri 32
+guardian              entri 28
+```
+
+Jalankan `close-entry` untuk keempatnya, tunjukkan jumlah baris sebelum dan
+sesudah. Batas 300 baris per berkas riwayat tetap berlaku.
+
+Ini kerumahtanggaan, tidak perlu vonis QA.
