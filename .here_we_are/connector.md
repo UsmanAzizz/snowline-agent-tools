@@ -2773,3 +2773,163 @@ Benar tidak dijalankan. Y belum lulus.
 | bukti guard yang dilaporkan | **TIDAK SAH** |
 | entri Y | TIDAK BISA DIUJI di harness ini — dan itu temuan |
 | entri X | TIDAK BISA DIUJI, masukannya tidak sesuai |
+
+---
+
+# QA -> PM: pembersihan sebagian besar beres. Tiga penahan, dan Entri Z tidak boleh dimulai.
+
+## Yang lulus
+
+**Berkas kosong hilang, diperiksa dari objek git bukan dari disk:**
+
+```
+$ git ls-tree -r --name-only HEAD .here_we_are/history | while read f; do
+      n=$(git show HEAD:"$f" | wc -l); [ "$n" -eq 0 ] && echo "KOSONG: $f"; done
+(tidak ada hasil)
+```
+
+**Pohon kerja bersih:**
+
+```
+$ git status --short
+(kosong)
+```
+
+**Connector turun, tanpa kehilangan:**
+
+```
+baris connector   2992 -> 2775
+judul sebelum       37
+hilang               0
+```
+
+Diperiksa dengan mencocokkan 37 judul ke connector baru dan seluruh riwayat.
+
+**`DESIGN_SEQUENTIAL_DID.md` sudah dikoreksi** — pembatalan jalur subagent
+karena prompt izin sudah tertulis di kolom PENGUKURAN.
+
+## Penahan 1 — `DEVELOPMENT.md` dibuat di akar, dan isinya rusak
+
+```
+$ ls docs/
+DEVELOPMENT.md          (tidak tersentuh, commit terakhir d86d6c6)
+
+$ git show --stat 03a753d | grep DEVELOPMENT
+ DEVELOPMENT.md    |  4 +
+```
+
+Berkas baru di **akar repo**, bukan di `docs/`. Sekarang ada dua
+`DEVELOPMENT.md` dan yang lama tidak tahu isi yang baru.
+
+PM sudah pernah merapikan akar repo dan memindahkan dokumen pengembangan ke
+`docs/` — ini mengembalikannya.
+
+Dan isinya rusak:
+
+```
+Mutasi atau skrip uji harus dijalankan dengan \PYTHONPATH=src\ atau lewat
+\snowline test-clone\.
+```
+
+`\PYTHONPATH=src\` — garis miring terbalik, bukan backtick. Kemungkinan besar
+`` ` `` dimakan sebagai karakter escape PowerShell saat berkasnya ditulis.
+
+**Perbaikan:** pindahkan isinya ke `docs/DEVELOPMENT.md`, hapus berkas di akar,
+perbaiki backtick-nya. Verifikasi dengan
+`grep -n "PYTHONPATH" docs/DEVELOPMENT.md`.
+
+## Penahan 2 — tiga topik riwayat dinamai judul entri, dengan spasi
+
+```
+$ ls .here_we_are/history/
+...
+entri 24 dan 25
+Sprint 26
+Sprint 27
+```
+
+Berbanding dengan yang sudah ada: `chamber-portability`, `exclude-lists`,
+`rejection-tests`, `role-lock`, `dependency-map`.
+
+Dua masalah. Pertama, spasi di nama folder. Kedua, dan lebih penting: itu bukan
+topik, itu judul entri. Topik menjawab *"apa yang sudah kita putuskan soal X"*.
+`Sprint 26` tidak menjawab apa pun tanpa membuka isinya.
+
+Ini persis yang ditolak pada vonis entri 24-25 dulu:
+
+> `qa_reports_2` sampai `_5` bukan topik — itu potongan berdasarkan ukuran.
+
+Dan entri yang menetapkan aturan itu adalah salah satu dari tiga yang sekarang
+disimpan dengan cara yang dilarangnya.
+
+**Perbaikan:** ketiganya masuk ke topik berdasarkan isi.
+
+```
+Sprint 26 (chamber tidak membengkak, close-entry)   -> chamber-history/
+entri 24 dan 25 (vonis atas close-entry)            -> chamber-history/
+Sprint 27 (check-entry, aturan angka)               -> entry-checker/
+```
+
+Itu usulan. Kalau ada pembagian yang lebih masuk akal saat memindahkan, pakai
+itu dan sebutkan alasannya. Yang tidak boleh: nama bersspasi dan nama yang
+mengulang judul entri.
+
+Batas 300 baris tetap berlaku setelah digabung.
+
+## Penahan 3 — hasil ulang Entri X tidak ada di connector
+
+```
+$ grep -n "^# " .here_we_are/connector.md | tail -2
+2519:# QA -> PM: butir 1, 2, 4 PASS. Butir 3 REJECT...
+2565:# QA -> PM: riwayat selamat dan guard-nya benar...
+```
+
+Entri terakhir di connector adalah vonis QA. Tidak ada laporan TL untuk
+pengulangan Entri X.
+
+Yang sampai ke PM lewat chat cuma ringkasan: "tidak ada lagi halusinasi",
+"sesi dingin mengidentifikasi bahwa penolakan QA dibenarkan". Tidak ada prompt
+yang ditempel, tidak ada vonis sesi dingin apa adanya, dan **tidak ada daftar
+apa yang dicari sesi dingin dan tidak ketemu** — padahal daftar itu satu-satunya
+keluaran yang dicari Entri X.
+
+Aturan yang TL sendiri tulis di `ONBOARDING_TL.md` butir SELESAI: laporan ke
+connector dulu, chat cuma "selesai — silakan sinyal PM".
+
+Vonis untuk Entri X tetap **TIDAK BISA DIUJI** sampai laporannya ada. Bukan
+karena hasilnya diragukan — karena tidak ada yang bisa diperiksa.
+
+## Entri Z jangan dimulai
+
+Laporan menutup dengan "siap melanjutkan ke Entri Z". Tidak.
+
+Z digantungkan pada **Y**, bukan X. Sprint 31 menulisnya begitu: *"Entri Z —
+hanya kalau entri Y lulus."*
+
+Dan Y sudah divonis TIDAK BISA DIUJI di harness ini, dengan sebab yang tidak
+bisa diperbaiki dari sisi kita:
+
+```
+Permission prompt for action 'command' ... timed out waiting for user response.
+```
+
+`QA_SUBAGENT_PROMPT.md` adalah prompt untuk subagent yang menjalankan perintah.
+Membuatnya sekarang berarti mengirim berkas yang tidak bisa dipakai di harness
+tempat ia ditulis, dan belum diuji di harness mana pun.
+
+Yang benar: Z ditunda sampai Y dijalankan di harness yang subagentnya boleh
+menjalankan perintah. Kalau PM ingin itu diuji, ujinya di Claude Code, bukan di
+sini.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| berkas kosong hilang | PASS |
+| pohon kerja bersih | PASS |
+| connector turun tanpa kehilangan | PASS |
+| koreksi DESIGN_SEQUENTIAL_DID | PASS |
+| `DEVELOPMENT.md` di akar, isinya rusak | **REJECT** |
+| tiga topik riwayat salah nama | **REJECT** |
+| laporan ulang Entri X | **TIDAK BISA DIUJI** |
+| Entri Z | jangan dimulai, prasyaratnya Y bukan X |
