@@ -2601,3 +2601,166 @@ angka hari ini.
 | ukuran connector di butir 3 | catatan |
 
 **PASS.** Ketiga catatan kecil dan bisa ditutup bersamaan di entri berikutnya.
+
+---
+
+# PM -> TL: Sprint 36 — probe payload alat tulis native
+
+Usulan gerbang tembus pandang diterima arahnya. Tetapi seluruhnya bergantung
+pada satu asumsi yang belum pernah dilihat siapa pun:
+
+```
+toolCall.args.TargetFile
+```
+
+Yang **terverifikasi** cuma ini, dari kode yang sudah berjalan:
+
+```python
+# hooks/quality_gate.py:162-168
+tool_name = input_data.get("toolName", "")
+tool_call = input_data.get("toolCall", {})
+if tool_name == "run_command" or "CommandLine" in tool_call:
+    cmd = tool_call.get("CommandLine", "").strip()
+```
+
+`CommandLine` untuk `run_command`. Bentuk payload alat tulis native belum
+pernah diperiksa.
+
+**Sprint ini tidak membangun gerbang apa pun.** Ia mengukur satu hal, dan
+hasilnya menentukan apakah gerbangnya bisa ditulis sama sekali.
+
+---
+
+## Entri 1 — probe yang merekam, tidak memblokir
+
+Buat `.agents/hooks/probe_native.py`. Isinya minimal:
+
+```python
+import sys, json, datetime, os
+
+RAW = os.path.join(os.path.dirname(__file__), "probe_native.log")
+
+try:
+    data = sys.stdin.read()
+except Exception as e:
+    data = f"__READ_ERROR__ {e}"
+
+try:
+    with open(RAW, "a", encoding="utf-8") as f:
+        f.write(f"--- {datetime.datetime.now().isoformat()} ---\n")
+        f.write(data + "\n")
+except Exception:
+    pass
+
+print(json.dumps({"decision": "allow"}))
+sys.exit(0)
+```
+
+Daftarkan di `hooks.json` dengan matcher untuk ketiga alat tulis:
+
+```json
+"probe-native-write": {
+  "PreToolUse": [
+    {
+      "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+      "hooks": [
+        { "type": "command", "command": "python hooks/probe_native.py" }
+      ]
+    }
+  ]
+}
+```
+
+**Perhatikan jalur perintahnya.** Hook yang sudah berjalan memakai
+`python hooks/quality_gate.py` — relatif terhadap `.agents/`, bukan
+`.agents/skills/...`. Ikuti bentuk yang sudah terbukti, jangan bentuk baru.
+
+**Syarat lulus:**
+
+1. Probe **selalu** mengizinkan. Ia tidak boleh memblokir apa pun, sekali pun.
+   Kalau ia memblokir, kamu tidak akan tahu apakah yang diblokir itu alat yang
+   dimaksud.
+2. Ia menulis payload **mentah** — string apa adanya dari stdin, bukan hasil
+   `json.loads` yang sudah dirapikan. Kalau payloadnya bukan JSON, itu justru
+   temuan yang paling penting.
+3. Ia tidak pernah keluar dengan kode bukan-nol, apa pun yang terjadi.
+
+## Entri 2 — pancing ketiga alat, satu per satu
+
+Sesudah probe terpasang, jalankan tiga tindakan **kecil dan tidak berbahaya**:
+
+```
+1  buat berkas baru        scratch/probe_a.txt berisi satu baris
+2  ubah satu berkas        ganti satu kata di scratch/probe_a.txt
+3  ubah beberapa berkas    kalau alat multi-file bisa dipancing
+```
+
+Pakai alat native IDE-mu untuk ketiganya — jangan `smart_replace`. Justru itu
+yang sedang diukur.
+
+**Syarat lulus:**
+
+1. Tempel isi `probe_native.log` **utuh dan mentah**. Jangan dirapikan, jangan
+   dipotong, jangan diformat ulang. Kalau panjang, tempel utuh saja — sekali
+   ini nilainya ada di detailnya.
+2. Untuk setiap alat, sebutkan:
+
+```
+nama field yang memuat nama berkas       (atau: tidak ada)
+apakah toolName ada, dan isinya apa
+apakah strukturnya sama untuk ketiganya  (atau berbeda, dan bagaimana)
+apakah isi tulisan ikut di payload       (penting untuk ukuran)
+```
+
+3. Kalau salah satu alat **tidak memicu hook sama sekali**, itu hasil yang
+   paling penting di sprint ini. Laporkan, jangan diulang sampai kelihatan
+   berhasil.
+4. Hapus `scratch/probe_a.txt` dan `probe_native.log` sesudah dicatat, atau
+   masukkan ke `.gitignore`. Jangan tertinggal seperti `ci_log.txt`.
+
+## Entri 3 — jawab dua pertanyaan rancangan, tanpa kode
+
+Keduanya menentukan bentuk gerbangnya, dan keduanya lebih murah dijawab
+sekarang daripada ditemukan nanti.
+
+**a. Gagal-tertutup.** Kontrak Antigravity: keluar dengan kode bukan-nol
+dianggap skrip crash, dan hasilnya **fail open** — perintahnya lolos.
+
+Jadi gerbang nanti harus membungkus semuanya dalam `try` dan mencetak `deny`
+saat error, lalu tetap `exit 0`. Tulis di laporanmu bagaimana kamu akan
+memastikan itu — dan bagaimana kamu akan **mengujinya**, karena gerbang yang
+jatuh saat rusak lebih buruk daripada tidak ada gerbang: ia terlihat ada.
+
+**b. Apa yang terjadi kalau `scope_lock.json` tidak ada.** Sekarang
+`scope_check` gagal-tertutup — memblokir. Untuk `--apply` itu benar. Untuk
+setiap tulisan native, artinya tidak ada yang bisa menulis apa pun sampai
+`scope_lock.json` dibuat.
+
+Mungkin itu memang yang diinginkan. Tetapi harus dipilih sadar. Tulis
+pilihanmu dan alasannya:
+
+```
+a  blokir semua tulisan tanpa scope_lock        konsisten, tetapi keras
+b  izinkan tulisan di luar scope_lock kalau     lebih longgar, dan harus
+   berkasnya baru / di scratch                  disebutkan batasnya di mana
+```
+
+## Yang TIDAK dikerjakan sprint ini
+
+Jangan menulis `intercept_native.py`. Jangan mengubah `scope_check.py`. Jangan
+mendaftarkan gerbang apa pun yang memblokir.
+
+Membangun gerbang di atas nama field yang ditebak adalah cara termahal untuk
+mengetahui bahwa tebakannya salah.
+
+## Catatan
+
+Desain "pemblokiran total" tidak dipakai, dan alasannya bukan soal keras atau
+longgar: `smart_replace` mengganti teks di berkas yang sudah ada, ia tidak
+membuat berkas baru. Memblokir `write_to_file` seutuhnya berarti tidak ada
+jalan membuat berkas sama sekali.
+
+Kalau nanti pemblokiran total tetap diinginkan, ia butuh alat pembuat berkas
+bergerbang lebih dulu — itu entri lain.
+
+**Tidak dikunci.**
