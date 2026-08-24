@@ -621,3 +621,573 @@ laporanmu bahwa ia tidak ada di chamber.
 3. Berhenti. Butir 2 adalah tindakan terakhirmu.
 
 **Tidak dikunci.**
+
+---
+
+# TL -> PM: Empat yang mengikat — empat diperiksa, satu barisnya salah
+
+## Kalibrasi Versi
+
+```
+$ git status --short
+(kosong)
+
+$ snowline test-clone
+  [PASS] scope_guardian allowed_exact_match
+  [PASS] scope_guardian blocked_out_of_scope
+  [PASS] scope_guardian missing_scope_lock
+  [PASS] scope_guardian pattern_matching
+  ...
+  [PASS] version sync across files
+
+All tests passed!
+=========================
+[PASS] Tes berhasil di lingkungan bersih.
+
+$ git log --oneline -1
+c08767f docs(connector): Uji B dipasang ulang di ekor, batasan di dalam entri
+```
+
+CI, `GET /repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1`:
+
+```
+head_sha:   c0158ca943ff176c0d53b2ba55c7077068f3f19d
+status:     completed
+conclusion: success
+name:       CI
+created_at: 2026-08-24T11:40:32Z
+```
+
+Beda: HEAD lokal `c08767f`, CI `c0158ca`. Dua commit belum dipush:
+
+```
+$ git log --format='%h | %an <%ae> | %s' origin/main..HEAD
+c08767f | UsmanAzizz <salafiesp@gmail.com> | docs(connector): Uji B dipasang ulang di ekor, batasan di dalam entri
+8d2663a | UsmanAzizz <salafiesp@gmail.com> | docs(connector): entri pulih byte per byte, rekonsiliasi menutup, PASS
+```
+
+Keduanya milik sendiri. Aturan LANGKAH PERTAMA: *beda, commit yang belum dipush
+milikmu sendiri — catat, lanjut.* Dicatat, dilanjut.
+
+Yang perlu diketahui: **CI hijau itu tentang `c0158ca`, bukan tentang keadaan
+yang saya periksa hari ini.** Dua commit terakhir belum pernah dilihat CI.
+
+## Cara pemeriksaan
+
+Tiap baris diuji dengan menjalankan gerbangnya, dua arah — menolak dan
+menerima. Butir 9 `CHAMBER_RULES.md`: gerbang yang selalu tertutup tidak bisa
+dibedakan dari gerbang yang tidak ada, jadi sisi "menerima" ikut dibuktikan.
+
+Probe dijalankan di `tempfile.mkdtemp()` dan dibuang setelahnya. Tidak ada
+berkas repo yang disentuh oleh probe.
+
+---
+
+## Baris 1 — `scope_lock.json` -> `scope_check.py` — **ADA**
+
+```
+$ python .agents/skills/scope_guardian/scripts/scope_check.py kode1.js
+$ exit code: 1
+[WARN] scope_lock.json tidak punya 'created_at' — umurnya tidak bisa diperiksa.
+[BLOCKED] File 'kode1.js' is OUT OF SCOPE for the current task.
+Task: probe gerbang
+Allowed files: ['kode0.js']
+Allowed patterns: []
+To proceed, you MUST ask the user to explicitly approve expanding the scope.
+
+$ python .agents/skills/scope_guardian/scripts/scope_check.py kode0.js
+$ exit code: 0
+[WARN] scope_lock.json tidak punya 'created_at' — umurnya tidak bisa diperiksa.
+[ALLOWED] File 'kode0.js' is in allowed_files.
+[RISK] Medium — single file, functional/logic scope
+
+$ (scope_lock.json dihapus, lalu) python ... scope_check.py kode0.js
+$ exit code: 1
+[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.
+Skema dan contohnya: .agents/skills/rules/scope_guardian.md
+```
+
+Menolak, menerima, dan gagal-tertutup saat locknya hilang. Letaknya:
+
+```
+$ grep -n "OUT OF SCOPE\|scope_lock.json not found" .agents/skills/scope_guardian/scripts/scope_check.py
+72:        print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
+143:    print(f"[BLOCKED] File '{target_file}' is OUT OF SCOPE for the current task.")
+```
+
+Ujinya ada:
+
+```
+$ grep -n "def test" tests/test_scope_guardian.py
+17:    def test_allowed_exact_match(self):
+56:    def test_blocked_out_of_scope(self):
+95:    def test_missing_scope_lock(self):
+114:    def test_pattern_matching(self):
+```
+
+**Tetapi kolom "di mana" kurang satu titik.** `scope_check.py` adalah CLI yang
+dipanggil manual. Yang benar-benar menahan tulisan `smart_replace` adalah
+salinan kedua di dalam `replace_text.py`:
+
+```
+$ grep -n "check_scope(pending_writes)\|^def check_scope\|mirrors scope_check" .agents/skills/smart_replace/replace_text.py
+68:def check_scope(pending_writes):
+561:    # Fail-closed scope enforcement (security gate, mirrors scope_check.py behavior)
+562:    check_scope(pending_writes)
+```
+
+Komentarnya sendiri menyebut ini "mirrors scope_check.py behavior". Dua salinan
+logika, dan tidak ada uji yang menjaga keduanya tetap sepakat. Kalau salah satu
+diperbaiki dan yang lain tidak, tidak ada yang memberi tahu.
+
+Baris 1 **benar**, tetapi menunjuk satu dari dua tempat. `STATE.md` sudah
+dikoreksi menjadi `scope_check.py:143` (CLI) dan `replace_text.py:68,562`.
+
+---
+
+## Baris 2 — arity check -> `quality_gate.py` — **ADA, ujinya satu arah**
+
+```
+$ echo '{"toolName":"run_command","toolCall":{"CommandLine":"python .agents/skills/import_fixer/fixer.py dummy_file"},"workspacePaths":["D:/AAAAAAAAA/open_source_agents"]}' | python .agents/hooks/quality_gate.py
+$ exit code: 0
+{"decision": "deny", "reason": "[Companion Gate] Parameter kritis tidak lengkap untuk 'import_fixer'. Diperlukan minimal 2 argumen posisi, tetapi menerima 1.\nFormat yang benar: python .agents/skills/import_fixer/fixer.py <source_file> <broken_import_string> [--apply]"}
+
+$ (sama, tetapi argumennya 2: "dummy_file ganti")
+$ exit code: 0
+{"decision": "allow"}
+
+$ (perintah netral: "python -c pass")
+$ exit code: 0
+{"decision": "allow"}
+```
+
+Gerbangnya menolak saat kurang, menerima saat cukup. Letaknya:
+
+```
+$ grep -n "min_args" .agents/hooks/quality_gate.py
+27:        "min_args": 3,  # <target_dir> <search_string> <replace_string>
+32:        "min_args": 2,  # <react|api> <ComponentName>
+37:        "min_args": 2,  # <source_file> <broken_import>
+42:        "min_args": 0,
+74:    if len(positional_args) < config["min_args"]:
+77:            f"Diperlukan minimal {config['min_args']} argumen posisi, tetapi menerima {len(positional_args)}.\n"
+```
+
+**Kolom "uji: ada" perlu syarat.** Ujinya ada, tetapi hanya menegaskan satu sisi:
+
+```
+$ sed -n '28,34p' tests/test_rejections.py
+def test_quality_gate_rejection():
+    # Arity check should fail without required args
+    script = HOOKS / "quality_gate.py"
+    input_data = '{"toolName": "run_command", "toolCall": {"CommandLine": "python .agents/skills/import_fixer/fixer.py dummy_file"}, "workspacePaths": ["/tmp"]}'
+    result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data)
+    assert '"decision": "deny"' in result.stdout, "Quality gate did not reject"
+    assert "Parameter kritis tidak lengkap" in result.stdout, "Quality gate rejected for the wrong reason (not arity check)"
+```
+
+Dua asersi, dua-duanya tentang penolakan. Tidak ada asersi bahwa argumen yang
+cukup menghasilkan `allow`. Itu persis bentuk yang butir 9 sebut tidak memadai.
+Yang membuktikan sisi terimanya hari ini adalah probe di atas, bukan suite.
+
+Catatan kedua: uji itu menjalankan **salinan templat**, bukan berkas yang
+ditunjuk baris ini.
+
+```
+$ sed -n '10,11p' tests/test_rejections.py
+HOOKS = AKAR / "src" / "snowline" / "templates" / "hooks"
+```
+
+Hari ini keduanya identik, jadi tidak ada beda perilaku:
+
+```
+$ md5sum .agents/hooks/quality_gate.py src/snowline/templates/hooks/quality_gate.py
+8bf21c51a32043ea929edf27c1048f92 *.agents/hooks/quality_gate.py
+8bf21c51a32043ea929edf27c1048f92 *src/snowline/templates/hooks/quality_gate.py
+```
+
+Tetapi identik hari ini bukan dijaga — itu Rule 12, dan ini contoh di mana ia
+menanggung beban.
+
+---
+
+## Baris 3 — `--apply` -> "tiap alat tulis" — **SALAH, sudah dikoreksi**
+
+Kata "tiap" adalah kata cakupan, jadi diperiksa sebagai cakupan.
+
+Gerbangnya sendiri nyata, dibuktikan pada dua alat berbeda.
+
+`smart_replace`:
+
+```
+$ python .agents/skills/smart_replace/replace_text.py . namaLama namaBaru
+$ exit code: 0
+[OK] Scan selesai (1 file dipindai). Menemukan 1 kecocokan di 1 file.
+[RISK] Low (Widespread: False, Logic: False)
+
+[DRY RUN] Ini hanya simulasi. Gunakan --apply untuk mengeksekusi.
+isi berkas sesudah dry-run: 'const namaLama = 1;\n'   (asli: 'const namaLama = 1;\n')
+
+$ python .agents/skills/smart_replace/replace_text.py . namaLama namaBaru --apply
+$ exit code: 0
+[SUCCESS] Berhasil memodifikasi 1 file.
+isi berkas sesudah --apply: 'const namaBaru = 1;\n'
+```
+
+`auto_scaffolder`:
+
+```
+$ python .agents/skills/auto_scaffolder/scaffolder.py react KartuUji .
+$ exit code: 0
+[DRY-RUN MODE] Auto-Scaffolder Preview
+Target File: .\KartuUji.jsx
+isi sesudah tanpa --apply: []
+
+$ python .agents/skills/auto_scaffolder/scaffolder.py react KartuUji . --apply
+$ exit code: 0
+[OK] Successfully generated KartuUji.jsx at .
+isi sesudah --apply: ['KartuUji.jsx']
+```
+
+**Tetapi "tiap" tidak berlaku.** Yang punya gerbang `--apply` ada empat:
+
+```
+$ for f in $(find .agents/skills -name "*.py" -not -path "*/__pycache__/*"); do if grep -q '"--apply"' "$f"; then echo "PUNYA --apply : $f"; fi; done
+PUNYA --apply : .agents/skills/auto_scaffolder/scaffolder.py
+PUNYA --apply : .agents/skills/context_mapper/context_mapper.py
+PUNYA --apply : .agents/skills/import_fixer/fixer.py
+PUNYA --apply : .agents/skills/smart_replace/replace_text.py
+```
+
+`native_checker_gen/generator.py` menulis ke disk dan tidak termasuk:
+
+```
+$ grep -c apply .agents/skills/native_checker_gen/generator.py
+0
+
+$ grep -n "add_argument" .agents/skills/native_checker_gen/generator.py
+8:    parser.add_argument("--mode", choices=["unit", "validator"], required=True, help="Mode of generation")
+9:    parser.add_argument("--target", help="Target file to test (required for mode unit)")
+10:    parser.add_argument("--name", required=True, help="Name of the test or validator")
+```
+
+Nol kemunculan kata "apply". Tidak ada flag yang bisa ditahan, karena tidak ada
+flagnya. Dijalankan di direktori kosong:
+
+```
+$ python .agents/skills/native_checker_gen/generator.py --mode validator --name ProbeValidator
+isi direktori sebelum: []
+$ exit code: 0
+[SUCCESS] Standalone validator scaffolded at: C:\Users\LENOVO\AppData\Local\Temp\probe_b3_xay8a58q\scripts\validators\ProbeValidator.js
+Run it with: node C:\Users\LENOVO\AppData\Local\Temp\probe_b3_xay8a58q\scripts\validators\ProbeValidator.js
+isi direktori sesudah: ['scripts', 'scripts\\validators', 'scripts\\validators\\ProbeValidator.js']
+```
+
+Menulis dua direktori dan satu berkas, tanpa flag apa pun. Baris "tiap alat
+tulis" tidak menahan ini, dan tidak pernah bisa.
+
+`STATE.md` dikoreksi: **"4 alat tulis, bukan semua"**, dengan pengecualiannya
+disebut namanya.
+
+Dua yang saya periksa dan **bukan** alat tulis, supaya daftarnya tidak dibaca
+lebih pendek dari seharusnya: `surgical_splicer/splicer.py` hanya membaca dan
+mencetak, `clean_sweeper/sweeper.py` hanya melaporkan dan tidak menghapus.
+
+---
+
+## Baris 4 — risiko Medium/High -> `replace_text.py:570` — **ADA, uji memang tidak ada**
+
+Nomor barisnya tepat, di kedua salinan:
+
+```
+$ grep -n 'risk_level in \["Medium", "High"\] and not args.apply_validated' src/snowline/templates/skills/smart_replace/replace_text.py .agents/skills/smart_replace/replace_text.py
+src/snowline/templates/skills/smart_replace/replace_text.py:570:    if risk_level in ["Medium", "High"] and not args.apply_validated:
+.agents/skills/smart_replace/replace_text.py:570:    if risk_level in ["Medium", "High"] and not args.apply_validated:
+```
+
+Gerbangnya bekerja. `is_widespread = file_count > 3`, jadi 5 berkas memicu Medium:
+
+```
+$ python .agents/skills/smart_replace/replace_text.py . namaLama namaBaru --apply
+$ exit code: 1
+[OK] Scan selesai (5 file dipindai). Menemukan 5 kecocokan di 5 file.
+[RISK] Medium (Widespread: True, Logic: False)
+
+[BLOCKED] Risiko terdeteksi sebagai Medium.
+Eksekusi dengan --apply DITOLAK secara sistem untuk mencegah kerusakan.
+Anda WAJIB menjalankan linter/syntax check secara lokal terlebih dahulu.
+Jika sudah aman, jalankan ulang menggunakan flag --apply-validated
+isi kode0.js sesudah --apply ditolak: 'const namaLama = 1;\n'   (asli: 'const namaLama = 1;\n')
+
+$ python .agents/skills/smart_replace/replace_text.py . namaLama namaBaru --apply-validated
+$ exit code: 0
+[OK] Scan selesai (5 file dipindai). Menemukan 5 kecocokan di 5 file.
+[RISK] Medium (Widespread: True, Logic: False)
+[OK] Validasi syntax lolos.
+[SUCCESS] Berhasil memodifikasi 5 file.
+isi kode0.js sesudah --apply-validated: 'const namaBaru = 1;\n'
+```
+
+Menolak dengan exit 1 dan berkasnya utuh; menerima dengan `--apply-validated`.
+Dua arah.
+
+**Ketiadaan ujinya dibuktikan, bukan diasumsikan:**
+
+```
+$ grep -rn "Risiko terdeteksi\|risk_level\|Medium\|High" tests/*.py
+(exit: 1 — tidak ada kecocokan)
+
+$ grep -rn -- "--apply-validated" tests/*.py
+tests/test_smart_replace_apply.py:236:        h = p.jalankan(".", "namaLama", "namaBaru", "--apply-validated")
+```
+
+Satu-satunya pemakaian `--apply-validated` di seluruh suite ada di
+`test_probe_linter_dipanggil_sekali`, dan flag itu dipakai di sana **untuk
+melewati gerbang ini**, bukan untuk mengujinya:
+
+```
+$ sed -n '231,243p' tests/test_smart_replace_apply.py
+def test_probe_linter_dipanggil_sekali():
+    """Probe (npx eslint -v) memakan waktu lama, harus dipanggil sekali saja walau mengubah banyak berkas."""
+    # Kita buat 5 berkas, dan semuanya diedit
+    berkas = {f"kode{i}.js": JS_SATU_BARIS for i in range(5)}
+    with ProyekUji(berkas) as p:
+        h = p.jalankan(".", "namaLama", "namaBaru", "--apply-validated")
+        assert "[SUCCESS]" in h.stdout, f"Gagal mengubah:\n{h.stdout}"
+```
+
+Asersinya `[SUCCESS]`, tidak pernah `[BLOCKED]`. Kalau baris 570 dihapus besok,
+uji itu tetap hijau. Kolom **"tidak ada"** benar.
+
+---
+
+## Rule 12 — ketiga berkas gerbang sinkron hari ini
+
+```
+$ md5sum .agents/skills/smart_replace/replace_text.py src/snowline/templates/skills/smart_replace/replace_text.py .agents/hooks/quality_gate.py src/snowline/templates/hooks/quality_gate.py .agents/skills/scope_guardian/scripts/scope_check.py src/snowline/templates/skills/scope_guardian/scripts/scope_check.py
+466ec32d1e6b437150f00b89383d7f73 *.agents/skills/smart_replace/replace_text.py
+466ec32d1e6b437150f00b89383d7f73 *src/snowline/templates/skills/smart_replace/replace_text.py
+8bf21c51a32043ea929edf27c1048f92 *.agents/hooks/quality_gate.py
+8bf21c51a32043ea929edf27c1048f92 *src/snowline/templates/hooks/quality_gate.py
+94e6f1a9d5f3f1c248915f752b45881b *.agents/skills/scope_guardian/scripts/scope_check.py
+94e6f1a9d5f3f1c248915f752b45881b *src/snowline/templates/skills/scope_guardian/scripts/scope_check.py
+```
+
+## Suite dan keadaan repo
+
+```
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 50/50 passed, 0 failed
+All tests passed!
+
+$ git log --oneline -1
+c08767f docs(connector): Uji B dipasang ulang di ekor, batasan di dalam entri
+```
+
+## Ringkasan empat baris
+
+| baris | gerbangnya | ujinya | tindakan |
+|---|---|---|---|
+| 1 `scope_lock.json` | ada, dua arah terbukti | ada, 4 uji | lokasi dilengkapi — ada 2 titik penegakan |
+| 2 arity check | ada, dua arah terbukti | ada tapi **satu arah** | kolom uji diberi syarat |
+| 3 `--apply` | ada pada 4 alat | ada | **"tiap" dikoreksi jadi "4, bukan semua"** |
+| 4 risiko Medium/High | ada, dua arah terbukti | **tidak ada**, dibuktikan | baris sudah benar, dibiarkan |
+
+## Yang saya ubah
+
+Hanya `.here_we_are/STATE.md` dan berkas ini, sesuai batas entri.
+
+```
+$ git status --short
+ M .here_we_are/STATE.md
+ M .here_we_are/connector.md
+```
+
+Di `STATE.md`: tabel "Empat yang mengikat" dikoreksi, tiga catatan ditambahkan
+di bawahnya, header `3196c25` -> `c08767f`, `head_sha 68ef93a` -> `c0158ca`.
+
+## Yang TIDAK saya periksa atau jamin
+
+```
+1  Gerbang di luar keempat baris ini. RULE 0 AGENTS.md menyebut gerbang lain;
+   tidak diperiksa.
+2  Apakah `.agents/hooks/quality_gate.py` benar-benar dipanggil harness saat
+   agen bekerja. Saya memberinya JSON lewat stdin secara manual. Bahwa hook
+   ini terpasang dan dijalankan otomatis — tidak diuji.
+3  Sisi terima arity check hanya saya buktikan lewat probe, bukan lewat uji
+   yang tersimpan. Besok tidak ada yang menjaganya.
+4  Salinan `check_scope` di replace_text.py tidak saya bandingkan baris per
+   baris dengan scope_check.py. Saya hanya menunjukkan ada dua.
+5  Batas gerbang risiko: hanya jalur `Widespread` (>3 berkas) yang saya picu.
+   Jalur `is_logic` dan `High` tidak diuji.
+6  Tidak ada gerbang yang saya perbaiki — butir 3 batasan PM.
+7  Tidak ada commit dan tidak ada push — butir 1 batasan PM. Karena itu butir
+   10 `CHAMBER_RULES.md` (selesai = ada di git dan hijau di CI) **tidak
+   terpenuhi** untuk giliran ini. Perubahan ada di disk saja.
+8  CI hijau yang saya tempel adalah tentang `c0158ca` (origin/main). Dua commit
+   lokal terakhir belum pernah dilihat CI, dan perubahan hari ini juga tidak.
+9  `STATE.md` bagian "Terbuka" punya dua butir bernomor 6 (rotasi otomatis dan
+   snowline di PATH). Saya lihat, tidak saya perbaiki — di luar tabel yang
+   ditugaskan.
+```
+
+```
+$ git status --short
+ M .here_we_are/STATE.md
+ M .here_we_are/connector.md
+```
+
+---
+
+# PM/QA -> arsip: Uji B dijalankan utuh. Alurnya jalan pada tugas yang berat, dan chamber menangkap PM untuk ketiga kalinya.
+
+Dua sesi dingin berturut-turut di Claude Code. Prompt masing-masing **tiga
+baris**, tanpa satu pun batasan:
+
+```
+Peran kamu TL.                          Peran kamu QA.
+Repo: D:\AAAAAAAAA\open_source_agents   Repo: D:\AAAAAAAAA\open_source_agents
+Mulai sesuai ONBOARDING_TL.md.          Mulai sesuai ONBOARDING_QA.md.
+```
+
+Seluruh batasan ada di dalam entri connector — jangan commit, hanya tiga berkas
+yang boleh diubah, jangan memperbaiki gerbang yang rusak. Itu butir 4
+`CHAMBER_RULES.md` yang baru, dipakai pertama kali.
+
+## Hasil: keempat baris "Empat yang mengikat" diperiksa, dua salah
+
+Sesi TL memeriksa dengan menjalankan. Sesi QA mereproduksi keempatnya sendiri,
+bukan membaca laporan. QA berkata "semua klaim TL reproduksi".
+
+Verifikasi ketiga oleh QA berkonteks penuh:
+
+**Baris 3 — `--apply` "tiap alat tulis" salah, dan bentuk tepatnya lebih
+sempit dari yang TL tulis.**
+
+```
+sembilan alat menulis ke disk
+  punya --apply    auto_scaffolder, context_mapper, import_fixer, smart_replace
+  cache saja       clean_sweeper, guardian, selective_reader, code_finder
+  SUMBER, tanpa gerbang    native_checker_gen/generator.py
+```
+
+```
+$ grep -c "apply" .../native_checker_gen/generator.py
+0
+$ grep -n "open(.*w" .../native_checker_gen/generator.py
+69:    with open(test_file_path, "w", ...)
+115:    with open(validator_path, "w", ...)
+```
+
+TL menulis "hanya 4 alat membawa gerbang". Benar tetapi menakutkan berlebihan —
+empat dari lima sisanya cuma menulis cache. Yang sungguhan cacat **satu**:
+`native_checker_gen` menulis berkas sumber ke proyek tanpa gerbang apa pun.
+Lebih sempit, dan tetap cacat.
+
+**Baris 4 — "uji: tidak ada" benar, dibuktikan mutasi bukan pembacaan.**
+
+```
+mutasi: if risk_level in ["Medium","High"] and not args.apply_validated:
+        ->  if False:
+
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 50/50 passed, 0 failed
+```
+
+Gerbangnya dimatikan sepenuhnya dan tidak ada satu pun uji berubah warna. Dua
+`[BLOCKED]` di suite menguji gerbang **scope**, dan satu-satunya pemakaian
+`--apply-validated` justru untuk **melewati** gerbang risiko supaya uji lain
+bisa jalan.
+
+## Yang ditemukan sesi QA, dan QA berkonteks penuh membenarkan
+
+**`STATE.md` butir Terbuka 3 basi:**
+
+```
+tertulis    connector.md 133 KB, ambang ~100 KB
+$ wc -c < .here_we_are/connector.md
+41472        = 40,5 KB
+```
+
+Utang itu sudah lunas dan catatannya masih menyuruh mengerjakannya.
+
+**Butir Terbuka bernomor 6 dua kali**, dan yang pertama muncul sebelum butir 1:
+
+```
+6  rotasi otomatis      <- di atas, di luar urutan
+1  uji
+2  npm_audit
+3  rotasi connector
+4  gerbang risiko
+5  daftar RULE 0
+6  snowline di PATH     <- 6 kedua
+7  header STATE.md
+```
+
+**Tempelan TL dirapikan, bukan mentah.** Baris `$ exit code: 1` dan
+`isi berkas sesudah...` bukan keluaran program. Keluaran `--apply-validated`
+yang asli memuat blok `[INFO]`/`[DEBUG]` dan `[DIFF]` lima berkas yang tidak
+ikut ditempel. Butir 3 menyebut ini syarat tolak; QA menilainya catatan karena
+substansinya terbukti benar sendiri. Penilaian itu tepat.
+
+**Setup probe baris 4 hilang dari entri.** Tanpa `scope_lock.json`, `--apply`
+berhenti di gerbang scope, bukan gerbang risiko. TL pasti punya lock saat
+memprobe tetapi tidak menempelkannya — jadi entrinya tidak cukup untuk
+direproduksi apa adanya. QA menemukan itu dengan tersandung sendiri.
+
+## Yang paling penting: chamber menangkap PM lagi
+
+Sesi QA berhenti sebelum menulis vonisnya, dan alasannya:
+
+> Entri terakhir connector adalah laporan TL yang belum divonis. **Tidak ada
+> entri PM -> QA yang menugaskan saya** — penugasan datang lisan, di luar
+> chamber. Butir 4 menyebut batasan di luar entri tidak berlaku; saya sebutkan
+> supaya tercatat.
+
+Ia benar, dan ini menyingkap lubang rancangan yang belum pernah terlihat:
+
+```
+PM -> TL    ada bentuknya, entri connector
+PM -> QA    tidak ada bentuknya sama sekali
+```
+
+Di alur dua sesi, PM menugaskan QA lisan lewat chat dan itu cukup. Di alur
+berurutan, penugasan lisan tidak ada — sesi QA bangun, melihat laporan yang
+belum divonis, dan tidak punya dasar tertulis untuk memvonisnya.
+
+Ini ketiga kalinya butir 4 menangkap PM, dan yang paling berguna dari ketiganya.
+
+**Yang harus ditambahkan:** bentuk entri `PM -> QA`, atau aturan bahwa laporan
+TL yang belum divonis **adalah** penugasan untuk QA. Yang kedua lebih ringan
+dan tidak menambah pekerjaan PM — tapi harus tertulis, bukan disimpulkan.
+
+## Vonis atas ujinya
+
+| hal | vonis |
+|-----|-------|
+| TL menemukan tugas dari chamber, prompt tiga baris | PASS |
+| batasan di entri, bukan di prompt, dan dipatuhi | PASS |
+| TL memeriksa keempat baris dengan menjalankan | PASS |
+| peralihan peran sebagai tindakan terakhir | PASS |
+| QA bangun, mereproduksi keempatnya sendiri | PASS |
+| QA menolak menulis tanpa dasar tertulis | PASS, dan itu temuan |
+| bentuk penugasan PM -> QA | **tidak ada** |
+
+**Alur berurutan lulus pada tugas yang berat.** Uji sebelumnya cuma
+memperbarui satu berkas; yang ini menuntut pembacaan kode di lima berkas dan
+pembuktian dua arah untuk empat gerbang.
+
+## Daftar kerja yang bertambah
+
+```
+native_checker_gen menulis sumber tanpa gerbang --apply
+gerbang risiko replace_text.py:570 tanpa uji — mutasi dibuktikan hijau
+STATE.md butir Terbuka 3 basi (133 KB -> 40,5 KB)
+STATE.md butir Terbuka bernomor 6 dua kali, satu di luar urutan
+scope_lock punya dua penegak yang tidak dijaga agar sama
+        scope_check.py:143 dan replace_text.py:68,562
+uji arity hanya menegaskan sisi tolak — butir 9 menuntut dua arah
+bentuk entri PM -> QA belum ada
+```
+
+Tujuh, dari satu tugas memeriksa empat baris tabel.

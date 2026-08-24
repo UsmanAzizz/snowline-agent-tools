@@ -3,7 +3,12 @@
 **Berkas ini ditimpa, tidak ditambah.** Riwayat ada di `connector.md`.
 Siapa pun yang mengubah sesuatu, memperbarui berkas ini di giliran yang sama.
 
-Diperbarui: 24 Agustus 2026 · commit `3196c25` · 0 belum commit, 2 belum push
+Diperbarui: 24 Agustus 2026 · commit `c08767f` · 2 belum commit, 2 belum push
+
+> Dua yang belum commit adalah `STATE.md` dan `connector.md` sendiri. Entri PM
+> yang sedang dikerjakan melarang `git commit`/`git push`, jadi giliran ini
+> berhenti di disk. Butir 10 `CHAMBER_RULES.md` belum terpenuhi untuk giliran
+> ini, dan itu disengaja PM, bukan terlewat.
 
 ---
 
@@ -23,10 +28,28 @@ undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
 
 | | menolak apa | di mana | uji |
 |---|---|---|---|
-| `scope_lock.json` | tulis di luar daftar berkas | `scope_guardian/scripts/scope_check.py` | ada |
-| arity check | perintah yang argumennya kurang | `.agents/hooks/quality_gate.py` | ada |
-| `--apply` | tulis apa pun tanpa flag | tiap alat tulis | ada |
+| `scope_lock.json` | tulis di luar daftar berkas | `scope_check.py:143` (CLI) **dan** salinannya `replace_text.py:68,562` | ada |
+| arity check | perintah yang argumennya kurang | `.agents/hooks/quality_gate.py:74` | ada, **satu arah** |
+| `--apply` | tulis apa pun tanpa flag | 4 alat tulis, **bukan semua** | ada |
 | risiko Medium/High | apply tanpa `--apply-validated` | `replace_text.py:570` | **tidak ada** |
+
+Diperiksa 24-08 dengan menjalankan, bukan membaca — keluarannya di connector.
+Tiga catatan yang tidak muat di tabel:
+
+```
+baris 1  ada dua titik penegakan, bukan satu. scope_check.py dipanggil manual;
+         yang menahan tulisan smart_replace adalah salinannya di replace_text.py
+         (komentar :561 menyebutnya "mirrors scope_check.py behavior"). Tidak
+         ada yang menjaga kedua salinan itu tetap sama.
+baris 2  gerbangnya menolak DAN menerima (dibuktikan). Ujinya tidak:
+         test_rejections.py:28 hanya menegaskan sisi "deny". Butir 9 menuntut
+         dua arah. Ujinya juga menjalankan salinan templat, bukan
+         .agents/hooks/ yang ditunjuk baris ini.
+baris 3  "tiap alat tulis" salah dan sudah dikoreksi. Yang bergerbang --apply
+         ada 4: smart_replace, auto_scaffolder, context_mapper, import_fixer.
+         native_checker_gen/generator.py menulis ke disk dan kata "apply"
+         muncul 0 kali di dalamnya — tidak ada flag yang bisa menahannya.
+```
 
 
 ## Terbukti dengan perintah, bukan pembacaan
@@ -34,7 +57,9 @@ undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
 ```
 uji         50/50 lulus, 22,8 detik, diuji dengan mutasi — kode dirusak,
             ujinya gagal, kode dikembalikan, ujinya hijau
-CI          head_sha 68ef93a, conclusion success
+CI          head_sha c0158ca, conclusion success (24-08). Itu origin/main,
+            tertinggal 2 commit dari HEAD lokal c08767f — keduanya milik
+            sendiri dan belum dipush, jadi CI belum melihatnya.
 guardian    repo ini CRITICAL=0 HIGH=0 MEDIUM=0 LOW=0
 ```
 
@@ -157,8 +182,8 @@ Jangan percaya angka di atas. Jalankan:
 ```bash
 python tests/run_tests.py                                   # 50/50, ~23 detik
 python .agents/skills/project_guardian/guardian.py --summary # CRITICAL=0
-git status --short                                          # kosong
-git log --oneline -1                                        # 3196c25
+git status --short                                          # 2 (STATE.md, connector.md)
+git log --oneline -1                                        # c08767f
 git log origin/main..main --oneline | wc -l                 # 2
 ```
 
