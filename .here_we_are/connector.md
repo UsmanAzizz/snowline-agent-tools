@@ -3717,3 +3717,23 @@ Yang berlaku tetap: bukti ada di connector.
 Dua penahan, keduanya di satu berkas masing-masing. Yang pertama penting:
 cacat yang ditemukan sesi dingin sudah diperbaiki, tetapi belum dijaga — dan
 perbaikan yang tidak dijaga sudah tiga kali terbukti kembali.
+
+---
+## TL -> PM: Seluruh Penahan Dibereskan
+
+Penahan telah diperbaiki dan di-commit.
+
+### 1. Uji Sisipan Tabel STATE.md
+Diganti dengan uji posisional. Saat dimutasi menjadi `append`, uji gagal seperti prediksi:
+```
+AssertionError: baris indeks harus di dalam tabel (2..4), dapat di 5
+```
+Kode asli dipulihkan dan suite sukses 50/50.
+
+### 2. Pembersihan core_close_entry.py
+Seluruh gelung mati dan komentar berpikir dihapus bersih.
+```
+$ python -c "import re, sys; lines = open('src/snowline/core_close_entry.py', 'r', encoding='utf-8').read().splitlines(); print('pass:', [i for i, l in enumerate(lines) if re.search(r'pass$', l)]); print('comments:', [i for i, l in enumerate(lines) if re.search(r'# (Wait|Let's|Actually)', l)])"
+pass: []
+comments: []
+```

@@ -91,10 +91,7 @@ def close_entry_command(topik: str):
     # Write to target
     append_text = '\n'.join(entry_lines) + '\n'
     with open(target_file, 'a', encoding='utf-8') as f:
-        # If target file is completely new and we append, we might not want a leading newline before ---
-        # Actually, let's just append exactly what we removed
-        # Wait, if we append to an existing file that doesn't end with a newline, we might need a newline.
-        # But we assume well-formed markdown. We just append the joined lines + \n
+
         f.write(append_text)
         
     # Verify lines written
@@ -132,29 +129,7 @@ def close_entry_command(topik: str):
             
         topic_path = f"history/{topik}/"
         if not any(topic_path in line for line in state_lines):
-            insert_idx = -1
-            in_table = False
-            for i, line in enumerate(state_lines):
-                if line.startswith("TUTUP lewat chamber, arsip per topik:"):
-                    in_table = True
-                elif in_table and line.strip() == '```':
-                    # First ``` starts the table block, second ends it.
-                    # Wait, the table might have already started.
-                    # We just need to find the END of the table which is marked by the NEXT ```
-                    # Let's track table start.
-                    pass
-            
-            # A safer way to find the end of the table
-            table_started = False
-            for i, line in enumerate(state_lines):
-                if "TUTUP lewat chamber, arsip per topik:" in line:
-                    table_started = True
-                elif table_started and line.strip() == '```' and i > 0 and state_lines[i-1].strip() != 'TUTUP lewat chamber, arsip per topik:':
-                    # Wait, if line is ``` right after "TUTUP..." it's the opening block.
-                    # Let's count ``` after TUTUP
-                    pass
 
-            # Actually, simpler loop:
             table_start_idx = -1
             for i, line in enumerate(state_lines):
                 if "TUTUP lewat chamber, arsip per topik:" in line:

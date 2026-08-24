@@ -50,7 +50,14 @@ def test_close_entry_success():
             assert hist_content[1] == "## Entri 1 - Test Topic 1"
             
             state_content = state_file.read_text(encoding='utf-8')
-            assert "history/test_topic/" in state_content
+            lines = state_content.splitlines()
+            i_tabel = lines.index("TUTUP lewat chamber, arsip per topik:")
+            i_tutup = lines.index("```", i_tabel + 2)
+            i_baris = [n for n, l in enumerate(lines) if "history/test_topic/" in l]
+            assert len(i_baris) == 1, f"harap satu baris indeks, dapat {len(i_baris)}"
+            assert i_tabel < i_baris[0] < i_tutup, \
+                f"baris indeks harus di dalam tabel ({i_tabel}..{i_tutup}), dapat di {i_baris[0]}"
+            assert lines[-1].strip() != "", "baris terakhir berkas tidak boleh berubah"
             
         finally:
             os.chdir(old_cwd) # Go back
