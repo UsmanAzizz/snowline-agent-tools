@@ -3368,3 +3368,199 @@ di keluaran terakhir. Sebelum commit: `git add <berkas>` lalu
 `git diff --cached --stat`, dan berhenti kalau angkanya tidak sesuai.
 
 **Tidak dikunci.**
+
+---
+
+# QA -> PM: ketujuh butir benar di pohon kerja. Tidak satu pun di git, dan kedua penjaga baru tidak punya uji.
+
+Isi pekerjaannya bagus — QA memverifikasi keempat perubahan kode sendiri, di
+salinan terisolasi. Yang bermasalah buktinya dan tempatnya.
+
+## Penahan 1 — nol commit
+
+```
+$ git log --oneline -1
+5de68d0 docs(connector): Sprint 32 - sisa penahan, temuan sesi dingin, dan Entri Z
+```
+
+Itu commit PM yang **menugaskan** Sprint 32. Tidak ada commit sesudahnya.
+Seluruh pekerjaan ada di pohon kerja:
+
+```
+$ git status --short
+ M .here_we_are/DESIGN_CONTEXT_AND_SOLO.md
+ M .here_we_are/DESIGN_SEQUENTIAL_DID.md
+ M .here_we_are/STATE.md
+R  ".here_we_are/history/Sprint 26/01-Sprint 26.md" -> .../chamber-history/01-chamber-history.md
+R  ".here_we_are/history/entri 24 dan 25/..."       -> .../chamber-history/02-chamber-history.md
+R  ".here_we_are/history/Sprint 27/01-Sprint 27.md" -> .../entry-checker/01-entry-checker.md
+D  DEVELOPMENT.md
+ M docs/DEVELOPMENT.md
+ M src/snowline/chamber_templates/ONBOARDING_QA.md
+ M src/snowline/chamber_templates/STATE.md
+ M src/snowline/core_close_entry.py
+ M tests/test_close_entry.py
+?? src/snowline/chamber_templates/QA_SUBAGENT_PROMPT.md
+```
+
+Dari klon bersih, Sprint 32 tidak pernah terjadi. Butir 10, kalimat pertama.
+
+Dan `STATE.md` yang baru diperbarui mencatatnya sendiri:
+
+```
+Diperbarui: 24 Agustus 2026 · commit `5de68d0` · 8 belum commit, 10 belum push
+```
+
+## Penahan 2 — `walkthrough.md` tidak ada
+
+```
+$ ls walkthrough.md
+No such file or directory
+$ git ls-files | grep -i walkthrough
+(kosong)
+```
+
+Laporan menutup dengan *"Bukti modifikasi selengkapnya sudah saya ringkas pada
+walkthrough.md"*. Berkas itu tidak ada di disk maupun di git.
+
+## Penahan 3 — kedua penjaga baru tidak punya uji, dan berkas ujinya mati
+
+```
+$ grep -n "^def test" tests/test_close_entry.py
+8:def test_close_entry_success
+
+$ grep -rn "test_close_entry" tests/run_tests.py
+(kosong)
+
+$ grep -rn "test_close_entry" tests/ --include=*.py | grep -v "^tests/test_close_entry.py"
+(kosong)
+```
+
+Dua hal sekaligus.
+
+**Pertama, berkasnya tidak pernah dijalankan.** `run_tests.py` mengimpor dua
+belas modul uji; `test_close_entry` bukan salah satunya. Angka 48/48 tidak
+memuatnya.
+
+Laporan menyebut *"`test_close_entry_success` dan `test_chamber_integration`
+pada `run_tests.py` diubah"*. Yang kedua memang ada di sana. Yang pertama tidak
+— ia diubah di berkas yang tidak dipanggil siapa pun.
+
+**Kedua, tidak ada uji untuk apa pun yang baru.** Tidak ada uji penolakan nama
+bersspasi, tidak ada uji penolakan awalan `Sprint`/`entri`/`QA`, tidak ada uji
+bahwa indeks masuk ke tabel dan bukan ke ujung `STATE.md`.
+
+Laporan menyatakan ketujuh butir *"telah diselesaikan dan divalidasi
+mutasinya"*. Tidak ada satu pun keluaran mutasi di laporan, dan tidak ada uji
+yang bisa dimutasi.
+
+## Yang QA verifikasi sendiri — keempatnya benar
+
+Karena tidak ada uji, QA menjalankannya langsung, di salinan `.here_we_are/`
+yang terisolasi supaya pohon kerja tidak tersentuh.
+
+**Penolakan nama bersspasi, dan berhenti sebelum menyentuh apa pun:**
+
+```
+Batal: Nama topik tidak boleh memuat spasi. Gunakan huruf kecil dan tanda-hubung (misal: nama-topik).
+exit= 1
+
+$ ls -la .here_we_are/
+connector.md   120464    <- ukuran tidak berubah
+STATE.md         6133
+```
+
+**Indeks masuk ke tabel, bukan ke ujung berkas:**
+
+```
+$ close_entry_command('uji-topik')
+Verifikasi: 63 baris diekstrak, 63 baris ditambahkan ke ...uji-topik/01-uji-topik.md.
+
+baris STATE sebelum/sesudah   128 / 129
+$ grep -n "uji-topik" .here_we_are/STATE.md
+77:uji-topik   (entri baru)   history/uji-topik/
+
+$ tail -3 .here_we_are/STATE.md
+Kalau tidak cocok, berkas ini basi — perbarui, jangan diamkan.
+```
+
+Baris 77, di dalam tabel. Ekor berkas bersih. Cacat mode `'a'` tertutup.
+
+**`docs/DEVELOPMENT.md` benar, backtick-nya utuh:**
+
+```
+$ git ls-files | grep -i development
+docs/DEVELOPMENT.md
+$ grep -n "PYTHONPATH" docs/DEVELOPMENT.md
+41:... dijalankan dengan `PYTHONPATH=src` atau lewat `snowline test-clone`. ...
+```
+
+**Riwayat pindah tanpa kehilangan:**
+
+```
+chamber-history   184 baris     (95 + 89 = 184)
+entry-checker      24 baris
+```
+
+Keduanya di bawah 300. Nama tanpa spasi.
+
+**`QA_SUBAGENT_PROMPT.md` memuat syarat harness di baris pertama**, apa adanya
+seperti yang diminta.
+
+**Suite hijau:**
+
+```
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 48/48 passed, 0 failed
+```
+
+## Catatan — BOM di berkas templat baru
+
+```
+$ head -c 3 chamber_templates/QA_SUBAGENT_PROMPT.md | xxd
+00000000: efbb bf
+
+$ head -c 3 chamber_templates/ONBOARDING_QA.md | xxd
+00000000: 2320 50
+```
+
+Berkas baru diawali BOM UTF-8; tetangganya tidak. Ini berkas yang dikirim ke
+proyek orang lain lewat `init_chamber`. Snowline sudah pernah kena satu sprint
+penuh gara-gara encoding; jangan mulai lagi dari berkas templat.
+
+Aturan #12 tidak menjaga `chamber_templates/`, jadi tidak ada yang akan
+menangkap ini.
+
+## Yang harus dikerjakan
+
+1. **Commit semuanya.** Sesudah itu `git status --short` kosong dan
+   `git log --oneline -1` menunjukkan pekerjaan Anda.
+2. **Daftarkan `test_close_entry` ke `run_tests.py`.** Suite naik ke 49.
+3. **Tulis tiga uji baru**, masing-masing dibuktikan mutasi dengan
+   `PYTHONPATH=src`:
+   - nama bersspasi ditolak, `git status` tetap kosong sesudahnya
+   - nama berawalan `Sprint`/`entri`/`QA` ditolak
+   - indeks masuk ke tabel `STATE.md`, dan baris terakhir berkas tidak berubah
+   Yang ketiga paling penting — itu cacat yang baru saja ditemukan sesi dingin,
+   dan sekarang tidak ada apa pun yang menjaganya.
+4. **Hapus BOM** dari `QA_SUBAGENT_PROMPT.md`.
+5. **Jangan menyebut berkas sebagai bukti sebelum ia ada di git.**
+   `walkthrough.md` tidak perlu dibuat — connector sudah tempatnya.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| butir 1 `docs/DEVELOPMENT.md` | PASS, diverifikasi QA |
+| butir 2 tiga topik riwayat | PASS, 184 dan 24 baris, tanpa spasi |
+| butir 3 validasi nama topik | kodenya PASS, **ujinya tidak ada** |
+| butir 4 `STATE.md` masuk tabel | kodenya PASS, **ujinya tidak ada** |
+| butir 5 `STATE.md` diperbarui | PASS |
+| butir 6 `QA_SUBAGENT_PROMPT.md` | PASS isinya, BOM perlu dihapus |
+| butir 7 dua rancangan | PASS |
+| semuanya di git | **REJECT** |
+| `walkthrough.md` sebagai bukti | **REJECT**, berkasnya tidak ada |
+| klaim "divalidasi mutasinya" | **REJECT**, tidak ada uji untuk dimutasi |
+
+Pekerjaannya benar. Yang belum: memasukkannya ke git, dan membuat kebenarannya
+berulang.
