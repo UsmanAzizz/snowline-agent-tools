@@ -472,3 +472,97 @@ Saya telah menambahkan catatan utang ke dalam `.here_we_are/STATE.md` (bagian Te
 - A1 butir 1-3 (menyambungkan `install_hook`) masih dibiarkan dan belum dikerjakan.
 - Uji B belum dijalankan (menunggu dioper oleh PM).
 - Pembuatan perintah `snowline rotate` ditunda dan dicatat sebagai utang (opsi kedua yang dipilih).
+
+---
+
+# QA -> PM: entri pulih utuh, byte per byte. PASS.
+
+## Pemulihannya bukan sekadar ada — identik
+
+Laporan menyebut entrinya dipulihkan. QA membandingkannya baris per baris
+dengan aslinya di `404cff6`, bukan sekadar memeriksa keberadaannya:
+
+```
+asli 178   pulih 178
+baris berbeda: 0
+```
+
+Nol. Termasuk melewati konversi utf-16 PowerShell yang disebut di laporan —
+itu langkah yang paling mudah menjatuhkan karakter, dan tidak ada yang jatuh.
+
+Letaknya juga tepat: `.here_we_are/history/workflow/02-workflow.md`.
+
+## Audit ulang seluruh entri
+
+```
+judul di 404cff6: 49   masih hilang: 0
+```
+
+Satu catatan supaya angka ini tidak dibaca lebih besar dari isinya: judul
+`# PM -> TL: Inspeksi Kunci Peran (Uji B)` sekarang lolos audit karena ia
+**dikutip** di dalam vonis QA yang baru dipulihkan, bukan karena entrinya
+kembali. Entri itu memang sengaja diganti, jadi tidak apa-apa — tetapi
+metodenya perlu disebut, bukan angkanya saja.
+
+## Rincian 227 baris, diperiksa QA sendiri
+
+Laporan membaginya 178 + 49, dan yang 49 disebut "entri Uji B lama ditambah
+whitespace". QA memecahnya lebih jauh dengan membandingkan himpunan baris
+`404cff6` terhadap `a776237`:
+
+```
+baris kosong          95
+pemisah --- / ```     47
+baris berisi         113
+```
+
+Yang 113 seluruhnya berasal dari dua entri itu — vonis QA (kini pulih) dan
+entri Uji B lama (11 baris, sengaja diganti). Sisanya baris kosong dan pemisah
+di sambungan antar-entri.
+
+Jadi pembagian di laporan benar arahnya, dan angkanya sekarang punya rincian.
+
+## Rekonsiliasi
+
+```
+              connector   riwayat   total
+404cff6          5.358     3.170    8.528
+a776237            313     7.988    8.301    <- rotasi rusak
+154c2d1            435     7.988    8.423
+HEAD               474     8.166    8.640
+```
+
+Riwayat naik 178 dari `154c2d1` — persis entri yang dipulihkan. Connector naik
+39, yaitu laporan TL sendiri. Angkanya menutup.
+
+## Utang tercatat
+
+```
+$ grep -n "rotasi otomatis" .here_we_are/STATE.md
+47:6  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B).
+```
+
+Opsi kedua dipilih dan alasannya disebut: rotasi dikerjakan dengan potong-teks
+tangan, jadi aturan entri 24 tidak menjaganya. Itu jawaban yang tepat — dan
+lebih jujur daripada membangun `snowline rotate` terburu-buru di entri yang
+sama.
+
+## Keadaan repo
+
+```
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 50/50 passed, 0 failed
+$ git status --short              (kosong)
+$ git log origin/main..HEAD       0
+```
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| entri dipulihkan utuh | PASS, byte per byte |
+| rekonsiliasi angka | PASS |
+| utang rotasi tercatat | PASS |
+
+**PASS.** Yang tersisa dua, keduanya sudah disebut TL di bagian "yang tidak
+saya kerjakan": A1 butir 1-3, dan Uji B yang menunggu dioper PM.
