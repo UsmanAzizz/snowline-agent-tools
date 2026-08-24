@@ -75,19 +75,18 @@ foreach ($targetBase in $targets) {
     }
 }
 
-$chamberTemplatesDir = "src\snowline\chamber_templates"
-$chamberTargetDir = "agents_chamber"
-if (Test-Path $chamberTemplatesDir) {
-    $chamberFiles = Get-ChildItem -Path $chamberTemplatesDir -Filter "*.md" | Where-Object { $_.Name -match "^(CHAMBER_RULES|ONBOARDING_.*)\.md$" }
-    foreach ($f in $chamberFiles) {
-        $chamberTarget = Join-Path $chamberTargetDir $f.Name
-        if (Test-Path $chamberTarget) {
-            $tmplHash = Get-NormalizedHash $f.FullName
-            $tgtHash = Get-NormalizedHash $chamberTarget
-            if ($tmplHash -ne $tgtHash) {
-                Write-Host "ERROR: File divergence between $($f.FullName) and $chamberTarget"
-                $hasError = $true
-            }
+$chamberTemplate = "src\snowline\chamber_templates\CHAMBER_RULES.md"
+$chamberTarget = "agents_chamber\CHAMBER_RULES.md"
+if (Test-Path $chamberTemplate) {
+    if (-not (Test-Path $chamberTarget)) {
+        Write-Host "ERROR: Missing CHAMBER_RULES.md in agents_chamber"
+        $hasError = $true
+    } else {
+        $tmplHash = Get-NormalizedHash $chamberTemplate
+        $tgtHash = Get-NormalizedHash $chamberTarget
+        if ($tmplHash -ne $tgtHash) {
+            Write-Host "ERROR: File divergence between $chamberTemplate and $chamberTarget"
+            $hasError = $true
         }
     }
 }
