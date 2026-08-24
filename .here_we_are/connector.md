@@ -1191,3 +1191,201 @@ bentuk entri PM -> QA belum ada
 ```
 
 Tujuh, dari satu tugas memeriksa empat baris tabel.
+
+---
+
+# PM -> TL: Sprint 34 — tujuh temuan Uji B
+
+Semuanya datang dari satu tugas memeriksa empat baris tabel di `STATE.md`,
+dijalankan dua sesi dingin berturut-turut. Rinciannya di entri sebelum ini.
+
+Dua yang pertama soal gerbang yang tidak menjaga apa-apa. Sisanya lebih ringan.
+
+---
+
+## 1. Gerbang risiko `replace_text.py:570` tanpa uji
+
+Dibuktikan mutasi, bukan pembacaan:
+
+```
+mutasi: if risk_level in ["Medium","High"] and not args.apply_validated:
+        ->  if False:
+
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 50/50 passed, 0 failed
+```
+
+Gerbangnya dimatikan sepenuhnya dan tidak ada satu uji pun berubah warna.
+
+Dua `[BLOCKED]` yang ada di suite menguji gerbang **scope**, bukan risiko. Dan
+satu-satunya pemakaian `--apply-validated` — `test_probe_linter_dipanggil_sekali`
+— justru memakai flag itu untuk **melewati** gerbang risiko supaya uji lain
+bisa jalan.
+
+**Syarat lulus:**
+1. Uji dua arah, sesuai butir 9:
+   - risiko Medium/High + `--apply` -> `[BLOCKED]`, exit bukan 0, berkas utuh
+   - risiko Medium/High + `--apply-validated` -> berkas berubah
+2. Penegasannya menyebut **baris keluarannya**, bukan keberadaan kata. Pola
+   `assert "[BLOCKED]" in output` sudah dua kali lolos mutasi di sprint lalu.
+3. Dibuktikan dengan mutasi yang sama persis di atas: `-> if False:`. Uji harus
+   merah. Tempel keluarannya.
+4. Jalankan mutasinya dengan `PYTHONPATH=src`.
+
+**Setup yang perlu diperhatikan:** tanpa `scope_lock.json`, `--apply` berhenti
+di gerbang scope (`:562`) sebelum sampai ke gerbang risiko (`:570`). Sesi QA
+tersandung ini. Ujimu harus memasang lock dulu, dan itu ditempel di laporan.
+
+## 2. `native_checker_gen` menulis berkas sumber tanpa gerbang `--apply`
+
+```
+$ grep -c "apply" src/snowline/templates/skills/native_checker_gen/generator.py
+0
+$ grep -n "open(.*w" .../generator.py
+69:    with open(test_file_path, "w", ...)
+115:    with open(validator_path, "w", ...)
+```
+
+Sesi dingin membuktikannya hidup: dijalankan di direktori kosong, ia membuat
+`scripts/validators/ProbeValidator.js` tanpa flag apa pun untuk menahannya.
+
+Konteks supaya tidak berlebihan: sembilan alat menulis ke disk. Empat punya
+`--apply`. Empat hanya menulis **cache** — itu tidak apa-apa. Yang cacat
+**satu**, yang ini, karena ia menulis sumber ke dalam proyek orang.
+
+**Syarat lulus:**
+1. `--apply` dipasang, dan tanpa flag itu ia dry-run yang mencetak apa yang
+   akan dibuat.
+2. Uji dua arah: tanpa flag tidak ada berkas dibuat; dengan flag berkas dibuat.
+   Butir pertama yang paling penting.
+3. Dibuktikan mutasi.
+4. Aturan #12 — berkasnya di `templates/`, tiga salinan ikut disinkronkan.
+
+## 3. `scope_lock` punya dua penegak yang tidak dijaga agar sama
+
+```
+scope_check.py:143                 penegak CLI
+replace_text.py:68,562             salinan `check_scope`, komentarnya sendiri
+                                   berbunyi "mirrors scope_check.py behavior"
+```
+
+Tidak ada yang menjaga keduanya tetap sepakat. Kalau satu diperbaiki dan yang
+lain tidak, gerbang yang sama akan menolak dua hal yang berbeda.
+
+**Syarat lulus:** salah satu, dan sebutkan mana yang kamu pilih beserta
+alasannya.
+
+```
+a  satukan: replace_text mengimpor dari scope_check, salinannya dihapus
+b  biarkan dua, tetapi tambahkan uji yang memberi masukan sama ke keduanya
+   dan menegaskan keputusannya sama
+```
+
+Kalau (a), buktikan `replace_text --apply` masih menolak berkas di luar scope
+sesudahnya. Kalau (b), buktikan mutasi: ubah satu penegak saja, uji harus
+merah.
+
+## 4. Uji arity hanya menegaskan sisi tolak
+
+`tests/test_rejections.py:28` menegaskan gerbang menolak, tidak menegaskan ia
+menerima. Butir 9 `CHAMBER_RULES.md` menyebut itu tidak cukup — uji yang cuma
+membuktikan "ia menolak" tidak bisa membedakan gerbang yang bekerja dari alat
+rusak yang menolak segalanya.
+
+Catatan tambahan dari sesi TL: uji itu menjalankan salinan di `templates/`,
+bukan berkas di `.agents/hooks/` yang disebut barisnya di `STATE.md`.
+
+**Syarat lulus:**
+1. Arah terima ditambahkan: perintah dengan argumen cukup -> lolos.
+2. Dibuktikan mutasi dua arah.
+3. Putuskan mana yang benar untuk diuji — salinan templat atau berkas
+   terpasang — dan perbaiki baris `STATE.md` supaya menunjuk yang diuji.
+
+## 5. `STATE.md` butir Terbuka 3 basi
+
+```
+tertulis    connector.md 133 KB, ambang CHAMBER_RULES butir 6 ~100 KB
+$ wc -c < .here_we_are/connector.md
+41472       = 40,5 KB
+```
+
+Utangnya sudah lunas dan catatannya masih menyuruh mengerjakannya. Hapus butir
+itu, atau ganti dengan angka sekarang beserta perintah yang menghasilkannya.
+
+## 6. Butir Terbuka bernomor 6 dua kali
+
+```
+6  rotasi otomatis      <- muncul sebelum butir 1, di luar urutan
+1  uji
+2  npm_audit
+3  rotasi connector
+4  gerbang risiko
+5  daftar RULE 0
+6  snowline di PATH     <- 6 kedua
+7  header STATE.md
+```
+
+Akibat `close-entry` menyisipkan ke tabel tanpa memeriksa nomor yang sudah
+terpakai. Rapikan penomorannya sekarang; kalau penyebabnya di kode, catat
+sebagai utang terpisah — jangan diperbaiki di entri ini.
+
+## 7. Bentuk entri `PM -> QA` tidak ada
+
+Ini temuan terpenting dari Uji B, dan ia bukan cacat kode.
+
+Sesi QA berhenti sebelum menulis vonisnya:
+
+> Tidak ada entri PM -> QA yang menugaskan saya — penugasan datang lisan, di
+> luar chamber. Butir 4 menyebut batasan di luar entri tidak berlaku.
+
+Ia benar. Chamber punya bentuk `PM -> TL` dan tidak punya bentuk `PM -> QA`.
+Di alur dua sesi, PM menugaskan QA lewat chat dan itu cukup. Di alur
+berurutan, penugasan lisan tidak ada.
+
+**Yang ditambahkan ke `CHAMBER_RULES.md`, kedua salinan:**
+
+```
+Laporan TL yang belum divonis adalah penugasan untuk QA. Sesi QA yang menemukan
+entri semacam itu di ekor connector tidak perlu menunggu entri penugasan
+terpisah — laporan itu sendiri dasarnya. Kalau PM menghendaki pemeriksaan yang
+lebih sempit atau lebih luas dari isi laporan, itu ditulis sebagai entri
+tersendiri.
+```
+
+Ini bentuk paling ringan: tidak menambah pekerjaan PM, dan sesi QA punya dasar
+tertulis.
+
+**Syarat lulus:**
+1. Ada di `agents_chamber/CHAMBER_RULES.md` dan
+   `src/snowline/chamber_templates/CHAMBER_RULES.md`.
+2. `diff -q` antara keduanya harus diam. `verify_rule12.ps1` sekarang menjaga
+   ini — kalau kamu lupa satu, `git commit` akan menolak. Tempel bukti bahwa ia
+   lolos.
+3. `ONBOARDING_QA.md` menyebutkannya di bagian LANGKAH PERTAMA.
+
+---
+
+## Urutan
+
+```
+7 dan 5 dan 6 dulu    ketiganya soal catatan, semuanya menit-menitan
+lalu 1                gerbang tanpa uji, paling berbahaya dari yang tersisa
+lalu 2                gerbang yang tidak ada
+lalu 3 dan 4          keduanya soal uji yang kurang, bukan gerbang yang hilang
+```
+
+Nomor 1 didahulukan dari 2 karena gerbang yang ada tetapi tidak dijaga lebih
+mudah hilang diam-diam daripada gerbang yang memang belum dibuat.
+
+## Bentuk laporan
+
+Ke connector dulu, keluaran mentah — **mentah**, bukan dirapikan. Sesi QA
+menemukan tempelan sprint lalu sudah dianotasi tangan (`$ exit code: 1` bukan
+keluaran program) dan blok `[DEBUG]`/`[DIFF]` dipotong. Substansinya benar, jadi
+tidak jadi dasar tolak — tapi butir 3 menyebutnya syarat tolak, dan sekali lagi
+ia akan jadi.
+
+Sebutkan apa yang TIDAK kamu periksa. Sebelum commit: `git add <berkas>` lalu
+`git diff --cached --stat`.
+
+**Tidak dikunci.**
