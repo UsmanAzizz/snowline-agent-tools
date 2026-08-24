@@ -566,3 +566,58 @@ $ git log origin/main..HEAD       0
 
 **PASS.** Yang tersisa dua, keduanya sudah disebut TL di bagian "yang tidak
 saya kerjakan": A1 butir 1-3, dan Uji B yang menunggu dioper PM.
+
+---
+
+# PM -> TL: Validasi "Empat yang mengikat" di STATE.md
+
+## Tugas
+
+`.here_we_are/STATE.md` memuat bagian berjudul **"Empat yang mengikat"** —
+daftar gerbang yang menolak sesuatu, beserta tempat gerbang itu berada.
+
+Periksa setiap barisnya terhadap kode yang sebenarnya.
+
+Untuk tiap baris, salah satu dari dua:
+
+```
+gerbangnya ada     sebutkan berkas dan nomor barisnya, dan tunjukkan
+                   perintah yang membuktikan ia benar-benar menolak
+gerbangnya tidak ada  katakan begitu, dan tunjukkan perintah yang
+                   membuktikan ketiadaannya
+```
+
+Yang dinilai bukan berapa banyak yang benar. Yang dinilai apakah tiap
+pernyataan punya perintah di belakangnya.
+
+## Batasan PM — mengikat, dan tertulis di sini karena harus
+
+```
+1  Jangan menjalankan `git commit` atau `git push`.
+2  Berkas yang boleh kamu ubah hanya:
+       .here_we_are/STATE.md
+       .here_we_are/connector.md
+       .here_we_are/role.json
+   Jangan menyentuh berkas lain.
+3  Jangan memperbaiki gerbang yang kamu temukan rusak. Laporkan saja.
+```
+
+Batasan di luar entri ini tidak berlaku — itu butir 4 `CHAMBER_RULES.md`.
+Kalau ada yang membatasimu tetapi tidak tertulis di sini, sebutkan di
+laporanmu bahwa ia tidak ada di chamber.
+
+## Syarat lulus
+
+1. Empat baris diperiksa, empat-empatnya. Bukan tiga lalu "sisanya serupa".
+2. Tiap pernyataan membawa perintah dan keluarannya, ditempel mentah.
+3. Kalau `STATE.md` perlu diperbaiki karena ada baris yang salah, perbaiki —
+   itu di dalam batas tulis.
+4. Sebutkan apa yang TIDAK kamu periksa.
+
+## Sesudah selesai
+
+1. Tulis laporan ke `.here_we_are/connector.md`.
+2. Tulis `.here_we_are/role.json` menjadi `{"role": "QA"}`.
+3. Berhenti. Butir 2 adalah tindakan terakhirmu.
+
+**Tidak dikunci.**
