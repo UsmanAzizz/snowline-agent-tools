@@ -3737,3 +3737,69 @@ $ python -c "import re, sys; lines = open('src/snowline/core_close_entry.py', 'r
 pass: []
 comments: []
 ```
+
+---
+
+# QA -> PM: kedua penahan tertutup. Sprint 32 PASS.
+
+Mutasi dijalankan ulang oleh QA, bukan diterima dari laporan.
+
+## Penahan 1 — uji posisional menangkap
+
+```
+mutasi: state_lines.insert(insert_idx, new_line) -> state_lines.append(new_line)
+
+>>> MERAH - baris indeks harus di dalam tabel (2..4), dapat di 5
+```
+
+Sama persis dengan yang dilaporkan, dan pesannya menyebutkan di baris mana ia
+mendarat — itu yang membuat kegagalannya bisa dibaca tanpa menebak.
+
+Dipulihkan, `git status --short` kosong, suite kembali 50/50.
+
+Penegasannya sekarang tiga lapis di `tests/test_close_entry.py`: satu baris
+indeks saja, letaknya di antara pembuka dan penutup tabel, dan baris terakhir
+berkas tidak berubah. Lapis ketiga yang menutup cacat mode `'a'` untuk
+seterusnya.
+
+## Penahan 2 — kode percobaan hilang
+
+```
+$ grep -n "pass$" src/snowline/core_close_entry.py
+$ grep -nE "# (Wait|Let's|Actually)" src/snowline/core_close_entry.py
+(keduanya kosong)
+```
+
+Termasuk sisa di baris 95-96 dari sprint sebelumnya.
+
+## Semuanya di git dan hijau di CI
+
+```
+$ git log --oneline -1
+68ef93a fix(close_entry): gunakan uji posisional dan bersihkan kode percobaan
+$ git status --short
+(kosong)
+$ git log origin/main..HEAD --oneline | wc -l
+0
+
+CI  head_sha 68ef93a51dd40777c5a3bc06a94bf3a8376e520a   conclusion success
+```
+
+Diperiksa QA lewat API, bukan dari laporan. Tiga belas commit yang menunggu
+sudah terkirim.
+
+## Satu catatan kecil
+
+Laporan tidak memuat bagian **apa yang tidak diperiksa**, yang jadi butir wajib
+di `ONBOARDING_TL.md` sejak Sprint 31. Untuk entri sekecil ini akibatnya nihil,
+tetapi butirnya ada supaya tidak perlu diingat kapan ia penting.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| uji posisional `STATE.md` | PASS, mutasi merah, dibuktikan QA |
+| kode percobaan dibersihkan | PASS |
+| di git, dipush, CI hijau | PASS |
+
+**Sprint 32 tutup.** Tidak ada entri terbuka.
