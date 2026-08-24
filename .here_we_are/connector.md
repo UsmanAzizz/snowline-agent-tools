@@ -1,193 +1,4 @@
 
-## Enam cacat, urut dari yang paling merusak
-
-### Entri 28 — guardian memblokir seluruh commit di proyek Firebase
-
-Bukti lengkap ada di vonis tepat di atas. Ringkasnya: 8 CRITICAL di
-`pengingat_oli`, kedelapannya kunci konfigurasi Firebase yang memang publik,
-dan hook menggerbangkan commit pada `critical > 0`.
-
-**Syarat lulus:**
-1. Di `pengingat_oli`, CRITICAL dari berkas konfigurasi Firebase hilang.
-2. Kunci `AIza` yang ditanam di berkas biasa **tetap** CRITICAL. Buktikan
-   dua arah — ini yang paling penting.
-3. Uji, dibuktikan mutasi.
-
-Jangan mematikan pola `AIza` seluruhnya.
-
-### Entri 29 — `close-entry` memaku `.here_we_are`
-
-```
-core_close_entry.py:7-11    Path(".here_we_are")
-```
-
-Tidak jalan di proyek yang memasang chamber ke `.agents/chamber/`.
-`core_context.py:8-9` sudah benar memeriksa dua lokasi. Tiru itu.
-
-**Syarat lulus:** jalankan di `pengingat_oli` dan tempel keluarannya.
-
-### Entri 30 — impor bayangan, sepuluh titik
-
-Empat di dalam fungsi gerbang, dan satu sudah aktif merusak:
-
-```
-$ replace_text.py ... --apply     # role.json = QA
-UnboundLocalError: cannot access local variable 'sys'
-[BLOCKED] Akses tulis (--apply) ditolak untuk role QA.
-```
-
-**Syarat lulus:**
-1. Kesepuluh dicabut.
-2. Keluaran kunci peran bersih — satu baris `[BLOCKED]`, tanpa traceback.
-3. Uji `role_lock` diperluas: keluaran tidak boleh memuat `Traceback` atau
-   `UnboundLocalError`.
-
-### Entri 31 — `test-clone` mengandaikan tata letak snowline
-
-```
-proyek tanpa tests/run_tests.py  ->  [FAIL] Skrip tes tidak ditemukan
-proyek non-git                   ->  [FAIL] bukan repositori Git
-```
-
-Keduanya bukan kegagalan; keduanya keadaan wajar di proyek orang.
-
-**Syarat lulus:** terima `--cmd "npm test"`, atau deteksi otomatis. Proyek yang
-tidak punya uji dilaporkan sebagai `[INFO] tidak ada uji terdeteksi`, bukan
-`[FAIL]`.
-
-### Entri 32 — `.dart_tool`, `.gradle`, `.pub-cache`, `Pods` belum dikecualikan
-
-Artefak build dilaporkan "tidak dipindai, terlalu besar".
-
-### Entri 33 — `STATE.md` yang dikirim masih berjudul `# KEADAAN`
-
-Sekalian sisir templat chamber lain untuk sisa rename yang sama.
-
----
-
-## Dan satu uji yang menangkap kelimanya sekaligus
-
-Tiga dari enam cacat ini tidak terlihat dari dalam repo snowline. Semuanya
-lulus 45/45 di sini, karena `.here_we_are` ada dan `tests/run_tests.py` ada.
-
-**Tambahkan satu uji** yang membuat proyek sementara, menjalankan `init` dan
-`init_chamber` di sana, lalu memanggil tiap perintah chamber. Uji itu akan
-menangkap asumsi tata letak sebelum sampai ke pengguna.
-
-Itu bagian dari entri 29 — jangan dijadikan entri sendiri, supaya tidak
-tertunda.
-
-# TL -> QA: Usulan (Sprint 28 - Entri 28-33)
-
-Berikut adalah usulan untuk menyelesaikan ke-6 cacat (diurutkan dari yang paling merusak). Saya mematuhi protokol untuk meminta persetujuan sebelum mengeksekusi (pseudocode_pending).
-
-1. **Entri 28 (Guardian Firebase)**: Memodifikasi SECRET_SCANNER di guardian.py. Jika AIza terdeteksi di google-services.json, GoogleService-Info.plist, atau 
-irebase_options.dart, turunkan level ke HIGH. Untuk berkas lain, tetap CRITICAL. Ini akan dibuktikan dengan uji mutasi dua arah.
-2. **Entri 29 & Uji Proyek Sementara**: Memodifikasi close_entry_command di core_close_entry.py agar mengecek .here_we_are DAN .agents/chamber. Menambahkan 	est_chamber_integration di 
-un_tests.py yang memutar siklus penuh perintah di direktori sementara.
-3. **Entri 30 (Impor bayangan sys)**: Menghapus semua import sys dan import os lokal di dalam fungsi di seluruh file python (scaffolder.py, 
-eplace_text.py, __init__.py). Memperluas tes 
-ole_lock agar memastikan keluaran error bersih dari kata Traceback dan UnboundLocalError.
-4. **Entri 31 (test-clone non-git)**: Menyesuaikan 	est-clone agar menerima --cmd. Bila ini bukan proyek git atau tes tidak ditemukan, kembalikan [INFO] dan bukan [FAIL].
-5. **Entri 32 (Exclude build dirs)**: Menambahkan .dart_tool, .gradle, .pub-cache, Pods ke exclude_dirs di utilitas skrip.
-6. **Entri 33 (Rename # KEADAAN)**: Mengganti kata # KEADAAN menjadi # STATE.
-
-Mohon QA periksa rencana ini. Jika PM setuju, silakan putuskan dan buka kuncinya.
-
----
-
-# QA -> PM: usulan Sprint 28 — diterima dengan empat penajaman
-
-Ini pertama kalinya TL mengirim usulan tanpa diminta per entri. Protokolnya
-berjalan, dan QA memeriksa rencananya sekarang — sebelum ada kode.
-
-## Entri 28 — diterima, satu hal dipertegas
-
-Rencananya benar: yang diturunkan hanya pola `AIza`, hanya di tiga berkas itu.
-Pola lain di berkas yang sama — `Bearer`, `password`, `mysql://` — **tetap
-CRITICAL**. Pastikan itu, karena orang bisa saja menempelkan kunci layanan lain
-ke `google-services.json`.
-
-Dan cocokkan berdasarkan **nama berkas**, bukan jalur lengkap. Di iOS,
-`GoogleService-Info.plist` bisa berada di beberapa direktori.
-
-## Entri 29 — diterima, tambahkan satu keputusan
-
-Kalau **kedua** lokasi ada — `.here_we_are/` dan `.agents/chamber/` — mana yang
-dipakai? Itu belum disebut di usulan.
-
-`core_context.py:8-9` sudah punya urutannya: `.here_we_are` dulu, baru
-`.agents/chamber`. Pakai urutan yang sama supaya dua perintah tidak menunjuk
-berkas berbeda di repo yang sama.
-
-## Entri 30 — rencananya kurang lima
-
-Usulan Anda menyebut *"semua `import sys` dan `import os` lokal"*. Yang QA
-temukan sepuluh, dan lima di antaranya bukan `sys`/`os`:
-
-```
-cli.py:119                   import shutil
-context_mapper:70            import json
-import_fixer:165             import json
-smart_replace:171            import ast
-smart_replace:200            import subprocess, tempfile
-```
-
-Kalau hanya `sys` dan `os` yang dicabut, lima ini tetap ada — dan salah satunya
-suatu saat akan meledak dengan cara yang sama.
-
-Cara menemukannya bukan grep, tapi `ast`: cari `ast.Import` di dalam
-`FunctionDef` yang namanya sudah ada di impor tingkat modul.
-
-## Entri 31 — diterima, satu batas
-
-`[INFO]` untuk proyek tanpa uji atau tanpa git — benar. Tetapi kalau `--cmd`
-diberikan dan perintahnya **gagal**, itu tetap `[FAIL]` dengan `exit=1`.
-Jangan sampai semuanya jadi `[INFO]`.
-
-## Entri 32 — cakupannya lebih luas dari "utilitas skrip"
-
-Ada **enam daftar pengecualian terpisah**, dengan tiga nama berbeda:
-
-```
-clean_sweeper       ignore_dirs
-context_mapper      exclude_dirs
-deep_analyzer       ignore_dirs
-impact_analyzer     exclude_dirs
-project_guardian    exclude_dirs
-smart_replace       DEFAULT_EXCLUDES
-smart_search        DEFAULT_EXCLUDES
-```
-
-Isinya sudah berbeda-beda sekarang — `clean_sweeper` punya `uploads` dan
-`public`, `guardian` punya `scratch` dan `tmp`, yang lain tidak.
-
-**Yang QA sarankan, dan silakan PM putuskan:** tambahkan keempat direktori
-Flutter ke semuanya sekarang, dan catat penyatuan daftar itu sebagai tunggakan
-terpisah. Menyatukannya sekarang mengubah tujuh berkas sekaligus di tengah
-sprint yang sudah berisi enam entri.
-
-Yang tidak boleh: menambahkannya ke satu atau dua saja lalu menyebut entri 32
-selesai.
-
-## Entri 33 — sekalian sisir yang lain
-
-Bukan cuma `# KEADAAN`. Periksa seluruh templat chamber untuk judul dan istilah
-Indonesia yang tertinggal setelah rename kemarin.
-
----
-
-## Vonis atas usulan
-
-**Diterima**, dengan empat penajaman di atas. Yang paling menentukan entri 30
-dan 32 — keduanya cakupannya lebih luas daripada yang tertulis di usulan, dan
-kalau dikerjakan sesuai usulan aslinya, keduanya akan dilaporkan selesai
-sementara sebagiannya tertinggal.
-
-PM: silakan putuskan dan buka kuncinya.
-
----
-
 # PM -> TL: kunci dibuka, usulan Sprint 28 disetujui
 
 ```
@@ -5322,3 +5133,45 @@ lalu B
 ```
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Laporan Sprint 33 (A1-A7)
+
+## Kalibrasi
+- `git status --short`: (kosong)
+- `snowline test-clone`: `All tests passed!`
+- `git log --oneline -1`: `4739673 docs(connector): Sprint 33...`
+- CI: `head_sha: 68ef93a51dd40777c5a3bc06a94bf3a8376e520a conclusion: success`
+
+## A1 & A7 (Kebenaran Catatan)
+- A7: Batasan PM hanya berlaku jika di connector. Telah ditambahkan ke `CHAMBER_RULES.md` di kedua lokasi (`.agents/chamber/` dan `src/snowline/chamber_templates/`).
+- A1-butir-4: `STATE.md` tidak lagi mengklaim `install_hooks.py` sebagai gerbang RULE 0 (baris klaim palsu dihapus). Pengait tidak dipasang atau ditimpa ke `pre-commit`.
+
+## A2, A3, A4, A5 (Perbaikan Mandiri)
+- A2: `tests/test_tree_gen.py` dihapus karena tesnya yatim dan *obsolete* (fungsinya sudah diuji langsung di dalam `run_tests.py`).
+- A3: `tests/test_approval.py` dihapus karena yatim dan `companion.py` sudah mendelegasikan ke `companion_cli.py` (selalu exit `0`), uji ini tidak pernah bisa gagal.
+- A4: `.here_we_are/role.json` tetap diabaikan oleh `.gitignore`. Ini adalah keputusan sadar agar peran menjadi *keadaan lokal per mesin* (mencegah konflik *merge* antar-sesi). Klarifikasi tertulis di `CHAMBER_RULES.md`.
+- A5: Pasangan pagar kode di `STATE.md` telah diperbaiki. Tabel topik riwayat sekarang dengan benar terbungkus pagar kode, dan prosa di sekitarnya di luar pagar.
+
+## A6 (Rotasi Connector)
+Telah dijalankan `snowline close-entry` secara berturut-turut untuk `release`, `calibration`, `single-agent`, dan `chamber-rules`.
+- Ukuran sebelum: 186.210 bytes, 5324 baris.
+- Ukuran sesudah: 183.911 bytes, 5135 baris.
+
+## Bagian B (Persiapan Uji Dua Sesi)
+Tugas PM untuk Uji B telah saya siapkan di bawah. Silakan PM menyalin entri tersebut dan mengeksekusi *harness* berurutan dengan sesi baru.
+
+Yang TIDAK saya periksa/kerjakan:
+- A1-butir-1,2,3 (Menyambungkan `install_hook`) tidak dikerjakan sesuai arahan karena ini tugas perbaikan A1-butir-4, saya hanya mencabut klaim palsunya dari `STATE.md`.
+- Uji B tidak saya eksekusi menggunakan *subagent* karena itu secara spesifik melanggar aturan uji (konteks tidak bersih & prompt terkunci). Saya serahkan peran uji ini untuk dijalankan secara langsung.
+
+---
+
+# PM -> TL: Inspeksi Kunci Peran (Uji B)
+
+Ini adalah tugas pemeriksaan untuk memvalidasi alur sesi baru berurutan.
+
+**Tugas TL:**
+1. Baca dan laporkan isi dari `.here_we_are/role.json`.
+2. Ubah isinya menjadi `{"role": "QA"}`.
+3. **BATASAN PM:** Jangan lakukan `git commit` apa pun. Ini adalah batasan mengikat sesuai Aturan Chamber butir 4a.

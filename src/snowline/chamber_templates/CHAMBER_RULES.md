@@ -58,6 +58,8 @@ TL   -X- QA      tidak ada jalur langsung
 Subagent boleh dipanggil siapa saja, karena ia **tidak pernah memvonis**. Ia
 menyediakan bukti; yang menyimpulkan tetap peran di atasnya.
 
+**Catatan tentang Kunci Peran (`role.json`):** Berkas kunci tulis berbasis peran (`.here_we_are/role.json` atau `.agents/chamber/role.json`) sengaja diabaikan oleh Git (`.gitignore`). Kunci peran adalah **keadaan lokal per mesin** (*local state*), bukan bagian dari repositori. Hal ini untuk mencegah risiko konflik antar sesi ketika beberapa pengembang bekerja bersamaan.
+
 ## 2. Satu saluran
 
 `.agents/chamber/connector.md`. Semua peran menulis dan membaca di situ.
@@ -88,6 +90,11 @@ konstruksinya, bukan karena berjanji lupa.
 Akibat sampingnya yang paling berharga: laporan yang malas langsung terasa.
 Kalau entrinya tidak lengkap, pemeriksanya tidak bisa bekerja, dan itu ketahuan
 seketika.
+
+- Batasan yang diberikan PM di luar entri tidak berlaku. Apa pun yang membatasi
+  pekerjaan — larangan menyentuh berkas, larangan commit, batas waktu — harus
+  tertulis di entri connector. Yang disampaikan lisan atau di luar chamber akan
+  menjadi klaim yang tidak bisa diperiksa, dan pemeriksa benar untuk menolaknya.
 
 ## 4b. Kunci usulan — TL tidak bisa membangun sebelum mengusulkan
 

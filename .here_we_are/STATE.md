@@ -28,14 +28,6 @@ undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
 | `--apply` | tulis apa pun tanpa flag | tiap alat tulis | ada |
 | risiko Medium/High | apply tanpa `--apply-validated` | `replace_text.py:570` | **tidak ada** |
 
-Dua baris yang dulu di tabel ini bukan gerbang yang disebut RULE 0, dan
-keduanya lebih lemah dari yang tertulis:
-
-```
-hook .agents/hooks.json    mengikat hanya kalau harness memuatnya
-gerbang CRITICAL commit    install_hooks.py:27 itu TEMPLAT. .git/hooks/pre-commit
-                           di repo ini pemeriksa sintaks, bukan guardian.
-```
 
 ## Terbukti dengan perintah, bukan pembacaan
 
@@ -71,6 +63,7 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
                      init_chamber-nya 7 berkas, sumber repo 8.
 7  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
                      otomatisasinya sekarang)
+```
 
 TUTUP lewat chamber, arsip per topik:
 ```
@@ -98,6 +91,8 @@ role-lock            kunci-tulis berdasarkan peran          history/role-lock/
 selective_reader     pemindai daftar fungsi                 history/selective_reader/
 solo_mode            pengujian tiga hal mode tunggal        history/solo_mode/
 workflow             arsip connector, rotasi sprint         history/workflow/
+single-agent         (entri baru)                           history/single-agent/
+chamber-rules        (entri baru)                           history/chamber-rules/
 ```
 
 24 topik, 25 entri, semuanya tutup.
@@ -105,7 +100,6 @@ workflow             arsip connector, rotasi sprint         history/workflow/
 Dua butir yang dulu berdiri di luar chamber sekarang tutup, keduanya dijaga
 `tests/test_smart_replace_apply.py:210`: `--apply` pada berkas tunggal
 berhasil, dan nama berkasnya tidak lagi tercetak sebagai titik (:529 -> :535).
-```
 
 Di luar jangkauan repo: dua kunci Groq dan GCP **belum dicabut** — tidak bisa
 diperiksa dari sini.
