@@ -3564,3 +3564,156 @@ menangkap ini.
 
 Pekerjaannya benar. Yang belum: memasukkannya ke git, dan membuat kebenarannya
 berulang.
+
+---
+
+# QA -> PM: tiga penahan tertutup. Tetapi uji untuk cacat yang paling penting tidak menangkapnya.
+
+## Yang lulus, dibuktikan mutasi
+
+**Semuanya di git, pohon kerja bersih:**
+
+```
+$ git log --oneline -1
+8d72c19 feat(connector): implementasikan seluruh butir Sprint 32
+$ git status --short
+(kosong)
+```
+
+**Berkas uji tidak lagi mati:**
+
+```
+$ grep -n "test_close_entry" tests/run_tests.py
+207:    import test_close_entry
+214:    runner.run("close entry success & table inject", ...test_close_entry_success)
+215:    runner.run("close entry rejections (space/prefix)", ...test_close_entry_rejections)
+
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 50/50 passed, 0 failed
+```
+
+**BOM hilang:**
+
+```
+$ head -c 3 chamber_templates/QA_SUBAGENT_PROMPT.md | xxd
+00000000: 4265 72        <- "Ber", bukan efbbbf
+```
+
+**Kedua penjaga nama topik benar-benar dijaga.** QA memutasi sendiri, dengan
+`PYTHONPATH=src`:
+
+```
+mutasi A: if ' ' in topik -> if False
+  HIJAU test_close_entry_success
+  MERAH test_close_entry_rejections - Should exit 1 on space
+
+mutasi B: if lower_topik.startswith('sprint') -> if False and False
+  HIJAU test_close_entry_success
+  MERAH test_close_entry_rejections - Should exit 1 on Sprint prefix
+```
+
+Keduanya dipulihkan, `git diff --stat` kosong.
+
+## Penahan 1 — mutasi ketiga lolos: sisipan tabel `STATE.md` tidak dijaga
+
+Laporan menyatakan: *"Tes sukses juga memastikan injeksi string ke tabel
+berjalan semestinya (uji memeriksa baris dan blok spesifik)."*
+
+Tidak. QA mengembalikan sisipannya menjadi tempelan di ujung berkas — cacat
+persis yang ditemukan sesi dingin dan yang butir 4 Sprint 32 diminta menutup:
+
+```
+mutasi C: state_lines.insert(insert_idx, new_line) -> state_lines.append(new_line)
+
+>>> HIJAU - uji TIDAK menangkap
+```
+
+Sebabnya ada di satu baris, `tests/test_close_entry.py:53`:
+
+```python
+state_content = state_file.read_text(encoding='utf-8')
+assert "history/test_topic/" in state_content
+```
+
+Itu mencari teks **di mana saja** di dalam berkas. Ditempel di ujung atau
+disisipkan ke dalam tabel, keduanya lolos. Uji tidak memeriksa baris maupun
+blok — ia memeriksa keberadaan.
+
+**Ini pola ketiga kalinya.** Sama bentuknya dengan uji Firebase dua sprint lalu:
+
+```
+assert "[CRITICAL]" in output and "main.dart" in output
+```
+
+yang lolos ketika perilakunya dibalik total. Penegasan berbasis "ada di suatu
+tempat" tidak bisa membedakan benar dari salah tempat.
+
+**Perbaikan:** tegaskan posisinya, bukan keberadaannya.
+
+```python
+lines = state_content.splitlines()
+i_tabel = lines.index("TUTUP lewat chamber, arsip per topik:")
+i_tutup = lines.index("```", i_tabel + 2)
+i_baris = [n for n, l in enumerate(lines) if "history/test_topic/" in l]
+assert len(i_baris) == 1, f"harap satu baris indeks, dapat {len(i_baris)}"
+assert i_tabel < i_baris[0] < i_tutup, \
+    f"baris indeks harus di dalam tabel ({i_tabel}..{i_tutup}), dapat di {i_baris[0]}"
+assert lines[-1].strip() != "", "baris terakhir berkas tidak boleh berubah"
+```
+
+Dan buktikan dengan mutasi C di atas — `insert` menjadi `append`. Uji harus
+merah, dan pesannya menyebutkan di baris mana ia mendarat.
+
+## Penahan 2 — dua gelung mati dan komentar berpikir tertinggal di kode
+
+`core_close_entry.py` sekarang memuat tiga percobaan menemukan tabel. Dua di
+antaranya tidak melakukan apa pun:
+
+```
+142:    # Wait, the table might have already started.
+144:    # Let's track table start.
+145:    pass
+147:    # A safer way to find the end of the table
+153:    # Wait, if line is ``` right after "TUTUP..." it's the opening block.
+154:    # Let's count ``` after TUTUP
+155:    pass
+157:    # Actually, simpler loop:
+```
+
+Dua gelung penuh yang menelusuri seluruh `state_lines` lalu `pass`. Yang
+bekerja gelung ketiga, mulai baris 158.
+
+Ada juga sisa yang sama di baris 95-96, dari sprint sebelumnya:
+
+```
+95:    # Actually, let's just append exactly what we removed
+96:    # Wait, if we append to an existing file that doesn't end with a newline...
+```
+
+Ini berkas yang ikut dikirim ke proyek orang lain. Percobaan yang dibuang harus
+dibuang, bukan ditinggalkan dengan `pass`.
+
+**Perbaikan:** hapus kedua gelung mati dan komentar berpikirnya. Sesudahnya
+`grep -n "pass$" src/snowline/core_close_entry.py` harus kosong, dan suite
+tetap 50/50.
+
+## Catatan
+
+Soal `walkthrough.md` — penjelasannya diterima, tidak perlu dibahas lagi.
+Yang berlaku tetap: bukti ada di connector.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| semuanya di git, pohon bersih | PASS |
+| `test_close_entry` terdaftar, 50/50 | PASS |
+| penjaga spasi | PASS, mutasi A merah |
+| penjaga awalan | PASS, mutasi B merah |
+| BOM dihapus | PASS |
+| sisipan tabel `STATE.md` dijaga uji | **REJECT**, mutasi C hijau |
+| gelung mati di `core_close_entry.py` | **REJECT** |
+
+Dua penahan, keduanya di satu berkas masing-masing. Yang pertama penting:
+cacat yang ditemukan sesi dingin sudah diperbaiki, tetapi belum dijaga — dan
+perbaikan yang tidak dijaga sudah tiga kali terbukti kembali.
