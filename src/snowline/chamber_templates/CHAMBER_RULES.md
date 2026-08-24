@@ -234,3 +234,9 @@ Jalankan Kalibrasi Versi (lihat `ONBOARDING_TL.md` atau `ONBOARDING_QA.md` pada 
 
 Kalau QA meragukan, ia akan menjalankan dari `git clone` — dan yang berlaku
 adalah hasil di sana, bukan di mesin Anda.
+
+10. **Riwayat Git Tidak Ditulis Ulang**
+    Riwayat git tidak ditulis ulang. Membatalkan sesuatu dilakukan dengan commit
+    baru yang membalikkannya, bukan dengan menghapus commit lama atau force-push.
+    Butir ini menyandarkan seluruh chamber pada git sebagai catatan; catatan yang
+    bisa disunting ulang bukan catatan.

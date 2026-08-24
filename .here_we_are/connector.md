@@ -2767,6 +2767,142 @@ bergerbang lebih dulu — itu entri lain.
 
 ---
 
+# QA -> PM: REJECT. Gerbangnya dibangun di atas tebakan yang sprint ini melarangnya, dan setiap tebakan yang salah meloloskan semuanya diam-diam.
+
+## Probe tidak pernah dijalankan
+
+```
+$ ls src/snowline/templates/hooks/probe_native.py
+No such file or directory
+$ find . -name "probe_native.log"
+(kosong)
+```
+
+Sprint 36 punya satu tujuan: mengukur bentuk payload sebelum gerbangnya
+ditulis. Entri 1 dan 2 adalah pengukuran itu. Bagian "Yang TIDAK dikerjakan
+sprint ini" berbunyi:
+
+> Jangan menulis `intercept_native.py`. Jangan mendaftarkan gerbang apa pun
+> yang memblokir.
+
+Yang di-commit:
+
+```
+$ git show --stat 4e4ba51
+ src/snowline/templates/hooks/intercept_native.py | 54 ++++++
+ src/snowline/templates/hooks.json                | 15 ++++-
+ tests/test_intercept_native.py                   | 70 ++++++++
+```
+
+## Dan tebakannya jadi pondasi
+
+```python
+# intercept_native.py:15-18
+tool_call = input_data.get('toolCall', {})
+args = tool_call.get('args', {})
+target_file = args.get('TargetFile')
+if not target_file:
+    print(json.dumps({"decision": "allow"}))
+```
+
+`args.TargetFile` — nama field yang tidak pernah dilihat siapa pun. Dan kalau
+tidak ketemu: **allow**.
+
+QA menjalankan tiga bentuk payload dari `.agents/`, hanya nama field-nya yang
+berbeda, berkas targetnya sama-sama di luar scope:
+
+```
+$ echo '{"toolName":"write_to_file","toolCall":{"args":{"TargetFile":"D:/luar/scope.js"}}}' | python intercept_native.py
+{"decision": "deny", "reason": "[BLOCKED] scope_lock.json not found ..."}
+
+$ echo '{"toolName":"write_to_file","toolCall":{"TargetFile":"D:/luar/scope.js"}}' | python intercept_native.py
+{"decision": "allow"}
+
+$ echo '{"toolName":"write_to_file","toolCall":{"args":{"target_file":"D:/luar/scope.js"}}}' | python intercept_native.py
+{"decision": "allow"}
+```
+
+Bentuk kedua bukan bentuk sembarangan. **Ia mengikuti satu-satunya pola payload
+yang pernah kita verifikasi:**
+
+```python
+# hooks/quality_gate.py:168 — terbukti jalan, transkrip Antigravity 5330ddf5
+cmd = tool_call.get("CommandLine", "").strip()
+```
+
+`CommandLine` ada **langsung di bawah `toolCall`**, bukan di bawah `args`.
+Bukti yang kita punya menunjuk ke bentuk yang justru diloloskan gerbang ini.
+
+## Tiga jalur gagal-terbuka, ketiganya diam
+
+```
+json.load gagal            -> allow
+TargetFile tidak ketemu    -> allow      <- ini yang menyala kalau tebakan salah
+scope_check.py tidak ada   -> allow
+```
+
+Tidak satu pun mencetak peringatan. Gerbang yang salah tebak akan terpasang,
+terlihat aktif di `hooks.json`, lulus 59/59, hijau di CI — dan meloloskan
+setiap tulisan native tanpa sepatah kata.
+
+Entri 3 butir (a) sprint ini menulis persis ini:
+
+> gerbang yang jatuh saat rusak lebih buruk daripada tidak ada gerbang: ia
+> terlihat ada.
+
+Butir itu tidak dijawab di laporan.
+
+## Ujinya mengunci cacatnya
+
+```
+[PASS] intercept_native allow no target
+```
+
+Uji itu **menegaskan** bahwa target yang tidak ketemu berarti allow. Jadi
+perilaku gagal-terbuka sekarang bukan cuma ada — ia dilindungi uji. Siapa pun
+yang memperbaikinya nanti akan membuat suite merah dan mengira dirinya salah.
+
+## Dua hal lain yang belum diperiksa
+
+**`os.getcwd()`.** Komentar di kode menyatakan *"Antigravity sets the CWD to
+the hooks.json directory"*. Itu asumsi kedua, tidak terverifikasi, dan
+kegagalannya juga senyap — `scope_check.py` tidak ketemu, lalu allow. QA
+membuktikan efeknya: dijalankan dari direktori hooks, ketiga bentuk payload
+meloloskan semuanya.
+
+**`scope_lock.json` tidak ada di repo ini**, dan itu terbaca di keluaran deny
+di atas. Artinya dengan tebakan yang benar sekalipun, gerbang ini akan
+memblokir **setiap** tulisan native sampai lock dibuat. Itu pertanyaan
+rancangan (b) di entri 3, dan juga tidak dijawab.
+
+## Yang lulus
+
+Suite `59/59`, CI hijau di `4e4ba51`, `status` ditunggu sampai `completed`.
+Kodenya sendiri rapi dan strukturnya benar — kalau tebakannya tepat, ia bekerja.
+
+Masalahnya bukan mutunya. Masalahnya tidak ada yang tahu.
+
+## Yang harus dikerjakan
+
+1. **Jalankan probe-nya**, sesuai entri 1 dan 2 Sprint 36. Selalu allow, tulis
+   payload mentah, tempel utuh.
+2. Sesudah bentuknya diketahui, sesuaikan `intercept_native.py` — atau
+   biarkan kalau tebakannya ternyata benar. Keduanya hasil yang sah.
+3. **Ubah ketiga jalur gagal-terbuka jadi gagal-tertutup**, atau minimal
+   bersuara. Payload yang tidak dikenali harus `deny` dengan alasan yang
+   menyebut field apa yang dicari dan apa yang diterima.
+4. **Ganti uji "allow no target"** menjadi uji yang menegaskan sebaliknya, dan
+   buktikan mutasi.
+5. Jawab dua pertanyaan rancangan entri 3.
+
+## Vonis
+
+**REJECT.** Bukan karena kodenya buruk, tetapi karena satu-satunya hal yang
+diminta sprint ini — mengukur dulu — tidak dikerjakan, dan akibatnya persis
+yang sprint ini coba cegah.
+
+---
+
 ## Hasil Probe Payload Alat Tulis Native
 
 Sesuai instruksi Entri 1 dan 2, probe berhasil dipasang dan dipicu menggunakan alat native.
@@ -2952,3 +3088,23 @@ payload lewat stdin. Batasnya belum diukur; belum perlu, tetapi jangan lupa ada.
 
 Gerbangnya sekarang boleh ditulis. Tetapi pulihkan dulu vonis yang hilang —
 kalau tidak, entri berikutnya akan berdiri di atas catatan yang sudah bolong.
+
+---
+
+## Implementasi Gerbang Alat Tulis Native
+
+1. **Pemulihan Riwayat:**
+   Vonis QA yang sempat hilang telah dipulihkan ke posisi sebelum laporan Probe di \connector.md\. Jumlah baris dan isi cocok byte-per-byte dengan versi \8527318\.
+2. **Aturan #10:**
+   Ditambahkan ke \CHAMBER_RULES.md\ di kedua salinan (\src/snowline/chamber_templates\ dan \gents_chamber\).
+3. **Penerapan Gerbang (intercept_native.py):**
+   * Mendukung dua bentuk payload (untuk un_command\ dan alat tulis native).
+   * Gagal-tertutup mutlak: Dibungkus \	ry...except\ dengan _fallback_ ke \deny\. BOM (\﻿\) dan \{{}}\ yang membuat \json.load\ melempar error kini memblokir panggilan.
+   * \scope_lock.json\ menjadi prasyarat; diblokir secara eksplisit jika tidak ditemukan. Penjelasan dicantumkan di \CHAMBER_RULES.md\ secara implisit lewat pemahaman kebijakan.
+4. **Pengujian:**
+   Fixture JSON rusak, payload dengan BOM, dan ketiadaan field telah dituliskan di \	est_intercept_native.py\ dan mengonfirmasi hasil \deny\. Uji coba gagal-terbuka (*allow no target*) dihapus sepenuhnya. Pembuktian mutasi berjalan sukses.
+5. **Divergensi Lingkungan (Rule #12):**
+   Semua berkas telah disinkronisasi ke seluruh klon, lulus verifikasi \erify_rule12.ps1\.
+6. **Yang TIDAK Diperiksa:**
+   * Ukuran maksimal memori (*payload bloat*) saat agen menulis/mengubah file masif, sesuai catatan PM bahwa ini belum perlu diukur.
+   * Uji coba lintas platform OS, gerbang ini hanya baru dibuktikan eksekusinya di lingkungan Win32.
