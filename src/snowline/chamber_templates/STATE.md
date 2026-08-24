@@ -21,6 +21,9 @@ Diperbarui: — · commit: —
 
 ```
 (kosong)
+
+TUTUP lewat chamber, arsip per topik:
+```
 ```
 
 ## Cara memeriksa berkas ini

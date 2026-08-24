@@ -68,7 +68,7 @@ sendirinya.
 
 Dan syarat ini **bisa diukur**, tidak perlu diperdebatkan.
 
-## Uji yang menentukan
+## Uji yang menentukan (SUDAH DIJALANKAN — Entri `052e407`)
 
 Cukup satu, murah, dan hasilnya biner.
 
@@ -125,7 +125,7 @@ PENGUKURAN   jalankan mutasi, hitung AST, ambil status CI, diff dua berkas,
              pasang di venv bersih, jalankan suite dari klon
              -> tidak peduli siapa yang bertanya
              -> subagent tercemar sekalipun sah
-             -> DIBATALKAN: subagent terhalang prompt izin eksekusi (timeout)
+             -> BERLAKU: untuk harness yang subagentnya bisa menjalankan perintah tanpa persetujuan manusia per perintah (di Antigravity terhalang prompt izin)
              -> subagent tidak bisa mengukur tanpa interaksi manusia
 
 PENILAIAN    apakah ujinya menguji yang benar

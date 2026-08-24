@@ -204,12 +204,15 @@ def main():
 
     print("Testing selective_reader (Entry 10)...")
     import test_entry_checker
-    print("Testing entry checker (Entry 27)...")
+    import test_close_entry
+    print("Testing entry checker (Entry 27 & 32)...")
     runner.run("entry checker exceptions", test_entry_checker.test_exemption_line_numbers)
     runner.run("entry checker claim rejected", test_entry_checker.test_quantitative_claim_rejected)
     runner.run("entry checker claim accepted", test_entry_checker.test_quantitative_claim_accepted)
     runner.run("entry checker history validation", test_entry_checker.test_real_qa_entries)
     runner.run("entry checker cli exit code", test_entry_checker.test_cli_exit_code)
+    runner.run("close entry success & table inject", test_close_entry.test_close_entry_success)
+    runner.run("close entry rejections (space/prefix)", test_close_entry.test_close_entry_rejections)
     
     import test_chamber_integration
     print("Testing chamber integration (Entry 29)...")

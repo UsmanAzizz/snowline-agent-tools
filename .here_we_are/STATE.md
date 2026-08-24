@@ -1,9 +1,9 @@
-# KEADAAN
+# STATE
 
 **Berkas ini ditimpa, tidak ditambah.** Riwayat ada di `connector.md`.
 Siapa pun yang mengubah sesuatu, memperbarui berkas ini di giliran yang sama.
 
-Diperbarui: 22 Agustus 2026 · commit `6cae2d2` · 0 belum commit, 0 belum push
+Diperbarui: 24 Agustus 2026 · commit `5de68d0` · 8 belum commit, 10 belum push
 
 ---
 
@@ -52,6 +52,8 @@ hook               transkrip Antigravity 5330ddf5 menunjukkan penolakan nyata
                      pencetak modul memaku labelnya, pola sama dengan :344
 3  mode tunggal      rancangan ada di DESIGN_CONTEXT_AND_SOLO.md,
                      tiga hal belum diuji, belum berlaku
+4  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
+                     otomatisasinya sekarang)
 
 TUTUP lewat chamber, arsip per topik:
 ```
@@ -118,12 +120,9 @@ nyata di keduanya — entri 1 menangkap uji yatim yang tidak ikut terjalan, entr
 Jangan percaya angka di atas. Jalankan:
 
 ```bash
-python tests/run_tests.py                                   # 40/40, ~24 detik
+python tests/run_tests.py                                   # 50/50, ~24 detik
 python .agents/skills/project_guardian/guardian.py --summary # CRITICAL=0
 git log --oneline -5
 ```
 
 Kalau tidak cocok, berkas ini basi — perbarui, jangan diamkan.
-Sprint 26       (entri baru)                             history/Sprint 26/
-entri 24 dan 25 (entri baru)                             history/entri 24 dan 25/
-Sprint 27       (entri baru)                             history/Sprint 27/

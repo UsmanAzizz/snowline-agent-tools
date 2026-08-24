@@ -3,6 +3,15 @@ import sys
 from pathlib import Path
 
 def close_entry_command(topik: str):
+    if ' ' in topik:
+        print("Batal: Nama topik tidak boleh memuat spasi. Gunakan huruf kecil dan tanda-hubung (misal: nama-topik).")
+        sys.exit(1)
+        
+    lower_topik = topik.lower()
+    if lower_topik.startswith('sprint') or lower_topik.startswith('entri') or lower_topik.startswith('qa'):
+        print("Batal: Nama topik tidak boleh diawali dengan Sprint, entri, atau QA (mengulang judul entri).")
+        sys.exit(1)
+
     # Setup paths
     here_we_are = Path(".here_we_are")
     agents_chamber = Path(".agents/chamber")
@@ -119,12 +128,57 @@ def close_entry_command(topik: str):
     # Update STATE.md (hanya jika topik belum ada di sana)
     if state_file.exists():
         with open(state_file, 'r', encoding='utf-8') as f:
-            state_text = f.read()
+            state_lines = f.read().splitlines()
             
         topic_path = f"history/{topik}/"
-        if topic_path not in state_text:
-            with open(state_file, 'a', encoding='utf-8') as f:
-                # Append in a structured way per topic
-                f.write(f"{topik.ljust(15)} {'(entri baru)'.ljust(40)} {topic_path}\n")
+        if not any(topic_path in line for line in state_lines):
+            insert_idx = -1
+            in_table = False
+            for i, line in enumerate(state_lines):
+                if line.startswith("TUTUP lewat chamber, arsip per topik:"):
+                    in_table = True
+                elif in_table and line.strip() == '```':
+                    # First ``` starts the table block, second ends it.
+                    # Wait, the table might have already started.
+                    # We just need to find the END of the table which is marked by the NEXT ```
+                    # Let's track table start.
+                    pass
+            
+            # A safer way to find the end of the table
+            table_started = False
+            for i, line in enumerate(state_lines):
+                if "TUTUP lewat chamber, arsip per topik:" in line:
+                    table_started = True
+                elif table_started and line.strip() == '```' and i > 0 and state_lines[i-1].strip() != 'TUTUP lewat chamber, arsip per topik:':
+                    # Wait, if line is ``` right after "TUTUP..." it's the opening block.
+                    # Let's count ``` after TUTUP
+                    pass
+
+            # Actually, simpler loop:
+            table_start_idx = -1
+            for i, line in enumerate(state_lines):
+                if "TUTUP lewat chamber, arsip per topik:" in line:
+                    table_start_idx = i
+                    break
+                    
+            if table_start_idx == -1:
+                print("Batal: Tabel 'TUTUP lewat chamber' tidak ditemukan di STATE.md")
+                sys.exit(1)
+                
+            insert_idx = -1
+            for i in range(table_start_idx + 2, len(state_lines)):
+                if state_lines[i].strip() == '```':
+                    insert_idx = i
+                    break
+                    
+            if insert_idx == -1:
+                print("Batal: Penutup tabel 'TUTUP lewat chamber' tidak ditemukan di STATE.md")
+                sys.exit(1)
+                
+            new_line = f"{topik.ljust(20)} {'(entri baru)'.ljust(38)} {topic_path}"
+            state_lines.insert(insert_idx, new_line)
+            
+            with open(state_file, 'w', encoding='utf-8') as f:
+                f.write('\n'.join(state_lines) + '\n')
     
     print(f"Berhasil: Entri terakhir ditutup dan dipindah ke history/{topik}/{target_file.name}")

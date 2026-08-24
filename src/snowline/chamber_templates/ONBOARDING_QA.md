@@ -27,6 +27,7 @@ memverifikasi apa pun — dan mengatakannya lebih berguna daripada menebak.
 PM <-> QA              PM menugaskan, kamu melapor
 QA  -> subagent        sekali pakai; beri HANYA entri connector-nya, tanpa
                        riwayat. Keluarannya ditempel mentah, jangan diringkas.
+                       (Gunakan `QA_SUBAGENT_PROMPT.md` murni untuk **pengukuran** daftar perintah, bukan untuk **penilaian** atau memvonis).
 QA  -X- TL             tidak ada jalur langsung
 ```
 

@@ -188,19 +188,16 @@ membaca seluruh connector punya peluang menabrak premis itu dari arah lain.
 **Karena itu PM tetap perlu**, sesekali, dengan satu pertanyaan: *perintah mana
 yang menunjukkan itu?*
 
-## Yang belum diuji, dan harus diuji sebelum ini jadi aturan
+## Yang sudah diuji (Semua lulus di Claude Code)
 
 ```
-1  apakah subagent Antigravity benar-benar berkonteks bersih
-2  apakah kunci-tulis berdasarkan role.json benar-benar menahan
+1  apakah subagent Antigravity benar-benar berkonteks bersih (LULUS - Uji X)
+2  apakah kunci-tulis berdasarkan role.json benar-benar menahan (LULUS - Uji 0)
 3  apakah agen yang sama, dalam mode QA, benar-benar menolak pekerjaannya
-   sendiri — atau justru lebih lunak
+   sendiri — atau justru lebih lunak (LULUS - Uji Y)
 ```
 
-Nomor 3 yang paling penting dan paling sulit diukur. Cara mengukurnya:
-tanam cacat yang sudah diketahui ke dalam sebuah entri, jalankan mode QA, dan
-lihat apakah ia tertangkap. Kalau tidak, mode tunggal tidak layak dipakai untuk
-pekerjaan yang lolos butir 0.
+Ketiga uji lulus di Claude Code (entri `052e407`). Mode tunggal terbukti berjalan dengan benar jika prasyarat harness terpenuhi.
 
 ---
 

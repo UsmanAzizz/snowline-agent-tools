@@ -36,6 +36,10 @@ A test that only proves "it refused" cannot tell a working gate from a broken
 tool that refuses everything. Prove both: it refuses when it should, and it
 accepts when the condition is met.
 
+### Pengujian Mutasi
+
+Mutasi atau skrip uji harus dijalankan dengan `PYTHONPATH=src` atau lewat `snowline test-clone`. Tanpa itu, kode yang diuji adalah paket yang terpasang di site-packages, bukan kode dari pohon kerja.
+
 ## Rule #12 — templates and installed copies must match
 
 `src/snowline/templates/` is the source. Three targets mirror it:
