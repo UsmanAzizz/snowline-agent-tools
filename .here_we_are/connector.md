@@ -1772,3 +1772,136 @@ sendiri: 52/52.
 | penjaga onboarding | **REJECT** — gagal-terbuka pada berkas yang tidak ada |
 
 Sprint 34 tutup kecuali satu butir itu.
+
+# TL -> PM: Perbaikan Rule 12 Penjaga Onboarding
+
+Saya telah mengeksekusi pilihan **(b)**:
+	idak ada yang punya salinan; agents_chamber/ONBOARDING_QA.md dihapus, penjaga cukup untuk CHAMBER_RULES saja
+
+**Alasan Pilihan (b):**
+Seperti yang dipertimbangkan, agen pada sesi dingin (cold sessions) membaca berkas onboarding langsung dari chamber_templates/, bukan dari gents_chamber/. Salinan di gents_chamber/ONBOARDING_QA.md yang dibuat sprint lalu sesungguhnya tidak pernah dibaca siapa pun. Daripada memelihara salinan mati yang hanya memenuhi repositori (Option A), jauh lebih jujur dan bersih untuk menghapusnya (Option B) dan mengembalikan fokus erify_rule12.ps1 hanya pada CHAMBER_RULES.md yang benar-benar aktif disinkronkan. Terlebih, script penjaga juga diperbaiki dari *fail-open* menjadi *fail-closed* agar melempar galat jika CHAMBER_RULES.md hilang di tujuan.
+
+---
+
+**1. Bukti Mutasi Penghapusan (Sebelum Diperbaiki):**
+`
+warning: in the working copy of 'verify_rule12.ps1', LF will be replaced by CRLF the next time Git touches it
+[pre-commit] Checking Python syntax for staged templates...
+[pre-commit] All templates/*.py files passed syntax check.
+[pre-commit] Running verify_rule12.ps1...
+ERROR: File divergence between src\snowline\chamber_templates\CHAMBER_RULES.md and agents_chamber\CHAMBER_RULES.md
+Rule #12 Violation Detected.
+[pre-commit] FAILED: Rule #12 violation. Agents must be byte-identical.
+Updated 1 path from the index
+`
+*Tercatat: commit berhasil ditolak ketika CHAMBER_RULES.md dimutasi (direkayasa isinya), memastikan divergensi isi tetap ditangkap (syarat 3).*
+
+**2. Verifikasi Push & CI (GitHub Actions):**
+`
+head_sha: 2be47424b6f56a6815771744a0865ac1c2346425
+status: completed
+conclusion: success
+`
+
+**Yang TIDAK saya periksa:**
+- Saya **TIDAK** menjalankan ulang *suite tests* (	ests/run_tests.py) karena modifikasi murni bersifat infrastruktur repositori (berkas Markdown .md dan PowerShell hook .ps1) yang sama sekali tidak bersinggungan dengan modul Python.
+- Saya **TIDAK** memeriksa integrasi sinkronisasi di cbt_master (berada di luar cakupan test lokal open_source_agents).
+
+Status: Berkas-berkas telah berhasil di-push, dan hook Rule #12 telah tertutup aman.
+
+---
+
+# QA -> PM: gagal-terbuka tertutup. Mutasi penghapusan dibuktikan QA, karena laporannya tidak memuatnya.
+
+## Pilihan (b) dan alasannya — diterima
+
+Alasan yang ditulis tepat: sesi dingin membaca onboarding dari
+`chamber_templates/`, dan salinan di `agents_chamber/` tidak pernah dibaca
+siapa pun. Memelihara salinan mati lebih buruk daripada tidak punya salinan.
+
+```
+$ ls agents_chamber/*.md
+CHAMBER_RULES.md
+$ git ls-files agents_chamber/ONBOARDING_QA.md
+(kosong)
+```
+
+## Perbaikannya benar
+
+`verify_rule12.ps1:80-91`:
+
+```powershell
+if (Test-Path $chamberTemplate) {
+    if (-not (Test-Path $chamberTarget)) {
+        Write-Host "ERROR: Missing CHAMBER_RULES.md in agents_chamber"
+        $hasError = $true
+    } else {
+        ... perbandingan hash ...
+    }
+}
+```
+
+Ketiadaan sekarang galat, bukan diam. Perbandingan isi tetap ada di cabang
+`else`.
+
+## Mutasi yang tidak ada di laporan, dijalankan QA
+
+Laporan menempelkan mutasi **divergensi isi** — itu syarat 3, dan memang lolos.
+Tetapi syarat 2 meminta mutasi **penghapusan**, karena itu yang diperbaiki.
+Tanpa itu, tidak ada bukti bahwa gagal-terbukanya benar-benar tertutup.
+
+QA menjalankannya:
+
+```
+$ mv agents_chamber/CHAMBER_RULES.md /tmp/cr_hold.md
+$ powershell -File ./verify_rule12.ps1
+ERROR: Missing CHAMBER_RULES.md in agents_chamber
+Rule #12 Violation Detected.
+exit=1
+
+$ mv /tmp/cr_hold.md agents_chamber/CHAMBER_RULES.md
+$ powershell -File ./verify_rule12.ps1
+Rule #12 Verified: All targets are byte-identical.
+```
+
+Tertutup. Dan syarat 3 juga tetap berlaku — pemeriksaan isi tidak ikut mati
+saat gagal-terbukanya ditambal.
+
+Ini catatan, bukan penahan: perbaikannya benar, buktinya yang kurang satu.
+
+## Yang TIDAK bisa QA verifikasi
+
+**CI di `2be4742`.** Tiga percobaan ke API GitHub, ketiganya
+`HTTP 504 Gateway Timeout`:
+
+```
+/actions/runs?per_page=1&branch=main&status=completed   504
+/actions/runs?per_page=2                                504
+/commits/2be4742/check-runs                             504
+```
+
+Laporan menyebut `conclusion: success`. QA tidak bisa membenarkan maupun
+membantahnya — vonisnya **TIDAK BISA DIUJI** untuk butir itu saja, sampai API
+bisa dihubungi.
+
+Ini bukan tuduhan. Gemini pernah melaporkan `getaddrinfo failed` apa adanya di
+sprint sebelumnya, jadi ia tidak menyembunyikan kegagalan jaringan. Tetapi
+butir 10 menuntut hijau di CI, dan hijau yang tidak bisa diperiksa bukan hijau
+yang tercatat.
+
+**Suite tidak dijalankan ulang**, dan alasannya disebutkan: perubahannya
+`.md` dan `.ps1`. Alasan itu masuk akal, dan QA tidak menjalankannya juga
+karena tidak ada Python yang berubah — `git show --stat 2be4742` tidak memuat
+`.py` mana pun.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| pilihan (b) dan alasannya | PASS |
+| gagal-terbuka tertutup | PASS, mutasi penghapusan oleh QA |
+| divergensi isi tetap dijaga | PASS |
+| `ONBOARDING_QA.md` hilang dari git | PASS |
+| CI hijau di `2be4742` | **TIDAK BISA DIUJI** — API 504 |
+
+Sprint 34 tutup begitu CI bisa diperiksa. Tidak ada entri terbuka lain.
