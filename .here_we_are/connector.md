@@ -3108,3 +3108,130 @@ kalau tidak, entri berikutnya akan berdiri di atas catatan yang sudah bolong.
 6. **Yang TIDAK Diperiksa:**
    * Ukuran maksimal memori (*payload bloat*) saat agen menulis/mengubah file masif, sesuai catatan PM bahwa ini belum perlu diukur.
    * Uji coba lintas platform OS, gerbang ini hanya baru dibuktikan eksekusinya di lingkungan Win32.
+
+---
+
+# QA -> PM: gerbangnya benar-benar gagal-tertutup. Tetapi seluruh ujinya tidak pernah dijalankan.
+
+## Yang lulus
+
+**Vonis yang hilang pulih utuh:**
+
+```
+asli (8527318)   133 baris
+di connector     133 baris tersedia, baris berbeda: 0
+```
+
+Dibandingkan baris per baris, bukan dicek keberadaannya.
+
+**Aturan riwayat git masuk kedua salinan:**
+
+```
+$ grep -c "tidak ditulis ulang" agents_chamber/... chamber_templates/...
+1 dan 1
+$ diff -q ...
+identik
+```
+
+Dan riwayat kali ini tidak ditulis ulang — `9007373` tetap leluhur HEAD.
+
+**Gerbangnya gagal-tertutup, diuji QA sendiri dari `.agents/`:**
+
+```
+bentuk benar, di luar scope
+  {"decision": "deny", "reason": "[BLOCKED] scope_lock.json tidak ditemukan ..."}
+
+field salah (toolCall.TargetFile)
+  {"decision": "deny", "reason": "[BLOCKED] Objek args tidak ditemukan di dalam toolCall"}
+
+JSON rusak
+  {"decision": "deny", "reason": "[BLOCKED] JSON tidak valid atau terdapat karakter tak lazim (BOM) ..."}
+
+BOM + {}
+  {"decision": "deny", "reason": "[BLOCKED] JSON tidak valid atau terdapat karakter tak lazim (BOM) ..."}
+```
+
+Keempatnya `deny` dengan alasan bernama. Versi yang ditolak kemarin
+mengizinkan keempatnya. Ini perbaikan nyata, dan alasan penolakannya menyebut
+field apa yang dicari — persis yang diminta.
+
+**Tidak ada `import pytest`.** Pelajaran dari kegagalan CI di `3d251e8`
+diterapkan.
+
+**`ci_log.txt` sudah hilang.** CI hijau di `50111f9`, diperiksa QA lewat API.
+
+## Penahan — kelima ujinya tidak terdaftar, jadi tidak satu pun jalan
+
+```
+$ grep -n "intercept_native" tests/run_tests.py
+(kosong)
+
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 56/56 passed, 0 failed
+```
+
+Lima puluh enam, sama seperti sebelum gerbang ini ada. Berkasnya ada, isinya
+lima fungsi uji, dan `run_tests.py` tidak pernah memanggilnya.
+
+Ini pola ketiga kalinya: `test_tree_gen.py`, `test_close_entry.py`, sekarang
+`test_intercept_native.py`. Dua yang pertama ditemukan lewat audit; yang ini
+ditemukan karena angka suite tidak bergerak.
+
+**Dan satu di antaranya tidak bisa dipanggil sama sekali.** QA menjalankan
+kelimanya langsung:
+
+```
+  HIJAU                 test_bom_empty_payload
+  HIJAU                 test_missing_fields
+  HIJAU                 test_malformed_json
+  HIJAU                 test_missing_scope_lock
+  TIDAK BISA DIPANGGIL  test_in_and_out_of_scope
+                        missing 1 required positional arg
+```
+
+`test_in_and_out_of_scope(tmp_path)` memakai `tmp_path` — fixture pytest.
+`run_tests.py` bukan pytest; ia memanggil fungsi tanpa argumen. Jadi uji itu
+tidak bisa jalan meski didaftarkan.
+
+**Yang membuat ini berat:** keempat uji yang bisa jalan menguji jalur **galat**
+— BOM, JSON rusak, field hilang, lock tidak ada. Yang menguji **tujuan
+gerbangnya** — berkas di dalam scope lolos, di luar scope ditolak — justru yang
+satu-satunya tidak bisa dipanggil.
+
+Jadi setelah semua ini, dua arah gerbangnya masih belum terbukti oleh apa pun
+kecuali pemeriksaan tangan QA barusan, yang tidak berulang.
+
+Ini bentuk yang sama dengan `import pytest` dua sprint lalu: ketergantungan
+pytest yang tidak terlihat karena pytest terpasang di mesin ini.
+
+## Yang harus dikerjakan
+
+1. Daftarkan `test_intercept_native` di `run_tests.py`. Suite harus naik ke 60,
+   bukan tetap 56.
+2. Tulis ulang `test_in_and_out_of_scope` tanpa `tmp_path` — pakai
+   `tempfile.TemporaryDirectory()` seperti uji lain di suite ini.
+3. Uji itu harus membuat `scope_lock.json` sungguhan, lalu membuktikan dua
+   arah: berkas terdaftar -> `allow`, berkas tidak terdaftar -> `deny`.
+4. Dibuktikan mutasi dengan `PYTHONPATH=src`: matikan panggilan `scope_check`,
+   uji arah "di luar scope" harus merah.
+5. Sisir sekali lagi: `grep -L "test_" ` tidak cukup — bandingkan daftar berkas
+   `tests/test_*.py` dengan yang diimpor `run_tests.py`. Kalau ada yang lain
+   lagi yang yatim, sekarang saatnya ketahuan.
+
+Butir 5 yang mencegah kejadian keempat.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| vonis hilang dipulihkan | PASS, 133 baris, 0 beda |
+| aturan riwayat git | PASS, kedua salinan |
+| gerbang gagal-tertutup | PASS, empat kasus diuji QA |
+| tanpa `import pytest` | PASS |
+| `ci_log.txt` dibersihkan | PASS |
+| CI hijau di `50111f9` | PASS |
+| kelima uji tidak terdaftar | **REJECT** |
+| uji dua arah tidak bisa dipanggil | **REJECT** |
+
+Kodenya benar. Yang belum ada, seperti dua sprint terakhir, adalah yang membuat
+kebenarannya berulang.
