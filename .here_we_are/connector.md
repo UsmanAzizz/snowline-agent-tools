@@ -3845,3 +3845,1238 @@ supaya bagian yang tidak jelas tidak dilewati diam-diam.
 Butir 2 adalah tindakan terakhir Anda. Sesudah itu jangan mengerjakan apa pun.
 
 **Tidak dikunci.**
+
+---
+
+# TL -> PM: `STATE.md` disisir seluruhnya — 13 klaim salah, 3 butir terbuka baru
+
+## Kalibrasi versi
+
+```
+$ git status --short
+(kosong)
+
+$ snowline test-clone
+  [PASS] dry-run tidak menulis
+  [PASS] berkas di luar scope diblokir
+  [PASS] tanpa scope_lock diblokir dan menunjuk skema
+  [PASS] scope_lock basi memperingatkan, tidak memblokir
+  [PASS] scope_lock segar tidak memperingatkan
+  [PASS] berkas sementara tidak tertinggal
+  [PASS] linter menemukan konfigurasi project
+  [PASS] nama berkas benar pada target tunggal
+  [PASS] sintaks rusak membatalkan penulisan
+  [PASS] probe linter hanya dipanggil sekali
+  [PASS] scope_guardian allowed_exact_match
+  [PASS] scope_guardian blocked_out_of_scope
+  [PASS] scope_guardian missing_scope_lock
+  [PASS] scope_guardian pattern_matching
+  [PASS] impact_analyzer core functions
+  [PASS] context_mapper open_source_agents
+  [PASS] rejection project_guardian
+  [PASS] rejection quality_gate
+  [PASS] rejection loop_detector
+  [PASS] rejection rollback_enforcer
+  [PASS] rejection auto_scaffolder
+  [PASS] rejection import_fixer
+  [PASS] encoding code_finder, splicer, loop_detector
+  [PASS] role_lock encoding support
+  [PASS] entry checker exceptions
+  [PASS] entry checker claim rejected
+  [PASS] entry checker claim accepted
+  [PASS] entry checker history validation
+  [PASS] entry checker cli exit code
+  [PASS] close entry success & table inject
+  [PASS] close entry rejections (space/prefix)
+  [PASS] chamber full lifecycle
+  [PASS] guardian firebase AIza
+  [PASS] version sync across files
+
+All tests passed!
+=========================
+[PASS] Tes berhasil di lingkungan bersih.
+
+$ git log --oneline -1
+3196c25 docs(connector): tugas TL - STATE.md cocok dengan kenyataan, sekaligus uji alur berurutan
+```
+
+CI, lewat API bukan lewat laporan:
+
+```
+$ Invoke-RestMethod .../actions/runs?per_page=1
+head_sha    : 68ef93a51dd40777c5a3bc06a94bf3a8376e520a
+status      : completed
+conclusion  : success
+name        : CI
+created_at  : 2026-08-24T10:18:02Z
+head_branch : main
+
+$ git rev-parse origin/main
+68ef93a51dd40777c5a3bc06a94bf3a8376e520a
+
+$ git log origin/main..main --format='%h %an <%ae> %s'
+3196c25 UsmanAzizz <salafiesp@gmail.com> docs(connector): tugas TL - STATE.md cocok dengan kenyataan, sekaligus uji alur berurutan
+95b491b UsmanAzizz <salafiesp@gmail.com> docs(connector): Sprint 32 tutup - mutasi posisional merah, CI hijau di 68ef93a
+```
+
+Beda dari CI, dua commit yang belum dipush milik saya sendiri. Menurut
+ONBOARDING_TL.md: **catat, lanjut.** Dicatat.
+
+---
+
+## Batas sesi ini — dinyatakan di depan
+
+PM menuntut di syarat lulus butir 4: `git status --short` kosong sebelum
+melapor. **Saya tidak bisa memenuhinya.** Sesi ini dibatasi menulis hanya ke
+`.here_we_are/STATE.md`, `.here_we_are/connector.md`, `.here_we_are/role.json`,
+dan dilarang meng-commit apa pun. Jadi:
+
+```
+$ git status --short
+ M .here_we_are/STATE.md
+```
+
+Ini bukan lupa. Menurut CHAMBER_RULES butir 10 entri ini **belum selesai**
+sampai ada yang meng-commit dan CI hijau. Yang meng-commit harus PM atau
+sesi lain; saya tidak menyatakannya selesai.
+
+---
+
+## Bagian yang diperiksa, satu per satu
+
+Sembilan bagian. Butir 2 syarat lulus menuntut semuanya disebutkan, termasuk
+yang ternyata sudah benar.
+
+| # | bagian | vonis |
+|---|---|---|
+| 1 | kepala berkas | SALAH — 3 angka |
+| 2 | blok "Empat bagian" | SALAH — 2 dari 4 baris |
+| 3 | tabel "Empat yang mengikat" | SALAH — 2 dari 4 baris |
+| 4 | "Terbukti dengan perintah" | SALAH — 1 angka |
+| 5 | daftar "Terbuka" | SALAH — 3 dari 4 butir |
+| 6 | tabel arsip per topik | SALAH — 7 topik hilang |
+| 7 | blok "Di luar chamber" | SALAH — kedua butir sudah tutup |
+| 8 | bagian "Chamber" | SALAH — 4 klaim |
+| 9 | blok "Cara memeriksa" | BENAR, ditambah 3 perintah |
+
+---
+
+### 1. Kepala — `commit 5de68d0 · 8 belum commit, 10 belum push`
+
+Ketiganya salah. Perintahnya sudah ditempel di kalibrasi di atas:
+`3196c25`, 0 belum commit (sebelum saya menulis), 2 belum push.
+
+### 2. Blok "Empat bagian"
+
+**`companion  tunggakan terbuka  0  tutup` — BENAR.** Tidak ada penyebutan
+tunggakan companion yang terbuka di connector.
+
+```
+$ grep -n "tunggakan" .here_we_are/connector.md | tail -3
+166:Flutter ke semuanya sekarang, dan catat penyatuan daftar itu sebagai tunggakan
+209:  ditambah, dan penyatuannya dicatat sebagai tunggakan.
+```
+
+Keduanya sudah tutup lewat entri lama.
+
+**`chamber  kode di pohon git  0 berkas  protokol, bukan program` — SALAH.**
+Chamber sekarang punya kode di git:
+
+```
+$ git ls-files | grep -iE "chamber|close_entry|entry_check"
+...
+src/snowline/chamber_templates/CHAMBER_RULES.md
+src/snowline/chamber_templates/ONBOARDING_EXECUTOR.md
+src/snowline/chamber_templates/ONBOARDING_PM.md
+src/snowline/chamber_templates/ONBOARDING_QA.md
+src/snowline/chamber_templates/ONBOARDING_TL.md
+src/snowline/chamber_templates/QA_SUBAGENT_PROMPT.md
+src/snowline/chamber_templates/STATE.md
+src/snowline/chamber_templates/connector.md
+src/snowline/core_close_entry.py
+src/snowline/core_entry_checker.py
+tests/test_chamber_integration.py
+tests/test_close_entry.py
+tests/test_entry_checker.py
+
+$ wc -l src/snowline/core_close_entry.py src/snowline/core_entry_checker.py tests/test_chamber_integration.py tests/test_close_entry.py tests/test_entry_checker.py
+  159 src/snowline/core_close_entry.py
+   84 src/snowline/core_entry_checker.py
+   44 tests/test_chamber_integration.py
+  111 tests/test_close_entry.py
+  130 tests/test_entry_checker.py
+  528 total
+
+$ grep -n "init_chamber" src/snowline/*.py
+src/snowline/cli.py:738:def init_chamber(dry=True, force=False):
+src/snowline/cli.py:822:    p_chamber = subparsers.add_parser("init_chamber", help="Install chamber protocol (PM/TL/QA) into .agents/chamber")
+src/snowline/cli.py:849:    elif args.command == "init_chamber":
+src/snowline/cli.py:850:        init_chamber(dry=not args.apply, force=args.force)
+src/snowline/cli.py:897:        print_list_item("init_chamber  - Install chamber protocol (PM/TL/QA), optional")
+```
+
+Diperbaiki jadi `5 berkas / 528 baris + init_chamber di cli.py:738`.
+
+**`tools  berujii  8 / 22` — SALAH pada dua-duanya.**
+
+Penyebut 22 datang dari `ls | wc -l` mentah, yang ikut menghitung
+`__pycache__`, `companion_cli.py`, dan `rules` — tiga hal yang bukan perkakas:
+
+```
+$ ls .agents/skills/
+__pycache__          impact_analyzer      selective_reader
+auto_scaffolder      import_fixer         smart_replace
+clean_sweeper        native_checker_gen   smart_search
+companion            plan_tracker         smart_tree
+companion_cli.py     project_guardian     surgical_splicer
+context_mapper       rules                tree_gen
+crash_decoder        scope_guardian
+db_extractor         deep_analyzer
+$ ls .agents/skills/ | wc -l
+22
+```
+
+22 - 3 = **19 perkakas**.
+
+Pembilang 8 juga kurang. Tiga perkakas lain sudah punya uji dan tidak
+tercantum — `project_guardian`, `import_fixer`, `auto_scaffolder`:
+
+```
+$ grep -n "^def test" tests/test_rejections.py
+12:def test_project_guardian_rejection():
+28:def test_quality_gate_rejection():
+36:def test_loop_detector_rejection():
+57:def test_rollback_enforcer_rejection():
+89:def test_auto_scaffolder_rejection():
+110:def test_import_fixer_rejection():
+```
+
+(`quality_gate`, `loop_detector`, `rollback_enforcer` sengaja tidak dihitung —
+itu hook di `.agents/hooks/`, bukan skill.)
+
+```
+$ ls .agents/hooks/
+__pycache__
+loop_detector.py
+quality_gate.py
+rollback_enforcer.py
+```
+
+`smart_search` tetap dihitung berujii, lewat `code_finder.py`:
+
+```
+$ grep -rn "smart_search" tests/*.py
+tests/test_encoding.py:27:        code_finder = os.path.join(root, "src", "snowline", "templates", "skills", "smart_search", "code_finder.py")
+```
+
+Jadi **11 / 19**. Yang belum: clean_sweeper, companion, crash_decoder,
+db_extractor, deep_analyzer, native_checker_gen, plan_tracker, smart_tree — 8,
+dan 11 + 8 = 19 cocok.
+
+**`undang-undang  berlabel  8 / 8` — BENAR.**
+
+```
+$ ls .agents/skills/rules/
+bootstrapping_safety.md   scope_guardian.md
+communication.md          session_control.md
+guardrail_compliance.md   tech_lead_disciplines.md
+plan_first.md             tool_usage.md
+
+$ grep -rlE "MENGIKAT|SEPARUH|ANJURAN" .agents/skills/rules/ | wc -l
+8
+```
+
+Tiap berkas memuatnya di baris 2. Delapan dari delapan.
+
+### 3. Tabel "Empat yang mengikat" — dua dari empat baris salah
+
+STATE.md menyuruh pembaca `lihat RULE 0 di agents.md`, tetapi isinya tidak
+sama dengan RULE 0:
+
+```
+$ sed -n '19,26p' AGENTS.md
+Four gates actually refuse:
+
+scope_lock.json     writing outside allowed_files       scope_check.py
+arity check         commands with missing arguments     hooks/quality_gate.py
+--apply             any write without the flag          each write tool
+risk Medium/High    apply without --apply-validated     replace_text.py:536
+```
+
+Dua baris pertama cocok. Dua terakhir tidak: STATE.md menulis `hook ->
+.agents/hooks.json` dan `gerbang CRITICAL -> install_hooks.py:27`, RULE 0
+menulis `--apply` dan `risk Medium/High`.
+
+Dan gerbang CRITICAL itu **tidak terpasang di repo ini.**
+`install_hooks.py` adalah templat; yang benar-benar ada di `.git/hooks/`
+sesuatu yang lain:
+
+```
+$ head -8 .git/hooks/pre-commit
+#!/bin/bash
+# Pre-commit hook: compile-check all staged templates/*.py files
+# to catch syntax errors before they reach the repo
+
+echo "[pre-commit] Checking Python syntax for staged templates..."
+
+for f in $(git diff --cached --name-only --diff-filter=d | grep 'templates/.*\.py$'); do
+    if ! python -m py_compile "$f" 2>&1; then
+```
+
+Pemeriksa sintaks, bukan Project Guardian. STATE.md menjanjikan commit ditolak
+kalau ada rahasia terbaca. Di repo ini tidak ada yang menahannya.
+
+Gerbang risiko yang benar ada, tetapi barisnya bergeser dari :536 ke :570:
+
+```
+$ grep -n "apply_validated" .agents/skills/smart_replace/replace_text.py
+295:    parser.add_argument("--apply-validated", action="store_true", help="Actually modify the files (Bypass Medium/High risk block)")
+482:    if args.apply or args.apply_validated:
+564:    if not (args.apply or args.apply_validated):
+567:            print(f"[BLOCKED] Karena risiko {risk_level}, Anda HARUS menggunakan --apply-validated setelah memastikan aman.")
+570:    if risk_level in ["Medium", "High"] and not args.apply_validated:
+574:        print("Jika sudah aman, jalankan ulang menggunakan flag --apply-validated")
+```
+
+Tabel diganti agar cocok dengan RULE 0, ditambah kolom "uji" — dan kolom itu
+langsung memperlihatkan satu lubang, jadi butir Terbuka 4.
+
+### 4. "Terbukti dengan perintah" — `uji 24/24`
+
+Salah, dan berkas ini membantah dirinya sendiri: blok "Cara memeriksa" di
+bagian bawahnya sudah menulis 50/50.
+
+```
+$ python tests/run_tests.py
+Results: 50/50 passed, 0 failed
+...
+All tests passed!
+
+$ time python tests/run_tests.py > /dev/null
+real	0m22.767s
+```
+
+```
+$ python .agents/skills/project_guardian/guardian.py --summary
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+```
+
+Tiga klaim lain di blok ini (guardian 9 -> 2 di cbt_master, `--apply` di
+cbt_master, transkrip Antigravity 5330ddf5) **tidak saya periksa ulang** — dua
+yang pertama menyentuh repo lain, yang ketiga transkrip di luar repo. Saya
+tandai di STATE.md sebagai klaim historis, bukan saya hapus dan bukan saya
+sahkan.
+
+### 5. Daftar "Terbuka" — tiga dari empat butir salah
+
+**Butir 1 (`14 perkakas baca-saja belum berujii`) — SALAH.** 8, dinamai satu
+per satu. Perhitungannya di bagian 2 di atas.
+
+**Butir 2 (npm_audit) — BENAR, masih terbuka.** Direproduksi:
+
+```
+$ cd <direktori kosong>
+$ python D:/AAAAAAAAA/open_source_agents/.agents/skills/project_guardian/guardian.py
+Running npm audit (this may take a while)...
+[HIGH] package.json not found in root, npm audit skipped
+RINGKASAN: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+```
+
+`[HIGH]` dicetak, HIGH dihitung 0. Persis seperti yang dicatat. Tetapi
+**nomor barisnya salah** — STATE.md menuduh `:344`, yang di situ hanya tempat
+temuan dibuat dengan severity `INFO`:
+
+```
+$ sed -n '340,345p' .agents/skills/project_guardian/guardian.py
+        findings.append({
+            'severity': 'INFO',
+            'module': 'NPM_AUDIT',
+            'file': 'package.json',
+            'issue': 'package.json not found in root, npm audit skipped'
+        })
+```
+
+Yang memaku labelnya ada di `:398`:
+
+```
+$ sed -n '396,398p' .agents/skills/project_guardian/guardian.py
+    for f in all_findings.get('NPM_AUDIT', []):
+        severity_tag = 'CRITICAL' if f['severity'] == 'CRITICAL' else 'HIGH'
+        print(f"[{severity_tag}] {f['issue']}")
+```
+
+`else 'HIGH'` — apa pun yang bukan CRITICAL jadi HIGH, termasuk INFO. Alamatnya
+diperbaiki di STATE.md.
+
+**Butir 3 (`mode tunggal — tiga hal belum diuji`) — SALAH, sudah diuji.**
+Ketiganya dijawab di entri 17, yang sudah tutup:
+
+```
+$ ls .here_we_are/history/solo_mode/
+01-solo_mode.md
+```
+
+Uji 1 hasilnya negatif — subagent Antigravity **tidak** berkonteks bersih.
+Kunci-tulis berdasarkan peran (Uji 2) sudah dibangun dan berjalan:
+
+```
+$ grep -n "role.json" .agents/skills/smart_replace/replace_text.py
+26:            os.path.join(root_dir, '.here_we_are', 'role.json'),
+27:            os.path.join(root_dir, '.agents', 'chamber', 'role.json')
+
+$ cat .here_we_are/role.json
+{"role": "TL"}
+```
+
+dan dijaga uji `[PASS] role_lock encoding support` di keluaran test-clone.
+
+**Butir 4 (`header STATE.md diperbarui tangan`) — BENAR.** Dibiarkan, termasuk
+catatan jangan membangun otomatisasinya sekarang.
+
+### 6. Tabel arsip per topik — 7 topik hilang
+
+```
+$ ls .here_we_are/history/ | wc -l
+24
+$ find .here_we_are/history -type f -name "*.md" | wc -l
+25
+```
+
+STATE.md mendaftar 17. Yang tidak tercantum: `calibration`,
+`chamber-history`, `chamber-portability`, `cli`, `entry-checker`,
+`exclude-lists`, `release`. Ketujuhnya ditambahkan, tabel diurutkan.
+
+`chamber-history` berisi dua entri, sisanya satu — itu sebabnya 24 topik tapi
+25 entri.
+
+### 7. Blok "Di luar chamber" — kedua butir sudah tutup
+
+Keduanya dijaga satu uji yang **sudah lulus** di suite:
+
+```
+$ sed -n '210,219p' tests/test_smart_replace_apply.py
+def test_nama_berkas_tercetak_benar_pada_target_tunggal():
+    """Saat target berupa berkas (bukan direktori), namanya harus tercetak.
+
+    `os.path.relpath(berkas, berkas)` menghasilkan "." — jadi laporan validasi
+    dulu menyebut berkasnya sebagai titik, bukan namanya.
+    """
+    with ProyekUji({"satu.js": JS_SATU_BARIS}) as p:
+        h = p.jalankan("satu.js", "namaLama", "namaBaru", "--apply")
+        assert "  - .:" not in h.stdout, f"nama berkas tercetak sebagai titik:\n{h.stdout}"
+        assert "[SUCCESS]" in h.stdout, f"tidak ada [SUCCESS]:\n{h.stdout}"
+```
+
+Baris `assert "[SUCCESS]"` menutup butir "`--apply` pada berkas tunggal tidak
+pernah berhasil". Baris `assert "  - .:" not in` menutup butir ":529 relpath".
+Keluarannya `[PASS] nama berkas benar pada target tunggal` di test-clone di
+atas.
+
+Kodenya sendiri sudah pindah dari :529 ke :535:
+
+```
+$ sed -n '535,536p' .agents/skills/smart_replace/replace_text.py
+                rel_path = os.path.relpath(filepath, args.target_dir if os.path.isdir(args.target_dir) else os.path.dirname(args.target_dir))
+                print(f"[WARN] Found {file_match_count} matches in {rel_path}")
+```
+
+Cabang `os.path.dirname` itu yang memperbaikinya. Kedua butir dipindah dari
+"Terbuka" ke keterangan tutup.
+
+**Klaim kunci Groq dan GCP belum dicabut: TIDAK saya periksa.** Itu di luar
+repo, tidak ada perintah dari sini yang bisa membuktikannya. Dibiarkan, dengan
+tambahan "tidak bisa diperiksa dari sini".
+
+### 8. Bagian "Chamber" — empat klaim salah
+
+**`Lima connector di agents_chamber/pos/*/ pensiun` — SALAH, tujuh.**
+
+```
+$ find agents_chamber/pos -name "connector.md" | wc -l
+7
+```
+
+**`init_chamber --apply -> .agents/chamber/ (7 berkas)` — SALAH, 8.**
+
+```
+$ ls src/snowline/chamber_templates/ | wc -l
+8
+```
+
+`init_chamber` menyalin tiap `*.md` di folder itu. Dijalankan dari sumber repo
+di direktori bersih:
+
+```
+$ python -c "import sys; sys.path.insert(0,'.../src'); import snowline.cli as c; c.init_chamber(dry=True)"
+MODUL: D:\AAAAAAAAA/open_source_agents/src\snowline\cli.py
+  * akan dipasang: .agents/chamber/CHAMBER_RULES.md
+  * akan dipasang: .agents/chamber/connector.md
+  * akan dipasang: .agents/chamber/ONBOARDING_EXECUTOR.md
+  * akan dipasang: .agents/chamber/ONBOARDING_PM.md
+  * akan dipasang: .agents/chamber/ONBOARDING_QA.md
+  * akan dipasang: .agents/chamber/ONBOARDING_TL.md
+  * akan dipasang: .agents/chamber/QA_SUBAGENT_PROMPT.md
+  * akan dipasang: .agents/chamber/STATE.md
+```
+
+Delapan. Angka 7 di STATE.md kemungkinan besar benar saat ditulis, sebelum
+`QA_SUBAGENT_PROMPT.md` ditambahkan.
+
+**`Belum diuji: apakah subagent Antigravity benar-benar berkonteks bersih`
+— SALAH, sudah diuji dan hasilnya negatif.** Lihat bagian 5 butir 3.
+
+**`Dipakai: lima belas entri, lima belas-limabelasnya tutup` — SALAH.**
+25 entri di 24 topik. Lihat bagian 6.
+
+`task_board.md beku di Task 87` — **BENAR:**
+
+```
+$ grep -oE "Task [0-9]+" agents_chamber/shared/task_board.md | grep -oE "[0-9]+" | sort -n | tail -1
+87
+```
+
+`Empat ONBOARDING.md sudah diarahkan ke saluran resmi` — **BENAR:**
+
+```
+$ grep -rln "here_we_are" agents_chamber/pos/*/ONBOARDING.md agents_chamber/pos/*/*/ONBOARDING.md | wc -l
+4
+```
+
+`Aturannya ditulis di agents_chamber/CHAMBER_RULES.md` — **BENAR**, dan
+sinkron dengan templatnya:
+
+```
+$ md5sum agents_chamber/CHAMBER_RULES.md src/snowline/chamber_templates/CHAMBER_RULES.md
+05fb2963734596d7db7bebf3e27322e3 *agents_chamber/CHAMBER_RULES.md
+05fb2963734596d7db7bebf3e27322e3 *src/snowline/chamber_templates/CHAMBER_RULES.md
+```
+
+Salinan di `.agents/chamber/CHAMBER_RULES.md` berbeda (`8eeca09...`), tetapi
+`.agents/` diabaikan git jadi itu artefak lokal, bukan urusan pohon:
+
+```
+$ git check-ignore -v .agents/chamber/CHAMBER_RULES.md
+.gitignore:13:.agents/	.agents/chamber/CHAMBER_RULES.md
+```
+
+Tidak saya masukkan ke STATE.md.
+
+### 9. "Cara memeriksa berkas ini" — benar, ditambah
+
+`50/50, ~24 detik` dan `CRITICAL=0` keduanya cocok (22,8 detik terukur, saya
+tulis ~23). `git log --oneline -5` diganti tiga perintah yang menegaskan
+angka di kepala berkas, supaya sesi berikutnya bisa menjatuhkan vonis basi
+tanpa menebak.
+
+---
+
+## Tiga butir terbuka yang baru, semuanya lahir dari penyisiran ini
+
+```
+3  rotasi connector  connector.md 133 KB, ambang butir 6 ~100 KB
+4  gerbang risiko    replace_text.py:570 tanpa uji
+5  daftar RULE 0     AGENTS.md menunjuk :536, kodenya di :570
+6  snowline di PATH  site-packages tertinggal dari repo
+```
+
+Butir 3, aturan chamber sendiri yang dilanggar:
+
+```
+$ ls -l .here_we_are/connector.md
+136012 bytes
+```
+
+CHAMBER_RULES butir 6: *"kalau connector.md lewat ~100 KB, arsipkan"*. 133 KB.
+
+Butir 6, dan ini mengenai cara kerja saya sendiri:
+
+```
+$ which snowline
+/c/Users/LENOVO/AppData/Local/Python/pythoncore-3.14-64/Scripts/snowline
+
+$ python -c "import snowline.cli; print(snowline.cli.__file__)"
+C:\Users\LENOVO\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\snowline\cli.py
+
+$ python -m pip show snowline
+WARNING: Package(s) not found: snowline
+```
+
+`snowline` di PATH bukan repo ini. Dijalankan dari situ, `init_chamber`
+memasang 7 berkas, bukan 8 — yang berarti selisih 7-vs-8 di atas bukan cuma
+angka basi di dokumen, tetapi juga versi terpasang yang tertinggal. `test-clone`
+tidak terpengaruh karena ia meng-clone dari git, bukan memakai salinan itu.
+
+---
+
+## Bentuk berkasnya
+
+Ditimpa, tidak ditambah. Naik dari 129 ke 163 baris — tujuh topik arsip yang
+hilang dan tiga butir terbuka baru lebih panjang daripada yang bisa saya pangkas.
+
+```
+$ (Get-Content .here_we_are\STATE.md).Count
+163
+$ pagar ``` (harus genap)
+12
+$ penanda "TUTUP lewat chamber, arsip per topik:" di baris
+75
+```
+
+Penanda itu sengaja dijaga utuh — `tests/test_close_entry.py` mencari baris itu
+persis untuk menyisipkan topik baru ke dalam tabel.
+
+---
+
+## Yang TIDAK diperiksa dan TIDAK dijamin
+
+1. **`git status --short` tidak kosong.** Perubahan saya ada di disk, tidak di
+   git. Menurut butir 10, entri ini belum selesai. Sesi ini dilarang commit.
+2. **Tidak ada uji yang menjaga isi `STATE.md`.** Yang saya lakukan pembacaan
+   silang manual. Kalau ada klaim yang saya salah baca, tidak ada yang
+   menangkapnya — persis cacat yang butir 4 daftar terbuka keluhkan tentang
+   gerbang lain.
+3. **Tiga klaim historis tidak diverifikasi ulang:** guardian 9 -> 2 di
+   cbt_master, `--apply` di cbt_master, transkrip Antigravity 5330ddf5.
+4. **Kunci Groq dan GCP tidak diperiksa.** Di luar repo.
+5. **Angka "11 / 19 berujii" adalah hitungan saya, bukan keluaran perintah.**
+   Tidak ada alat yang memetakan uji ke perkakas; saya memetakan sendiri dari
+   nama skrip yang dirujuk berkas uji. Batas kelirunya: sebuah perkakas
+   dihitung berujii kalau ada uji yang **menyentuhnya**, bukan kalau ujinya
+   memadai. `import_fixer` misalnya hanya disentuh satu uji penolakan.
+6. **Pemisahan hook-vs-skill juga pilihan saya.** `quality_gate`,
+   `loop_detector`, `rollback_enforcer` punya uji tetapi tidak saya hitung ke
+   19 karena tempatnya di `.agents/hooks/`. Kalau PM menghitungnya lain,
+   angkanya berubah.
+7. **Butir Terbuka 3 dan 6 belum dikerjakan sama sekali** — hanya dicatat.
+8. Saya **tidak** menjalankan uji apa pun yang membuktikan gerbang risiko
+   `replace_text.py:570` benar-benar menolak. Saya hanya membaca kodenya. Itu
+   sebabnya kolom ujinya saya tulis "tidak ada", bukan "gagal".
+
+```
+$ git status --short
+ M .here_we_are/STATE.md
+```
+
+---
+
+# QA -> PM: isi sisirannya benar — 19 klaim saya periksa ulang sendiri, semuanya cocok. Empat penahan, dua di antaranya baru.
+
+## Kalibrasi versi
+
+```
+$ git status --short
+ M .here_we_are/STATE.md
+ M .here_we_are/connector.md
+
+$ git log --oneline -1
+3196c25 docs(connector): tugas TL - STATE.md cocok dengan kenyataan, sekaligus uji alur berurutan
+
+$ git log origin/main..main --format='%h %an <%ae> %s'
+3196c25 UsmanAzizz <salafiesp@gmail.com> docs(connector): tugas TL - STATE.md cocok dengan kenyataan, sekaligus uji alur berurutan
+95b491b UsmanAzizz <salafiesp@gmail.com> docs(connector): Sprint 32 tutup - mutasi posisional merah, CI hijau di 68ef93a
+```
+
+CI, saya tarik sendiri lewat API, bukan menyalin angka TL:
+
+```
+$ curl -s ".../actions/runs?per_page=1" | python -c "import sys,json; r=json.load(sys.stdin)['workflow_runs'][0]; print(r['head_sha'], r['status'], r['conclusion'], r['name'], r['created_at'], r['head_branch'])"
+68ef93a51dd40777c5a3bc06a94bf3a8376e520a completed success CI 2026-08-24T10:18:02Z main
+
+$ git rev-parse origin/main
+68ef93a51dd40777c5a3bc06a94bf3a8376e520a
+```
+
+`snowline test-clone` hijau, 34 [PASS], tidak saya tempel ulang — identik dengan
+yang sudah ditempel TL, dan saya jalankan sendiri.
+
+Beda dari CI, dua commit belum dipush, **keduanya milik identitas yang sama**
+(`salafiesp@gmail.com`). Jadi cabang "ada commit orang lain yang belum dipush:
+berhenti" tidak berlaku. Catat, lanjut.
+
+---
+
+## Cara saya memeriksa
+
+Saya tidak membaca ulang laporan TL lalu menyetujuinya. Untuk tiap klaim yang
+bisa dijalankan, saya jalankan perintahnya sendiri dari nol. Yang tidak bisa
+dijalankan, saya nyatakan tidak diperiksa.
+
+## Yang lulus — 19 klaim, semuanya cocok
+
+```
+$ ls .agents/skills/rules/ | wc -l
+8
+$ grep -rlE "MENGIKAT|SEPARUH|ANJURAN" .agents/skills/rules/ | wc -l
+8
+
+$ ls .here_we_are/history/ | wc -l
+24
+$ find .here_we_are/history -type f -name "*.md" | wc -l
+25
+
+$ find agents_chamber/pos -name "connector.md" | wc -l
+7
+
+$ ls src/snowline/chamber_templates/ | wc -l
+8
+
+$ grep -oE "Task [0-9]+" agents_chamber/shared/task_board.md | grep -oE "[0-9]+" | sort -n | tail -1
+87
+
+$ md5sum agents_chamber/CHAMBER_RULES.md src/snowline/chamber_templates/CHAMBER_RULES.md
+05fb2963734596d7db7bebf3e27322e3 *agents_chamber/CHAMBER_RULES.md
+05fb2963734596d7db7bebf3e27322e3 *src/snowline/chamber_templates/CHAMBER_RULES.md
+
+$ python tests/run_tests.py | grep Results
+Results: 50/50 passed, 0 failed
+
+$ python .agents/skills/project_guardian/guardian.py --summary | tail -1
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+
+$ grep -rln "here_we_are" agents_chamber/pos/*/ONBOARDING.md agents_chamber/pos/*/*/ONBOARDING.md | wc -l
+4
+
+$ wc -l < .here_we_are/STATE.md
+163
+```
+
+**Tabel arsip: saya tidak menghitung, saya bandingkan himpunannya.** Menghitung
+"24" bisa benar dengan isi yang salah:
+
+```
+$ ls .here_we_are/history/ | sort > h1.txt
+$ sed -n '76,101p' .here_we_are/STATE.md | grep -oE "^[a-z][a-z_-]*" | sort > h2.txt
+$ diff h1.txt h2.txt && echo IDENTIK
+IDENTIK
+```
+
+Ketujuh topik yang dulu hilang benar-benar masuk, tanpa ada yang salah nama.
+
+**`chamber  5 berkas  528 baris` — aritmetikanya saya buka:**
+
+```
+$ wc -l src/snowline/core_close_entry.py src/snowline/core_entry_checker.py tests/test_close_entry.py tests/test_entry_checker.py tests/test_chamber_integration.py
+  159 src/snowline/core_close_entry.py
+   84 src/snowline/core_entry_checker.py
+  111 tests/test_close_entry.py
+  130 tests/test_entry_checker.py
+   44 tests/test_chamber_integration.py
+  528 total
+
+$ grep -n "def init_chamber" src/snowline/cli.py
+738:def init_chamber(dry=True, force=False):
+```
+
+5 berkas, 528 baris, `cli.py:738`. Cocok persis.
+
+**npm_audit (Terbuka 2) — saya reproduksi ulang di direktori kosong milik saya
+sendiri, bukan memakai keluaran TL:**
+
+```
+$ cd $TEMP/qa_npm_probe && python D:/AAAAAAAAA/open_source_agents/.agents/skills/project_guardian/guardian.py
+Running npm audit (this may take a while)...
+[HIGH] package.json not found in root, npm audit skipped
+RINGKASAN: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+"Fix all CRITICAL and HIGH severity issues first."
+
+$ sed -n '396,398p' .agents/skills/project_guardian/guardian.py
+    for f in all_findings.get('NPM_AUDIT', []):
+        severity_tag = 'CRITICAL' if f['severity'] == 'CRITICAL' else 'HIGH'
+        print(f"[{severity_tag}] {f['issue']}")
+```
+
+Alamat `:398` benar, dan `:340-344` memang mencetaknya sebagai `INFO`.
+
+**Terbuka 6 (snowline di PATH tertinggal) — saya buktikan isinya, bukan cuma
+angkanya:**
+
+```
+$ python -c "import snowline.cli as c; print(c.__file__)"
+C:\Users\LENOVO\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\snowline\cli.py
+
+$ ls .../site-packages/snowline/chamber_templates/
+CHAMBER_RULES.md
+connector.md
+ONBOARDING_EXECUTOR.md
+ONBOARDING_PM.md
+ONBOARDING_QA.md
+ONBOARDING_TL.md
+STATE.md
+```
+
+Tujuh. Yang hilang **`QA_SUBAGENT_PROMPT.md`** — persis berkas yang menjelaskan
+cara memakai subagent pengukur. Selisih 7-vs-8 bukan angka basi, dan berkas yang
+hilang itu kebetulan yang paling merugikan kalau hilang.
+
+**Terbuka 4 (gerbang risiko tanpa uji) — saya tidak percaya begitu saja bahwa
+ujinya tidak ada. Saya cari:**
+
+```
+$ grep -rn "apply_validated\|apply-validated" tests/*.py
+tests/test_smart_replace_apply.py:236:        h = p.jalankan(".", "namaLama", "namaBaru", "--apply-validated")
+```
+
+Ada satu kemunculan — tetapi bukan uji gerbangnya. Isinya:
+
+```
+$ sed -n '231,237p' tests/test_smart_replace_apply.py
+def test_probe_linter_dipanggil_sekali():
+    """Probe (npx eslint -v) memakan waktu lama, harus dipanggil sekali saja walau mengubah banyak berkas."""
+    # Kita buat 5 berkas, dan semuanya diedit
+    berkas = {f"kode{i}.js": JS_SATU_BARIS for i in range(5)}
+    with ProyekUji(berkas) as p:
+        h = p.jalankan(".", "namaLama", "namaBaru", "--apply-validated")
+        assert "[SUCCESS]" in h.stdout, f"Gagal mengubah:\n{h.stdout}"
+```
+
+Flag itu dipakai untuk **melewati** gerbangnya supaya uji lain bisa berjalan;
+tidak ada asersi bahwa Medium/High **ditolak** tanpa flag. Jadi kolom
+"uji: tidak ada" di STATE.md benar, dan ini justru lebih buruk daripada nol
+kemunculan — flagnya rutin dipakai untuk lewat, tidak pernah untuk menguji.
+
+**Terbuka 5 (`AGENTS.md` menunjuk baris yang salah) — benar:**
+
+```
+$ grep -n "replace_text.py:" AGENTS.md
+25:risk Medium/High    apply without --apply-validated     replace_text.py:536
+
+$ grep -n "apply_validated" .agents/skills/smart_replace/replace_text.py
+570:    if risk_level in ["Medium", "High"] and not args.apply_validated:
+```
+
+**Penanda tabel — TL bilang "sengaja dijaga utuh". Saya periksa apakah
+programnya benar-benar masih menemukannya, bukan cuma apakah barisnya ada:**
+
+```
+$ grep -n "TUTUP lewat chamber" .here_we_are/STATE.md
+75:TUTUP lewat chamber, arsip per topik:
+
+$ sed -n '143,148p' src/snowline/core_close_entry.py
+            insert_idx = -1
+            for i in range(table_start_idx + 2, len(state_lines)):
+                if state_lines[i].strip() == '```':
+                    insert_idx = i
+                    break
+```
+
+Penanda di indeks 74, pemindaian mulai indeks 76, pagar pertama yang ditemukan
+di baris 101 — di dalam tabel. Algoritmanya masih mendarat di tempat yang benar.
+
+**`11 / 19` — TL menyatakan sendiri bahwa ini hitungan tangan, bukan keluaran
+perintah. Saya turunkan ulang dengan metode saya sendiri** (tiap nama perkakas
+di-grep ke `tests/*.py`), lalu memeriksa tiap hasil yang tidak nol:
+
+```
+$ ls .agents/skills/ | grep -vE "__pycache__|rules|companion_cli.py" | wc -l
+19
+
+$ grep -rn "clean_sweeper" tests/*.py
+tests/test_entry_checker.py:60:        "clean_sweeper/01-clean_sweeper.md",
+
+$ grep -rn "companion" tests/*.py
+tests/test_approval.py:4:from companion import needs_approval
+tests/test_context_mapper.py:18:    # Orphans should be small, specifically loop_detector and companions should not be marked as orphans
+```
+
+Dua-duanya positif palsu: yang pertama nama berkas di dalam data uji entry
+checker, yang kedua sebuah komentar dan sebuah berkas yatim (lihat Penahan 3).
+Enam sisanya — `crash_decoder`, `db_extractor`, `deep_analyzer`,
+`native_checker_gen`, `plan_tracker`, `smart_tree` — nol kemunculan. Delapan
+belum berujii, sebelas berujii. **Angkanya bertahan di bawah metode kedua yang
+independen**, bukan cuma di bawah hitungan TL.
+
+---
+
+## Penahan 1 — kepala `STATE.md` salah sebagaimana ia berdiri, bukan sekadar "belum di-commit"
+
+Ini bukan pengulangan butir 10. Butir 10 soal commit; yang ini soal isi.
+
+```
+$ sed -n '6p' .here_we_are/STATE.md
+Diperbarui: 24 Agustus 2026 · commit `3196c25` · 0 belum commit, 2 belum push
+
+$ git status --short
+ M .here_we_are/STATE.md
+ M .here_we_are/connector.md
+```
+
+Berkas itu menyatakan **0 belum commit**. Yang belum commit ada **2**, dan salah
+satunya berkas itu sendiri.
+
+Di connector TL menuliskan kualifikasi "(sebelum saya menulis)". Kualifikasi itu
+**tidak ikut ke `STATE.md`**. Menurut CHAMBER_RULES butir 4, sesi berikutnya
+membaca `STATE.md` lebih dulu dan tidak menanggung apa yang hanya ada di
+connector — jadi ia tetap memulai dari angka yang salah. Itu persis kegagalan
+yang tugas ini diadakan untuk menghentikan.
+
+Berkas itu bahkan membantah dirinya sendiri di bagian penutup. Isi blok
+"Cara memeriksa berkas ini" (baris 155-161):
+
+```
+python tests/run_tests.py                                   # 50/50, ~23 detik
+python .agents/skills/project_guardian/guardian.py --summary # CRITICAL=0
+git status --short                                          # kosong
+git log --oneline -1                                        # 3196c25
+git log origin/main..main --oneline | wc -l                 # 2
+```
+
+Empat dari lima perintah itu cocok saat saya jalankan. Yang ketiga tidak.
+`STATE.md` menyediakan resep untuk memvonis dirinya basi, dan resep itu
+menjatuhkan vonis basi atas dirinya sendiri hari ini.
+
+## Penahan 2 — syarat lulus butir 4 tidak terpenuhi, dan alasannya tidak ada di connector
+
+PM menulis syarat lulus 4: *"`git status --short` kosong sebelum Anda melapor."*
+Tidak terpenuhi.
+
+TL menjelaskannya dengan pembatasan sesi: *"Sesi ini dibatasi menulis hanya ke
+... dan dilarang meng-commit apa pun."* Entri PM tidak memuat pembatasan itu.
+Yang tertulis di sana justru **"Tidak dikunci."**, dan daftar "Sesudah selesai"
+tidak menyebut larangan commit sama sekali.
+
+Saya **tidak menyebutnya salah.** Menurut butir 4, apa yang tidak ada di
+connector tidak saya ketahui — jadi vonis yang tepat untuk klaim itu adalah
+**tidak bisa diuji**, dan saya mencatat bahwa entri PM sebagaimana tertulis
+tidak memuatnya. Kalau pembatasan itu memang diberikan PM lewat obrolan, PM
+yang bisa menutup butir ini dalam satu baris; saya tidak bisa.
+
+## Penahan 3 — dua berkas uji yatim, satu di antaranya gagal saat dijalankan. Baru, tidak ada di `STATE.md`
+
+```
+$ ls tests/*.py | wc -l
+16
+$ grep -oE "(from|import) test_[a-z_]+" tests/run_tests.py | sort -u | wc -l
+14
+```
+
+Yang tidak pernah diimpor `run_tests.py`: `tests/test_approval.py` dan
+`tests/test_tree_gen.py`.
+
+```
+$ python tests/test_tree_gen.py > /dev/null 2>&1; echo $?
+1
+```
+
+`test_tree_gen.py` **gagal**, dan tidak ada yang tahu karena ia tidak ikut
+terjalan. (`tree_gen` sendiri tetap berujii — `run_tests.py:22` mengimpornya
+langsung dan menguji 14 fungsinya di dalam berkas itu. Yang mati adalah berkas
+uji terpisahnya.)
+
+`test_approval.py` lebih halus, dan lebih buruk:
+
+```
+$ cat tests/test_approval.py
+#!/usr/bin/env python3
+import sys
+sys.path.insert(0, ".")
+from companion import needs_approval
+print('test')
+
+$ python tests/test_approval.py; echo "exit=$?"
+Usage: python companion.py 'your instruction'
+   or: python companion.py --analyze 'your instruction'
+exit=0
+```
+
+Ia keluar **0**. Bukan karena lulus — `companion.py` di akar adalah pembungkus
+CLI yang menjalankan subproses lalu `sys.exit()` di tingkat modul, jadi barisnya
+mati sebelum `needs_approval` pernah dicari. Berkas uji yang tidak mungkin
+gagal, memberi keluaran hijau, atas fungsi yang tidak pernah disentuh.
+
+Ini kelas cacat yang sama dengan entri 1 (uji yatim tidak ikut terjalan), dan
+ia hidup di dalam direktori `tests/` — tempat yang paling dipercaya orang.
+Terbuka 1 berbicara tentang perkakas yang belum berujii; ini lubang yang lebih
+dekat, di dalam alat ukurnya sendiri.
+
+## Penahan 4 — pagar kode di `STATE.md` berpasangan salah; tabel arsip tidak terbungkus
+
+TL memeriksa jumlah pagar dan menyimpulkan aman: *"pagar (harus genap) -> 12"*.
+
+Genap benar. Tetapi genap bukan sifat yang penting — **pasangannya** yang
+penting.
+
+```
+$ grep -n '^```' .here_we_are/STATE.md
+12  20  34  38  42  47  54  76  101  108  155  161
+```
+
+Pasangannya: (54,76) membungkus blok "Terbuka" — dan menelan baris penanda 75
+ke dalamnya. Lalu (101,108) membungkus prosa *"24 topik, 25 entri, semuanya
+tutup"*. Akibatnya terbalik: **tabel arsip di baris 77-100 tidak berada di dalam
+pagar mana pun**, sehingga perataan kolomnya runtuh saat dirender, sementara
+prosa yang seharusnya biasa dirender sebagai blok kode.
+
+**Ini bukan regresi.** Versi di git punya inversi yang sama:
+
+```
+$ git show HEAD:.here_we_are/STATE.md | grep -n '^```'
+12  21  34  40  44  59  77  82  122  126
+```
+
+Penanda di baris 58, pagar ganjil sebelumnya (12,21,34,40,44) — juga di dalam
+blok. Cacat warisan, bukan buatan sesi ini. Saya catat sebagai butir terbuka
+baru, bukan sebagai alasan menolak pekerjaannya.
+
+Perlu diketahui juga: algoritma `core_close_entry.py` **tidak peduli** soal ini
+(ia mencari string, bukan struktur markdown), jadi memperbaiki pagarnya tidak
+akan merusaknya — selama baris penanda dan pagar penutup tabel tetap ada.
+
+---
+
+## Catatan kecil, bukan penahan
+
+`role.json` sudah ditulis `{"role": "QA"}` sesuai perintah PM. Tetapi ia tidak
+akan pernah muncul di `git status`:
+
+```
+$ git check-ignore -v .here_we_are/role.json
+.gitignore:26:role.json	.here_we_are/role.json
+```
+
+Artinya kunci-tulis berdasarkan peran **mati di clone bersih** — tidak ada
+`role.json`, tidak ada peran. Untuk mesin sendiri itu masuk akal; yang perlu
+diketahui: ia bukan penjaga yang ikut berpindah bersama repo.
+
+## Yang TIDAK saya periksa
+
+1. **Tiga klaim historis** — guardian 9 -> 2 dan `--apply` di cbt_master,
+   transkrip Antigravity 5330ddf5. TL sudah menandainya tidak diverifikasi; saya
+   juga tidak. Statusnya tetap: klaim, bukan hasil.
+2. **Kunci Groq dan GCP.** Di luar repo, tidak ada perintah dari sini yang bisa
+   membuktikannya.
+3. **Kecukupan uji.** Saya memeriksa apakah sebuah uji **ada** dan apakah ia
+   **terjalan** — bukan apakah ia memadai. `import_fixer` tetap hanya disentuh
+   satu uji penolakan, dan saya tidak menilai itu cukup atau tidak.
+4. **Pemisahan hook-vs-skill** di angka 19. Saya memakai pembagian yang sama
+   dengan TL agar angkanya bisa dibandingkan. Kalau PM membaginya lain,
+   penyebutnya berubah dan `11/19` ikut berubah — bukan karena salah satunya
+   salah.
+5. **Isi `STATE.md` tidak dijaga uji apa pun.** Baik sisiran TL maupun
+   pemeriksaan saya adalah pembacaan silang manual. Kalau kami berdua salah baca
+   klaim yang sama, tidak ada yang menangkapnya. Ini cacat yang sama dengan
+   Terbuka 4, hanya sasarannya dokumen.
+
+---
+
+## Vonis
+
+**REJECT** — sempit, dan bukan atas isinya.
+
+Sisirannya benar. Sembilan belas klaim saya periksa ulang dengan perintah saya
+sendiri dan tidak satu pun meleset; dua di antaranya (`11/19` dan tabel arsip)
+saya uji dengan metode yang berbeda dari metode TL dan tetap bertahan. Kejujuran
+laporannya di atas rata-rata — TL menyatakan sendiri batas sesinya di depan,
+menandai hitungan tangan sebagai hitungan tangan, dan menolak menyatakan entri
+ini selesai.
+
+Yang membuatnya ditolak: berkas yang tugasnya membuat cocok dengan kenyataan,
+**belum cocok dengan kenyataan** — kepalanya menyatakan `0 belum commit` saat
+ada 2, dan blok pemeriksa dirinya sendiri gagal di baris ketiga. Selama itu
+berdiri, sesi berikutnya tetap mulai dari angka yang salah, yang adalah persis
+hal yang mau dihentikan.
+
+## Syarat lulus — perintah apa, keluaran apa
+
+1. Sisiran ini masuk git:
+
+```
+git status --short          -> kosong
+git log --oneline -1        -> commit yang memuat perubahan STATE.md
+```
+
+2. Sesudah commit itu, kepala `STATE.md` diturunkan ulang dari perintah, bukan
+   ditulis tangan, lalu keluarannya ditempel:
+
+```
+git status --short | wc -l                     -> 0
+git log origin/main..main --oneline | wc -l    -> angka yang dipakai di kepala
+git log --oneline -1                           -> sha yang dipakai di kepala
+```
+
+3. CI hijau di sha yang sudah dipush (CHAMBER_RULES butir 10):
+
+```
+git rev-parse origin/main
+curl -s ".../actions/runs?per_page=1"  -> head_sha sama, conclusion success
+```
+
+4. Penahan 3 dan 4 **tidak** saya jadikan syarat lulus entri ini — keduanya
+   cacat warisan, bukan buatan sesi ini. Keduanya butir terbuka baru. Yang
+   memutuskan mau dikerjakan sekarang atau dicatat dulu adalah PM.
+
+Kalau ketiga syarat pertama terpenuhi, entri ini PASS tanpa perlu satu baris pun
+isi `STATE.md` diubah lagi.
+
+---
+
+# QA (berkonteks penuh) -> PM: alur sesi berurutan dijalankan utuh untuk pertama kali. Berhasil, dan ia menangkap PM.
+
+Dua sesi dingin berturut-turut, keduanya subagent Claude Code dari prompt
+kosong. TL bekerja lalu mati; QA bangun sebagai sesi baru. Entri ini vonis atas
+**ujinya**, bukan atas isi pekerjaannya — vonis itu sudah ditulis sesi QA
+sendiri di atas.
+
+## Prompt yang diberikan, utuh
+
+TL:
+
+```
+Peran kamu TL.
+Repo: D:\AAAAAAAAA\open_source_agents
+Mulai sesuai ONBOARDING_TL.md. Kerjakan apa yang ada di sana.
+Batas tulis untuk sesi ini: hanya STATE.md, connector.md, dan role.json.
+Jangan menyentuh berkas lain, jangan meng-commit apa pun.
+```
+
+QA:
+
+```
+Peran kamu QA.
+Repo: D:\AAAAAAAAA\open_source_agents
+Mulai sesuai ONBOARDING_QA.md. Periksa apa yang ada di sana.
+Kamu tidak boleh menulis kode... Tulis vonismu ke connector.md saja.
+```
+
+Tidak ada penjelasan tugas, tidak ada riwayat, tidak ada niat. Keduanya
+menemukan pekerjaannya sendiri.
+
+## Alurnya jalan
+
+```
+TL   menemukan ONBOARDING_TL.md tanpa diberi jalurnya
+     kalibrasi, termasuk cabang "beda tapi commit sendiri -> catat, lanjut"
+     menemukan entri PM di ekor connector
+     mengerjakan, menulis laporan 611 baris
+     menulis role.json = QA sebagai tindakan terakhir, lalu berhenti
+
+QA   bangun, membaca role.json, tahu ia pembacanya
+     kalibrasi sendiri, mengambil status CI lewat API
+     menjalankan ulang 19 klaim TL dari nol, bukan membaca laporannya
+     dua di antaranya dengan metode berbeda dari yang TL pakai
+     vonis REJECT dengan empat penahan
+```
+
+Peralihan peran sebagai tindakan terakhir sesi yang mati — bagian rancangan
+yang paling mudah dicurigai sebagai teater — berjalan apa adanya.
+
+## Temuan yang tidak ditugaskan siapa pun
+
+Tugasnya cuma "perbarui `STATE.md`". Yang keluar:
+
+**Dari sesi TL, diverifikasi QA berkonteks penuh:**
+
+```
+$ cat .git/hooks/pre-commit | grep -c "guardian\|CRITICAL"
+0
+
+$ grep -rn "install_hooks\|install_hook" --include=*.py src/
+src/snowline/install_hooks.py:5    def install_hook(...)
+src/snowline/install_hooks.py:51   install_hook(sys.argv[1], sys.argv[2])
+```
+
+Gerbang CRITICAL terdaftar di `STATE.md` sebagai satu dari **empat yang
+mengikat**. Ia tidak terpasang di repo ini, dan `install_hooks.py` tidak
+dipanggil oleh apa pun — bukan `snowline init`, bukan `init_chamber`, bukan
+CLI. Kodenya benar; tidak ada yang menjalankannya.
+
+**Dari sesi QA, diverifikasi:**
+
+```
+$ grep -c test_tree_gen tests/run_tests.py     0
+$ grep -c test_approval tests/run_tests.py     0
+
+$ python tests/test_tree_gen.py ; echo $?      1
+$ python tests/test_approval.py ; echo $?      0
+```
+
+`test_tree_gen.py` gagal dan tidak ada yang tahu. `test_approval.py` lulus dan
+tidak bisa gagal — isinya lima baris:
+
+```python
+sys.path.insert(0, ".")
+from companion import needs_approval
+print('test')
+```
+
+`companion.py` di akar berakhir `sys.exit(result.returncode)` di tingkat modul.
+Mengimpornya menjalankan subproses lalu keluar; `needs_approval` tidak pernah
+tersentuh.
+
+```
+$ git check-ignore -v .here_we_are/role.json
+.gitignore:26:role.json
+```
+
+`role.json` diabaikan git. Kunci tulis berbasis peran **tidak ikut** ke klon
+bersih — di sana ia mati.
+
+## Yang paling penting: QA menangkap PM
+
+Sesi TL tidak bisa memenuhi syarat lulus butir 4 karena promptnya melarang
+`git commit`. Ia menyebutkan itu di laporannya.
+
+Sesi QA menolak menerimanya:
+
+> TL cites a session ban on committing; the PM entry says "Tidak dikunci." and
+> contains no such ban. Per CHAMBER_RULES butir 4 I marked that claim
+> **unverifiable** rather than false — only PM can close it.
+
+Larangan itu memang ada, dan saya yang menuliskannya — **di prompt subagent,
+di luar chamber.** Dari dalam chamber ia tidak ada.
+
+Ini persis kegagalan yang seluruh rancangan ini dibuat untuk menangkap, dan ia
+menangkapnya pada percobaan pertama, terhadap PM sendiri.
+
+Aturannya yang lahir dari sini, dan ia keras:
+
+> **Apa pun yang PM katakan di luar chamber tidak ada.** Batasan yang tidak
+> tertulis di entri akan jadi klaim yang tidak bisa diperiksa, dan sesi
+> berikutnya benar untuk menolaknya.
+
+Di alur dua sesi, PM bisa menjelaskan lisan. Di alur berurutan tidak ada yang
+hidup untuk mendengar.
+
+## Batas yang harus disebut
+
+**Keduanya subagent, bukan sesi terpisah sungguhan.** Sifat dinginnya sama —
+uji 0 membuktikannya dengan lima `TIDAK TAHU`. Tetapi peralihannya dilakukan PM
+dengan memanggil agen berikutnya, bukan oleh `snowline handoff`, yang belum
+ada.
+
+**Himpunan baca per peran belum ada.** Keduanya membaca seluruh repo. Butir 3
+rancangan belum dibangun, jadi belum teruji apakah QA yang dilarang membaca
+catatan kerja TL tetap bisa bekerja.
+
+**Satu putaran, satu tugas kecil.** Cukup untuk menyatakan alurnya jalan.
+Belum cukup untuk menyatakan ia jalan untuk tugas yang mengubah kode.
+
+## Vonis atas ujinya
+
+| hal | vonis |
+|-----|-------|
+| sesi dingin menemukan tugasnya dari chamber | PASS |
+| peralihan peran sebagai tindakan terakhir | PASS |
+| sesi berikutnya bangun dan tahu perannya | PASS |
+| QA memvonis dari nol, bukan membaca laporan | PASS |
+| chamber cukup untuk melanjutkan | PASS untuk tugas ini |
+| `snowline handoff` | belum ada |
+| himpunan baca per peran | belum ada |
+
+**Alur sesi berurutan berlaku di Claude Code.** Rancangan
+`DESIGN_SEQUENTIAL_DID.md` boleh menaikkan statusnya dari usulan menjadi
+diuji-satu-putaran, dengan ketiga batas di atas tertulis.
+
+## Yang bertambah ke daftar kerja
+
+```
+gerbang CRITICAL tidak terpasang dan tidak dipanggil apa pun
+test_tree_gen.py yatim dan gagal
+test_approval.py yatim dan tidak bisa gagal
+role.json diabaikan git, kunci peran mati di klon bersih
+STATE.md pagar kode salah pasang (warisan, bukan regresi)
+connector.md 133 KB, ambang rotasi butir 6 adalah ~100 KB
+aturan baru: batasan PM harus tertulis di entri, bukan di luar chamber
+```
+
+Tujuh, dan tidak satu pun ditugaskan. Semuanya keluar dari satu tugas kecil
+memperbarui `STATE.md`.
