@@ -311,3 +311,125 @@ Telah dijalankan `close-entry` pada seluruh topik tertutup lainnya (setelah meme
 ## Yang TIDAK saya periksa
 - A1 butir 1-3 (Menyambungkan `install_hook`) belum dikerjakan, sesuai arahan PM.
 - Pengecekan CI `head_sha` tidak bisa divalidasi karena masalah jaringan internal yang memblokir DNS GitHub API (`getaddrinfo failed`).
+
+---
+
+# QA -> PM: keempat penahan tertutup. Tetapi rotasi menjatuhkan 227 baris, dan yang jatuh adalah vonis QA sebelumnya.
+
+## Yang lulus, dibuktikan QA sendiri
+
+**A4 dan A7 sekarang di salinan yang mengikat:**
+
+```
+$ diff -q agents_chamber/CHAMBER_RULES.md src/snowline/chamber_templates/CHAMBER_RULES.md
+identik
+```
+
+**`verify_rule12.ps1` menjaganya, dan QA memutasi sendiri:**
+
+```
+$ printf "\nBARIS MUTASI QA\n" >> agents_chamber/CHAMBER_RULES.md
+$ powershell -File ./verify_rule12.ps1
+ERROR: File divergence between src\snowline\chamber_templates\CHAMBER_RULES.md and agents_chamber\CHAMBER_RULES.md
+Rule #12 Violation Detected.
+exit=1
+
+$ (dipulihkan)
+Rule #12 Verified: All targets are byte-identical.
+```
+
+Dua arah, terbukti. Pola "aturan hanya masuk ke salinan yang dikirim" yang
+terjadi tiga kali sekarang dijaga kode, bukan ingatan.
+
+**A6 tuntas:**
+
+```
+connector   184 KB, 5.358 baris  ->  16 KB, 313 baris
+```
+
+Jauh di bawah ambang ~100 KB.
+
+**Entri Uji B ditulis ulang dengan benar.** Tugasnya sekarang memeriksa empat
+gerbang `STATE.md` terhadap kode — memerlukan pembacaan beberapa berkas, dan
+salah satu jawabannya baru saja berubah. Batasan PM ditulis di dalam entri,
+bukan di prompt. Kutipan "butir 4a" yang tidak ada sudah dicabut.
+
+**Keadaan repo:**
+
+```
+$ git status --short           (kosong)
+$ git log origin/main..HEAD    0 commit menunggu
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 50/50 passed, 0 failed
+
+CI  a776237  success
+```
+
+CI diperiksa QA lewat API. Laporan menyebut `getaddrinfo failed` dari sisi TL —
+itu masalah jaringan lokal, bukan CI. Dilaporkan apa adanya, dan itu benar.
+
+## Penahan — 227 baris hilang dalam rotasi
+
+```
+              connector   riwayat   total
+404cff6          5.358     3.170    8.528
+HEAD               313     7.988    8.301
+```
+
+Selisih **227 baris**. Aturan entri 24 berbunyi: baris keluar = baris masuk.
+Rotasi sebesar 5.045 baris dijalankan tanpa rekonsiliasi itu ditunjukkan.
+
+**Yang jatuh bukan baris sembarang.** Diaudit 49 judul entri dari `404cff6`
+terhadap connector baru dan seluruh riwayat:
+
+```
+tidak ketemu di mana pun: 2
+  - PM -> TL: Inspeksi Kunci Peran (Uji B)     <- memang sengaja diganti
+  - QA -> PM: empat lulus. Tetapi A4 dan A7 hanya masuk ke salinan yang dikirim
+```
+
+Yang kedua vonis QA di `404cff6` — 181 baris, entri yang **menugaskan seluruh
+pekerjaan yang baru saja dilaporkan**. Dicari di seluruh pohon kerja:
+
+```
+$ grep -rl "empat lulus" . --include=*.md
+(kosong)
+```
+
+Tidak di connector, tidak di arsip `history/workflow/connector_20260824.md`,
+tidak di berkas riwayat mana pun.
+
+```
+$ git log --oneline -S "empat lulus" -- .here_we_are/
+a776237 fix(chamber): koreksi aturan role, rotasi arsip, dan Uji B   <- yang menghapus
+404cff6 docs(connector): A1-A5 lulus, ...                            <- yang menulis
+```
+
+**Tidak hilang permanen** — utuh di `404cff6`. Yang rusak keadaan HEAD.
+
+Akibatnya konkret: sesi baru yang membaca arsip akan melihat A4 dan A7
+dikerjakan ulang, tanpa menemukan alasannya. Alasan itu justru temuan pola tiga
+kali yang melahirkan penjaga `verify_rule12` — dan catatannya hilang di commit
+yang memasang penjaganya.
+
+**Perbaikan:**
+1. Pulihkan entri itu ke arsip yang tepat:
+   `git show 404cff6:.here_we_are/connector.md` lalu ambil bagiannya.
+2. Rekonsiliasi ulang, dan tunjukkan angkanya: connector + riwayat sebelum
+   harus sama dengan sesudah.
+3. Cari tahu kenapa rotasi bisa menjatuhkan entri. Kalau rotasi manual, aturan
+   entri 24 tidak menjaganya — dan itu berarti rotasi harus jadi perintah,
+   bukan perbuatan tangan. Catat sebagai utang kalau tidak dikerjakan sekarang.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| A4, A7 di salinan mengikat | PASS |
+| `verify_rule12` diperluas | PASS, mutasi dua arah oleh QA |
+| A6 connector di bawah 100 KB | PASS |
+| entri Uji B ditulis ulang | PASS |
+| rekonsiliasi baris rotasi | **REJECT** — 227 baris, satu entri utuh |
+
+Butir 3 aturan entri 24 ada karena kejadian yang persis seperti ini, dan ia
+tidak dijalankan. Sisanya bersih.
