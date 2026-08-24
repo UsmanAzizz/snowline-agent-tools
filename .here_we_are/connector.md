@@ -3133,3 +3133,238 @@ close_entry_command menolak nama topik bersspasi dan nama yang mengulang
 ```
 
 Ketiganya di luar tiga penahan yang sudah ada.
+
+---
+
+# PM -> TL: Sprint 32 — sisa penahan, tiga temuan sesi dingin, dan Entri Z
+
+Mode tunggal sudah diuji dan lulus di Claude Code. Rinciannya di entri QA
+sebelum ini, `052e407`. Yang tersisa lima pekerjaan dan satu berkas baru.
+
+Tidak ada commit sesudah `052e407`. Kedua penahan lama masih persis seperti
+saat divonis.
+
+---
+
+## 1. `DEVELOPMENT.md` — pindahkan ke `docs/`, perbaiki backtick-nya
+
+```
+$ ls DEVELOPMENT.md
+DEVELOPMENT.md                 <- di akar repo
+
+$ grep -c PYTHONPATH docs/DEVELOPMENT.md
+0
+```
+
+Dua berkas dengan nama sama, dan yang di `docs/` tidak tahu apa-apa soal
+`PYTHONPATH`. Akar repo sudah pernah dirapikan; ini mengembalikannya.
+
+Isinya juga rusak:
+
+```
+dijalankan dengan \PYTHONPATH=src\ atau lewat \snowline test-clone\
+```
+
+Backtick dimakan escape PowerShell. Untuk teks multi-baris berisi backtick,
+pakai here-string kutip tunggal (`@'` ... `'@`) atau tulis lewat perkakas
+berkas, jangan lewat `echo`/`Out-File` dengan string ganda.
+
+**Syarat lulus:**
+1. Isinya ada di `docs/DEVELOPMENT.md`, di bawah bagian **Tests**, karena itu
+   soal cara menjalankan uji.
+2. Backtick-nya benar. Buktikan: `grep -n 'PYTHONPATH' docs/DEVELOPMENT.md`
+   dan pastikan yang tercetak `` `PYTHONPATH=src` ``, bukan `\PYTHONPATH=src\`.
+3. `DEVELOPMENT.md` di akar dihapus dari git.
+4. `git ls-files | grep -i development` menghasilkan satu baris saja.
+
+## 2. Tiga topik riwayat — nama bersspasi dan mengulang judul entri
+
+```
+.here_we_are/history/Sprint 26/
+.here_we_are/history/Sprint 27/
+.here_we_are/history/entri 24 dan 25/
+```
+
+Bandingkan dengan tetangganya: `chamber-portability`, `exclude-lists`,
+`rejection-tests`, `role-lock`.
+
+Usulan penggabungan, dan aritmetikanya sudah diperiksa aman:
+
+```
+Sprint 26        95 baris  \
+entri 24 dan 25  89 baris   >  chamber-history/     184 baris, di bawah 300
+Sprint 27        24 baris  ->  entry-checker/        24 baris
+```
+
+Kalau saat memindahkan Anda melihat pembagian yang lebih masuk akal, pakai itu
+dan sebutkan alasannya. Yang tidak boleh: spasi, dan nama yang mengulang judul
+entri.
+
+**Syarat lulus:**
+1. Ketiga folder lama hilang dari git, isinya ada di topik baru.
+2. `git ls-tree -r --name-only HEAD .here_we_are/history | grep " "` kosong.
+3. Tidak ada berkas riwayat melewati 300 baris.
+4. Jumlah baris riwayat sebelum dan sesudah sama. Hitung dan tunjukkan.
+
+## 3. `close_entry_command` tidak memvalidasi nama topik
+
+Ini akar penyebab nomor 2, ditemukan sesi dingin. Tanpa ini, nomor 2 akan
+terulang pada entri berikutnya.
+
+`topik` dipakai langsung menyusun jalur di baris 22, 69, 124, dan 128 tanpa
+diperiksa sama sekali.
+
+**Syarat lulus:**
+1. Tolak nama yang memuat spasi. Pesannya menyebutkan bentuk yang benar
+   (huruf kecil, tanda hubung).
+2. Tolak nama yang diawali `Sprint`, `entri`, atau `QA` — itu tanda nama
+   mengulang judul entri, bukan topik.
+3. Penolakan terjadi **sebelum** connector disentuh. Buktikan dengan
+   `git status --short` kosong setelah perintah ditolak.
+4. Dibuktikan mutasi: hapus penjaganya, jalankan `close-entry "nama bersspasi"`,
+   uji harus merah. Pulihkan, `git diff --stat` kosong.
+5. **Jalankan mutasinya dengan `PYTHONPATH=src`.** Tanpa itu yang teruji paket
+   di site-packages, bukan kode yang baru diubah — ini sudah pernah membuat
+   satu bukti mutasi tidak sah.
+
+## 4. `close-entry` merusak `STATE.md`
+
+```
+$ tail -4 .here_we_are/STATE.md
+Kalau tidak cocok, berkas ini basi — perbarui, jangan diamkan.
+Sprint 26       (entri baru)                             history/Sprint 26/
+entri 24 dan 25 (entri baru)                             history/entri 24 dan 25/
+Sprint 27       (entri baru)                             history/Sprint 27/
+```
+
+Tiga baris ditempel sesudah kalimat penutup berkasnya sendiri. Penyebabnya
+`core_close_entry.py:126-128`:
+
+```python
+with open(state_file, 'a', encoding='utf-8') as f:
+    f.write(f"{topik.ljust(15)} {'(entri baru)'.ljust(40)} {topic_path}\n")
+```
+
+Mode `'a'`, satu baris polos ke ujung berkas — pada berkas yang baris keduanya
+sendiri berbunyi *"ditimpa, tidak ditambah"*.
+
+**Syarat lulus:**
+1. Baris indeks disisipkan ke **tabel indeks topik**, bukan ke akhir berkas.
+   Kalau tabelnya tidak ditemukan, berhenti dan katakan begitu — jangan
+   menempel di ujung sebagai cadangan.
+2. Tiga baris liar yang sudah terlanjur ada dirapikan ke tempatnya.
+3. Dibuktikan mutasi.
+
+## 5. `STATE.md` basi di tiga tempat
+
+```
+$ head -6 .here_we_are/STATE.md | tail -1
+Diperbarui: 22 Agustus 2026 · commit `6cae2d2` · 0 belum commit, 0 belum push
+
+$ git rev-list --count 6cae2d2..HEAD
+68
+$ git status -sb | head -1
+## main...origin/main [ahead 8]
+$ grep -n "40/40" .here_we_are/STATE.md
+121:python tests/run_tests.py     # 40/40, ~24 detik
+```
+
+Tertinggal 68 commit, mengaku nol belum push padahal delapan, dan
+mencantumkan 40/40 padahal 48/48.
+
+Ini berkas **pertama** yang dibaca setiap sesi baru, dan mode tunggal
+menggantungkan seluruh kesinambungannya pada berkas ini. Basi di sini lebih
+mahal daripada basi di mana pun.
+
+**Syarat lulus:**
+1. Ketiga angka diperbarui, dengan perintah yang menghasilkannya ditempel.
+2. Judulnya juga: berkas ini masih `# KEADAAN` padahal templatnya sudah
+   `# STATE`.
+3. Tambahkan ke daftar utang: header `STATE.md` diperbarui tangan dan akan
+   basi lagi. Jangan bangun otomatisasinya sekarang.
+
+## 6. Entri Z — `QA_SUBAGENT_PROMPT.md`
+
+**Sekarang boleh.** Bukan karena prasyarat bersih — karena entri Y lulus di
+Claude Code. Enam perintah dijalankan subagent, keenam keluarannya cocok dengan
+kebenaran dasar, nol kesimpulan.
+
+Satu berkas di `chamber_templates/`, tanpa kode. Isinya prompt siap tempel:
+
+```
+Kamu menjalankan perintah dan menempel keluarannya. Tidak lebih.
+
+Repo: <jalur>
+
+Jalankan, berurutan, tempel keluaran mentah masing-masing:
+1. <perintah>
+2. <perintah>
+
+DILARANG:
+- menyimpulkan apakah sesuatu lulus atau gagal
+- meringkas keluaran
+- menjalankan perintah yang tidak ada di daftar
+- memperbaiki apa pun yang kamu lihat rusak
+- bertanya balik atau menawarkan tindakan lanjutan
+
+Kalau sebuah perintah gagal, tempel kegagalannya. Itu keluaran juga.
+Kalau tidak ada keluaran, tulis: (tidak ada keluaran).
+```
+
+**Syarat lulus:**
+1. Berkasnya memuat **syarat harness** di paling atas, apa adanya:
+
+```
+Berlaku untuk harness yang subagentnya boleh menjalankan perintah tanpa
+persetujuan manusia per perintah. Diuji lulus di Claude Code 23-08.
+Tidak berlaku di Antigravity — subagent di sana terhenti oleh prompt izin.
+```
+
+2. Ikut terpasang oleh `init_chamber`. Buktikan dengan `init_chamber` ke
+   direktori sementara dan `ls` hasilnya.
+3. `ONBOARDING_QA.md` menyebutkan kapan dipakai: untuk **pengukuran**, bukan
+   penilaian. Sebutkan pembagiannya dalam satu kalimat.
+4. **Jangan** dipakai untuk memvonis. Subagent menjalankan daftar, tidak
+   menyusunnya — kalau ia boleh memilih perintahnya sendiri, ia akan memilih
+   yang membenarkan entrinya.
+
+## 7. Perbarui `DESIGN_SEQUENTIAL_DID.md`
+
+Mode tunggal sekarang **berlaku**, bukan usulan. Yang harus berubah:
+
+```
+kolom PENGUKURAN     hapus "DIBATALKAN", ganti jadi syarat harness
+uji penentu          tandai sudah dijalankan, tunjuk entri 052e407
+bagian "belum diuji" ketiga uji sudah dijalankan, tulis hasilnya
+```
+
+Dan tambahkan dua batas yang QA catat, jangan dihilangkan:
+
+```
+sesi dingin membaca connector.md di luar dua berkas yang diberikan —
+    dinilai sah, tapi ujinya berjalan lebih longgar dari yang tertulis
+sesi dingin memvonis pekerjaan yang sudah dianalisis; belum terbukti ia bisa
+    memulai vonis dari laporan TL mentah
+```
+
+Batas kedua itu uji berikutnya, dan lebih sulit. Jangan dijalankan sprint ini.
+
+---
+
+## Urutan
+
+```
+3 dan 4 dulu (cacat alat), baru 2 (rapikan hasilnya), lalu 1, 5, 6, 7
+```
+
+Nomor 2 sesudah 3 dan 4, supaya pemindahannya memakai `close-entry` yang sudah
+menolak nama buruk dan tidak lagi merusak `STATE.md`. Kalau dibalik, nomor 2
+dikerjakan dua kali.
+
+## Bentuk laporan
+
+Ke connector dulu, keluaran mentah, sebutkan apa yang tidak diperiksa, berakhir
+di keluaran terakhir. Sebelum commit: `git add <berkas>` lalu
+`git diff --cached --stat`, dan berhenti kalau angkanya tidak sesuai.
+
+**Tidak dikunci.**
