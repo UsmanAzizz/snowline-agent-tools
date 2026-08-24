@@ -8,6 +8,7 @@ def setup_argparse():
     parser.add_argument("--mode", choices=["unit", "validator"], required=True, help="Mode of generation")
     parser.add_argument("--target", help="Target file to test (required for mode unit)")
     parser.add_argument("--name", required=True, help="Name of the test or validator")
+    parser.add_argument("--apply", action="store_true", help="Actually create the file")
     return parser.parse_args()
 
 def get_project_root():
@@ -15,7 +16,7 @@ def get_project_root():
     # and the project root is the CWD where the agent runs it from.
     return Path(os.getcwd())
 
-def scaffold_unit_test(root_dir, target_file, test_name):
+def scaffold_unit_test(root_dir, target_file, test_name, apply_flag):
     if not target_file:
         print("[ERROR] --target is required for unit mode.")
         sys.exit(1)
@@ -27,8 +28,6 @@ def scaffold_unit_test(root_dir, target_file, test_name):
     # Conventional Jest test location: next to the file in __tests__ folder, or same folder with .test.js
     # We will put it in the same directory under __tests__
     test_dir = target_path.parent / "__tests__"
-    test_dir.mkdir(parents=True, exist_ok=True)
-    
     test_file_path = test_dir / f"{test_name}.test.js"
     
     # Calculate relative path from test file to target file
@@ -66,15 +65,20 @@ describe('{test_name}', () => {{
 }});
 """
     
+    if not apply_flag:
+        print(f"[DRY RUN] Will create unit test at: {test_file_path}")
+        print("Run with --apply to actually write the file.")
+        return
+        
+    test_dir.mkdir(parents=True, exist_ok=True)
     with open(test_file_path, "w", encoding="utf-8") as f:
         f.write(template)
         
     print(f"[SUCCESS] Unit test scaffolded at: {test_file_path}")
     print(f"Run it with: npx jest {test_file_path}")
 
-def scaffold_validator(root_dir, validator_name):
+def scaffold_validator(root_dir, validator_name, apply_flag):
     scripts_dir = root_dir / "scripts" / "validators"
-    scripts_dir.mkdir(parents=True, exist_ok=True)
     
     validator_path = scripts_dir / f"{validator_name}.js"
     
@@ -112,6 +116,12 @@ async function main() {{
 main();
 """
 
+    if not apply_flag:
+        print(f"[DRY RUN] Will create standalone validator at: {validator_path}")
+        print("Run with --apply to actually write the file.")
+        return
+        
+    scripts_dir.mkdir(parents=True, exist_ok=True)
     with open(validator_path, "w", encoding="utf-8") as f:
         f.write(template)
         
@@ -123,9 +133,9 @@ def main():
     root = get_project_root()
     
     if args.mode == "unit":
-        scaffold_unit_test(root, args.target, args.name)
+        scaffold_unit_test(root, args.target, args.name, args.apply)
     elif args.mode == "validator":
-        scaffold_validator(root, args.name)
+        scaffold_validator(root, args.name, args.apply)
 
 if __name__ == "__main__":
     main()

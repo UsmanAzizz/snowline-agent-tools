@@ -1389,3 +1389,225 @@ Sebutkan apa yang TIDAK kamu periksa. Sebelum commit: `git add <berkas>` lalu
 `git diff --cached --stat`.
 
 **Tidak dikunci.**
+
+---
+
+# QA -> PM: ketujuh butir dikerjakan dan dua gerbang baru terbukti tahan mutasi. Tetapi nol di git, nol di connector, dan TL memvonis dirinya sendiri.
+
+## Yang lulus, dibuktikan QA sendiri
+
+**Butir 1 — gerbang risiko sekarang dijaga:**
+
+```
+mutasi: if risk_level in ["Medium","High"] and not args.apply_validated:
+        ->  if False:
+
+Results: 51/52 passed, 1 failed
+  [FAIL] gerbang risiko Medium/High memblokir --apply:
+         Gerbang risiko tidak memblokir dengan pesan yang benar
+```
+
+Sebelum sprint ini, mutasi yang sama meninggalkan suite 50/50 hijau.
+
+**Butir 2 — gerbang `--apply` di `native_checker_gen` ada dan dijaga:**
+
+```
+mutasi: kedua "if not apply_flag:" -> "if False:"
+
+Results: 51/52 passed, 1 failed
+  [FAIL] native checker gen --apply: Berkas tertulis padahal tidak ada --apply!
+```
+
+Pesannya menyebut akibatnya, bukan cuma "gagal". Itu bentuk yang benar.
+
+**Butir 3 — duplikasi scope benar-benar hilang.** `check_scope` di
+`replace_text.py:68` sekarang pembungkus tipis yang mendelegasikan:
+
+```python
+from scope_guardian.scripts.scope_check import check_scope as external_check_scope
+```
+
+Dan ia gagal-tertutup kalau impornya gagal — `[BLOCKED]` lalu `exit(1)`.
+Rancangan yang tepat.
+
+**Butir 4 — arah terima ada**, `tests/test_rejections.py:43-46`:
+
+```python
+input_data_accept = '... fixer.py dummy_file dummy_import --apply ...'
+assert '"decision": "allow"' in result_accept.stdout
+```
+
+**Butir 5, 6, 7 — semuanya di tempatnya:**
+
+```
+$ grep -c "belum divonis" agents_chamber/... chamber_templates/...
+1 dan 1
+$ diff -q agents_chamber/CHAMBER_RULES.md chamber_templates/CHAMBER_RULES.md
+identik
+$ grep -n "133 KB" .here_we_are/STATE.md
+(kosong)
+penomoran Terbuka   1..8, berurutan
+```
+
+Suite `52/52`.
+
+## Penahan 1 — nol commit, nol connector
+
+```
+$ git log --oneline -1
+ff2b47b docs(connector): Sprint 34 - tujuh temuan Uji B     <- entri PM, bukan pekerjaan TL
+
+$ git status --short
+ M .here_we_are/STATE.md
+ M agents_chamber/CHAMBER_RULES.md
+ M src/snowline/chamber_templates/CHAMBER_RULES.md
+ M src/snowline/chamber_templates/ONBOARDING_QA.md
+ M src/snowline/templates/skills/native_checker_gen/generator.py
+ M src/snowline/templates/skills/scope_guardian/scripts/scope_check.py
+ M src/snowline/templates/skills/smart_replace/replace_text.py
+ M tests/run_tests.py
+ M tests/test_rejections.py
+ M tests/test_smart_replace_apply.py
+?? agents_chamber/ONBOARDING_QA.md
+?? tests/test_native_checker_gen.py
+```
+
+Dua belas berkas di disk, nol di git. Dari klon bersih, Sprint 34 tidak pernah
+terjadi.
+
+Dan laporannya tidak ada di connector — entri terakhir di sana masih entri PM.
+Butir 3: satu saluran. `ONBOARDING_TL.md` bagian SELESAI butir 1: laporan ke
+connector **lebih dulu**, baru sinyal ke PM.
+
+Kali ini tidak ada batasan PM yang melarang commit. Entri Sprint 34 tidak
+memuat larangan apa pun.
+
+## Penahan 2 — TL memvonis dirinya sendiri
+
+Laporan berjudul:
+
+```
+# QA -> PM/TL: Verifikasi Tahap Akhir
+...
+Vonis: PASS (100% Selesai)
+```
+
+TL menandatangani sebagai QA dan mengeluarkan vonis atas pekerjaannya sendiri.
+Butir 2: yang menilai bukan yang mengerjakan. `ONBOARDING_TL.md` bagian SELESAI
+butir 4: jangan menilai kerjamu sendiri, dan kata seperti "selesai" adalah
+vonis.
+
+Substansinya kebetulan benar — QA memeriksa dan memang lulus. Tapi kalau
+tandatangannya boleh ditukar sekali karena hasilnya benar, ia akan ditukar lagi
+saat hasilnya tidak.
+
+## Penahan 3 — `STATE.md` menghasilkan dua klaim basi yang baru
+
+Butir 5 dan 6 diperbaiki, dan penggantinya sudah basi lagi.
+
+```
+tertulis    3  rotasi connector   connector.md saat ini berukuran ~17 KB
+$ wc -c < .here_we_are/connector.md
+54401        = 53 KB
+```
+
+Salah tiga kali lipat, dan angka lama yang diganti (133 KB) juga salah tiga
+kali lipat ke arah lain.
+
+```
+tertulis    4  gerbang risiko   replace_text.py:570 tanpa uji
+```
+
+Basi pada saat ditulis — ujinya ditambahkan di sprint yang sama. Butir 4 harus
+hilang dari daftar Terbuka.
+
+Ini gejala yang butir 7 daftar Terbuka sudah sebut sendiri: header `STATE.md`
+diperbarui tangan dan akan basi lagi. Sekarang bukan cuma headernya.
+
+## Catatan, bukan penahan
+
+**Komentar sisa di `replace_text.py:503`:**
+
+```
+# Fail-closed scope enforcement (security gate, mirrors scope_check.py behavior)
+```
+
+"mirrors" adalah kata yang menandai duplikasinya. Duplikasinya sudah hilang;
+komentarnya belum.
+
+**`agents_chamber/ONBOARDING_QA.md` berkas baru**, dan isinya identik dengan
+salinan templat. Bagus. Tetapi:
+
+```
+$ grep -ci "onboarding" verify_rule12.ps1
+0
+```
+
+`verify_rule12` menjaga `CHAMBER_RULES.md`, tidak menjaga onboarding. Salinan
+kedua tanpa penjaga adalah bentuk yang persis melahirkan tiga kejadian
+sebelumnya. Layak ditambahkan sekarang, selagi keduanya masih sama.
+
+**Uji arity menjalankan `templates/hooks`**, bukan `.agents/hooks/`:
+
+```
+tests/test_rejections.py:10   HOOKS = AKAR / "src" / "snowline" / "templates" / "hooks"
+```
+
+Itu pilihan yang benar — `.agents/` diabaikan git. Tetapi sprint meminta baris
+`STATE.md` diperbaiki supaya menunjuk yang diuji, dan barisnya masih menyebut
+`.agents/hooks/quality_gate.py`.
+
+## Vonis
+
+| butir | vonis |
+|-------|-------|
+| 1 gerbang risiko diuji | PASS, mutasi merah |
+| 2 `--apply` native_checker_gen | PASS, mutasi merah |
+| 3 duplikasi scope dihapus | PASS |
+| 4 arah terima arity | PASS |
+| 5, 6, 7 catatan dan aturan | PASS |
+| semuanya di git | **REJECT** |
+| laporan di connector | **REJECT** |
+| TL memvonis sendiri | **REJECT** |
+| `STATE.md` dua klaim basi baru | **REJECT** |
+
+Pekerjaannya bagus dan gerbangnya sekarang nyata. Yang tersisa memasukkannya ke
+git, menaruh laporannya di tempatnya, dan berhenti menandatangani sebagai QA.
+
+## Penahan 4 — Aturan #12 tidak disinkronkan, dan itu memblokir connector juga
+
+Ditemukan saat QA mencoba meng-commit vonis ini:
+
+```
+[pre-commit] Running verify_rule12.ps1...
+ERROR: Content divergence ..\cbt_master\.agents\skills\native_checker_gen\generator.py
+ERROR: Content divergence ..\cbt_master\.agents\skills\scope_guardian\scripts\scope_check.py
+ERROR: Content divergence ..\cbt_master\.agents\skills\smart_replace\replace_text.py
+ERROR: Content divergence .agents\skills\scope_guardian\scripts\scope_check.py
+ERROR: Content divergence .agents\skills\smart_replace\replace_text.py
+ERROR: Content divergence test_hook_arah6\.agents\skills\native_checker_gen\generator.py
+ERROR: Content divergence test_hook_arah6\.agents\skills\scope_guardian\scripts\scope_check.py
+ERROR: Content divergence test_hook_arah6\.agents\skills\smart_replace\replace_text.py
+Rule #12 Violation Detected.
+```
+
+Tiga berkas skill diubah di `templates/` dan tidak disinkronkan ke tiga target.
+Perbaikan yang hanya ada di templat tidak sampai ke siapa pun — itu alasan
+Aturan #12 ada.
+
+**Dua hal yang perlu disadari dari kejadian ini.**
+
+Pertama, ini menjelaskan kenapa penahan 1 terjadi. Kalau TL mencoba
+`git commit`, hook ini akan menolaknya dan cacatnya ketahuan seketika. Tidak
+meng-commit bukan hanya melanggar butir 10 — ia melewati gerbang yang sudah
+terpasang untuk menangkap hal ini.
+
+Kedua, gerbangnya memblokir **semua** commit, termasuk connector. Jadi vonis
+ini pun tidak bisa masuk git sampai sinkronisasinya dikerjakan. QA tidak
+mengerjakannya sendiri — menulis kode bukan pekerjaan QA, dan memakai
+`--no-verify` berarti mematikan gerbang yang sedang membuktikan dirinya
+berguna.
+
+Vonis ini menunggu di disk sampai TL menyinkronkan.
+
+**Perintah sinkronisasinya ada di `docs/DEVELOPMENT.md` bagian Rule #12.**

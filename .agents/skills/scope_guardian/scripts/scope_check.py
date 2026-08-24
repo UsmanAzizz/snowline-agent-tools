@@ -121,7 +121,7 @@ def check_scope(target_file):
             if target_norm == allowed_norm or target_norm.endswith('/' + allowed_norm):
                 print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
                 print(f"[RISK] {risk_label}")
-                sys.exit(0)
+                return True
         else:
             # Filename-only entry: compare basenames (case-insensitive)
             # Use .lower() not normcase() — normcase() also converts '/' to '\\' on Windows
@@ -130,14 +130,14 @@ def check_scope(target_file):
             if target_base == allowed_base:
                 print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
                 print(f"[RISK] {risk_label}")
-                sys.exit(0)
+                return True
             
     # 2. Check patterns
     for pattern in allowed_patterns:
         if fnmatch.fnmatch(target_file, pattern):
             print(f"[ALLOWED] File '{target_file}' matches pattern '{pattern}'.")
             print(f"[RISK] {risk_label}")
-            sys.exit(0)
+            return True
             
     # 3. If no match
     print(f"[BLOCKED] File '{target_file}' is OUT OF SCOPE for the current task.")

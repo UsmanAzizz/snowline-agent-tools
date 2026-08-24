@@ -28,10 +28,22 @@ def test_project_guardian_rejection():
 def test_quality_gate_rejection():
     # Arity check should fail without required args
     script = HOOKS / "quality_gate.py"
-    input_data = '{"toolName": "run_command", "toolCall": {"CommandLine": "python .agents/skills/import_fixer/fixer.py dummy_file"}, "workspacePaths": ["/tmp"]}'
-    result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data)
-    assert '"decision": "deny"' in result.stdout, "Quality gate did not reject"
-    assert "Parameter kritis tidak lengkap" in result.stdout, "Quality gate rejected for the wrong reason (not arity check)"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        input_data = '{"toolName": "run_command", "toolCall": {"CommandLine": "python .agents/skills/import_fixer/fixer.py dummy_file"}, "workspacePaths": ["' + tmpdir.replace('\\', '\\\\') + '"]}'
+        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data)
+        assert '"decision": "deny"' in result.stdout, "Quality gate did not reject"
+        assert "Parameter kritis tidak lengkap" in result.stdout, "Quality gate rejected for the wrong reason (not arity check)"
+
+        # Mock companion to avoid import error
+        companion_dir = os.path.join(tmpdir, '.agents', 'skills', 'companion')
+        os.makedirs(companion_dir)
+        with open(os.path.join(companion_dir, 'core_intent.py'), 'w') as f:
+            f.write("class MockAnalysis:\n    confidence_level = 'HIGH'\n    clarification_note = ''\n\ndef analyze_intent(text):\n    return MockAnalysis()\n")
+
+        # Arity check should accept with required args
+        input_data_accept = '{"toolName": "run_command", "toolCall": {"CommandLine": "python .agents/skills/import_fixer/fixer.py dummy_file dummy_import --apply"}, "workspacePaths": ["' + tmpdir.replace('\\', '\\\\') + '"]}'
+        result_accept = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data_accept)
+        assert '"decision": "allow"' in result_accept.stdout, "Quality gate did not accept complete parameters"
 
 def test_loop_detector_rejection():
     # Should reject after 3 identical executions

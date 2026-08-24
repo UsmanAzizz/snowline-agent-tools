@@ -225,6 +225,10 @@ def main():
     import test_version_sync
     print("Testing version sync...")
     runner.run("version sync across files", test_version_sync.test_version_sync)
+    
+    import test_native_checker_gen
+    print("Testing native_checker_gen...")
+    runner.run("native checker gen --apply", test_native_checker_gen.test_native_checker_gen_apply)
 
     success = runner.summary()
 

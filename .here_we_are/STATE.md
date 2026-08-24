@@ -28,8 +28,8 @@ undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
 
 | | menolak apa | di mana | uji |
 |---|---|---|---|
-| `scope_lock.json` | tulis di luar daftar berkas | `scope_check.py:143` (CLI) **dan** salinannya `replace_text.py:68,562` | ada |
-| arity check | perintah yang argumennya kurang | `.agents/hooks/quality_gate.py:74` | ada, **satu arah** |
+| `scope_lock.json` | tulis di luar daftar berkas | `scope_check.py:143` (terpusat) | ada |
+| arity check | perintah yang argumennya kurang | `src/snowline/templates/hooks/quality_gate.py` (templat) | ada, **dua arah** |
 | `--apply` | tulis apa pun tanpa flag | 4 alat tulis, **bukan semua** | ada |
 | risiko Medium/High | apply tanpa `--apply-validated` | `replace_text.py:570` | **tidak ada** |
 
@@ -69,28 +69,26 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
 ## Terbuka
 
 ```
-6  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B).
+1  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B).
                      Rotasi harus dibuatkan perintah CLI snowline rotate
                      yang memvalidasi baris masuk = baris keluar.
-1  uji               8 perkakas belum berujii: clean_sweeper, companion,
+2  uji               8 perkakas belum berujii: clean_sweeper, companion,
                      crash_decoder, db_extractor, deep_analyzer,
                      native_checker_gen, plan_tracker, smart_tree.
                      Alasan lama "kalau rusak langsung kelihatan" sudah
                      terbantah — impact_analyzer, smart_search, dan
                      selective_reader baca-saja dan gagal tanpa terlihat.
                      Pilih menurut bahayanya, bukan baca-saja atau bukan.
-2  npm_audit         direproduksi 24-08. Temuan INFO "package.json not found"
-                     dicetak [HIGH] padahal HIGH=0. guardian.py:398 memaku
-                     label 'HIGH' untuk apa pun yang bukan CRITICAL.
-3  rotasi connector  connector.md 133 KB, ambang CHAMBER_RULES butir 6 ~100 KB.
-4  gerbang risiko    replace_text.py:570 tanpa uji. Butir 9: gerbang tanpa uji
-                     tidak bisa dibedakan dari gerbang yang tidak ada.
-5  daftar RULE 0     AGENTS.md menunjuk replace_text.py:536, kodenya di :570.
+3  rotasi connector  connector.md saat ini berukuran 61899 bytes = 60 KB, sudah rotasi (terselesaikan, namun close-entry tidak mengecek nomor tabel ganda).
+4  daftar RULE 0     AGENTS.md menunjuk replace_text.py:536, kodenya di :570.
                      Rujukan baris di aturan tidak ada yang menjaga.
 6  snowline di PATH  yang terpasang di site-packages tertinggal dari repo:
                      init_chamber-nya 7 berkas, sumber repo 8.
 7  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
                      otomatisasinya sekarang)
+8  close-entry       (Utang baru) close-entry saat menyisipkan topik ke tabel
+                     TUTUP tidak mengecek penomoran Terbuka, sehingga
+                     sempat terjadi nomor ganda pada daftar ini.
 ```
 
 TUTUP lewat chamber, arsip per topik:

@@ -67,79 +67,21 @@ def check_task_state(is_apply=False):
 
 def check_scope(pending_writes):
     """Block if any file to be modified is outside allowed scope (security gate, fail-closed)."""
-    # Import shared scope-checking helper from scope_guardian
+    
+    # Inject skills directory to sys.path so we can import from other skills
+    skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if skills_dir not in sys.path:
+        sys.path.insert(0, skills_dir)
+        
     try:
-        from scope_guardian.scripts.scope_check import is_file_in_scope
+        from scope_guardian.scripts.scope_check import check_scope as external_check_scope
     except ImportError:
-        # Fallback: check manually if import fails
-        import fnmatch as _fnmatch
-
-        def is_file_in_scope(filepath, allowed_files, allowed_patterns):
-            target = filepath.replace('\\', '/').lower()
-            for allowed in allowed_files:
-                allowed_lc = allowed.lower()
-                if '/' not in allowed_lc:
-                    if os.path.basename(target) == allowed_lc:
-                        return True
-                else:
-                    if target == allowed_lc or target.endswith('/' + allowed_lc):
-                        return True
-            for pattern in allowed_patterns:
-                if _fnmatch.fnmatch(filepath, pattern):
-                    return True
-            return False
-
-    lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
-
-    # Fail-closed: no lock = BLOCK (security boundary, not workflow gate)
-    if not os.path.exists(lock_file):
-        print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
-        print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
+        print("[BLOCKED] Failed to import check_scope from scope_guardian")
+        print("Pastikan skill scope_guardian terpasang di sebelah smart_replace.")
         sys.exit(1)
-
-    try:
-        with open(lock_file, 'r', encoding='utf-8') as f:
-            scope_data = json.load(f)
-    except Exception:
-        print("[BLOCKED] Failed to parse scope_lock.json.")
-        print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
-        sys.exit(1)
-
-    try:
-        from scope_guardian.scripts.scope_check import peringatan_kesegaran
-    except ImportError:
-        # Fallback, sama polanya dengan is_file_in_scope di atas: scope_guardian
-        # tidak selalu bisa diimpor dari lokasi pemanggilan.
-        def peringatan_kesegaran(scope_data, _maks_jam=24):
-            from datetime import datetime as _dt
-            dibuat = scope_data.get('created_at')
-            if not dibuat:
-                return ["scope_lock.json tidak punya 'created_at' — umurnya tidak bisa diperiksa."]
-            try:
-                umur = (_dt.now() - _dt.fromisoformat(dibuat)).total_seconds() / 3600
-            except (ValueError, TypeError):
-                return [f"'created_at' tidak terbaca: {dibuat!r}"]
-            if umur > _maks_jam:
-                return [f"scope_lock.json berumur {umur / 24:.1f} hari (dibuat {dibuat}). "
-                        f"Task: {scope_data.get('task', '?')!r}. Pastikan ini memang tugas "
-                        f"yang sedang dikerjakan, bukan sisa tugas sebelumnya."]
-            return []
-
-    for pesan in peringatan_kesegaran(scope_data):
-        print(f"[WARN] {pesan}")
-
-    allowed_files = scope_data.get('allowed_files', [])
-    allowed_patterns = scope_data.get('allowed_patterns', [])
-    task = scope_data.get('task', 'Unknown task')
-
+        
     for filepath, _, _ in pending_writes:
-        if not is_file_in_scope(filepath, allowed_files, allowed_patterns):
-            print(f"[BLOCKED] File is OUT OF SCOPE for the current task.")
-            print(f"Task: {task}")
-            print(f"Target: {filepath}")
-            print(f"Allowed files: {allowed_files}")
-            print(f"Allowed patterns: {allowed_patterns}")
-            sys.exit(1)
+        external_check_scope(filepath)
 
 def find_project_root(start_path):
     # Kalau target berupa berkas, naik ke direktorinya dulu — termasuk pada
@@ -558,7 +500,7 @@ def main():
     if not pending_writes:
         return
 
-    # Fail-closed scope enforcement (security gate, mirrors scope_check.py behavior)
+    # Fail-closed scope enforcement (security gate)
     check_scope(pending_writes)
 
     if not (args.apply or args.apply_validated):

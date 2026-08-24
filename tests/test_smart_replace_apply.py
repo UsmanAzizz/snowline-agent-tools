@@ -240,6 +240,24 @@ def test_probe_linter_dipanggil_sekali():
         jumlah_probe = h.stdout.count("[DEBUG] Melakukan probe linter")
         assert jumlah_probe == 1, f"Probe dipanggil {jumlah_probe} kali (diharapkan 1 kali) pada 5 berkas."
 
+
+def test_gerbang_risiko_medium_high():
+    """Menguji bahwa risiko Medium/High dengan --apply diblokir, dan lolos dengan --apply-validated."""
+    berkas = {f"kode{i}.js": "const lama = 1;\n" for i in range(4)}
+    with ProyekUji(berkas) as p:
+        # Uji tolak (menggunakan 'return' memicu is_logic, >3 file memicu is_widespread -> High Risk)
+        h1 = p.jalankan(".", "lama", "return baru", "--apply")
+        # Penegasan baris keluaran spesifik, bukan sekadar "[BLOCKED]" yang bisa datang dari gerbang scope
+        assert "Eksekusi dengan --apply DITOLAK secara sistem untuk mencegah kerusakan." in h1.stdout, \
+            f"Gerbang risiko tidak memblokir dengan pesan yang benar:\n{h1.stdout}"
+        assert h1.returncode != 0, "Exit code harus bukan 0 jika diblokir gerbang risiko"
+        assert p.baca("kode0.js") == "const lama = 1;\n", "Berkas tidak boleh berubah saat ditolak"
+
+        # Uji lolos
+        h2 = p.jalankan(".", "lama", "return baru", "--apply-validated")
+        assert "[SUCCESS]" in h2.stdout, f"Harus lolos dengan --apply-validated:\n{h2.stdout}"
+        assert "return baru" in p.baca("kode0.js"), "Berkas harus berubah saat diloloskan"
+
 DAFTAR = [
     ("--apply pada .js benar-benar menulis", test_apply_js_benar_benar_menulis),
     ("--apply pada .py lewat ast", test_apply_py_lewat_ast),
@@ -255,4 +273,6 @@ DAFTAR = [
     ("nama berkas benar pada target tunggal", test_nama_berkas_tercetak_benar_pada_target_tunggal),
     ("sintaks rusak membatalkan penulisan", test_sintaks_rusak_membatalkan_penulisan),
     ("probe linter hanya dipanggil sekali", test_probe_linter_dipanggil_sekali),
+    ("gerbang risiko Medium/High memblokir --apply", test_gerbang_risiko_medium_high),
 ]
+

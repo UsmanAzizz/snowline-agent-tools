@@ -68,6 +68,12 @@ Bukan satu berkas per peran. Itu sudah dicoba dan mati: PM tidak mau memikirkan
 "ini masuk kotak yang mana", dan pertukaran QA↔TL sifatnya percakapan, bukan
 surat-menyurat.
 
+Laporan TL yang belum divonis adalah penugasan untuk QA. Sesi QA yang menemukan
+entri semacam itu di ekor connector tidak perlu menunggu entri penugasan
+terpisah — laporan itu sendiri dasarnya. Kalau PM menghendaki pemeriksaan yang
+lebih sempit atau lebih luas dari isi laporan, itu ditulis sebagai entri
+tersendiri.
+
 ## 3. Syarat entri — ditolak sebelum isinya dibaca
 
 - Laporan TL ditulis HANYA ke connector, bukan sekadar lewat chat ke PM. Chat ke PM hanya berisi "selesai — silakan sinyal PM".
