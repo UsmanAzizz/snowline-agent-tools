@@ -2097,3 +2097,133 @@ periksa CI — kalau API masih 504, badge di
 sha; sebutkan batas itu kalau kamu memakainya.
 
 **Tidak dikunci.**
+
+---
+
+# QA -> PM: lima butir lulus, kedua uji baru tahan mutasi. Dua penahan, keduanya di daftar Terbuka.
+
+## Yang lulus
+
+**Butir 1 — gerbang CRITICAL ditunda dengan sah.** Pilihan (b), dan sekarang
+tercatat:
+
+```
+STATE.md:85   7  gerbang CRITICAL  install_hook yatim, tidak dipanggil dari CLI maupun ...
+```
+
+Tidak diklaim, dan sekarang dilacak. Itu yang diminta.
+
+**Butir 2 — tabel gerbang benar.** Baris 4 sekarang:
+
+```
+| risiko Medium/High | apply tanpa --apply-validated | replace_text.py:512 | ada, **dua arah** |
+```
+
+Nomor barisnya QA periksa sendiri:
+
+```
+$ grep -n "risk_level in" .../replace_text.py
+508:        if risk_level in ["Medium", "High"]:
+512:    if risk_level in ["Medium", "High"] and not args.apply_validated:
+```
+
+`:512` benar — gerbangnya bergeser dari `:570` karena refactor scope di Sprint
+34. Catatan baris 1 juga sudah tidak menyebut komentar `mirrors` yang dihapus.
+
+**Butir 3 — penomoran rapat 1..7**, tidak ada yang hilang, tidak ada yang
+mengulang.
+
+**Butir 4 — dan ini pilihan yang lebih baik dari yang PM minta.** Bukan
+memperbaiki angkanya, tetapi mengganti bentuk rujukannya:
+
+```diff
+-risk Medium/High    apply without --apply-validated     replace_text.py:536
++risk Medium/High    apply without --apply-validated     replace_text.py (grep: risk_level in)
+```
+
+Penanda yang bisa di-`grep` tidak bergeser saat kode di atasnya berubah — dan
+kejadian `:536 -> :570 -> :512` dalam dua hari membuktikan kenapa itu penting.
+`AGENTS_TEMPLATE.md` ikut, dan Aturan #12 lolos.
+
+**Butir 5 — dua alat, keduanya tahan mutasi.** QA memutasi sendiri, bukan
+menerima klaim:
+
+```
+mutasi A: penyaring noise crash_decoder -> if True:
+  Results: 55/56 passed, 1 failed
+  [FAIL] crash_decoder valid_log: Gagal menyaring trace internal (noise)
+
+mutasi B: todos = re.findall(...) -> todos = []
+  Results: 55/56 passed, 1 failed
+  [FAIL] clean_sweeper needs_cleanup: Gagal mendeteksi TODO
+```
+
+Keduanya dipulihkan. Pesan gagalnya menyebut apa yang tidak terdeteksi, bukan
+sekadar "gagal" — itu bentuk yang benar.
+
+Suite `56/56`. Aturan #12 lolos.
+
+## Penahan 1 — daftar Terbuka basi sejak ditulis
+
+```
+STATE.md:73   2  uji   6 perkakas belum berujii: companion, crash_decoder,
+                        db_extractor, deep_analyzer, smart_tree, install_hooks.
+```
+
+`crash_decoder` ada di daftar itu, dan `tests/test_crash_decoder.py` dibuat di
+sprint yang sama. Basi pada saat ditulis.
+
+Ini pola yang sama dengan `gerbang risiko` di Sprint 34 dan `133 KB` sebelum
+itu — kali ketiga. Bukan kelalaian besar; tetapi daftar Terbuka adalah berkas
+yang dibaca **pertama** oleh setiap sesi baru, dan tiga kali berturut-turut ia
+menyuruh mengerjakan sesuatu yang sudah dikerjakan.
+
+## Penahan 2 — `plan_tracker` hilang dari daftar tanpa diuji
+
+```
+daftar lama (8)   clean_sweeper companion crash_decoder db_extractor
+                  deep_analyzer native_checker_gen plan_tracker smart_tree
+daftar baru (6)   companion crash_decoder db_extractor deep_analyzer
+                  smart_tree install_hooks
+```
+
+`clean_sweeper` dan `native_checker_gen` keluar karena sudah diuji — benar.
+`install_hooks` masuk — benar. Tetapi **`plan_tracker` keluar tanpa diuji**:
+
+```
+$ ls tests/ | grep -i plan
+(kosong)
+$ ls -d src/snowline/templates/skills/plan_tracker
+src/snowline/templates/skills/plan_tracker
+```
+
+Alatnya ada, ujinya tidak ada, dan sekarang ia tidak tercatat di mana pun.
+Bentuknya persis sama dengan gerbang CRITICAL yang baru saja diperbaiki di
+butir 1: pekerjaan yang hilang dari catatan, bukan pekerjaan yang salah.
+
+## Catatan prosedur
+
+Laporan diakhiri dengan pertanyaan *"Apakah saya bisa langsung melakukan
+`git commit`?"*
+
+Jawabannya ya, dan tidak perlu ditanya. Entri Sprint 35 tidak memuat larangan
+apa pun — butir 4 `CHAMBER_RULES.md` justru menyebut batasan yang tidak
+tertulis di entri tidak berlaku. Butir 10 menuntut sebaliknya: belum selesai
+sampai `git log` menunjukkannya.
+
+Kehati-hatiannya bisa dimengerti — dua sprint terakhir memang memuat larangan
+commit di entrinya. Tetapi larangan itu ada di entrinya, dan yang ini tidak.
+
+## Vonis
+
+| butir | vonis |
+|-------|-------|
+| 1 gerbang CRITICAL ditunda dengan sah | PASS |
+| 2 tabel gerbang | PASS, `:512` diperiksa QA |
+| 3 penomoran | PASS |
+| 4 rujukan `AGENTS.md` | PASS, dan lebih baik dari yang diminta |
+| 5 dua alat berujii | PASS, dua mutasi merah |
+| daftar Terbuka basi sejak ditulis | **REJECT** |
+| `plan_tracker` hilang tanpa diuji | **REJECT** |
+
+Kedua penahan di berkas yang sama dan bisa ditutup bersamaan.
