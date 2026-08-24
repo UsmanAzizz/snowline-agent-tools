@@ -230,6 +230,42 @@ def main():
     print("Testing native_checker_gen...")
     runner.run("native checker gen --apply", test_native_checker_gen.test_native_checker_gen_apply)
 
+    import test_clean_sweeper
+    print("Testing clean_sweeper...")
+    runner.run("clean_sweeper clean_project", test_clean_sweeper.test_sweeper_clean_project)
+    runner.run("clean_sweeper needs_cleanup", test_clean_sweeper.test_sweeper_needs_cleanup)
+    
+    import test_crash_decoder
+    print("Testing crash_decoder...")
+    # Manual runner mock for capsys
+    class DummyCapsys:
+        def readouterr(self):
+            import sys
+            class OutErr: pass
+            ret = OutErr()
+            ret.out = sys.stdout.getvalue() if hasattr(sys.stdout, "getvalue") else ""
+            ret.err = ""
+            return ret
+    # We need to capture stdout for crash decoder
+    def wrapper_valid():
+        import io, sys
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            test_crash_decoder.test_crash_decoder_valid_log(DummyCapsys())
+        finally:
+            sys.stdout = old_stdout
+    def wrapper_empty():
+        import io, sys
+        old_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        try:
+            test_crash_decoder.test_crash_decoder_empty_log(DummyCapsys())
+        finally:
+            sys.stdout = old_stdout
+    runner.run("crash_decoder valid_log", wrapper_valid)
+    runner.run("crash_decoder empty_log", wrapper_empty)
+
     success = runner.summary()
 
     if success:

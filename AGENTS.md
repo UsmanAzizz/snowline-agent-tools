@@ -22,7 +22,7 @@ Four gates actually refuse:
 scope_lock.json     writing outside allowed_files       scope_check.py
 arity check         commands with missing arguments     hooks/quality_gate.py
 --apply             any write without the flag          each write tool
-risk Medium/High    apply without --apply-validated     replace_text.py:536
+risk Medium/High    apply without --apply-validated     replace_text.py (grep: risk_level in)
 ```
 
 Breaking an ANJURAN rule is not detected by anything. That is not permission to

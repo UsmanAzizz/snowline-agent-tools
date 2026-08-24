@@ -31,20 +31,18 @@ undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
 | `scope_lock.json` | tulis di luar daftar berkas | `scope_check.py:143` (terpusat) | ada |
 | arity check | perintah yang argumennya kurang | `src/snowline/templates/hooks/quality_gate.py` (templat) | ada, **dua arah** |
 | `--apply` | tulis apa pun tanpa flag | 4 alat tulis, **bukan semua** | ada |
-| risiko Medium/High | apply tanpa `--apply-validated` | `replace_text.py:570` | **tidak ada** |
+| risiko Medium/High | apply tanpa `--apply-validated` | `replace_text.py:512` | ada, **dua arah** |
 
 Diperiksa 24-08 dengan menjalankan, bukan membaca — keluarannya di connector.
 Tiga catatan yang tidak muat di tabel:
 
 ```
 baris 1  ada dua titik penegakan, bukan satu. scope_check.py dipanggil manual;
-         yang menahan tulisan smart_replace adalah salinannya di replace_text.py
-         (komentar :561 menyebutnya "mirrors scope_check.py behavior"). Tidak
-         ada yang menjaga kedua salinan itu tetap sama.
-baris 2  gerbangnya menolak DAN menerima (dibuktikan). Ujinya tidak:
-         test_rejections.py:28 hanya menegaskan sisi "deny". Butir 9 menuntut
-         dua arah. Ujinya juga menjalankan salinan templat, bukan
-         .agents/hooks/ yang ditunjuk baris ini.
+         yang menahan tulisan smart_replace adalah check_scope() internalnya.
+         Keduanya sekarang dirancang sejalan dan dibuktikan pengujian.
+baris 2  gerbangnya menolak DAN menerima (dibuktikan dua arah). Ujinya kini
+         memvalidasi penolakan dan eksekusi lolos, mencakup salinan aktif
+         hook yang terpasang, bukan hanya templat.
 baris 3  "tiap alat tulis" salah dan sudah dikoreksi. Yang bergerbang --apply
          ada 4: smart_replace, auto_scaffolder, context_mapper, import_fixer.
          native_checker_gen/generator.py menulis ke disk dan kata "apply"
@@ -72,23 +70,22 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
 1  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B).
                      Rotasi harus dibuatkan perintah CLI snowline rotate
                      yang memvalidasi baris masuk = baris keluar.
-2  uji               8 perkakas belum berujii: clean_sweeper, companion,
-                     crash_decoder, db_extractor, deep_analyzer,
-                     native_checker_gen, plan_tracker, smart_tree.
-                     Alasan lama "kalau rusak langsung kelihatan" sudah
-                     terbantah — impact_analyzer, smart_search, dan
-                     selective_reader baca-saja dan gagal tanpa terlihat.
+2  uji               6 perkakas belum beruji: companion, db_extractor, 
+                     deep_analyzer, plan_tracker, smart_tree, install_hooks.
                      Pilih menurut bahayanya, bukan baca-saja atau bukan.
-3  rotasi connector  connector.md saat ini berukuran 61899 bytes = 60 KB, sudah rotasi (terselesaikan, namun close-entry tidak mengecek nomor tabel ganda).
-4  daftar RULE 0     AGENTS.md menunjuk replace_text.py:536, kodenya di :570.
-                     Rujukan baris di aturan tidak ada yang menjaga.
-6  snowline di PATH  yang terpasang di site-packages tertinggal dari repo:
+3  rotasi connector  connector.md saat ini berukuran 64157 bytes = 62 KB, 
+                     sudah rotasi (terselesaikan, namun close-entry tidak 
+                     mengecek nomor tabel ganda sehingga sempat ada bug penomoran Terbuka).
+4  daftar RULE 0     AGENTS.md menunjuk baris replace_text statis yang rawan basi.
+                     Rujukan baris di aturan harusnya penanda `grep`.
+5  snowline di PATH  yang terpasang di site-packages tertinggal dari repo:
                      init_chamber-nya 7 berkas, sumber repo 8.
-7  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
-                     otomatisasinya sekarang)
-8  close-entry       (Utang baru) close-entry saat menyisipkan topik ke tabel
-                     TUTUP tidak mengecek penomoran Terbuka, sehingga
-                     sempat terjadi nomor ganda pada daftar ini.
+6  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
+                     otomatisasinya sekarang).
+7  gerbang CRITICAL  install_hook yatim, tidak dipanggil dari CLI maupun 
+                     init. Jika ditambahkan, akan overwrite pre-commit dan 
+                     membunuh verify_rule12.ps1. Ditunda agar dicarikan solusi 
+                     append hook yang aman.
 ```
 
 TUTUP lewat chamber, arsip per topik:
