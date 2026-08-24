@@ -19,7 +19,9 @@ companion       tunggakan terbuka       0          tutup
 chamber         kode di pohon git       5 berkas   528 baris + init_chamber di
                                                    cli.py:738 — bukan lagi
                                                    protokol murni
-tools           berujii                 11 / 19    8 belum, didaftar di Terbuka 1
+tools           beruji                  13 / 19    6 belum, didaftar di Terbuka 2
+                                                   (beruji = ada uji yang menjalankan alatnya dan menegaskan keluarannya)
+                                                   (Total 19 memuat 18 alat di skills/ plus install_hooks)
 undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
                 mengikat lewat kode     4 gerbang  lihat RULE 0 di AGENTS.md
 ```
@@ -76,13 +78,11 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
 3  rotasi connector  connector.md saat ini berukuran 64157 bytes = 62 KB, 
                      sudah rotasi (terselesaikan, namun close-entry tidak 
                      mengecek nomor tabel ganda sehingga sempat ada bug penomoran Terbuka).
-4  daftar RULE 0     AGENTS.md menunjuk baris replace_text statis yang rawan basi.
-                     Rujukan baris di aturan harusnya penanda `grep`.
-5  snowline di PATH  yang terpasang di site-packages tertinggal dari repo:
+4  snowline di PATH  yang terpasang di site-packages tertinggal dari repo:
                      init_chamber-nya 7 berkas, sumber repo 8.
-6  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
+5  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
                      otomatisasinya sekarang).
-7  gerbang CRITICAL  install_hook yatim, tidak dipanggil dari CLI maupun 
+6  gerbang CRITICAL  install_hook yatim, tidak dipanggil dari CLI maupun 
                      init. Jika ditambahkan, akan overwrite pre-commit dan 
                      membunuh verify_rule12.ps1. Ditunda agar dicarikan solusi 
                      append hook yang aman.

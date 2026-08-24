@@ -50,7 +50,10 @@ Setelah itu baru baca:
 3. Sebutkan dengan jelas apa yang **TIDAK** diperiksa/dijamin oleh keluarannya.
 4. Jangan pernah menilai kerjamu sendiri (hindari kata: "bersih", "stabil", "siap rilis", "sepenuhnya teruji").
 5. Akhiri laporanmu dengan output terminal terakhir, tanpa kalimat sapaan/selamat penutup.
-6. Baru setelah ditulis ke connector, balas chat dengan: "selesai — silakan sinyal PM".
+6. Daftar Terbuka di STATE.md disunting TERAKHIR, sesudah semua pekerjaan
+   terbukti selesai. Menyuntingnya di tengah sprint membuatnya mencatat rencana,
+   bukan keadaan.
+7. Baru setelah ditulis ke connector, balas chat dengan: "selesai — silakan sinyal PM".
 
 ## KALAU PINTU TERKUNCI
 

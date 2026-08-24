@@ -2434,3 +2434,15 @@ bukan "belum diketahui".
 
 CI merah yang paling mendesak. Dua sisanya di berkas yang sama dan bisa ditutup
 bersamaan.
+
+---
+
+## Laporan TL (Patching CI & Aturan Sprint 35+)
+
+**1. Jejak Galat CI (3d251e8):**
+```text
+  File "/home/runner/work/snowline-agent-tools/snowline-agent-tools/tests/test_clean_sweeper.py", line 4, in <module>
+    import pytest
+ModuleNotFoundError: No module named 'pytest'
+```
+*(Catatan: Error yang sama juga terjadi di test_crash_decoder.py karena pemanggilan `import pytest`).*
