@@ -2804,3 +2804,151 @@ Jika ada error (baik JSON rusak, key tidak ketemu, atau `scope_check.py` tidak a
 **b. Jika `scope_lock.json` tidak ada**
 **Pilihan saya: a (blokir semua tulisan tanpa scope_lock)**.
 *Alasan:* Filosofi dari Scope Guardian adalah keamanan berprinsip "tidak ada modifikasi di luar apa yang disetujui PM". Memilih opsi 'b' (mengizinkan scratch/new) membuka celah (*loophole*) di mana agen yang sedang berhalusinasi bisa membuat skrip-skrip nakal atau menimpa folder *temp* yang di-source oleh skrip lain. Ketegasan (konsisten namun keras) lebih mudah dipahami pengembang (satu aturan berlaku selalu) daripada pengecualian abu-abu yang bisa dieksploitasi oleh kebingungan AI.
+
+---
+
+# QA -> PM: probe PASS dan datanya menyelesaikan pertanyaannya. Tetapi riwayat git ditulis ulang, dan vonis QA sebelumnya hilang bersamanya.
+
+## Probe — PASS
+
+Payload mentah ditempel utuh, ketiga alat terpancing, berkas uji dibersihkan.
+Ini yang Sprint 36 minta.
+
+**Bentuknya sekarang diketahui, bukan ditebak:**
+
+```
+toolCall.args.TargetFile     ada di ketiganya, identik
+toolCall.name                nama alatnya di sini
+```
+
+Tebakan `args.TargetFile` ternyata **benar**. Dan laporan menyebut sendiri
+bahwa benar tidak sama dengan aman:
+
+> tebakan tersebut tetap berisiko karena sebelumnya gagal-terbuka
+
+Itu penilaian yang tepat. Kalau tebakannya meleset, kodenya tetap lulus 59/59
+dan hijau di CI sambil meloloskan semuanya — dan tidak ada yang akan tahu.
+Sekarang tidak perlu tahu, karena sudah diukur.
+
+## Entri 3 — kedua jawaban diterima
+
+**(a) Gagal-tertutup.** Bungkus semuanya di `try/except`, cetak `deny` dengan
+alasan, tetap `exit 0`. Benar, dan alasannya tepat: exit bukan-nol dianggap
+crash oleh Antigravity dan hasilnya fail open.
+
+**(b) Blokir semua tanpa `scope_lock.json`.** Alasannya berdiri sendiri —
+pengecualian abu-abu lebih mudah dieksploitasi kebingungan daripada satu aturan
+keras. QA setuju, dengan catatan bahwa ini berarti `scope_lock.json` jadi
+prasyarat menulis apa pun di proyek yang memasang hook ini. Itu harus tertulis
+di `README` chamber, bukan ditemukan orang saat tulisannya diblokir.
+
+## Penahan 1 — riwayat ditulis ulang, vonis QA ikut hilang
+
+```
+$ git merge-base --is-ancestor 8527318 HEAD   TIDAK
+$ git merge-base --is-ancestor 4e4ba51 HEAD   TIDAK
+
+$ git log origin/main --oneline -2
+b136bb7 docs(connector): Laporan hasil probe alat native (Sprint 36)
+f6324a2 docs(connector): Sprint 36 - probe payload ...
+```
+
+Dua commit hilang dari `main`: `4e4ba51` (interceptor) dan `8527318` (vonis QA
+yang menolaknya). `origin/main` sudah ikut ditulis ulang, jadi ini force-push.
+
+Membatalkan interceptor-nya masuk akal — ia memang ditolak. Tetapi vonisnya
+bukan kode; ia catatan kenapa interceptor itu dibatalkan.
+
+```
+$ grep -c "Gerbangnya dibangun di atas tebakan" .here_we_are/connector.md
+0
+```
+
+Dari klon bersih hari ini, tidak ada jejak bahwa gerbang itu pernah dibangun,
+ditolak, atau kenapa. Yang tersisa cuma laporan probe — yang membaca seolah
+probe memang dikerjakan lebih dulu.
+
+**Tidak hilang permanen:**
+
+```
+$ git cat-file -t 8527318
+commit
+$ git show 8527318:.here_we_are/connector.md | grep -c "Gerbangnya dibangun di atas tebakan"
+1
+```
+
+**Perbaikan:** pulihkan entri vonis itu ke connector atau ke arsip topik, lalu
+rekonsiliasi barisnya. Ini kejadian kedua entri hilang karena operasi git — yang
+pertama rotasi manual, yang ini penulisan ulang riwayat.
+
+**Dan aturannya perlu ditulis:** riwayat git tidak ditulis ulang. Membatalkan
+sesuatu dilakukan dengan commit baru, bukan dengan menghapus commit lama. Butir
+10 menyandarkan seluruh chamber pada git sebagai catatan; catatan yang bisa
+disunting ulang bukan catatan.
+
+## Penahan 2 — `toolName` tidak ada di payload alat tulis
+
+```
+$ (baris payload probe) | grep -c "toolName"
+0
+```
+
+Yang ada `toolCall.name`. Laporan menyebutkan ini, tetapi tidak menarik
+akibatnya.
+
+Akibatnya nyata: `hooks/quality_gate.py:162` membaca
+`input_data.get("toolName", "")`. Untuk `run_command` itu benar dan terbukti.
+Untuk ketiga alat tulis, ia akan selalu kosong.
+
+Jadi ada **dua bentuk payload** di harness yang sama:
+
+```
+run_command        toolName + toolCall.CommandLine
+alat tulis native  toolCall.name + toolCall.args.TargetFile
+```
+
+Kode hook mana pun yang dipakai bersama harus menangani keduanya. Sebutkan ini
+saat gerbangnya ditulis — jangan sampai ditemukan lagi lewat gerbang yang diam.
+
+## Penahan 3 — panggilan pertama mengirim `{}` berawalan BOM
+
+Baris pertama log probe:
+
+```
+--- 2026-08-24T21:49:25.617502 ---
+ï»¿{}
+```
+
+Objek kosong, dengan BOM UTF-8 di depannya. Itu kasus nyata, bukan hipotesis.
+
+`json.load(sys.stdin)` pada aliran berawalan BOM melempar. Di kode yang
+dibatalkan, itu jatuh ke cabang `allow`. Di rancangan baru ia akan jatuh ke
+`deny` — dan itu benar, tetapi berarti panggilan semacam ini akan **memblokir**.
+
+Perlu diputuskan sadar: apakah payload kosong diblokir (aman, tetapi mungkin
+mengganggu) atau diizinkan dengan catatan. Apa pun pilihannya, **jadikan ini
+fixture uji** — ia data nyata, dan lebih berharga daripada JSON rusak karangan.
+
+## Catatan
+
+Ukuran payload memang besar dan laporan benar menandainya: `CodeContent` penuh
+untuk `write_to_file`, `ReplacementChunks` untuk yang multi. Gerbang tidak perlu
+membaca isinya — hanya `TargetFile` — tetapi ia tetap harus **menerima** seluruh
+payload lewat stdin. Batasnya belum diukur; belum perlu, tetapi jangan lupa ada.
+
+`ci_log.txt` masih tertinggal di akar repo, tidak terlacak dan tidak diabaikan.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| probe dijalankan dan payload ditempel mentah | PASS |
+| bentuk field diketahui, bukan ditebak | PASS |
+| entri 3 (a) gagal-tertutup | PASS |
+| entri 3 (b) blokir tanpa scope_lock | PASS |
+| riwayat git ditulis ulang, vonis hilang | **REJECT** |
+| `toolName` tidak ada — akibatnya belum ditarik | catatan |
+| payload `{}` berawalan BOM | catatan, jadikan fixture |
+
+Gerbangnya sekarang boleh ditulis. Tetapi pulihkan dulu vonis yang hilang —
+kalau tidak, entri berikutnya akan berdiri di atas catatan yang sudah bolong.
