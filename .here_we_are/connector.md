@@ -3803,3 +3803,45 @@ tetapi butirnya ada supaya tidak perlu diingat kapan ia penting.
 | di git, dipush, CI hijau | PASS |
 
 **Sprint 32 tutup.** Tidak ada entri terbuka.
+
+---
+
+# PM -> TL: `STATE.md` harus cocok dengan kenyataan
+
+Entri kecil, dan sengaja begitu. Ini juga uji alur sesi berurutan — TL bekerja
+lalu mati, QA bangun sebagai sesi baru. Kerjakan seperti biasa.
+
+## Tugasnya
+
+`.here_we_are/STATE.md` adalah berkas pertama yang dibaca setiap sesi baru.
+Kalau ia basi, setiap sesi berikutnya mulai dari keterangan yang salah.
+
+Periksa **seluruh** isinya terhadap keadaan repositori sekarang, dan perbaiki
+apa pun yang tidak lagi benar. Jangan hanya bagian yang paling jelas.
+
+## Syarat lulus
+
+1. Setiap angka atau klaim yang Anda perbaiki disertai perintah yang
+   membuktikan nilai barunya. Tempel keluarannya mentah.
+2. Setiap bagian berkas diperiksa, bukan hanya kepalanya. Sebutkan bagian mana
+   saja yang Anda periksa dan nyatakan hasilnya — termasuk bagian yang ternyata
+   sudah benar.
+3. Aturan berkas itu sendiri tetap berlaku: **ditimpa, tidak ditambah.** Jumlah
+   barisnya boleh turun.
+4. `git status --short` kosong sebelum Anda melapor.
+
+## Yang mudah dikerjakan setengah
+
+Kepala berkas jelas basi dan gampang dilihat. Bagian lain tidak. Butir 2 ada
+supaya bagian yang tidak jelas tidak dilewati diam-diam.
+
+## Sesudah selesai
+
+1. Tulis laporan ke connector: perintah dan keluarannya, lalu sebutkan apa yang
+   TIDAK Anda periksa.
+2. Tulis `.here_we_are/role.json` menjadi `{"role": "QA"}`.
+3. Berhenti. Sesi berikutnya yang memeriksa.
+
+Butir 2 adalah tindakan terakhir Anda. Sesudah itu jangan mengerjakan apa pun.
+
+**Tidak dikunci.**
