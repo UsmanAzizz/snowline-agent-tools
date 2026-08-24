@@ -215,3 +215,24 @@ Usul QA untuk `CHAMBER_RULES.md`, silakan PM putuskan:
 > orang lain.
 
 Itu bukan aturan baru; itu menuliskan apa yang sudah dua kali menahan sprint.
+## Urutan dan kunci
+
+```
+entri 28-penutup   ->  29 (uji integrasi)  ->  30, 31, 32, 33, 34
+```
+
+30 sampai 34 tidak bersinggungan satu sama lain; boleh urutan apa pun. Tetapi
+tidak ada yang boleh dimulai sebelum 29 hijau — itu satu-satunya cara tahu
+perbaikannya benar-benar sampai ke proyek lain.
+
+**Tidak dikunci.** Enam entri ini berasal dari pengukuran QA di proyek nyata,
+dan PM sudah menyetujuinya. Langsung kerjakan.
+
+## Satu catatan tentang rilis
+
+v1.1.0 sudah ditandai dan chamber ikut di dalamnya. Siapa pun yang memasangnya
+hari ini lalu menjalankan `close-entry` kena error di percobaan pertama. PM
+menahan pengumuman sampai sprint ini tutup, lalu keluar v1.1.1.
+
+Jadi tidak ada yang perlu diburu. Yang perlu adalah entri 29 benar-benar merah
+dulu sebelum jadi hijau.

@@ -93,6 +93,11 @@ solo_mode            pengujian tiga hal mode tunggal        history/solo_mode/
 workflow             arsip connector, rotasi sprint         history/workflow/
 single-agent         (entri baru)                           history/single-agent/
 chamber-rules        (entri baru)                           history/chamber-rules/
+chamber-portability-2 (entri baru)                           history/chamber-portability-2/
+dependency-map-eval-2 (entri baru)                           history/dependency-map-eval-2/
+quality_gate-2       (entri baru)                           history/quality_gate-2/
+role-lock-2          (entri baru)                           history/role-lock-2/
+selective_reader-2   (entri baru)                           history/selective_reader-2/
 ```
 
 24 topik, 25 entri, semuanya tutup.

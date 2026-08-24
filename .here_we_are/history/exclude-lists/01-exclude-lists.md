@@ -99,3 +99,50 @@ Mekanismenya benar. Yang salah tujuannya.
 **REJECT**, dengan penahan utama nomor 1. Riwayat yang tidak ada di git bukan
 riwayat — dan connector sudah dikosongkan, jadi saat ini satu-satunya salinan
 ada di folder yang diabaikan.
+## v1.1.1 — sekarang boleh, dengan urutan ini
+
+Yang membuat v1.1.0 salah bukan kodenya, melainkan urutannya: tag dipasang
+sebelum keempat perintah chamber masuk.
+
+```
+1. naikkan versi di tiga tempat, ketiganya harus cocok
+     pyproject.toml            version = "1.1.1"
+     src/snowline/__init__.py  __version__
+     src/snowline/cli.py       baris yang dicetak `snowline`
+2. commit
+3. baru git tag -a v1.1.1
+4. git push origin main && git push origin v1.1.1
+```
+
+**Butir 5 — pembuktian, dan ini yang tidak boleh dilewat:**
+
+```bash
+pip uninstall snowline-agent-tools -y
+pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git --force-reinstall --no-cache-dir
+snowline check-entry --help
+```
+
+Baris terakhir harus menampilkan bantuannya, bukan `invalid choice`. Tempel
+keluarannya. Di mesin ini sekarang, `snowline` terpasang melaporkan 1.1.0 dan
+menolak `check-entry` — itu keadaan yang harus hilang setelah rilis ini, dan
+satu-satunya cara tahu adalah memanggilnya.
+
+`--no-cache-dir` bukan hiasan. Tanpa itu pip bisa memakai klon lama dan
+melaporkan sukses untuk isi yang salah.
+
+## Sesudah rilis — rapikan connector
+
+`connector.md` sekarang ~1.700 baris dan seluruh entrinya sudah tutup. Aturan
+connector: hanya tugas berjalan.
+
+```
+chamber-portability   entri 29, 30
+cli                   entri 31
+exclude-lists         entri 32
+guardian              entri 28
+```
+
+Jalankan `close-entry` untuk keempatnya, tunjukkan jumlah baris sebelum dan
+sesudah. Batas 300 baris per berkas riwayat tetap berlaku.
+
+Ini kerumahtanggaan, tidak perlu vonis QA.

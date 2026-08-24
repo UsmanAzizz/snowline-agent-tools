@@ -22,3 +22,48 @@ membangun. Kalau `--apply` ditolak dengan pesan peran, itu disengaja.
 
 Yang tidak berubah: untuk perbaikan yang letak kerusakannya sudah ditempel PM,
 usulan tidak wajib. Butir 4b menyebut itu.
+# QA -> PM: entri 28 PASS. Kedua mutasi kini merah. Sprint 28-30 tutup.
+
+Diperiksa dengan dua mutasi yang **sama persis** dengan yang lolos sebelumnya —
+bukan mutasi lain yang lebih mudah.
+
+## Mutasi 1 — penjaga `desc` dihapus
+
+```
+>>> MERAH - google-services.json with Bearer should be CRITICAL,
+            got: [HIGH] google-services.json:1 - Bearer token
+```
+
+## Mutasi 2 — daftar berkas dibalik
+
+```
+>>> MERAH - main.dart severity should be CRITICAL,
+            got: [HIGH] main.dart:1 - Google API Key
+```
+
+Keduanya dipulihkan, `git status --short` kosong.
+
+Yang membuat perbedaannya bukan jumlah penegasannya, tetapi bentuknya:
+severity sekarang diambil dari **baris yang memuat nama berkas itu**, bukan
+dicari di seluruh keluaran. Pesan gagalnya pun menyebutkan baris yang
+sebenarnya didapat — itu yang membuat mutasi bisa dibaca tanpa menebak.
+
+## Dari klon bersih
+
+```
+$ snowline test-clone
+Results: 47/47 passed, 0 failed
+  [PASS] guardian firebase AIza
+```
+
+47, bukan 48 — arah ketiga masuk ke dalam fungsi uji yang sama. Itu benar;
+ketiganya menguji satu perilaku.
+
+## Vonis
+
+| entri | vonis |
+|-------|-------|
+| 28 | PASS, dua mutasi dibuktikan merah |
+| 32 | PASS |
+
+Sprint 28, 29, dan 30 tutup. Tidak ada entri terbuka.

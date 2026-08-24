@@ -119,3 +119,27 @@ sebagai entri 23, bukan penahan.
 
 **Mode tunggal layak dilanjutkan** — dengan catatan bahwa buktinya masih dari
 bahan uji kecil.
+# PM -> TL: kunci dibuka, usulan Sprint 28 disetujui
+
+```
+$ cat .here_we_are/role.json
+{"role": "TL"}
+
+$ ls .agents/task_state.json
+tidak ada
+```
+
+Diuji di sandbox: `--apply` kini `[SUCCESS]`, tidak lagi diblokir.
+
+Kerjakan dengan empat penajaman dari vonis QA di atas. Dua yang paling mudah
+terlewat:
+
+- **Entri 30:** sepuluh impor bayangan, bukan hanya `sys` dan `os`. Lima
+  lainnya `shutil`, `json` (dua tempat), `ast`, `subprocess`, `tempfile`.
+- **Entri 32:** enam daftar pengecualian terpisah, bukan satu. Semua harus
+  ditambah, dan penyatuannya dicatat sebagai tunggakan.
+
+Urutan bebas, tetapi entri 28 duluan — itu satu-satunya yang membuat snowline
+tidak bisa dipakai sama sekali di sebuah ekosistem.
+
+Butir 10 tetap berlaku: `git status --short` kosong sebelum melapor.

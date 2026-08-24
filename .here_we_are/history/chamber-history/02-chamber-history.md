@@ -87,3 +87,10 @@ asumsi git di sana. Itu bagian yang benar.
 
 QA memasang `.agents/` di `pengingat_oli` untuk uji ini. Kalau PM mau
 membersihkan: `snowline uninstall --apply` dan hapus `.agents/chamber/`.
+## Prasyarat — tutup entri 28 dulu
+
+Sudah dirinci di entri sebelumnya di connector ini. Ringkasnya: pindahkan
+`scratch/test_entry28.py` ke `tests/test_guardian_firebase.py`, daftarkan di
+`run_tests.py`, uji tiga arah, suite naik ke 46 dari klon bersih.
+
+Jangan mulai entri 29 sebelum ini ada di `git log`.

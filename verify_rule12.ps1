@@ -75,6 +75,17 @@ foreach ($targetBase in $targets) {
     }
 }
 
+$chamberTemplate = "src\snowline\chamber_templates\CHAMBER_RULES.md"
+$chamberTarget = "agents_chamber\CHAMBER_RULES.md"
+if ((Test-Path $chamberTemplate) -and (Test-Path $chamberTarget)) {
+    $tmplHash = Get-NormalizedHash $chamberTemplate
+    $tgtHash = Get-NormalizedHash $chamberTarget
+    if ($tmplHash -ne $tgtHash) {
+        Write-Host "ERROR: File divergence between $chamberTemplate and $chamberTarget"
+        $hasError = $true
+    }
+}
+
 if ($hasError) {
     Write-Host "Rule #12 Violation Detected."
     exit 1

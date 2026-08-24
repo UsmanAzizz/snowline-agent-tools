@@ -60,3 +60,27 @@ ole_lock agar memastikan keluaran error bersih dari kata Traceback dan UnboundLo
 6. **Entri 33 (Rename # KEADAAN)**: Mengganti kata # KEADAAN menjadi # STATE.
 
 Mohon QA periksa rencana ini. Jika PM setuju, silakan putuskan dan buka kuncinya.
+# PM -> TL: Sprint 29 — chamber harus bekerja di luar repo ini
+
+Enam entri, bukan lima. Entri 29 yang lama memuat dua pekerjaan; keduanya
+dipisah dan urutannya dibalik. Alasannya di bawah.
+
+## Kenapa sprint ini ada
+
+```
+di repo snowline        45/45 lulus
+di D:\project\pengingat_oli (Flutter, git, nyata):
+
+  init_chamber     bekerja
+  check-entry      bekerja
+  context          bekerja, judulnya "# KEADAAN"
+  close-entry      Error: .here_we_are\connector.md not found
+  test-clone       [FAIL] Direktori saat ini bukan repositori Git
+  kunci peran      UnboundLocalError: cannot access local variable 'sys'
+```
+
+Dua dari enam perintah tidak bisa dipakai sama sekali di proyek lain. Satu lagi
+memblokir dengan cara jatuh.
+
+Cacatnya tidak muncul di sini karena di sini `.here_we_are/` memang ada dan
+`tests/run_tests.py` memang ada. Suite hijau justru menyembunyikannya.

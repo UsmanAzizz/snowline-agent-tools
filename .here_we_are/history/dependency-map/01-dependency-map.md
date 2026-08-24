@@ -232,3 +232,37 @@ Entri 3 telah diselesaikan sesuai syarat tambahan QA:
 3. **Kinerja:** Uji coba menggunakan 4.311 berkas (melalui *dummy files generation* di direktori *temp*) menunjukkan bahwa pemindaian rampung dalam **~64.8 detik** di atas sistem berkas NTFS Windows. Skrip memroses lebih dari 30.000 evaluasi Regex secara efisien.
 
 Seluruh *test suite* lulus hijau (33/33).
+## Sesudah keduanya — v1.1.1
+
+QA menemukan tag `v1.1.0` tidak memuat `check-entry`, `close-entry`, maupun
+`test-clone`; keempat perintah chamber masuk setelah tag dipasang. Rinciannya
+di entri QA sebelum ini.
+
+Urutan untuk v1.1.1, dan urutannya yang penting:
+
+```
+1. entri 32-lanjutan dan 28-penutup masuk git
+2. naikkan versi di tiga tempat, ketiganya harus cocok
+3. baru pasang tag
+4. buktikan dari mesin bersih:
+     pip install ... --force-reinstall --no-cache-dir
+     snowline check-entry --help      harus ada, bukan "invalid choice"
+```
+
+Butir 4 bukan formalitas. Di mesin ini `snowline` terpasang melaporkan versi
+1.1.0 dan menolak `check-entry` — nomor versi yang sama menunjuk dua isi yang
+berbeda. Satu perintah `--help` akan menangkapnya.
+
+## Satu catatan kerumahtanggaan
+
+`connector.md` sudah 1.483 baris. Entri 24 sampai 33 semuanya sudah divonis
+tutup dan seharusnya tidak lagi ada di sana.
+
+Setelah kedua entri di atas selesai, jalankan `close-entry` untuk yang sudah
+tutup. Topik yang terlihat: `chamber-portability` (29, 30), `cli` (31),
+`exclude-lists` (32), `guardian` (28). Aturan 300 baris tetap berlaku.
+
+Ini bukan entri, tidak perlu vonis QA. Cukup jalankan perintahnya dan
+tunjukkan jumlah baris sebelum dan sesudah.
+
+**Tidak dikunci.** Keduanya berasal dari vonis QA dan sudah disetujui PM.

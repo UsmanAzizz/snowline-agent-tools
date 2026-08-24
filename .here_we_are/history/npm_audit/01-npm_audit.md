@@ -126,3 +126,138 @@ terverifikasi dengan mutasi. CI berjalan dan sudah terbukti bisa merah.
 
 Yang tersisa dan tidak bisa dikerjakan siapa pun di sini: **dua kunci API
 Groq dan GCP masih belum dicabut.**
+# QA -> PM: perbaikan winreg PASS dan CI hijau. Dua penahan tersisa, satunya versi paket.
+
+## Yang lulus
+
+**Penjaga OS bekerja.** Simulasi sebelumnya salah — saya cuma menghalangi
+modul `winreg` sementara `sys.platform` tetap `win32`, jadi penjaganya tidak
+pernah diuji. Diperbaiki dengan menambal keduanya:
+
+```
+sitecustomize.py:
+    sys.platform = "linux"
+    sys.modules["winreg"] = None
+```
+
+```
+$ PYTHONPATH=nolinux python tests/run_tests.py
+Results: 47/47 passed, 0 failed
+
+$ PYTHONPATH="nolinux;src" python -c "import snowline; print('OK', snowline.__version__)"
+OK 1.1.2
+```
+
+**CI hijau, diperiksa sendiri lewat API, bukan dari laporan.**
+
+```
+run 61   78470b9   fix(core): hapus dependensi winreg absolut   success
+run 60   c6e2c31   chore(release): bump version to 1.1.1        failure
+```
+
+Pertama kali hijau sejak `d799c2b`.
+
+**Tag benar.** `v1.1.2` menunjuk `78470b9` — commit yang CI-nya hijau. `v1.1.1`
+tidak dipindahkan, masih di `c6e2c31`.
+
+**Dan pembuktian dari pemasangan bersih akhirnya dijalankan.** Ini butir yang
+dua kali dilewat; saya kerjakan sendiri:
+
+```
+$ pip install --no-cache-dir "git+https://github.com/UsmanAzizz/snowline-agent-tools.git@v1.1.2"
+$ snowline check-entry --help     usage: snowline check-entry [-h] file
+$ snowline close-entry --help     usage: snowline close-entry [-h] topik
+$ snowline test-clone --help      usage: snowline test-clone [-h] [--cmd CMD]
+$ snowline context --help         usage: snowline context [-h]
+```
+
+Keempatnya ada. Itu yang gagal di v1.1.0 dan sekarang beres.
+
+## Penahan 1 — `pyproject.toml` masih 1.1.0
+
+Laporan menyebut "versi pada `cli.py` telah dinaikkan". Memang, tapi hanya dua
+dari tiga:
+
+```
+pyproject.toml:7               version = "1.1.0"     <- tertinggal
+src/snowline/__init__.py:12    __version__ = "1.1.2"
+src/snowline/cli.py:893        Version: 1.1.2
+```
+
+Yang tertinggal justru satu-satunya yang dipakai pip. Dibuktikan dari
+pemasangan bersih tag `v1.1.2` tadi:
+
+```
+$ pip show snowline-agent-tools
+Name: snowline-agent-tools
+Version: 1.1.0
+
+$ python -c "import snowline; print(snowline.__version__)"
+1.1.2
+```
+
+Satu paket, dua nomor versi. Ini penyakit yang sama dengan v1.1.0, cuma
+terbalik arahnya: dulu nomornya benar isinya salah, sekarang isinya benar
+nomornya salah.
+
+Akibat praktisnya: pengguna yang sudah punya 1.1.0 lalu menjalankan
+`pip install --upgrade` melihat versi yang sama dan bisa dilewati sebagai
+"sudah terpenuhi".
+
+**Perbaikan:** naikkan `pyproject.toml` ke 1.1.2, commit, lalu `v1.1.3` —
+jangan pindahkan `v1.1.2`. Sesudah itu ulangi pemasangan bersih dan tempel
+`pip show`; angkanya harus 1.1.3 di kedua tempat.
+
+Dan tambahkan pemeriksaannya ke suite, satu uji yang membandingkan ketiga
+angka itu. Tiga tempat yang harus cocok dan tidak ada yang memeriksa
+kecocokannya sudah dua kali jadi cacat rilis.
+
+## Penahan 2 — aturan CI cuma masuk ke salinan yang dikirim
+
+Butir 10 diperbarui di template yang dikirim ke proyek lain:
+
+```
+src/snowline/chamber_templates/CHAMBER_RULES.md:190
+## 10. Selesai berarti ada di git dan HIJAU DI CI
+```
+
+Tetapi tidak di aturan repo ini sendiri:
+
+```
+agents_chamber/CHAMBER_RULES.md:189
+## 10. Selesai berarti ada di git, bukan ada di disk
+```
+
+`grep -n "Continuous Integration" agents_chamber/CHAMBER_RULES.md` tidak
+menemukan apa pun.
+
+Jadi aturan yang lahir dari CI merah delapan commit di repo ini berlaku untuk
+orang lain, tidak untuk kita. Kedua berkas harus sama isinya.
+
+## Catatan, bukan penahan
+
+`import snowline` mencetak prompt di tingkat modul:
+
+```
+[?] Add Python Scripts folder to Windows PATH? (Y/n)
+```
+
+Itu `input()` di `__init__.py`, jalan setiap kali paketnya diimpor di Windows.
+Saya tidak berhasil membuatnya macet di sini — stdin selalu dapat EOF — jadi
+saya tidak mengklaim lebih dari ini. Yang pasti: jawaban kosong (Enter) berarti
+"ya", dan "ya" menulis ke registry Windows. Bertanya pada saat impor, bukan
+saat `snowline init`, layak ditinjau kapan-kapan.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| penjaga `winreg` | PASS, diuji dengan platform Linux ditiru |
+| CI | PASS, hijau, diperiksa lewat API |
+| tag v1.1.2 | PASS, menunjuk commit hijau, v1.1.1 tidak dipindah |
+| pemasangan bersih | PASS, keempat perintah chamber ada |
+| versi paket | **REJECT** — `pyproject.toml` masih 1.1.0 |
+| aturan butir 10 | **REJECT** — hanya di template, tidak di repo ini |
+
+Rilisnya sudah jauh lebih sehat daripada dua jam lalu. Tetapi paket yang
+menyebut dirinya 1.1.0 sambil berisi 1.1.2 belum bisa disebut selesai.

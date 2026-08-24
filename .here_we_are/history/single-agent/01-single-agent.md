@@ -76,3 +76,86 @@ selesai.
 
 Bukan cuma `# KEADAAN`. Periksa seluruh templat chamber untuk judul dan istilah
 Indonesia yang tertinggal setelah rename kemarin.
+# PM -> TL: uji penentu mode tunggal — sesi berurutan, bukan subagent
+
+Rancangannya di `.here_we_are/DESIGN_SEQUENTIAL_DID.md`. Baca dulu; ia
+mengganti mekanisme di Bagian 2 `DESIGN_CONTEXT_AND_SOLO.md`, bukan gagasannya.
+
+Ringkas: identitas dingin tidak harus datang dari subagent. Sesi baru dari agen
+yang sama sudah dingin — itu sifat harness, bukan perilaku yang perlu diuji.
+Yang dibutuhkan cuma satu: chamber memegang seluruh kesinambungan.
+
+Uji 1 yang menggugurkan mode tunggal di Antigravity **tidak lagi relevan**,
+karena tidak ada subagent dalam alur ini.
+
+## Entri ini tidak membangun apa pun
+
+Sengaja. Yang diminta satu pengukuran, dan hasilnya menentukan apakah perkakas
+apa pun layak dibangun.
+
+## Uji penentu
+
+```
+1  Ambil satu entri yang masih terbuka di connector.
+2  Buka sesi BARU dari agen yang sama. Bukan tab baru dari sesi ini —
+   sesi yang benar-benar kosong.
+3  Beri ia HANYA tiga hal:
+      keluaran `snowline context`
+      teks entri itu
+      jalur repo
+   Tidak ada penjelasan, tidak ada riwayat, tidak ada maksud.
+4  Minta vonis QA atas entri itu.
+5  Bandingkan dengan vonis yang ada di connector.
+```
+
+**Syarat lulus — dan yang dinilai bukan hasilnya, melainkan kejujuran
+pencatatannya:**
+
+1. Tempel prompt yang Anda berikan ke sesi dingin, **utuh**. Kalau prompt itu
+   memuat satu kalimat penjelasan pun, ujinya batal — tulis ulang dan jalankan
+   lagi.
+2. Tempel vonis sesi dingin apa adanya, termasuk kalau ia bingung atau salah
+   arah. Terutama kalau begitu.
+3. Tulis daftar **apa yang dicari sesi dingin dan tidak ketemu**. Ini keluaran
+   yang sebenarnya dicari entri ini. Bentuknya baris pendek:
+
+```
+tidak tahu kenapa entri 32 dipecah dari 33
+tidak tahu bahwa pyproject pernah tertinggal di rilis sebelumnya
+tidak tahu perintah mana yang biasa dipakai untuk memeriksa CI
+```
+
+4. Jangan memperbaiki chamber dalam entri ini. Daftar dulu.
+
+**Yang paling mudah dikerjakan setengah di sini:** memberi sesi dingin sedikit
+konteks tambahan supaya hasilnya bagus. Itu membatalkan seluruh gunanya. Uji
+ini mencari kekurangan chamber, dan kekurangan itu hanya muncul kalau sesi
+dinginnya benar-benar telanjang.
+
+Hasil "sesi dingin gagal total" adalah hasil yang sah dan berguna. Yang tidak
+berguna adalah hasil bagus yang dibantu.
+
+## Kalau gagal
+
+Itu yang diharapkan pada putaran pertama. Sepanjang 22-23 Agustus, sesi QA
+membawa banyak yang tidak pernah masuk connector — alasan di balik vonis, pola
+dari sprint lama, kecurigaan yang belum terbukti.
+
+Putaran berikutnya: pindahkan yang ada di daftar ke chamber, jalankan lagi.
+Berhenti kalau daftarnya kosong, atau kalau setelah tiga putaran daftarnya
+tidak mengecil.
+
+Yang kedua juga hasil. Artinya ada yang memang tidak bisa dituliskan, dan mode
+dua sesi tetap berlaku untuk pekerjaan yang lolos butir 0.
+
+## Yang belum dikerjakan dari entri sebelumnya
+
+Jangan mulai ini sebelum keduanya di git:
+
+```
+git status --short kembali ke butir 10 dan jadi langkah nol kalibrasi
+cabang "beda" dipecah dua
+lima berkas yang masih di disk di-commit
+```
+
+**Tidak dikunci.**
