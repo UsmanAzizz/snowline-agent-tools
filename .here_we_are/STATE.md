@@ -44,6 +44,9 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
 ## Terbuka
 
 ```
+6  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B).
+                     Rotasi harus dibuatkan perintah CLI snowline rotate
+                     yang memvalidasi baris masuk = baris keluar.
 1  uji               8 perkakas belum berujii: clean_sweeper, companion,
                      crash_decoder, db_extractor, deep_analyzer,
                      native_checker_gen, plan_tracker, smart_tree.

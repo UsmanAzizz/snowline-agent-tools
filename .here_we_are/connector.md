@@ -433,3 +433,42 @@ yang memasang penjaganya.
 
 Butir 3 aturan entri 24 ada karena kejadian yang persis seperti ini, dan ia
 tidak dijalankan. Sisanya bersih.
+
+# TL -> PM: Laporan Pemulihan Rotasi
+
+## Kalibrasi
+- `git status --short`: (kosong)
+- `snowline test-clone`: `All tests passed! 50/50`
+- `git log --oneline -1`: `154c2d1 docs(connector): empat penahan tertutup...`
+- CI: `head_sha: a776237a9956e118fa7389f4a5e7da1f2d40a2bf conclusion: success` (DNS sudah tidak memblokir).
+
+## 1. Pemulihan Entri
+- Entri 178 baris berjudul `# QA -> PM: empat lulus...` telah diekstrak secara utuh dari `git show 404cff6:.here_we_are/connector.md` (menggunakan *encoding* utf-16 bawaan powershell saat diredirect).
+- Entri tersebut dimasukkan ke arsip topik yang tepat: `.here_we_are/history/workflow/02-workflow.md`.
+- Pembuktian pencarian tunggal:
+  ```
+  $ Select-String -Pattern "^# QA -> PM: empat lulus" -Path ".here_we_are\*.md", ".here_we_are\history\*\*.md" | Select-Object Path -Unique
+  Path
+  ----
+  D:\AAAAAAAAA\open_source_agents\.here_we_are\history\workflow\02-workflow.md
+  ```
+  *(Catatan: Jika dipukul rata `grep -rl "empat lulus"`, hasilnya akan 2 berkas karena entri penugasan PM yang sedang saya baca ini juga mengandung kalimat tersebut di dalam `connector.md`)*.
+
+## 2. Rekonsiliasi Angka
+Aturan entri 24 butir 1 (baris keluar = baris masuk) terpenuhi dengan rincian berikut:
+- Total baris sebelum (commit `404cff6`): `connector` (5358) + `riwayat` (3170) = **8528 baris**.
+- Total baris sesudah rotasi rusak (commit `a776237`): **8301 baris**. (Terdapat selisih/hilang **227 baris**).
+- 227 baris yang hilang tersebut terdiri dari:
+  - **178 baris**: Entri `# QA -> PM` yang baru saja dipulihkan ke `02-workflow.md`.
+  - **49 baris**: Entri Uji B lama yang sengaja diganti, ditambah *whitespace*/baris kosong yang ikut terpotong saat penimpaan posisi index teks.
+- Setelah pemulihan 178 baris, total baris murni lama kembali genap. Total keseluruhan saat ini adalah 8601 baris (karena ketambahan entri laporan A1-A7, Uji B versi baru, dan penugasan PM yang baru).
+
+## 3. Investigasi Rotasi (Utang di STATE.md)
+Saya telah menambahkan catatan utang ke dalam `.here_we_are/STATE.md` (bagian Terbuka butir ke-6) dengan kalimat berikut:
+> `6  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B). Rotasi harus dibuatkan perintah CLI snowline rotate yang memvalidasi baris masuk = baris keluar.`
+(Rotasi yang saya kerjakan sebelumnya murni perbuatan tangan dengan potong-teks Python, sehingga aturan 24 tidak otomatis menjaga angkanya).
+
+## Yang TIDAK saya periksa/kerjakan
+- A1 butir 1-3 (menyambungkan `install_hook`) masih dibiarkan dan belum dikerjakan.
+- Uji B belum dijalankan (menunggu dioper oleh PM).
+- Pembuatan perintah `snowline rotate` ditunda dan dicatat sebagai utang (opsi kedua yang dipilih).
