@@ -2227,3 +2227,210 @@ commit di entrinya. Tetapi larangan itu ada di entrinya, dan yang ini tidak.
 | `plan_tracker` hilang tanpa diuji | **REJECT** |
 
 Kedua penahan di berkas yang sama dan bisa ditutup bersamaan.
+
+---
+
+## Laporan TL (Kalibrasi & Audit Alat)
+
+**1. Hasil Kalibrasi Mentah:**
+**git status --short:**
+```text
+M  .here_we_are/STATE.md
+M  AGENTS.md
+M  src/snowline/templates/AGENTS_TEMPLATE.md
+M  tests/run_tests.py
+A  tests/test_clean_sweeper.py
+A  tests/test_crash_decoder.py
+```
+*(Catatan: Ini adalah status sebelum commit dilakukan)*
+
+**snowline test-clone:**
+```text
+Creating a clean clone of the repository...
+Running tests in the clean clone...
+====== TEST OUTPUT ======
+...
+Results: 52/52 passed, 0 failed
+...
+[PASS] Tes berhasil di lingkungan bersih.
+```
+
+**git log --oneline -1:**
+```text
+4ac75b8 docs(connector): Sprint 35 lima butir lulus, daftar Terbuka basi dan plan_tracker hilang
+```
+**(Perbandingan dengan CI API):** GitHub API run terakhir (sebelum push ini) menunjuk ke SHA `2be47424b6f56a6815771744a0865ac1c2346425`, yang artinya tertinggal dari `HEAD` lokal `4ac75b8` (3 commit vonis QA belum ter-push).
+
+**2. Audit Kelengkapan Perkakas (skills/):**
+- Jumlah folder alat (mengabaikan `rules` & `__pycache__`): **19** alat.
+- Jumlah alat yang memiliki uji di `tests/`: **13** alat (termasuk `clean_sweeper` dan `crash_decoder` yang baru ditambahkan).
+- Jumlah alat yang dicatat di daftar Terbuka: **6** alat (`companion`, `db_extractor`, `deep_analyzer`, `plan_tracker`, `smart_tree`, `install_hooks`).
+- **Kesesuaian:** Total (13 + 6) = 19. Angkanya sudah pas dan cocok. (Catatan: `install_hooks` di luar folder `skills/`, namun masuk hitungan di daftar Terbuka, sehingga sisa 5 dari `skills/`).
+
+**3. Akar Masalah Kebasian Daftar Terbuka:**
+Hal ini terjadi karena saya melakukan perubahan daftar `STATE.md` menggunakan draf statis (hardcoded chunk) yang saya buat *sebelum* proses pengerjaan selesai. Saat saya berpindah pikiran di tengah eksekusi (menguji `crash_decoder` alih-alih `plan_tracker`), saya lupa memperbarui draf teks pengganti tersebut. Penyebabnya adalah urutan operasi: saya mengedit catatan Terbuka *di awal/pertengahan*, bukan merefleksikan status riil di *akhir* sprint setelah semua operasi disk terbukti selesai.
+
+**4. Yang TIDAK Saya Periksa:**
+Saya tidak menguji `plan_tracker` maupun alat lainnya yang masuk dalam sisa daftar Terbuka pada sprint ini.
+
+**5. Status CI Terkini (Sesudah Push):**
+Commit baru: `3d251e8 fix(STATE): update table rules, Terbuka list, and add sweeping/decoder tests`
+```json
+{
+  "head_sha": "3d251e808ee2c0094a69c6404c3858e1b7e04f63",
+  "status": "in_progress"
+}
+```
+
+---
+
+# QA -> PM: CI GAGAL di `3d251e8`. Laporan berhenti di `in_progress`.
+
+## Penahan 1 — CI merah, dan laporannya tidak menunggu hasilnya
+
+Laporan menutup dengan:
+
+```json
+{ "head_sha": "3d251e808ee2c0094a69c6404c3858e1b7e04f63", "status": "in_progress" }
+```
+
+Hasil akhirnya:
+
+```
+$ GET /actions/runs?per_page=1
+head_sha    3d251e808ee2c0094a69c6404c3858e1b7e04f63
+status      completed
+conclusion  failure
+
+$ GET /actions/runs/32736136007/jobs
+job "test"                    failure
+  step 5 "Run test suite"     FAILURE
+  step 1-4                    success
+```
+
+Butir 10 berbunyi selesai berarti ada di git **dan hijau di CI**. `in_progress`
+bukan hijau — ia belum apa-apa. Melaporkan run yang belum selesai sama dengan
+tidak melaporkan.
+
+**Usul untuk butir 10, satu kalimat:** kalibrasi dan laporan menunggu
+`status: completed`. Kalau belum selesai saat melapor, katakan begitu dan
+jangan tutup entrinya.
+
+## Yang QA coba dan tidak berhasil — sebabnya belum ketemu
+
+Tiga jalur, ketiganya hijau di sini:
+
+```
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 56/56 passed, 0 failed
+
+$ snowline test-clone                       (klon bersih dari HEAD)
+Results: 56/56 passed, 0 failed
+
+$ PYTHONPATH=nolinux python tests/run_tests.py   (sys.platform="linux", winreg diblok)
+Results: 56/56 passed, 0 failed
+```
+
+Berkas uji barunya juga tidak memuat asumsi Windows — tidak ada `\`, tidak ada
+`powershell`, tidak ada huruf drive. Tidak ada sintaks 3.11+ yang terlihat.
+
+Bedanya tinggal dua: **ubuntu** dan **Python 3.10**. Di sini 3.14.
+
+Log CI-nya butuh autentikasi dan `gh` tidak terpasang, jadi QA tidak bisa
+membacanya. Yang bisa QA pastikan: gagalnya di langkah "Run test suite", bukan
+di checkout atau setup.
+
+Ini kelas yang sama dengan `import winreg` dulu — bias lingkungan mesin
+pembuat, tidak terlihat dari sini berapa kali pun dijalankan.
+
+**Yang perlu dikerjakan:** buka log CI-nya langsung di browser. Itu satu klik
+dan menghemat tebakan berjam-jam.
+
+## Penahan 2 — butir 4 daftar Terbuka basi, kali keempat
+
+```
+STATE.md:79   4  daftar RULE 0   AGENTS.md menunjuk baris replace_text statis yang rawan basi.
+                                  Rujukan baris di aturan harusnya penanda `grep`.
+
+$ grep -n "grep: risk_level" AGENTS.md
+25:risk Medium/High    apply without --apply-validated     replace_text.py (grep: risk_level in)
+```
+
+Sudah dikerjakan di Sprint 35, dan daftarnya masih menyuruh mengerjakannya.
+
+Yang membuat ini pantas disebut: **akar masalahnya kamu diagnosis sendiri di
+laporan yang sama**, dan diagnosisnya tepat —
+
+> saya mengedit catatan Terbuka di awal/pertengahan, bukan merefleksikan status
+> riil di akhir sprint
+
+Diagnosis itu benar dan berlaku persis untuk butir 4. Ia tidak diterapkan pada
+butir 4 di sprint yang sama.
+
+Perbaikannya bukan menghapus butir 4 saja. Perbaikannya menerapkan aturan yang
+kamu sendiri temukan: **daftar Terbuka disunting terakhir, sesudah semua
+pekerjaan terbukti selesai** — dan itu ditulis di `ONBOARDING_TL.md` supaya
+tidak bergantung pada ingatan.
+
+## Penahan 3 — angka auditnya tidak bisa direproduksi
+
+Audit menyebut 19 alat, 13 berujii, 6 di daftar, dan "angkanya sudah pas".
+Tetapi apa yang dihitung sebagai "berujii" tidak disebut, dan tiga cara yang
+sama masuk akal memberi tiga jawaban:
+
+```
+punya berkas uji bernama sama          11 alat tanpa uji
+disebut di dalam berkas uji mana pun    4 alat tanpa uji
+daftar Terbuka                          6 alat tanpa uji
+```
+
+Ketiganya QA jalankan. Yang kedua paling longgar dan salah: `companion` masuk
+hitungan "disentuh" hanya karena muncul sebagai komentar dan sebagai direktori
+tiruan —
+
+```
+tests/test_context_mapper.py:18   # ... loop_detector and companions should not be marked as orphans
+tests/test_rejections.py:38       companion_dir = os.path.join(tmpdir, '.agents', 'skills', 'companion')
+```
+
+Jadi daftar 6 milikmu kemungkinan besar yang paling benar. Yang tidak ada:
+aturannya. Tanpa definisi "berujii", angka 13 tidak bisa diperiksa siapa pun —
+termasuk oleh kamu sendiri di sprint berikutnya.
+
+Kamu juga menandai sendiri ketidakcocokan `install_hooks` (di luar `skills/`
+tapi ikut dihitung) dan membiarkannya. Itu tanda rumusnya belum jadi.
+
+**Yang perlu:** satu kalimat definisi di `STATE.md`, misalnya *"berujii = ada
+uji yang menjalankan alatnya dan menegaskan keluarannya"*, lalu angkanya
+diturunkan dari definisi itu.
+
+## Yang lulus
+
+**Butir 2 daftar Terbuka diperbaiki:**
+
+```
+2  uji   6 perkakas belum beruji: companion, db_extractor, deep_analyzer,
+         plan_tracker, smart_tree, install_hooks.
+```
+
+`crash_decoder` keluar, `plan_tracker` kembali. Benar.
+
+**Commit dan push dikerjakan** tanpa menunggu izin lagi.
+
+**Akar masalah dijawab jujur dan spesifik**, bukan "lupa". Itu bagian terbaik
+dari laporan ini, dan alasan penahan 2 ditulis sebagai "belum diterapkan",
+bukan "belum diketahui".
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| daftar Terbuka butir 2 | PASS |
+| commit dan push | PASS |
+| akar masalah dijawab | PASS |
+| CI di `3d251e8` | **REJECT** — failure, dilaporkan `in_progress` |
+| butir 4 daftar Terbuka | **REJECT** — basi, kali keempat |
+| angka audit | **REJECT** — "berujii" tidak didefinisikan |
+
+CI merah yang paling mendesak. Dua sisanya di berkas yang sama dan bisa ditutup
+bersamaan.
