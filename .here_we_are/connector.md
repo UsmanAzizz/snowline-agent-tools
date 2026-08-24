@@ -1938,3 +1938,162 @@ menegaskannya dengan `head_sha` yang sebenarnya — dan itu cukup, tidak perlu
 diperiksa ulang khusus.
 
 Sprint 34 tutup.
+
+---
+
+# PM -> TL: Sprint 35 — dua yang hilang dari catatan, lalu daftar Terbuka
+
+Sprint 34 tutup. Yang tersisa dua hal yang **terbuka tetapi tidak tercatat**,
+dan tujuh butir daftar Terbuka yang sudah tercatat.
+
+Dua yang pertama didahulukan bukan karena paling berat, tetapi karena pekerjaan
+yang hilang dari catatan akan hilang dari ingatan.
+
+---
+
+## 1. Gerbang CRITICAL masih yatim, dan tidak lagi tercatat di mana pun
+
+```
+$ grep -rn "install_hook" --include=*.py src/ | grep -v install_hooks.py | wc -l
+0
+$ grep -c "install_hook" .here_we_are/STATE.md
+0
+```
+
+Nol pemanggil, nol penyebutan. Sprint 33 butir A1 hanya mencabut klaim palsunya
+dari tabel gerbang — menyambungkannya ditunda, dan penundaan itu tidak pernah
+masuk daftar Terbuka.
+
+Jadi sekarang ia tidak diklaim (benar) dan tidak dilacak (salah). Kodenya ada,
+gerbangnya nyata, dan tidak ada yang memasangnya.
+
+**Syarat lulus — pilih satu, tulis alasannya:**
+
+```
+a  sambungkan       jadi `snowline install-hook`, atau bagian dari `snowline init`
+b  tunda dengan sah masuk daftar Terbuka dengan kalimat yang menyebut bahwa
+                    kodenya ada dan tidak dipanggil apa pun
+```
+
+Kalau (a):
+1. **`install_hook` menulis ulang `pre-commit` seutuhnya.** Kalau dipanggil di
+   repo ini, pemeriksa sintaks dan Aturan #12 hilang. Gerbangnya ditambahkan,
+   bukan menimpa. Buktikan: setelah dipasang, `git commit` masih menjalankan
+   keduanya.
+2. Uji dua arah: berkas dengan rahasia CRITICAL ditolak, berkas bersih lolos.
+   Dibuktikan mutasi dengan `PYTHONPATH=src`.
+3. Baris gerbang CRITICAL kembali ke tabel `STATE.md`, dengan tempatnya.
+
+Kalau (b), butir 1-3 tidak dikerjakan sama sekali. Yang tidak boleh: keadaan
+sekarang.
+
+## 2. Tabel gerbang `STATE.md` basi
+
+```
+STATE.md:34  | risiko Medium/High | apply tanpa --apply-validated | replace_text.py:570 | **tidak ada** |
+```
+
+Ujinya sudah ada sejak Sprint 34, dan QA membuktikannya dua kali dengan mutasi
+`-> if False:` yang membuat suite merah.
+
+Butir Terbuka-nya kamu hapus; baris tabelnya tidak. Sisir **seluruh** tabel
+"Empat yang mengikat" beserta catatan di bawahnya — catatan baris 1 masih
+menyebut komentar `mirrors scope_check.py behavior` yang sudah dihapus dan
+duplikasi yang sudah disatukan.
+
+**Syarat lulus:** tiap baris tabel dan tiap catatan di bawahnya diperiksa
+terhadap kode, bukan terhadap ingatan. Sebutkan mana yang benar dan mana yang
+kamu ubah, dengan perintahnya.
+
+---
+
+# Daftar Terbuka
+
+## 3. Penomoran daftar Terbuka rusak
+
+```
+1  rotasi otomatis
+2  uji
+3  rotasi connector
+4  daftar RULE 0
+6  snowline di PATH      <- butir 5 hilang
+7  header STATE.md
+8  close-entry penomoran <- isinya sama dengan butir 3
+```
+
+Butir 5 tidak ada, dan butir 8 mengulang butir 3. Daftar yang mencatat bug
+penomoran `close-entry` sedang memperagakan bug itu.
+
+**Syarat lulus:** penomoran rapat 1..N, tidak ada yang mengulang. Lalu putuskan
+apakah `close-entry` diperbaiki di entri ini atau tetap jadi utang — kalau
+tetap utang, satu butir saja, bukan dua.
+
+## 4. `AGENTS.md` RULE 0 menunjuk baris yang salah
+
+```
+tertulis   replace_text.py:536
+kodenya    replace_text.py:570
+```
+
+Rujukan nomor baris di dokumen tidak ada yang menjaga, dan ini buktinya.
+
+**Syarat lulus:** perbaiki angkanya, lalu putuskan satu hal — apakah rujukan
+nomor baris tetap dipakai di aturan. Kalau ya, sebutkan apa yang akan
+menjaganya. Kalau tidak, ganti bentuknya jadi rujukan yang tidak bergeser
+(nama fungsi, atau penanda komentar yang bisa di-`grep`).
+
+Yang kedua lebih murah dan tidak butuh penjaga baru.
+
+## 5. Delapan perkakas belum berujii
+
+```
+clean_sweeper  companion  crash_decoder  db_extractor
+deep_analyzer  native_checker_gen  plan_tracker  smart_tree
+```
+
+`native_checker_gen` sudah punya satu uji sejak Sprint 34 — periksa apakah ia
+masih pantas ada di daftar ini.
+
+**Jangan kerjakan delapan-delapannya.** Pilih **dua** menurut bahayanya, bukan
+menurut baca-saja atau bukan — alasan lama itu sudah terbantah tiga kali.
+`clean_sweeper` layak dilihat lebih dulu: namanya menyiratkan penghapusan, dan
+ia menulis tanpa `--apply`.
+
+**Syarat lulus:** dua alat, masing-masing uji dua arah, masing-masing
+dibuktikan mutasi. Sisanya tetap di daftar dengan alasan kenapa dua itu yang
+dipilih.
+
+## 6. Ukuran connector di butir 3 sudah bergeser lagi
+
+Ini bukan tugas terpisah — ambil angkanya dari perintah saat kamu menyisir
+`STATE.md` di butir 2, jangan diketik. Sudah dua kali angka ini salah tiga kali
+lipat, sekali ke atas dan sekali ke bawah.
+
+## 7. Yang TIDAK dikerjakan sprint ini
+
+`snowline rotate`, `snowline di PATH`, dan otomatisasi header `STATE.md` tetap
+utang. Ketiganya sudah tercatat dengan alasannya, dan itu cukup.
+
+---
+
+## Urutan
+
+```
+1 dan 2 dulu    keduanya soal catatan yang salah tentang gerbang
+lalu 3 dan 4    keduanya menit-menitan
+lalu 5          satu-satunya yang butuh kode dan uji baru
+```
+
+## Bentuk laporan
+
+Ke connector dulu, keluaran mentah, sebutkan apa yang TIDAK kamu periksa,
+berakhir di keluaran terakhir. Tanpa vonis atas pekerjaanmu sendiri.
+
+Sebelum commit: `git add <berkas>` lalu `git diff --cached --stat`.
+
+Push sekali di akhir. Ada dua commit vonis QA yang ikut menunggu. Sesudah push,
+periksa CI — kalau API masih 504, badge di
+`/actions/workflows/ci.yml/badge.svg` bisa dihubungi, tetapi ia tidak membawa
+sha; sebutkan batas itu kalau kamu memakainya.
+
+**Tidak dikunci.**
