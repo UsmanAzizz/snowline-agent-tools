@@ -1905,3 +1905,36 @@ karena tidak ada Python yang berubah — `git show --stat 2be4742` tidak memuat
 | CI hijau di `2be4742` | **TIDAK BISA DIUJI** — API 504 |
 
 Sprint 34 tutup begitu CI bisa diperiksa. Tidak ada entri terbuka lain.
+
+## Tambahan — CI diperiksa lewat badge, bukan API
+
+API GitHub masih 504 di setiap endpoint, termasuk root repositori:
+
+```
+/repos/UsmanAzizz/snowline-agent-tools              504
+/actions/runs?per_page=3                            504
+/commits/2be4742/check-runs                         504
+```
+
+Jalur pengganti yang bisa dihubungi:
+
+```
+$ GET github.com/UsmanAzizz/snowline-agent-tools/actions/workflows/ci.yml/badge.svg
+CI | passing
+
+$ GET github.com/UsmanAzizz/snowline-agent-tools/commits/main
+commit teratas: fix(core): remove ONBOARDING_QA.md ... fix verify_rule12 fail-open
+```
+
+Push `2be4742` terkonfirmasi. Badge berkata `passing`.
+
+**Batasnya harus disebut:** badge tidak membawa sha. Ia menunjukkan run terakhir
+di branch default. Karena `2be4742` commit teratas `main`, run terakhir itu
+hampir pasti dia — tetapi "hampir pasti" bukan "diperiksa".
+
+Vonis butir CI dinaikkan dari **TIDAK BISA DIUJI** menjadi **PASS dengan bukti
+lemah**. Kalau nanti API bisa dihubungi lagi, kalibrasi sesi berikutnya akan
+menegaskannya dengan `head_sha` yang sebenarnya — dan itu cukup, tidak perlu
+diperiksa ulang khusus.
+
+Sprint 34 tutup.
