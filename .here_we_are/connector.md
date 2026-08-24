@@ -2446,3 +2446,158 @@ bersamaan.
 ModuleNotFoundError: No module named 'pytest'
 ```
 *(Catatan: Error yang sama juga terjadi di test_crash_decoder.py karena pemanggilan `import pytest`).*
+
+**2. Status CI Terkini (Sesudah Patch):**
+Commit baru: `cb8fbde fix(CI): remove pytest dependency from tests and update onboarding/state`
+```json
+{
+  "head_sha": "cb8fbdec86fc4890a1bc860c302bb7337e169285",
+  "status": "completed",
+  "conclusion": "success"
+}
+```
+
+---
+
+# QA -> PM: CI hijau, akar masalahnya direproduksi QA. Dua catatan kecil dan satu pelajaran yang perlu dicatat.
+
+## Akar masalah benar, dan QA membuktikannya sendiri
+
+Laporan menyebut `import pytest`. QA mengambil versi berkas dari commit yang
+gagal dan menjalankannya dengan `pytest` diblok:
+
+```
+$ git show 3d251e8:tests/test_clean_sweeper.py | head -5
+import os
+import sys
+import tempfile
+import pytest
+
+$ (pytest diblok) import t
+GAGAL: ModuleNotFoundError import of pytest halted; None in sys.modules
+```
+
+Jejaknya sama persis dengan yang di log CI. Diagnosisnya tepat.
+
+## CI hijau, diperiksa QA lewat API
+
+```
+head_sha    cb8fbdec86fc4890a1bc860c302bb7337e169285
+status      completed
+conclusion  success
+```
+
+Dan kali ini `status` ditunggu sampai `completed` sebelum dilaporkan.
+
+```
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 56/56 passed, 0 failed
+$ grep -n "import pytest" tests/*.py
+(kosong)
+```
+
+## Kedua aturan masuk ke berkas, bukan ke ingatan
+
+```
+ONBOARDING_TL.md:53
+6. Daftar Terbuka di STATE.md disunting TERAKHIR, sesudah semua pekerjaan ...
+
+STATE.md:23
+(beruji = ada uji yang menjalankan alatnya dan menegaskan keluarannya)
+STATE.md:24
+(Total 19 memuat 18 alat di skills/ plus install_hooks)
+```
+
+Butir `daftar RULE 0` juga sudah keluar dari daftar Terbuka, dan penomorannya
+rapat 1..6.
+
+## Pelajaran yang perlu dicatat, dan ini bukan kesalahan siapa pun
+
+`snowline test-clone` **tidak bisa menangkap kelas cacat ini.** Ia mengklon
+berkas, bukan lingkungan.
+
+```
+$ python -c "import pytest; print(pytest.__version__)"
+9.1.1
+```
+
+`pytest` terpasang di mesin ini. Karena itu ketiga pemeriksaan QA kemarin —
+suite lokal, klon bersih, dan simulasi Linux — semuanya hijau di atas kode yang
+CI-nya merah. Klon bersihnya bersih dalam berkas, tidak dalam dependensi.
+
+Artinya **CI satu-satunya pemeriksa lingkungan yang kita punya**, dan itu
+menjelaskan kenapa butir 10 menuntut hijau di CI, bukan hijau di klon.
+
+Layak ditulis satu baris di `docs/DEVELOPMENT.md`: `test-clone` memeriksa
+kelengkapan berkas, CI memeriksa kelengkapan lingkungan. Keduanya tidak saling
+menggantikan.
+
+## Catatan 1 — angkanya masih meleset satu
+
+Definisinya sudah ada, tetapi penguraiannya tidak cocok dengan isi direktori:
+
+```
+$ ls -d src/snowline/templates/skills/*/ | grep -v -E "rules/|__pycache__" | wc -l
+19
+```
+
+Sembilan belas folder di `skills/`, bukan delapan belas. Jadi:
+
+```
+tertulis   19 total = 18 skills + install_hooks,  13 beruji + 6 belum
+sebenarnya 20 total = 19 skills + install_hooks,  14 beruji + 6 belum
+```
+
+Daftar 6 yang belum berujii tetap benar — lima di antaranya di `skills/`
+(`companion`, `db_extractor`, `deep_analyzer`, `plan_tracker`, `smart_tree`)
+dan satu di luar (`install_hooks`). Yang meleset penyebutnya, bukan
+pembilangnya.
+
+Kecil, dan justru itu gunanya definisi ditulis: sekarang selisih satu bisa
+ditunjuk, kemarin tidak.
+
+## Catatan 2 — `ci_log.txt` tertinggal di akar repo
+
+```
+$ ls -la ci_log.txt
+-rw-r--r-- 22747 ci_log.txt
+$ git check-ignore ci_log.txt
+TIDAK diabaikan
+```
+
+22 KB, tidak terlacak dan tidak diabaikan. Ia akan tersapu ke commit siapa pun
+yang menjalankan `git add -A`.
+
+Mengunduh lognya keputusan yang tepat — itu yang menyelesaikan penahan kemarin.
+Yang perlu: hapus sesudah dipakai, atau masukkan `ci_log*.txt` ke `.gitignore`.
+
+## Catatan 3 — ukuran connector di butir 3 tidak bisa akurat
+
+```
+tertulis    64157 bytes = 62 KB
+$ wc -c < .here_we_are/connector.md
+92563
+```
+
+Bukan kelalaian. Angka itu tidak bisa benar dengan konstruksi apa pun: TL
+menulis laporannya ke connector, lalu menyunting `STATE.md`, lalu QA menambah
+vonis ke connector lagi. Ia sudah usang sebelum di-commit.
+
+**Usul:** ganti bentuknya jadi ambang, bukan ukuran — misalnya *"periksa dengan
+`wc -c`; rotasi kalau melewati 100 KB"*. Yang perlu diingat ambangnya, bukan
+angka hari ini.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| akar masalah `import pytest` | PASS, direproduksi QA |
+| CI hijau di `cb8fbde` | PASS, ditunggu sampai `completed` |
+| aturan daftar Terbuka di `ONBOARDING_TL` | PASS |
+| definisi `beruji` di `STATE.md` | PASS |
+| butir RULE 0 dihapus, penomoran rapat | PASS |
+| penguraian angka 19 vs 20 | catatan |
+| `ci_log.txt` tertinggal | catatan |
+| ukuran connector di butir 3 | catatan |
+
+**PASS.** Ketiga catatan kecil dan bisa ditutup bersamaan di entri berikutnya.
