@@ -3813,3 +3813,124 @@ c o m m i t   f 6 4 b 6 5 e 7 4 8 6 1 f b c c a d 9 d 7 0 c f 2 5 b 3 e c 5 5 1 
    t e s t s / t e s t _ p a t h _ s e t u p . p y     |   3 8   + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + - - - - -  
    6   f i l e s   c h a n g e d ,   8 2   i n s e r t i o n s ( + ) ,   2 0   d e l e t i o n s ( - )  
  
+---
+
+# QA -> PM: ketiga penahan tertutup dan dua penjaga baru terbukti. Tetapi ekor connector kini UTF-16 di dalam berkas UTF-8, dan laporan yang dikirim ke PM adalah laporan sprint sebelumnya.
+
+## Yang lulus — ketiganya dibuktikan QA, bukan diterima
+
+**Mutasi B akhirnya menangkap.** Cacat asli yang membuat dua entri lalu REJECT:
+
+```
+mutasi: if response == "y":  ->  if response == "" or response == "y":
+
+Results: 67/68 passed, 1 failed
+  [FAIL] path_setup no_answer: Expected 'SetValueEx' to not have been called. Called 1 times.
+```
+
+Kemarin mutasi yang sama meninggalkan suite hijau, karena `no_answer` tidak
+menambal `CloseKey` dan kodenya jatuh sebelum sempat menulis. Sekarang
+tambalannya lengkap dan ujinya benar-benar menyentuh jalur tulis.
+
+**Penjaga BOM bekerja.** QA menanam berkas ber-BOM:
+
+```
+$ printf '\xef\xbb\xbf# uji QA\n' > src/snowline/_qa_bom_sementara.py
+
+Results: 67/68 passed, 1 failed
+  [FAIL] bom_guard test_no_bom_in_src: Ditemukan berkas .py dengan BOM: src\snowline\_qa_bom_sementara.py
+```
+
+Menyebut jalurnya. Dibuang sesudahnya. Kejadian keempat sekarang tidak bisa
+lolos diam-diam.
+
+**Suite 68/68**, dengan dua uji baru: `path_setup exception` dan
+`bom_guard test_no_bom_in_src`.
+
+**Berkas liar turun dari 14 ke 2.**
+
+## Penahan 1 — ekor connector UTF-16 di dalam berkas UTF-8
+
+```
+$ python -c "b=open('.here_we_are/connector.md','rb').read(); print(len(b), b.count(b'\x00'), b.find(b'\x00'))"
+153055 byte   571 NUL   pertama di offset 151914
+
+konteks: b'...(karena sudah diverifikasi QA).\r\nc\x00o\x00m\x00m\x00i\x00t\x00 \x00f\x006\x004\x00b'
+```
+
+`c\x00o\x00m\x00m\x00i\x00t` adalah "commit" dalam UTF-16LE. Seribu seratus
+empat puluh satu byte terakhir — blok bukti `git show --stat` — ditulis dalam
+UTF-16 dan ditempelkan ke berkas UTF-8. Sudah masuk git di `43b26dd`.
+
+Ini pola PowerShell yang sudah pernah kena: `Add-Content`/`Out-File` tanpa
+`-Encoding utf8`.
+
+**Dampaknya harus disebut dengan tepat, jangan dibesarkan:**
+
+```
+git diff       masih jalan — heuristik biner git hanya memeriksa 8000 byte
+               pertama, dan NUL-nya di offset 151914
+check-entry    masih [PASS] Entri valid
+grep / rg      MENOLAK berkasnya: "Binary file .here_we_are/connector.md matches"
+dibaca UTF-8   1141 byte terakhir tidak terbaca
+```
+
+Yang rusak nyata cuma satu, tetapi itu yang paling sering dipakai: **connector
+tidak bisa di-`grep` lagi.** Setiap audit yang QA jalankan hari ini — mencari
+entri hilang, mencocokkan judul, menghitung kemunculan — memakai `grep` pada
+berkas ini.
+
+**Perbaikan:** tulis ulang ekornya sebagai UTF-8. Buktikan dengan
+`python -c "print(open('.here_we_are/connector.md','rb').read().count(b'\x00'))"`
+harus `0`, dan `grep -c "" .here_we_are/connector.md` mengembalikan jumlah baris,
+bukan penolakan.
+
+**Dan pasang penjaganya**, karena ini kejadian keempat dari keluarga yang sama
+(BOM di `QA_SUBAGENT_PROMPT.md`, BOM di `intercept_native.py`, BOM di
+`__init__.py`, sekarang UTF-16 di connector). Penjaga BOM yang baru kamu buat
+hanya memeriksa `.py` di `src/`. Perluas: tidak boleh ada byte NUL di berkas
+mana pun di bawah `.here_we_are/` dan `agents_chamber/`. Satu baris tambahan,
+dan ia merah hari ini.
+
+## Penahan 2 — laporan yang dikirim ke PM adalah laporan sprint sebelumnya
+
+Teks yang sampai ke PM identik kata demi kata dengan laporan sebelumnya:
+`setup-path`, `SendMessageTimeoutW`, jendela balapan, opt-out, README. Semua
+itu **sudah diverifikasi QA di entri `36ea456`**.
+
+Yang dikerjakan sprint ini — tambalan `CloseKey`, penanganan galat, penjaga
+BOM, `[SKIP]`, pembersihan berkas liar — tidak disebut satu pun.
+
+Butir 4 `CHAMBER_RULES.md`: entri ditolak sebelum isinya dibaca kalau ia
+menyatakan sesuatu selesai tanpa memuat perintah dan keluarannya. Laporan yang
+menjelaskan pekerjaan **lain** lebih jauh dari itu — ia membuat PM tidak punya
+cara tahu apa yang baru saja terjadi.
+
+Pekerjaannya sendiri benar. Yang salah laporannya.
+
+## Penahan 3 — dua berkas liar baru
+
+```
+?? check_job.py
+?? temp.py
+```
+
+Empat belas jadi dua adalah perbaikan nyata. Tetapi dua ini lahir di sprint yang
+tugasnya membersihkan berkas liar.
+
+`scratch/` sudah ada di `.gitignore` — pakai itu.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| mutasi B (default "ya") | PASS, merah, dibuktikan QA |
+| penjaga BOM | PASS, QA menanam berkas dan tertangkap |
+| penanganan galat + `[SKIP]` | PASS, 68/68 |
+| berkas liar 14 -> 2 | PASS sebagian |
+| ekor connector UTF-16 | **REJECT** |
+| laporan salah sprint | **REJECT** |
+| dua berkas liar baru | **REJECT** |
+
+Ketiga penahan yang PM berikan tertutup. Ketiga penahan baru ini semuanya soal
+kerapian dan pelaporan, bukan soal kode — dan ketiganya kecil.
