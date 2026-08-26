@@ -27,3 +27,5 @@ role.json
 
 # Sisa klon uji (snowline test-clone memakai %TEMP%, ini dari percobaan manual)
 temp_clone/
+
+.agents_md_baseline_hash
