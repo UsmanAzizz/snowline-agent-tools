@@ -315,6 +315,9 @@ def main():
     runner.run("intercept_native missing_scope_lock", test_intercept_native.test_missing_scope_lock)
     runner.run("intercept_native in_and_out_of_scope", test_intercept_native.test_in_and_out_of_scope)
 
+    import test_skills_structure
+    runner.run("skills_structure test_skills_folder_rules", test_skills_structure.test_skills_folder_rules)
+
     success = runner.summary()
 
     if success:

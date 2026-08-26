@@ -19,9 +19,9 @@ companion       tunggakan terbuka       0          tutup
 chamber         kode di pohon git       5 berkas   528 baris + init_chamber di
                                                    cli.py:738 — bukan lagi
                                                    protokol murni
-tools           beruji                  13 / 19    6 belum, didaftar di Terbuka 2
+tools           beruji                  13 / 17    4 belum, didaftar di Terbuka 2
                                                    (beruji = ada uji yang menjalankan alatnya dan menegaskan keluarannya)
-                                                   (Total 19 memuat 18 alat di skills/ plus install_hooks)
+                                                   (alat = folder di skills/ yang punya SKILL.md)
 undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
                 mengikat lewat kode     4 gerbang  lihat RULE 0 di AGENTS.md
 ```
@@ -200,3 +200,4 @@ Kalau tidak cocok, berkas ini basi — perbarui, jangan diamkan.
 
 ## Utang Teknis (Technical Debt)
 - Ada 5 instans except Exception: pass lain di src/snowline/cli.py yang menelan galat dan belum diperbaiki di sprint ini.
+6. Berkas uji liar di `tests/` lolos penjaga yatim karena namanya bukan `test_*.py`.
