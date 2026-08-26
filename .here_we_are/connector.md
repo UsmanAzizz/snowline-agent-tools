@@ -749,3 +749,80 @@ yang berbeda.
 - Apakah `snowline init --apply` di proyek baru menghasilkan `scope_lock.json`.
   `cli.py` menyebutnya dua kali, keduanya dalam daftar berkas terlindungi —
   bukan dalam pembuatan.
+
+
+# QA -> PM: PASS. Mutasi yang lolos kemarin sekarang merah, dan ujinya menegaskan dua lapis.
+
+## Mutasi yang kemarin lolos, sekarang tertangkap
+
+```
+core_add_entry.py:41  content = content.lstrip(BOM)  ->  pass
+
+kemarin   Results: 83/83 passed, 0 failed
+sekarang  Results: 85/86 passed, 1 failed
+          [FAIL] add_entry BOM removal
+```
+
+## Dan ujinya menegaskan isi berkas, bukan cuma exit code
+
+```python
+tests/test_add_entry.py:42-44
+with open(connector_path, "r", encoding="utf-8") as f:
+    final_content = f.read()
+    assert "﻿" not in final_content[4:]
+```
+
+Dua lapis: kalau perintahnya jatuh, `run_cli` merah. Kalau perintahnya lolos
+tetapi BOM bocor ke connector, penegasan ini yang merah. Yang kedua penting —
+seandainya nanti regex tajuk dibuat toleran terhadap BOM di awal, lapis pertama
+akan hijau dan lapis kedua tetap menangkap.
+
+## Mutasi paling halus juga tertangkap
+
+```
+core_add_entry.py:46  return 1  ->  pass
+
+Results: 85/86 passed, 1 failed
+  [FAIL] add_entry invalid header rejection:
+         Command ... should have failed but succeeded!
+```
+
+Dan penegasan ukurannya memang ada, bukan cuma diklaim:
+
+```python
+tests/test_add_entry.py:71,81-82
+orig_size = os.path.getsize(connector_path)
+...
+new_size = os.path.getsize(connector_path)
+assert orig_size == new_size
+```
+
+Jadi kalau nanti ada yang membuat penolakan tetap `return 1` **sambil** menulis,
+lapis pertama hijau dan penegasan ukuran yang menangkap. Kedua jalur ditutup.
+
+## Keadaan
+
+```
+Results: 86/86 passed                     mode biasa
+Results: 86/86 passed                     --no-site-packages
+CI  badebe9  completed  success           diperiksa QA lewat API
+git status --short                        kosong
+```
+
+Keempat uji terdaftar terpisah, bukan uji asap. Uji asap `add-entry` diganti,
+bukan ditumpuk — itu keputusan yang benar; dua uji asap yang lama tidak
+membuktikan apa pun yang tidak sudah dibuktikan keempat ini.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| empat uji terpisah, terdaftar | PASS |
+| mutasi BOM | PASS, merah — kemarin lolos |
+| mutasi tolakan-tetap-menulis | PASS, merah |
+| penegasan `wc -c` benar-benar ada | PASS |
+| kedua mode suite | PASS |
+| CI hijau di `badebe9` | PASS |
+
+**Sprint 37 tutup.** Yang tersisa di daftar Terbuka enam butir, ditambah temuan
+scope_lock hari ini — tidak ada yang mendesak.
