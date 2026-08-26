@@ -1549,3 +1549,98 @@ ada untuk itu, dengan dry-run dan validasi sintaks.
 | delapan belas berkas liar | catatan |
 
 Kedua penahan satu baris masing-masing.
+
+
+# TL -> PM: Laporan Perbaikan init test & Gerbang Vonis
+Telah diperbaiki.
+
+### Apa yang TIDAK saya periksa
+Saya tidak memeriksa apakah agen benar-benar bisa membaca pola tanpa kata `council` karena pemahaman tiap agen bisa bervariasi. Saya hanya memastikan bahwa kata `council` sama sekali tidak lagi muncul dalam kerangka laporan tersebut.
+
+```bash
+> git log --oneline -1
+07b6521 fix: remove council mention in TEST_REPORT and catch TL->QA verdict
+
+> python tests/run_tests.py
+(Potongan keluaran:)
+  [PASS] tl verdict rejected
+  [PASS] tl verdict accepted
+  [PASS] tl_qa verdict rejected
+  [PASS] tl_qa verdict accepted
+  [PASS] init_test force_overwrite
+
+All tests passed!
+
+> (Pemeriksaan CI API GitHub)
+completed - success
+```
+
+
+# QA -> PM: PASS. Keduanya tertutup, dan `init test` siap dipakai di proyek lain.
+
+## "council" hilang, dan penjaganya menggigit
+
+```
+$ snowline init test   (di direktori kosong)
+$ grep -ci council TEST_REPORT.md SNOWLINE_TEST.md
+TEST_REPORT.md:0
+SNOWLINE_TEST.md:0
+```
+
+Mutasi QA — kata itu dikembalikan ke penyusun `TEST_REPORT.md`:
+
+```
+Results: 94/95 passed, 1 failed
+  [FAIL] init_test creates_files
+```
+
+Jadi bukan cuma dihapus sekali; ia dijaga. Kalau seseorang menaruhnya lagi
+besok, suite yang berteriak.
+
+## Gerbang vonis menangkap keempat kasus
+
+Diuji QA, dua bentuk tajuk x dua arah:
+
+```
+TL -> PM + vonis          [REJECTED] ... kata vonis dilarang 'bersih'
+TL -> PM, dikecualikan    [PASS] Entri valid.
+TL -> QA + vonis          [REJECTED] ... kata vonis dilarang 'bersih'
+TL -> QA, dikecualikan    [PASS] Entri valid.
+```
+
+Lubang yang kemarin meleset tepat pada alur sesi berurutan sekarang tertutup,
+dan pengecualian "apa yang tidak saya periksa" tetap jalan di kedua bentuk.
+
+## Keadaan
+
+```
+Results: 95/95 passed
+CI  07b6521  completed  success       diperiksa QA lewat API
+berkas liar  18 -> 1                  tersisa report_fix.md
+```
+
+Delapan belas jadi satu. Itu perubahan terbesar sejak masalah ini muncul lima
+sprint lalu.
+
+## Catatan kecil
+
+Pesan gagal `[FAIL] init_test creates_files:` berakhir dengan titik dua kosong —
+penegasannya tanpa pesan. Ia menangkap dengan benar, tetapi tidak mengatakan apa
+yang ditemukan. Di CI kegagalan itu akan bisu.
+
+Bukan penahan. Layak dititipkan ke pekerjaan berikutnya, bersama `report_fix.md`
+yang masih tertinggal.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| "council" hilang dari kedua berkas | PASS |
+| penegasannya menggigit | PASS, mutasi merah |
+| gerbang vonis, empat kasus | PASS, diuji QA |
+| berkas liar dibersihkan | PASS, 18 -> 1 |
+| CI hijau di `07b6521` | PASS |
+| pesan gagal tanpa isi | catatan |
+
+**`snowline init test` siap dipakai.** PM perlu memasang ulang paketnya dulu —
+yang terpasang belum punya perintahnya.
