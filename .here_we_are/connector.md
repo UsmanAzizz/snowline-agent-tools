@@ -826,3 +826,108 @@ membuktikan apa pun yang tidak sudah dibuktikan keempat ini.
 
 **Sprint 37 tutup.** Yang tersisa di daftar Terbuka enam butir, ditambah temuan
 scope_lock hari ini — tidak ada yang mendesak.
+
+
+# PM -> TL: Sprint 38 — ukur kelima penegak scope sebelum menyentuh satu pun
+
+Rinciannya di entri QA `ea84df0`. Ringkasnya: `scope_lock` memblokir snowline
+membangun konteksnya sendiri di proyek baru, dan penegaknya ternyata lima
+salinan terpisah — bukan satu.
+
+```
+auto_scaffolder/scaffolder.py:11     def check_scope_write(write_target)
+context_mapper/context_mapper.py:25  def check_scope_write(write_target)
+import_fixer/fixer.py:12             def check_scope_write(write_target)
+smart_replace/replace_text.py:68     def check_scope(pending_writes)
+scope_guardian/scripts/scope_check.py   penegak CLI
+```
+
+Sprint 34 butir 3 menyatukan satu dari lima. QA memvonisnya PASS, dan vonis itu
+benar untuk lingkupnya — lingkupnya yang terlalu sempit.
+
+## Sprint ini tidak memperbaiki apa pun
+
+Satu entri, dan isinya pengukuran. Alasannya: **tidak ada yang tahu apakah
+kelima penegak itu memutuskan hal yang sama untuk masukan yang sama.** Menyatukan
+lima perilaku yang belum diketahui sama berarti mengubah perilaku empat alat
+tanpa ada yang bisa menyebut perubahannya apa.
+
+## Entri 1 — uji diferensial kelima penegak
+
+Beri masukan yang sama ke kelima, bandingkan keputusannya.
+
+Kasus yang wajib ada, dan keempatnya sudah pernah jadi cacat nyata di repo ini:
+
+```
+1  scope_lock.json tidak ada
+2  scope_lock ada, berkas target ada di allowed_files
+3  scope_lock ada, berkas target TIDAK ada di allowed_files
+4  berkas target di bawah .agents/ (mis. .agents/knowledge/DEPENDENCY_MAP.md)
+5  jalur absolut dengan backslash Windows
+6  scope_lock ada tetapi JSON-nya rusak
+```
+
+Kasus 6 penting: gerbang yang jatuh saat berkas kuncinya rusak adalah gerbang
+yang bisa dimatikan dengan merusak satu berkas.
+
+**Bentuk keluarannya tabel**, satu baris per kasus, satu kolom per penegak:
+
+```
+kasus                      scope_check  replace_text  context_mapper  auto_scaf  import_fixer
+1 tanpa lock               BLOCK        BLOCK         BLOCK           ?          ?
+...
+```
+
+**Syarat lulus:**
+
+1. Tabelnya lengkap — enam kasus, lima kolom, tidak ada sel kosong. Kalau sebuah
+   penegak tidak bisa dipanggil terpisah, katakan begitu dan sebutkan kenapa;
+   itu temuan tersendiri.
+2. Tiap sel punya perintah yang menghasilkannya. Boleh diringkas jadi satu skrip
+   pembanding, tetapi skripnya ditempel.
+3. **Jangan memperbaiki perbedaan yang kamu temukan.** Laporkan. Kalau kelimanya
+   ternyata sama, itu hasil yang bagus dan menyatukannya jadi aman.
+4. Skrip pembandingnya taruh di `tests/`, bukan di akar repo.
+
+## Yang PM putuskan sesudah melihat tabelnya
+
+Bukan sekarang, dan bukan olehmu. Pertanyaannya:
+
+```
+a  daftar pengecualian jalur di penegak
+b  init --apply menulis scope_lock.json awal yang memuat .agents/knowledge/
+c  alat yang menulis HANYA ke .agents/ tidak memanggil penegak sama sekali
+```
+
+QA condong ke (c) — batasnya jadi sifat alatnya, bukan daftar jalur, dan daftar
+pengecualian adalah tempat lubang tumbuh. Tetapi keputusan ini tidak bisa
+diambil sebelum tabel entri 1 ada, karena kalau kelima penegak berbeda perilaku,
+pilihan mana pun akan berlaku beda-beda di lima tempat.
+
+## Satu hal yang ikut ketahuan dan bukan lingkup sprint ini
+
+```
+src/snowline/cli.py:329
+    # NOTE: agents.md NOT protected - follows timestamp logic like other files
+```
+
+`agents.md` satu-satunya berkas di `.agents/` yang mengubah apa yang boleh
+dilakukan agen, dan ia sengaja tidak dilindungi. Sementara `knowledge/` —
+yang isinya cuma peta — diblokir.
+
+Catat sebagai butir baru di daftar Terbuka. Jangan dikerjakan sekarang; ia
+keputusan yang sama keluarganya dengan (a)/(b)/(c) di atas dan sebaiknya
+diputuskan sekali untuk semuanya.
+
+## Bentuk laporan
+
+Ke connector lewat `snowline add-entry --from-file`, keluaran mentah, sebutkan
+apa yang TIDAK kamu periksa, berakhir di keluaran terakhir. Tanpa vonis atas
+pekerjaanmu sendiri.
+
+Sebelum commit: `git add <berkas>` lalu `git diff --cached --stat`.
+
+Push sekali di akhir, tanpa force. Ada 2 commit vonis QA yang ikut menunggu.
+Tunggu CI sampai `completed`, jalankan kedua mode.
+
+**Tidak dikunci.**
