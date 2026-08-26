@@ -107,4 +107,4 @@ def show_context():
         print(out)
         
 if __name__ == '__main__':
-    show_konteks()
+    show_context()

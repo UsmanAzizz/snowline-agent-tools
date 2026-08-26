@@ -4230,3 +4230,77 @@ subperintah itu.
 | penyebabnya | `b3d8568`, tiga impor terhapus di luar lingkup |
 | verifikasi QA atas Entri 30 | benar tetapi terlalu sempit |
 | cakupan uji subperintah | tidak ada |
+
+## Eksekusi TL
+- **Butir 1 & 7**: Impor bayangan yang terhapus secara tidak sengaja (tempfile, subprocess, json) telah dikembalikan ke tingkat modul di cli.py. Seluruh 11 instans print_warninging telah diperbaiki menjadi print_warning. show_konteks di core_context.py telah diperbaiki menjadi show_context.
+- **Butir 2**: Penjaga name_guard (menguji AST untuk NameError) telah ditambahkan ke test_name_guard.py dan dihubungkan ke run_tests.py.
+- **Butir 4**: except Exception: pass di status() baris 593 telah dibuang dan diubah menjadi except Exception as e: print_warning(...).
+- **Butir 6 (Analisis Status)**: Angka new_files_count dan modified_files_count dihitung dengan membandingkan folder templates internal terhadap folder .agents target. Angka '9 baru, 48 diperbarui' bukan menghitung berkas chamber/ yang baru di-init, melainkan sisa berkas pembaruan skills yang ada di paket tapi belum di-apply ke lokal. Angka tersebut benar secara konteks perhitungan update, tetapi memang membingungkan jika baru saja menjalankan init.
+- **Butir 3 & 5 (Uji Asap)**: Seluruh 11 subperintah lolos uji asap tanpa melempar pengecualian. Rantai buntu pada status yang menyarankan update --apply juga telah dites berantai dan berjalan lancar.
+- **Uji (Butir 3)**: Penjaga name_guard menambah total suite menjadi 69/69.
+- Tidak diperiksa: Alasan mendalam kenapa tempfile dll hilang dari laporan asli QA (karena sudah dijawab PM).
+
+### Bukti Name Guard (Merah -> Hijau -> Merah Mutasi)
+**Sebelum diperbaiki (Merah):**
+\\	ext
+  [FAIL] name_guard no_undefined: Undefined names found:
+File src\snowline\cli.py, line 361: subprocess
+File src\snowline\cli.py, line 373: subprocess
+File src\snowline\cli.py, line 584: subprocess
+File src\snowline\cli.py, line 613: subprocess
+File src\snowline\cli.py, line 123: tempfile
+File src\snowline\cli.py, line 124: tempfile
+File src\snowline\cli.py, line 559: subprocess
+File src\snowline\cli.py, line 605: json
+File src\snowline\core_context.py, line 110: show_konteks
+\
+**Sesudah diperbaiki (Hijau):**
+\\	ext
+  [PASS] name_guard no_undefined
+\
+**Mutasi hapus 'json' (Merah):**
+\\	ext
+  [FAIL] name_guard no_undefined: Undefined names found:
+File src\snowline\cli.py, line 609: json
+\
+### Bukti Uji Asap Tiga Subperintah (Termasuk Rantai Status)
+\\	ext
+=== snowline update ===
+==================================================
+  Snowline Update
+==================================================
+
+i Current skills: 103
+i Available: 0 new, 4 modified
+
+Changes to be applied:
+  * [UPDATE] hooks\intercept_native.py
+...
+Run snowline update --apply to apply changes
+
+=== snowline status ===
+==================================================
+  Snowline Status
+==================================================
+
+  Paket         : commit b1115009  (GitHub: ?)
+  File .agents/ : 103 file (0 baru, 4 diperbarui)     -> tersedia
+                 -> 5 perubahan (termasuk agents.md)
+                 -> snowline update --apply
+
+i Ada file project yang tersedia update.
+
+=== executing suggested command: snowline update --apply ===
+==================================================
+  Snowline Update
+==================================================
+...
+i [AUTO-BACKUP] agents_md_...
+i Updated: agents.md
++ Updated: 0 new, 4 modified
+
+=== snowline reinstall ===
+i Memulihkan dari paket lokal.
+i Untuk sekaligus mengambil versi terbaru dari GitHub: snowline reinstall --apply --latest
+==================================================
+\

@@ -5,9 +5,13 @@ import os
 import shutil
 import argparse
 import sys
+import tempfile, subprocess, json
+import tempfile, subprocess, json
 import hashlib
 from datetime import datetime
 from pathlib import Path
+import sys
+import tempfile, subprocess, json
 import sysconfig
 if sys.platform == 'win32':
     import winreg
@@ -99,7 +103,7 @@ def print_info(text):
     safe_print(f"{Colors.CYAN}{Colors.INFO} {text}{Colors.RESET}")
 
 
-def print_warninging(text):
+def print_warning(text):
     safe_print(f"{Colors.YELLOW}{Colors.WARN} {text}{Colors.RESET}")
 
 
@@ -141,7 +145,7 @@ def init(dry=True, force=False):
     if existing_count > 0 and not force:
         print_info(f"Found {existing_count} existing skills")
         print()
-        print_warninging("Skills sudah terpasang. Tidak ada yang diubah.")
+        print_warning("Skills sudah terpasang. Tidak ada yang diubah.")
         print_info("Untuk memasang ulang: snowline reinstall --apply")
         return
 
@@ -401,7 +405,7 @@ def update(apply=False):
         return
 
     if pkg_behind and not new_files and not modified_files and not agents_md_modified:
-        print_warninging("Package version tertinggal!")
+        print_warning("Package version tertinggal!")
         print_info("Skill files sudah sinkron. Jalankan 'snowline reinstall --latest' untuk update package.")
         return
 
@@ -423,9 +427,9 @@ def update(apply=False):
         # Warning for agents.md
         if agents_md_modified:
             print()
-            print_warninging("[WARN] agents.md akan diperbarui!")
-            print_warninging("Jika Anda sudah edit manual, backup dulu sebelum lanjut.")
-            print_warninging("Contoh: copy .agents/agents.md ke .agents/agents.md.bak")
+            print_warning("[WARN] agents.md akan diperbarui!")
+            print_warning("Jika Anda sudah edit manual, backup dulu sebelum lanjut.")
+            print_warning("Contoh: copy .agents/agents.md ke .agents/agents.md.bak")
         
         print()
         safe_print(f"Run {Colors.BOLD}snowline update --apply{Colors.RESET} to apply changes")
@@ -507,7 +511,7 @@ def uninstall(apply=False, confirm_msg=None):
     preserve_count = len(to_preserve)
 
     if not apply:
-        print_warninging(f"Will remove {skill_count} installed skill files from {skills_dir}")
+        print_warning(f"Will remove {skill_count} installed skill files from {skills_dir}")
         if to_preserve:
             print_info(f"Will preserve {preserve_count} user-created files:")
             for f in to_preserve:
@@ -544,7 +548,7 @@ def reinstall(apply=False, latest=False):
     if latest:
         print_info("Mengambil versi terbaru dari GitHub...")
         if not apply:
-            print_warninging("Ini akan mendownload package dan melakukan reinstall.")
+            print_warning("Ini akan mendownload package dan melakukan reinstall.")
             safe_print("Run snowline reinstall --apply --latest to execute")
             return
 
@@ -692,9 +696,9 @@ def status():
     elif pkg_unknown:
         pass  # Already printed above
     elif pkg_behind and agents_tersedia:
-        print_warninging("Package DAN file project tersedia update.")
+        print_warning("Package DAN file project tersedia update.")
     elif pkg_behind:
-        print_warninging("Ada versi package terbaru.")
+        print_warning("Ada versi package terbaru.")
     elif agents_tersedia:
         print_info("Ada file project yang tersedia update.")
 
@@ -754,7 +758,7 @@ def init_chamber(dry=True, force=False):
 
     sudah_ada = [f.name for f in berkas if (target / f.name).exists()]
     if sudah_ada and not force:
-        print_warninging(f"Chamber sudah terpasang ({len(sudah_ada)} berkas).")
+        print_warning(f"Chamber sudah terpasang ({len(sudah_ada)} berkas).")
         print_info("Tidak ada yang diubah. Gunakan --force untuk menimpa.")
         print_info("Catatan: --force menimpa connector.md dan STATE.md juga.")
         return

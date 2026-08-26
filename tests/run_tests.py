@@ -38,6 +38,7 @@ import test_role_lock
 import test_intercept_native
 import test_orphan_guard
 import test_bom_guard
+import test_name_guard
 import test_path_setup
 
 class TestRunner:
@@ -280,6 +281,7 @@ def main():
     runner.run("path_setup yes_answer", test_path_setup.test_setup_path_yes_answer)
     runner.run("path_setup exception", test_path_setup.test_setup_path_exception)
     runner.run("bom_guard test_no_bom_in_src", test_bom_guard.test_no_bom_in_src)
+    runner.run("name_guard no_undefined", test_name_guard.test_no_undefined_names)
     runner.run("orphan_guard test_yatim", test_orphan_guard.test_tidak_ada_berkas_uji_yatim)
     runner.run("intercept_native bom_empty_payload", test_intercept_native.test_bom_empty_payload)
     runner.run("intercept_native missing_fields", test_intercept_native.test_missing_fields)
