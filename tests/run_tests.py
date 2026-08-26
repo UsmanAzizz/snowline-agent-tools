@@ -45,6 +45,7 @@ import test_orphan_guard
 import test_bom_guard
 import test_name_guard
 import test_smoke_cli
+import test_add_entry
 import test_path_setup
 
 class TestRunner:
@@ -296,7 +297,11 @@ def main():
     runner.run("smoke_cli context (full)", test_smoke_cli.test_smoke_context_full)
     runner.run("smoke_cli check-entry (help)", test_smoke_cli.test_smoke_check_entry_help)
     runner.run("smoke_cli add-entry (help)", test_smoke_cli.test_smoke_add_entry_help)
-    runner.run("smoke_cli add-entry (full)", test_smoke_cli.test_smoke_add_entry_full)
+    runner.run("add_entry BOM removal", test_add_entry.test_add_entry_bom)
+    runner.run("add_entry UTF-16 conversion", test_add_entry.test_add_entry_utf16)
+    runner.run("add_entry invalid header rejection", test_add_entry.test_add_entry_invalid_header)
+    runner.run("add_entry valid header", test_add_entry.test_add_entry_valid)
+    
     runner.run("smoke_cli close-entry (help)", test_smoke_cli.test_smoke_close_entry_help)
     runner.run("smoke_cli test-clone (help)", test_smoke_cli.test_smoke_test_clone_help)
     runner.run("smoke_cli setup-path (help)", test_smoke_cli.test_smoke_setup_path_help)

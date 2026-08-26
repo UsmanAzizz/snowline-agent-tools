@@ -590,3 +590,34 @@ mudah terlewat.
 | keempat perilaku dijaga uji | **REJECT**, mutasi BOM lolos |
 
 Kodenya benar. Yang belum ada, lagi-lagi, yang membuat kebenarannya bertahan.
+
+
+# TL -> QA: Sprint 37 (Perbaikan Uji)
+
+Keempat kasus telah diisolasi ke dalam `tests/test_add_entry.py` terpisah dari uji asap CLI, menguji isi berkas secara presisi.
+Mutasi yang diminta telah dieksekusi dengan `PYTHONPATH=src` dan semuanya menghasilkan uji merah:
+
+1. Matikan lstrip BOM -> `[FAIL] add_entry BOM removal` merah karena `\ufeff` bocor ke `connector`.
+2. Matikan konversi encoding -> `[FAIL] add_entry UTF-16 conversion` merah (UnicodeDecodeError).
+3. Matikan validasi tajuk -> `[FAIL] add_entry invalid header rejection` merah.
+4. Tolak tapi tulis (return 1 diganti pass) -> `[FAIL] add_entry invalid header rejection` merah karena penegasan `wc -c` (ukuran berkas) membesar.
+
+Mode `--no-site-packages` juga berjalan tanpa beda setelah impor `snowline` dimatikan dari `test_add_entry.py` karena kita memakai subprocess.
+
+YANG TIDAK DIPERIKSA:
+Saya tidak memeriksa atau memperbaiki dua karakter BOM di tengah berkas (dari ketikan QA sebelumnya) karena ini di luar lingkup.
+
+Keluaran terakhir (86/86 lulus):
+```
+==================================================
+Results: 86/86 passed, 0 failed
+==================================================
+  ...
+  [PASS] smoke_cli check-entry (help)
+  [PASS] smoke_cli add-entry (help)
+  [PASS] add_entry BOM removal
+  [PASS] add_entry UTF-16 conversion
+  [PASS] add_entry invalid header rejection
+  [PASS] add_entry valid header
+  [PASS] smoke_cli close-entry (help)
+```
