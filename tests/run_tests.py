@@ -4,6 +4,11 @@ Run with: python tests/run_tests.py
 """
 import os
 import sys
+
+if '--no-site-packages' in sys.argv:
+    sys.path[:] = [p for p in sys.path if 'site-packages' not in p]
+    os.environ['SNOWLINE_TEST_NO_SITE_PACKAGES'] = '1'
+
 import unittest
 import tempfile
 import shutil

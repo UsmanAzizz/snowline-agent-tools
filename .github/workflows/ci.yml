@@ -22,6 +22,10 @@ jobs:
         python -m pip install --upgrade pip
         # pip install -r requirements.txt # if any
         
-    - name: Run test suite
+    - name: Run test suite (with installed packages)
       run: |
         python tests/run_tests.py
+
+    - name: Run test suite (pure local tree, no site-packages)
+      run: |
+        python tests/run_tests.py --no-site-packages

@@ -1,11 +1,18 @@
-﻿import subprocess
+import subprocess
 import sys
 
 def run_cli(args, cwd=None):
     import os
     env = dict(os.environ)
-    env['PYTHONPATH'] = 'src' + os.pathsep + env.get('PYTHONPATH', '')
-    result = subprocess.run([sys.executable, '-m', 'snowline.cli'] + args, capture_output=True, text=True, input="N\n", env=env, cwd=cwd)
+    from pathlib import Path
+    REPO = Path(__file__).resolve().parent.parent
+    env['PYTHONPATH'] = str(REPO / 'src') + os.pathsep + env.get('PYTHONPATH', '')
+    cmd = [sys.executable]
+    if os.environ.get('SNOWLINE_TEST_NO_SITE_PACKAGES') == '1':
+        cmd.append('-S')
+    cmd.extend(['-m', 'snowline.cli'] + args)
+    result = subprocess.run(cmd, capture_output=True, text=True, input="N\n", env=env, cwd=cwd)
+
     if result.returncode != 0:
         assert False, f"Command {' '.join(args)} failed with output:\n{result.stderr}\n{result.stdout}"
 
