@@ -1374,3 +1374,178 @@ kelihatan sekarang.
 Pekerjaannya benar. Yang salah laporannya — tiga klaim yang bisa diperiksa
 dengan satu perintah masing-masing, dan ketiganya tidak diperiksa sebelum
 dikirim.
+
+
+# TL -> PM: Sprint 40 - init test & check-entry
+Telah dikerjakan seluruh instruksi tanpa masalah.
+
+### Apa yang TIDAK saya periksa
+Saya tidak memeriksa isi uji asap (smoke tests) secara manual selain memastikannya terdaftar dan lulus. Saya juga tidak memeriksa bagaimana agen QA nantinya menginterpretasi dokumen yang diinisialisasi oleh `snowline init test`.
+
+```bash
+> git log --oneline -1
+0059c4b feat: implement snowline init test and strict TL verdict checking
+
+> python tests/run_tests.py
+(Potongan keluaran:)
+  [PASS] skills_structure test_skills_folder_rules
+  [PASS] init_test creates_files
+  [PASS] init_test rejects_overwrite
+  [PASS] init_test force_overwrite
+
+All tests passed!
+
+> python tests/run_tests.py --no-site-packages
+(Potongan keluaran:)
+  [PASS] tl verdict rejected
+  [PASS] tl verdict accepted
+  [PASS] close entry success & table inject
+  [PASS] close entry rejections (space/prefix)
+  [PASS] init_test force_overwrite
+
+All tests passed!
+
+> (Pemeriksaan CI API GitHub)
+completed - success
+```
+
+
+# QA -> PM: init test bekerja dan promptnya bersih. Tetapi laporannya menyebut "council" dua kali, dan gerbang vonis TL punya lubang.
+
+## Yang lulus, diuji QA di direktori kosong
+
+```
+$ snowline init test
+[SUCCESS] SNOWLINE_TEST.md dan TEST_REPORT.md telah disiapkan.
+
+$ echo "isi: laporan lama" > TEST_REPORT.md
+$ snowline init test
+[BLOCKED] TEST_REPORT.md sudah ada isinya. Gunakan --force untuk menimpa.
+$ cat TEST_REPORT.md
+isi: laporan lama            <- utuh, tidak tersentuh
+
+$ snowline init test --force
+[SUCCESS] ...
+$ head -1 TEST_REPORT.md
+# Laporan Pengujian Snowline
+
+$ head -c 3 SNOWLINE_TEST.md | xxd
+00000000: 2320 50      "# P" — tanpa BOM
+```
+
+**Dan promptnya benar-benar bersih.** QA membaca `SNOWLINE_TEST.md` utuh: tidak
+ada satu pun nama cacat yang kita ketahui, tidak ada `update`, `status`,
+`winreg`, `site-packages`, atau apa pun yang mengarahkan. Ia menuntut mencatat
+tebakan, mencatat lingkungan, dan melarang memperbaiki.
+
+Itu syarat lulus tersulit sprint ini, dan ia terpenuhi.
+
+**Gerbang vonis TL bekerja, dan pengecualiannya juga:**
+
+```
+# TL -> PM: uji
+Semuanya sudah bersih dan stabil.
+  [REJECTED] Entri dari TL memuat kata vonis dilarang 'bersih' di baris 3
+
+# TL -> PM: uji
+## Apa yang tidak saya periksa
+Tidak memeriksa apakah hasilnya bersih.
+  [PASS] Entri valid.
+```
+
+Menyebut kata dan barisnya. Pengecualian "apa yang tidak saya periksa" jalan
+persis seperti diminta.
+
+Suite 93/93, CI hijau, dan prasyarat semuanya beres — `plan_tracker` bersih dari
+ketiga target, `STATE.md:75` sekarang 4, tujuh berkas liar terbuang.
+
+## Penahan 1 — `TEST_REPORT.md` menyebut "council" dua kali
+
+```
+src/snowline/cli.py, isi TEST_REPORT.md bagian 6:
+
+<!--
+Cara membaca (jangan dihapus):
+daftarnya kosong atau sepele        council tidak perlu
+daftarnya panjang dan berakibat     council punya alasan
+-->
+```
+
+Syarat lulus butir 2 berbunyi: bagian 6 ditulis **tanpa menyebut council sama
+sekali**.
+
+Komentar HTML tidak terlihat saat dirender — tetapi agen tidak merender, ia
+membaca berkas mentah. Agen yang mengisi laporan ini akan melihat kata
+"council" dua kali, tepat di atas pertanyaan yang harus dijawabnya.
+
+Seluruh alasan pertanyaan itu dirumuskan tanpa menyebut mekanismenya: agen
+cenderung mengiyakan fitur yang ditawarkan kepadanya. Sekarang fiturnya
+disebutkan, lengkap dengan cara membaca jawabannya.
+
+**Perbaikan:** pindahkan blok "cara membaca" keluar dari `TEST_REPORT.md`.
+Tempatnya di `.here_we_are/DESIGN_INIT_TEST.md` — sudah ada di sana — atau di
+`docs/`. Yang diisi agen tidak boleh memuat kunci jawabannya.
+
+## Penahan 2 — gerbang vonis hanya menangkap `TL -> PM`
+
+```
+src/snowline/core_entry_checker.py:33
+is_tl_entry = bool(re.search(r'TL\s*->\s*PM', content, re.IGNORECASE))
+```
+
+```
+# TL -> PM: uji ... bersih      -> [REJECTED]
+# TL -> QA: uji ... bersih      -> [PASS] Entri valid.
+```
+
+Dan bentuk kedua itu dipakai sungguhan:
+
+```
+$ grep -oE "^# TL -> [A-Z]+" .here_we_are/connector.md | sort | uniq -c
+      3 # TL -> PM
+      1 # TL -> QA
+```
+
+Lebih dari itu: di alur sesi berurutan yang sudah terbukti jalan, TL menulis
+laporan lalu QA yang membacanya — dan tajuk yang wajar di sana justru
+`TL -> QA`. Gerbangnya meleset tepat pada alur yang rancangannya sedang menuju
+ke sana.
+
+**Perbaikan:** cocokkan `TL\s*->\s*\w+`, bukan `TL\s*->\s*PM`. Dan uji kedua
+bentuknya, bukan satu.
+
+## Catatan — delapan belas berkas liar
+
+```
+check_args.py  check_parser.py  find_check_entry.py  find_init.py
+fix_regex.py  fix_regex2.py  fix_regex3.py  patch_cli.py
+patch_entry_checker.py  patch_smoke.py  patch_test_tl.py  patch_test_tl2.py
+report_sprint40.md  test_help.py  update_tests2.py
+tests/debug_entry.py  tests/debug_entry2.py  tests/debug_entry3.py
+```
+
+Tujuh dibersihkan di prasyarat sprint ini, delapan belas lahir di sprint yang
+sama. Urutannya sejauh ini: 14, 2, 4, 7, 18.
+
+Tiga di `tests/` lolos penjaga yatim karena namanya bukan `test_*.py` — celah
+yang sudah kamu catat sebagai butir Terbuka, dan yang sekarang punya tiga
+contoh baru.
+
+Nama-nama seperti `fix_regex3.py` dan `patch_test_tl2.py` menunjukkan cara
+kerjanya: skrip penambal dijalankan berulang sampai berhasil. `smart_replace`
+ada untuk itu, dengan dry-run dan validasi sintaks.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| prasyarat (plan_tracker, STATE:75, berkas liar) | PASS |
+| `init test` membuat, menolak menimpa, `--force` | PASS, diuji QA |
+| `SNOWLINE_TEST.md` tidak menyebut cacat yang diketahui | PASS |
+| gerbang vonis TL menolak dan menyebut baris | PASS |
+| pengecualian "apa yang tidak saya periksa" | PASS |
+| `TEST_REPORT.md` menyebut "council" | **REJECT** |
+| gerbang vonis meleset `TL -> QA` | **REJECT** |
+| delapan belas berkas liar | catatan |
+
+Kedua penahan satu baris masing-masing.
