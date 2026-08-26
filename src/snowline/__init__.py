@@ -1,4 +1,4 @@
-﻿"""
+"""
 Snowline Tools - Instant load, no restart needed.
 """
 import os
@@ -150,8 +150,8 @@ def setup_path():
                     print("[+] PATH updated!")
                 else:
                     print("[*] PATH update skipped. Run 'snowline -h' after manually adding to PATH.")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[!] Gagal mengatur PATH: {e}")
 
 # 5. Auto-add companion.py to PYTHONPATH for all projects
 _companion_script = Path(__file__).parent / "templates" / "companion.py"

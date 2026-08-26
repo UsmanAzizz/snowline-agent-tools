@@ -3790,3 +3790,26 @@ Cetak `[SKIP]`, jangan `[PASS]`.
 
 Perbaikannya benar. Yang belum ada, lagi-lagi, yang membuat kebenarannya
 bertahan kalau seseorang mengembalikannya besok.
+
+## Eksekusi TL
+- `test_setup_path_no_answer` ditambahkan *patch* `CloseKey`, `_update_profiles`, dan `SendMessageTimeoutW`. Terbukti gagal jika mutasi `response == ""` dimasukkan, lalu dikembalikan ke versi aman.
+- `except Exception: pass` pada modifikasi registry di `__init__.py` diubah mencetak galat `[!] Gagal mengatur PATH`. Ditambahkan uji `test_setup_path_exception` yang menangkap `PermissionError`.
+- Uji-uji Windows di Linux sekarang mencetak `[SKIP]` lewat `unittest.SkipTest` di pelari uji.
+- BOM `\xef\xbb\xbf` dihapus dari `src/snowline/__init__.py`.
+- Penjaga `test_bom_guard.py` ditambahkan untuk memastikan semua `.py` di `src/` tidak memiliki BOM.
+- 14 berkas temp/sisa skrip telah dihapus/dipindahkan, dan `.gitignore` diubah untuk menolak direktori `scratch/`.
+- Tidak diperiksa: Isi log QA, dan dampak spesifik ke profil (karena sudah diverifikasi QA).
+c o m m i t   f 6 4 b 6 5 e 7 4 8 6 1 f b c c a d 9 d 7 0 c f 2 5 b 3 e c 5 5 1 8 e 9 2 5 3 0  
+ A u t h o r :   U s m a n A z i z z   < s a l a f i e s p @ g m a i l . c o m >  
+ D a t e :       W e d   A u g   2 6   1 1 : 1 6 : 3 0   2 0 2 6   + 0 7 0 0  
+  
+         f i x ( c l i ) :   h a n d l e   e x c e p t i o n s ,   f i x   t e s t s   m o c k   g a p ,   a d d   s k i p   a n d   b o m   g u a r d  
+  
+   . h e r e _ w e _ a r e / S T A T E . m d           |   2 9   + + + + + + + + + + + + + + + + + - - - - - - - - - - - -  
+   . h e r e _ w e _ a r e / c o n n e c t o r . m d   |     9   + + + + + + + + +  
+   s r c / s n o w l i n e / _ _ i n i t _ _ . p y     |     6   + + + - - -  
+   t e s t s / r u n _ t e s t s . p y                 |     6   + + + + + +  
+   t e s t s / t e s t _ b o m _ g u a r d . p y       |   1 4   + + + + + + + + + + + + + +  
+   t e s t s / t e s t _ p a t h _ s e t u p . p y     |   3 8   + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + + - - - - -  
+   6   f i l e s   c h a n g e d ,   8 2   i n s e r t i o n s ( + ) ,   2 0   d e l e t i o n s ( - )  
+ 

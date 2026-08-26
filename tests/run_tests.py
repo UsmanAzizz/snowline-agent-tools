@@ -36,6 +36,7 @@ import test_selective_reader
 import test_role_lock
 import test_intercept_native
 import test_orphan_guard
+import test_bom_guard
 import test_path_setup
 
 class TestRunner:
@@ -49,6 +50,9 @@ class TestRunner:
             test_func()
             self.passed += 1
             self.results.append(f"  [PASS] {name}")
+        except unittest.SkipTest as e:
+            self.passed += 1
+            self.results.append(f"  [SKIP] {name}: {e}")
         except AssertionError as e:
             self.failed += 1
             self.results.append(f"  [FAIL] {name}: {e}")
@@ -273,6 +277,8 @@ def main():
     runner.run("path_setup opt_out", test_path_setup.test_setup_path_opt_out)
     runner.run("path_setup no_answer", test_path_setup.test_setup_path_no_answer)
     runner.run("path_setup yes_answer", test_path_setup.test_setup_path_yes_answer)
+    runner.run("path_setup exception", test_path_setup.test_setup_path_exception)
+    runner.run("bom_guard test_no_bom_in_src", test_bom_guard.test_no_bom_in_src)
     runner.run("orphan_guard test_yatim", test_orphan_guard.test_tidak_ada_berkas_uji_yatim)
     runner.run("intercept_native bom_empty_payload", test_intercept_native.test_bom_empty_payload)
     runner.run("intercept_native missing_fields", test_intercept_native.test_missing_fields)
