@@ -3235,3 +3235,90 @@ Butir 5 yang mencegah kejadian keempat.
 
 Kodenya benar. Yang belum ada, seperti dua sprint terakhir, adalah yang membuat
 kebenarannya berulang.
+
+---
+
+# PM -> arsip: README diperbarui, lima klaim tidak cocok dengan kenyataan
+
+Dikerjakan QA atas perintah langsung PM. Dicatat di sini karena mengubah
+berkas yang dibaca orang luar.
+
+Pemicunya: analisis pihak ketiga (GitHub Copilot) atas repo ini melaporkan
+"41 tests, ~24 seconds" dan "22 tools". Keduanya diambil dari README, dan
+keduanya salah. Copilot tidak keliru — README-nya yang basi, dan itu satu-
+satunya yang dilihat orang asing.
+
+## Yang diperbaiki, dengan angka yang diverifikasi
+
+```
+41 tests, ~24 seconds   ->  56 tests, ~55 seconds
+$ time python tests/run_tests.py    real 0m53.380s
+$ Results: 56/56 passed
+
+Tools (22 Core), tabel berisi 15   ->  Tools (19), tabel berisi 19
+$ ls -d templates/skills/*/ | grep -v -E "rules/|__pycache__" | wc -l
+19
+
+"all four write tools"  ->  "all five write tools"
+$ grep -l '"--apply"' templates/skills/*/*.py
+auto_scaffolder  context_mapper  import_fixer  native_checker_gen  smart_replace
+```
+
+Empat alat yang hilang dari tabel ditambahkan: `native_checker_gen`,
+`plan_tracker`, `companion`, `tree_gen`. Dua yang terakhir ditandai sebagai
+mesin di balik alat lain, bukan alat yang dipanggil langsung.
+
+## Yang paling berat — bukan angka
+
+```
+tertulis   | committing a file with a readable secret | CRITICAL gate in the pre-commit hook |
+
+$ grep -c "guardian\|CRITICAL" .git/hooks/pre-commit
+0
+$ grep -rn "install_hook" --include=*.py src/ | grep -v install_hooks.py | wc -l
+0
+```
+
+README menjanjikan gerbang yang tidak dipasang oleh `snowline init` dan tidak
+dipanggil kode mana pun. Siapa pun yang memasang snowline dan mempercayai baris
+itu akan meng-commit rahasia tanpa ada yang menahan.
+
+Tabel "Seven paths, all gated" sekarang berbunyi **"Six paths, gated and
+installed by default"**, dan gerbang rahasia dipindah ke bagian terpisah yang
+menyebut apa adanya: ada kodenya, tidak dipasang otomatis, pasang sendiri
+begini — beserta peringatan bahwa ia menimpa `pre-commit` yang sudah ada.
+
+Perintah yang ditulis di README diuji sebelum ditulis:
+
+```
+$ PYTHONPATH=src python -m snowline.install_hooks
+Usage: python install_hooks.py <project_dir> <guardian_py_path>
+```
+
+## Ditambahkan
+
+Bagian Chamber sekarang menyebut mode sesi berurutan — satu agen, sesi mati lalu
+sesi baru bangun dingin — dengan syarat harness-nya ditulis apa adanya: butuh
+harness yang sesi barunya benar-benar kosong, terbukti di Claude Code.
+
+Dan cakupan uji disebutkan terbuka: lima dari sembilan belas alat belum punya
+uji yang menjalankannya. Lebih baik tertulis daripada ditemukan orang.
+
+## Catatan peran
+
+QA menulis dokumen di sini, dan itu di luar butir 2. Perintahnya langsung dari
+PM, jadi sah — tetapi dicatat supaya tidak jadi kebiasaan. Yang QA tidak
+kerjakan: menyambungkan gerbang CRITICAL. Itu tetap milik TL, dan tetap terbuka
+sebagai butir 7 daftar Terbuka.
+
+### 4. Pendaftaran Berkas Uji Yatim & 	est_intercept_native
+
+- **Pembuatan Penjaga Uji Yatim:** Dibuat 	ests/test_orphan_guard.py yang membaca isi 	ests/run_tests.py dan membandingkannya dengan semua berkas 	est_*.py di direktori 	ests.
+- **Pengujian Penjaga Yatim (Merah):** Penjaga yatim berhasil menemukan berkas uji yang belum terdaftar dan gagal dengan error: AssertionError: berkas uji tidak terdaftar: ['test_orphan_guard', 'test_intercept_native']
+- **Refaktor 	est_in_and_out_of_scope:** Diperbarui menggunakan 	empfile.TemporaryDirectory() dan modul bawaan agar tidak lagi bergantung pada fixture pytest, sehingga kompatibel dengan un_tests.py bawaan.
+- **Pengujian Mutasi (Merah):** Dijalankan pengujian mutasi (PYTHONPATH=src) di mana panggilan scope_check.py dinonaktifkan di intercept_native.py. Hasilnya tes 	est_in_and_out_of_scope gagal sebagaimana mestinya (ssert 'allow' == 'deny'). Kode asli telah dikembalikan.
+- **Pendaftaran Penuh & Pengujian (Hijau):** Menggunakan TestRunner, keenam uji baru telah ditambahkan ke un_tests.py (1 dari orphan_guard, 5 dari intercept_native). Dijalankan python tests/run_tests.py di repo klon yang bersih dan suite lulus sempurna **62/62**.
+
+Suite kini dipastikan lengkap dan tidak akan ada lagi berkas uji yang ditinggalkan tak terjalankan tanpa sepengetahuan sistem CI.
+
+Tugas selesai dan dikomit di 9294f2f. Silakan QA mengambil alih.
