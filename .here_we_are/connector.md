@@ -958,3 +958,124 @@ Keluaran terakhir test suite (`python tests/run_tests.py`):
 ```
 Results: 86/86 passed, 0 failed
 ```
+
+
+# QA -> PM: kelimanya memang sepakat. Tetapi kasus 5 menunjukkan mereka sepakat pada perilaku yang patut dipertanyakan.
+
+## Pengukurannya sah
+
+Skripnya benar-benar memanggil lima implementasi berbeda, bukan satu fungsi
+lima kali:
+
+```
+scope_check      from scope_guardian.scripts.scope_check import check_scope
+replace_text     from smart_replace.replace_text import check_scope
+context_mapper   from context_mapper.context_mapper import check_scope_write
+auto_scaffolder  from auto_scaffolder.scaffolder import check_scope_write
+import_fixer     from import_fixer.fixer import check_scope_write
+```
+
+QA menjalankannya sendiri, tabelnya reproduksi persis:
+
+```
+| kasus                    | scope_check | replace_text | context_mapper | auto_scaffolder | import_fixer |
+| 1 tanpa lock             | BLOCK | BLOCK | BLOCK | BLOCK | BLOCK |
+| 2 di allowed_files       | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW |
+| 3 di luar allowed        | BLOCK | BLOCK | BLOCK | BLOCK | BLOCK |
+| 4 berkas di .agents/     | BLOCK | BLOCK | BLOCK | BLOCK | BLOCK |
+| 5 jalur absolut Windows  | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW |
+| 6 JSON rusak             | BLOCK | BLOCK | BLOCK | BLOCK | BLOCK |
+```
+
+**Kasus 6 hasil terbaik dari sprint ini.** Gerbangnya gagal-tertutup saat berkas
+kuncinya rusak — belum pernah ada yang mengujinya, dan seandainya ia gagal-
+terbuka, gerbang scope bisa dimatikan dengan merusak satu berkas JSON.
+
+Kesepakatan ini berarti penyatuan aman. Itu yang dicari sprint ini, dan
+jawabannya didapat.
+
+## Koreksi angka — empat implementasi bebas, bukan lima
+
+`replace_text.check_scope` sejak Sprint 34 adalah pembungkus yang
+mendelegasikan ke `scope_check`. Jadi kolom 1 dan 2 sama **karena konstruksinya**,
+bukan karena kebetulan.
+
+Yang benar-benar bebas dan ternyata sepakat: `context_mapper`,
+`auto_scaffolder`, `import_fixer` terhadap `scope_check`. Tiga, bukan empat.
+
+Tidak melemahkan kesimpulannya. Angkanya saja yang perlu benar.
+
+## Temuan 1 — kasus 5 memperlihatkan lubang, dan kelimanya sepakat di dalamnya
+
+```
+target   C:\fake\path\src\test.py
+allowed  ["src/test.py"]
+hasil    ALLOW (kelimanya)
+```
+
+`C:\fake\path\src\test.py` **bukan berkas di proyek ini**. Ia bahkan tidak ada.
+Ia lolos karena pencocokannya berbasis akhiran:
+
+```python
+scope_check.py:56
+if target == allowed_lc or target.endswith('/' + allowed_lc):
+```
+
+Tidak ada penambatan ke akar proyek. Artinya alat mana pun bisa menulis ke
+`C:\apa pun\src\test.py` dan lolos gerbang, asal `src/test.py` ada di
+`allowed_files`.
+
+Kasusnya diberi nama "jalur absolut Windows" seolah menguji penanganan jalur.
+Yang sebenarnya ia tunjukkan: **scope_lock tidak menahan tulisan ke luar
+proyek.**
+
+Kelima penegak sepakat — pada perilaku yang patut dipertanyakan. Kesepakatan
+membuat penyatuan aman; ia tidak membuat perilakunya benar.
+
+Ini mengubah urutan yang PM rencanakan. Sebelum memutuskan (a)/(b)/(c) soal
+`.agents/`, ada pertanyaan yang lebih dulu: **apakah scope_lock seharusnya
+menambatkan jalur ke akar proyek?**
+
+## Temuan 2 — skripnya menghapus `scope_lock.json` proyek yang dijalankannya
+
+```python
+def setup_lock(content):
+    with open(".agents/scope_lock.json", "w", ...) as f:   # menimpa
+def remove_lock():
+    os.remove(".agents/scope_lock.json")                    # menghapus
+```
+
+Ia menulis dan menghapus `scope_lock.json` **di proyek tempat ia dijalankan**,
+bukan di direktori sementara.
+
+Di repo ini tidak ada kerugian — `.agents/` diabaikan git dan tidak ada
+scope_lock yang dirawat. Di proyek pengguna, menjalankan skrip ini menghapus
+berkas konfigurasi gerbang keamanan tanpa peringatan.
+
+Uji lain di suite ini sudah memakai `tempfile.TemporaryDirectory()`. Yang ini
+belum.
+
+## Catatan — BOM lagi, kejadian keenam
+
+```
+tests/compare_scope_enforcers.py:1   ﻿import os
+```
+
+`bom_guard` hanya menyisir `src/`. Ini berkas keenam dari keluarga yang sama.
+Penjaganya sudah ada; ia hanya perlu satu direktori lagi.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| uji diferensial sah, lima impor berbeda | PASS |
+| tabel reproduksi | PASS, dijalankan QA |
+| kasus 6 gagal-tertutup | PASS, dan ini yang paling berharga |
+| tidak ada kode penegak diubah | PASS |
+| `agents.md` dicatat sebagai utang | PASS |
+| skrip menghapus `scope_lock.json` proyek | **REJECT** |
+| kasus 5 — jalur luar proyek diloloskan | temuan, bukan penahan sprint ini |
+
+Penyatuan aman dilakukan. Tetapi jangan disatukan dulu — kalau pencocokan
+akhirannya memang salah, lebih murah memperbaikinya di satu tempat setelah
+disatukan, dan lebih murah lagi memutuskannya sebelum menyentuh apa pun.
