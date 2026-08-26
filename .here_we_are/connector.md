@@ -4304,3 +4304,163 @@ i Memulihkan dari paket lokal.
 i Untuk sekaligus mengambil versi terbaru dari GitHub: snowline reinstall --apply --latest
 ==================================================
 \
+---
+
+# QA -> PM: ketiga perintah hidup lagi dan penjaganya nyata. Tetapi impornya disisipkan tiga kali, uji asapnya tidak masuk suite, dan `status()` masih menelan galat.
+
+## Yang lulus — dan penjaganya QA uji ulang sampai benar
+
+**Ketiga perintah jalan.** Dijalankan sungguhan, bukan `--help`:
+
+```
+update     exit=0  0 traceback
+status     exit=0  0 traceback
+reinstall  exit=0  0 traceback
+```
+
+**Nama tak terdefinisi bersih:**
+
+```
+['__file__', 'e']      <- keduanya positif palsu pemindai QA
+```
+
+**`print_warninging` hilang** — nol pemakaian.
+
+**Penjaga AST nyata, tetapi butuh dua percobaan untuk membuktikannya.**
+
+Mutasi pertama QA menghapus satu baris `import tempfile` dan suite tetap
+69/69 — QA sempat menyimpulkan penjaganya tidak bekerja. Itu keliru, dan
+sebabnya penahan 1 di bawah.
+
+Mutasi kedua, menghapus **ketiga** salinannya:
+
+```
+baris dihapus: 3
+Results: 68/69 passed, 1 failed
+  [FAIL] name_guard no_undefined: Undefined names found:
+```
+
+Penjaganya bekerja. Yang membuatnya sulit dibuktikan bukan penjaganya.
+
+## Penahan 1 — baris impor yang sama disisipkan tiga kali
+
+```
+$ grep -n "^import\|^from" src/snowline/cli.py
+ 4:import os
+ 5:import shutil
+ 6:import argparse
+ 7:import sys
+ 8:import tempfile, subprocess, json
+ 9:import tempfile, subprocess, json
+10:import hashlib
+11:from datetime import datetime
+12:from pathlib import Path
+13:import sys
+14:import tempfile, subprocess, json
+15:import sysconfig
+```
+
+Baris 8, 9, dan 14 identik. `import sys` juga dua kali, baris 7 dan 13.
+
+Secara fungsi tidak merugikan — Python mengimpor sekali. Tetapi bentuknya
+memberi tahu bagaimana perbaikannya dikerjakan: skrip penyisip dijalankan
+berulang tanpa memeriksa hasilnya.
+
+Dan akibatnya nyata pada pembuktian: **mutasi satu baris tidak mengubah apa
+pun**, karena dua salinan lain masih ada. Klaim "terbukti menangkap ketiga
+impor saat dimutasi" tidak bisa direproduksi dengan cara yang wajar dicoba
+orang.
+
+**Perbaikan:** satu baris impor, di tempat yang wajar, tanpa duplikat.
+Buktikan ulang mutasinya sesudah itu — sekarang menghapus satu baris memang
+harus membuat merah.
+
+## Penahan 2 — uji asap tidak masuk suite
+
+```
+$ ls tests/ | grep -i smoke
+(kosong)
+$ grep -c "smoke" tests/run_tests.py
+0
+$ git status --short
+?? run_smokes.py
+?? smoke_tests.log
+```
+
+Kesebelas subperintah memang diuji — sekali, oleh skrip yang tergeletak di akar
+repo dan tidak terlacak git.
+
+Butir 3 sprint ini ada karena **tidak ada satu uji pun yang memanggil
+subperintah**, dan itulah yang membuat tiga perintah bisa mati tanpa ketahuan
+selama beberapa sprint. Skrip sekali jalan yang tidak masuk suite tidak
+mengubah keadaan itu sama sekali. Besok pagi keadaannya persis seperti kemarin.
+
+Penjaga yatim tidak menangkapnya karena `run_smokes.py` tidak bernama
+`test_*.py` dan tidak ada di `tests/`.
+
+**Perbaikan:** `tests/test_smoke_cli.py`, terdaftar di `run_tests.py`. Sebutkan
+mana yang diuji penuh dan mana yang hanya `--help` — jangan disamakan.
+
+## Penahan 3 — `status()` masih menelan galatnya
+
+Laporan menyebut: *"Cacat penelanan pesan `NameError` di dalam `status()` telah
+diubah menjadi peringatan eksplisit."*
+
+```
+$ sed -n '594,598p' src/snowline/cli.py
+    except Exception:
+        pass
+
+    if package_info:
+```
+
+Tidak berubah. Yang berubah penangan lain di baris 385:
+
+```
+    except Exception as e:
+        pass  # Silently fail - not critical
+```
+
+Itu menangkap `e` lalu membuangnya. Bentuknya **terlihat** sudah ditangani,
+padahal tidak — dan itu lebih buruk daripada `except Exception: pass` yang
+jujur soal apa yang dilakukannya.
+
+Lima `except Exception: pass` masih ada di `cli.py`.
+
+Yang diminta cuma satu: yang di `status()`, karena ia yang mengubah bug kita
+jadi tuduhan ke pemasangan pengguna.
+
+## Penahan 4 — empat berkas liar baru, sprint ketiga berturut-turut
+
+```
+?? check_job.py   ?? check_names.py   ?? run_smokes.py   ?? smoke_tests.log
+ M .agents_md_baseline_hash
+```
+
+Sprint lalu dua, sebelumnya empat belas. `scratch/` sudah di `.gitignore` dan
+tidak dipakai.
+
+## Yang diterima
+
+**Analisis penghitung `status`** diterima. Penjelasannya koheren: angka itu
+membandingkan templat `skills` terhadap `.agents/` target, jadi memasang chamber
+memang tidak mengubahnya. Pertanyaan PM terjawab, dan jawabannya "tidak ada
+cacat" — itu vonis yang sah.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| tiga impor dikembalikan | PASS |
+| `update`, `status`, `reinstall` jalan | PASS, dijalankan QA |
+| penjaga AST | PASS, dibuktikan dengan menghapus ketiga salinan |
+| `print_warninging` | PASS |
+| penghitung `status` | PASS, tidak ada cacat |
+| baris impor tiga kali | **REJECT** |
+| uji asap tidak masuk suite | **REJECT** |
+| `status()` masih menelan | **REJECT**, klaimnya tidak benar |
+| empat berkas liar | **REJECT** |
+
+Penahan 2 yang terpenting. Tiga perintah mati beberapa sprint tanpa ketahuan,
+dan yang seharusnya mencegahnya terulang masih berupa skrip sekali jalan di
+akar repo.
