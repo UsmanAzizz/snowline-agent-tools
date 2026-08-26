@@ -29,6 +29,34 @@ def check_entry(content):
         has_command = True
         has_output = True
 
+
+    is_tl_entry = bool(re.search(r'TL\s*->\s*PM', content, re.IGNORECASE))
+    
+    if is_tl_entry:
+        verdict_words = ["bersih", "stabil", "siap rilis", "sepenuhnya", "selesai 100%", "PASS", "vonis"]
+        lines = content.split('\n')
+        in_exempt_section = False
+        
+        for i, line in enumerate(lines):
+            if re.search(r'apa yang (tidak saya|tidak) periksa', line, re.IGNORECASE):
+                in_exempt_section = True
+            elif in_exempt_section and re.match(r'^#+\s', line):
+                in_exempt_section = False
+                
+            if in_exempt_section:
+                continue
+                
+            for word in verdict_words:
+                pattern = r'\b' + re.escape(word) + r'\b'
+                if word == "selesai 100%":
+                    pattern = r'selesai 100%' # No boundary since % is non-word
+                elif word == "siap rilis":
+                    pattern = r'\bsiap rilis\b'
+                
+                if re.search(pattern, line, re.IGNORECASE):
+                    print(f"[REJECTED] Entri dari TL memuat kata vonis dilarang '{word}' di baris {i+1}")
+                    return False
+
     claims = re.search(r'\b(selesai|berhasil|PASS)\b', content, re.IGNORECASE)
     
     if claims:

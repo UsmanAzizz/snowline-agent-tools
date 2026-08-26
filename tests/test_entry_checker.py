@@ -128,3 +128,26 @@ def test_cli_exit_code():
     finally:
         os.remove(f_pass_path)
         os.remove(f_fail_path)
+
+def test_tl_verdict_rejected():
+    import sys
+    import io
+    old_stdout = sys.stdout
+    sys.stdout = capsys = io.StringIO()
+    content = """# TL -> PM
+Berikut laporannya.
+Kode ini sudah stabil dan siap rilis.
+"""
+    assert check_entry(content) is False
+    out = capsys.getvalue()
+    sys.stdout = old_stdout
+    assert "stabil" in out
+    assert "baris" in out
+
+def test_tl_verdict_accepted():
+    content = """# TL -> PM
+Berikut laporannya.
+### Apa yang tidak saya periksa
+Saya tidak memeriksa apakah ini sudah stabil atau bersih sepenuhnya.
+"""
+    assert check_entry(content) is True

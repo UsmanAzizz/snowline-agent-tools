@@ -16,6 +16,8 @@ def run_cli(args, cwd=None):
     if result.returncode != 0:
         assert False, f"Command {' '.join(args)} failed with output:\n{result.stderr}\n{result.stdout}"
 
+def test_smoke_init_test_help(): run_cli(['init', 'test', '--help'])
+
 def test_smoke_init_full(): run_cli(['init'])
 def test_smoke_update_full(): run_cli(['update'])
 def test_smoke_uninstall_help(): run_cli(['uninstall', '--help'])

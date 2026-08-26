@@ -227,6 +227,8 @@ def main():
     runner.run("entry checker claim accepted", test_entry_checker.test_quantitative_claim_accepted)
     runner.run("entry checker history validation", test_entry_checker.test_real_qa_entries)
     runner.run("entry checker cli exit code", test_entry_checker.test_cli_exit_code)
+    runner.run("tl verdict rejected", test_entry_checker.test_tl_verdict_rejected)
+    runner.run("tl verdict accepted", test_entry_checker.test_tl_verdict_accepted)
     runner.run("close entry success & table inject", test_close_entry.test_close_entry_success)
     runner.run("close entry rejections (space/prefix)", test_close_entry.test_close_entry_rejections)
     
@@ -289,6 +291,7 @@ def main():
     runner.run("path_setup exception", test_path_setup.test_setup_path_exception)
     runner.run("bom_guard test_no_bom_in_src", test_bom_guard.test_no_bom_in_src)
     runner.run("name_guard no_undefined", test_name_guard.test_no_undefined_names)
+    runner.run("smoke_cli init test (help)", test_smoke_cli.test_smoke_init_test_help)
     runner.run("smoke_cli init (full)", test_smoke_cli.test_smoke_init_full)
     runner.run("smoke_cli update (full)", test_smoke_cli.test_smoke_update_full)
     runner.run("smoke_cli uninstall (help)", test_smoke_cli.test_smoke_uninstall_help)
@@ -317,6 +320,12 @@ def main():
 
     import test_skills_structure
     runner.run("skills_structure test_skills_folder_rules", test_skills_structure.test_skills_folder_rules)
+
+
+    import test_init_test
+    runner.run("init_test creates_files", test_init_test.test_init_test_creates_files)
+    runner.run("init_test rejects_overwrite", test_init_test.test_init_test_rejects_overwrite)
+    runner.run("init_test force_overwrite", test_init_test.test_init_test_force_overwrite)
 
     success = runner.summary()
 

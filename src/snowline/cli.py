@@ -802,6 +802,80 @@ def show_path():
     safe_print(f"{Colors.DIM}Alternative: Use 'python -m snowline.cli'{Colors.RESET}\n")
 
 
+
+def init_test(force=False):
+    import os
+    test_report_path = "TEST_REPORT.md"
+    snowline_test_path = "SNOWLINE_TEST.md"
+
+    if os.path.exists(test_report_path) and not force:
+        with open(test_report_path, "r", encoding="utf-8") as f:
+            if len(f.read().strip()) > 0:
+                print(f"[BLOCKED] {test_report_path} sudah ada isinya. Gunakan --force untuk menimpa.")
+                return
+
+    snowline_test_content = """# Panduan Pengujian Snowline
+
+Kamu diminta untuk menguji paket alat agen ini di lingkungan saat ini.
+
+Ikuti aturan ketat berikut selama pengujian:
+
+1. **Dilarang memperbaiki.** Jangan mencoba memperbaiki masalah, menambal kode, atau mengubah konfigurasi agar perintahnya berjalan. Tugasmu hanya menguji dan melaporkan.
+2. **Wajib mencatat tebakan.** Jika kamu mencari suatu fitur dan tidak menemukannya, atau jika kamu harus menebak cara memakai suatu perintah karena informasinya tidak ada/kurang jelas, wajib catat tebakan tersebut.
+3. **Wajib mencatat lingkungan.** Sebelum mulai, catat rincian lingkunganmu (Sistem Operasi, versi Python, status pemasangan snowline terpasang di sistem atau dari sumber, dan versinya).
+4. Kamu bebas menjalankan perintah apa pun yang menurutmu lazim.
+
+Silakan tuangkan seluruh temuanmu ke dalam berkas `TEST_REPORT.md` sesuai format yang ada di dalamnya.
+"""
+
+    test_report_content = """# Laporan Pengujian Snowline
+
+## 1. Lingkungan
+- OS: 
+- Python: 
+- Snowline terpasang / sumber: 
+- Versi: 
+
+## 2. Perintah dan Keluaran
+*(Tuliskan perintah yang dijalankan dan keluaran mentahnya, termasuk jika gagal)*
+
+## 3. Yang Tidak Jalan
+*(Satu baris per hal, cantumkan perintah dan galatnya)*
+
+## 4. Yang Harus Ditebak
+*(Satu baris per hal)*
+
+## 5. Ongkos Masuk
+*(Dalam detik, dari perintah pertama sampai mulai bekerja)*
+
+## 6. Keputusan yang tidak bisa kamu periksa
+
+<!--
+Cara membaca (jangan dihapus):
+daftarnya kosong atau sepele        council tidak perlu
+daftarnya panjang dan berakibat     council punya alasan
+-->
+
+Selama tugas ini, adakah keputusan yang kamu ambil tanpa cara memastikan
+keputusan itu benar? Bukan yang salah — yang tidak bisa diperiksa.
+
+Satu baris per keputusan, dan sebutkan apa yang akan membuktikannya salah
+seandainya ada.
+
+Kalau tidak ada, tulis: tidak ada.
+
+## 7. Catatan Bebas
+*(Apa pun yang tidak muat di atas)*
+"""
+
+    with open(snowline_test_path, "w", encoding="utf-8", newline="") as f:
+        f.write(snowline_test_content)
+    
+    with open(test_report_path, "w", encoding="utf-8", newline="") as f:
+        f.write(test_report_content)
+
+    print("[SUCCESS] SNOWLINE_TEST.md dan TEST_REPORT.md telah disiapkan.")
+
 def main():
     parser = argparse.ArgumentParser(
         prog="snowline",
@@ -810,6 +884,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     p_init = subparsers.add_parser("init", help="Initialize .agents folder with skills")
+    p_init.add_argument("target", nargs="?", help="Optional target to init (e.g. 'test')")
     p_init.add_argument("--apply", action="store_true", help="Apply installation")
     p_init.add_argument("--force", action="store_true", help="Force overwrite existing skills")
 
@@ -845,7 +920,10 @@ def main():
     args = parser.parse_args()
 
     if args.command == "init":
-        init(dry=not args.apply, force=args.force)
+        if args.target == "test":
+            init_test(force=args.force)
+        else:
+            init(dry=not args.apply, force=args.force)
     elif args.command == "update":
         update(apply=args.apply)
     elif args.command == "uninstall":
