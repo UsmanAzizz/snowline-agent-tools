@@ -1,4 +1,4 @@
-﻿import os
+import os
 from pathlib import Path
 
 def test_no_bom_in_src():

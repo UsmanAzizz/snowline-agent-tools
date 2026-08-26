@@ -1,9 +1,10 @@
-﻿"""
+"""
 Simple test runner for Snowline Agent Tools
 Run with: python tests/run_tests.py
 """
 import os
 import sys
+import unittest
 import tempfile
 import shutil
 from pathlib import Path
