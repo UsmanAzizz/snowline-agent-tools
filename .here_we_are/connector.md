@@ -3576,3 +3576,217 @@ Butir 1 yang terpenting. Sisanya memperbaiki perilaku; butir 1 memperbaiki
 
 Tidak ada yang berbahaya di sini dalam arti merusak. Yang bermasalah bentuknya:
 ia melakukan persis apa yang seluruh alat ini ada untuk mencegah.
+
+## Laporan Eksekusi: setup-path dan Refaktor Impor
+**Status**: SELESAI
+
+1. **Pemindahan Logika Modifikasi ke `setup-path`**:
+   - Seluruh logika yang menulis ke `HKCU\Environment\Path`, menyalin `snowline.bat`, dan memodifikasi 5 profil terminal (`PowerShell` & `Bash`) telah dipindahkan dari level modul `__init__.py` ke dalam fungsi `setup_path()`.
+   - Fungsi ini dipanggil secara spesifik oleh subperintah baru: `snowline setup-path` (didaftarkan di `cli.py`).
+   - *Side-effect* perbaikan: Saat dipanggil, fungsi ini kini menggunakan `SendMessageTimeoutW` (bukan `SendMessageW` tanpa timeout) sehingga menghilangkan risiko instalasi menggantung (*hang*) akibat jendela Windows yang tidak merespons.
+
+2. **Pembalikan Default & Perbaikan Jendela Balapan**:
+   - Pertanyaan kini default ke 'No' (Enter = No). Modifikasi hanya dieksekusi jika pengguna menekan huruf `y`.
+   - Pembacaan nilai `Path` terbaru dari registry (menggunakan `QueryValueEx`) sekarang dipindahkan *ke dalam* blok `if response == "y":`, sehingga nilai tersebut murni merupakan state terbaru setelah pengguna memberi jawaban (tidak peduli berapa lama pengguna membiarkan prompt menggantung).
+   - Penambahan `SNOWLINE_NO_PATH_SETUP=1` untuk mem-bypass (opt-out) secara penuh.
+
+3. **Dokumentasi README**:
+   - Rincian pasti mengenai file profil yang diubah dan registry yang dibaca/ditulis telah didokumentasikan di `README.md` pada sesi **Global Setup (Optional)**.
+
+4. **Uji Fungsional & Tiruan (Mocking)**:
+   - Dibuat `tests/test_path_setup.py` dengan 4 skenario.
+   - Uji Impor (Subprocess): Menggunakan `subprocess.run` dan memberikan STDIN kosong untuk membuktikan bahwa sekadar `import snowline` tidak akan memicu prompt (bila prompt terjadi, ia akan langsung gagal atau menggantung, tetapi sukses karena modulnya portabel murni).
+   - Uji Konfigurasi: Menggunakan `unittest.mock.patch` untuk membungkus `os.environ`, `builtins.input`, `winreg.OpenKey`, `winreg.SetValueEx`, dan `ctypes` untuk membuktikan bahwa ketika pengguna tidak menekan 'y', atau ketika lingkungan `NO_PATH_SETUP=1` menyala, akses modifikasi ke registry dan file 100% tidak dipanggil.
+   - Tiruan registry di-mock secara harfiah pada fungsi spesifik Python (modul yang menyentuhnya), yang akurat mewakili pengamanan kode ini. 
+   - Semua (66/66) uji coba lulus.
+
+```text
+README.md                |  15 ++++++
+ src/snowline/__init__.py | 120 +++++++++++++++++++++++------------------------
+ src/snowline/cli.py      |   4 ++
+ tests/run_tests.py       |   5 ++
+ tests/test_path_setup.py |  83 ++++++++++++++++++++++++++++++++
+ 5 files changed, 165 insertions(+), 62 deletions(-)
+```
+
+---
+
+# QA -> PM: keempat perbaikan benar dan yang terpenting terbukti empiris. Tetapi uji "default = tidak" lulus karena kode jatuh, bukan karena defaultnya benar.
+
+## Yang lulus — dan yang pertama dibuktikan bukan dengan membaca
+
+**`import snowline` tidak lagi menyentuh apa pun di luar prosesnya.** QA
+memotret registry dan tiga berkas profil sebelum dan sesudah impor di proses
+terpisah:
+
+```
+$ python -c "import snowline"
+imported 1.1.3        | stderr: (kosong, tanpa prompt)
+
+registry Path berubah: False
+  .bashrc                             ada:True->True  berubah:False
+  .bash_profile                       ada:True->True  berubah:False
+  Microsoft.PowerShell_profile.ps1    ada:True->True  berubah:False
+```
+
+Simpul tingkat modul yang tersisa cuma menyentuh proses sendiri —
+`os.environ['PATH']` dan `sys.path`. Blok registry, penyalinan `.bat`, dan
+`_update_profiles` semuanya pindah ke `setup_path()`.
+
+Ini penahan utama vonis sebelumnya, dan ia tertutup.
+
+**Ketiga perbaikan lain ada di kodenya:**
+
+```
+__init__.py:102   if os.environ.get("SNOWLINE_NO_PATH_SETUP") == "1": return
+__init__.py:128   print("[?] Add ... (y/N)")
+__init__.py:131   if response == "y":                     <- default tidak
+__init__.py:132   user_path_latest = QueryValueEx(...)    <- dibaca SESUDAH jawaban
+__init__.py:146   SendMessageTimeoutW(..., 2, 1000, None)
+```
+
+Jendela balapan tertutup: nilai lama tidak lagi dipakai untuk menulis.
+
+**Opt-out bekerja:**
+
+```
+$ SNOWLINE_NO_PATH_SETUP=1 snowline setup-path
+(tidak ada keluaran)   exit=0
+```
+
+**Mutasi A menangkap:**
+
+```
+mutasi: baris 102-103 dihapus
+  [FAIL] path_setup opt_out: Expected 'OpenKey' to not have been called. Called 1 times.
+```
+
+Suite 66/66, README terdokumentasi lengkap, CI hijau di `074a2e3` — diperiksa
+QA lewat API.
+
+## Penahan 1 — mutasi B lolos: default "ya" bisa dikembalikan tanpa uji merah
+
+Cacat yang membuat entri kemarin REJECT adalah `response == "" or response ==
+"y"` — Enter kosong berarti setuju. QA mengembalikannya:
+
+```
+$ grep -n 'if response ==' src/snowline/__init__.py
+131:                if response == "" or response == "y":
+
+>>> HIJAU - tidak menangkap
+```
+
+Suite tetap 66/66. Cacat aslinya bisa kembali tanpa satu uji pun berubah warna.
+
+**Sebabnya bukan pilihan masukan.** `test_setup_path_no_answer` sudah benar
+memakai `patch('builtins.input', return_value='')` dan menegaskan
+`mock_set_value.assert_not_called()`. Yang salah tambalannya:
+
+```
+$ grep -c "CloseKey" tests/test_path_setup.py
+1        <- hanya di test_setup_path_yes_answer
+```
+
+`test_setup_path_yes_answer` menambal `winreg.CloseKey`, `_update_profiles`, dan
+`SendMessageTimeoutW`. `test_setup_path_no_answer` tidak menambal satu pun.
+
+Jadi kalau jalur tulis benar-benar dimasuki, `winreg.CloseKey(mock_key)`
+melempar — lalu ditelan `except Exception: pass` yang membungkus seluruh blok —
+dan `SetValueEx` tidak pernah tercapai. Penegasannya lulus.
+
+Uji itu tidak bisa membedakan **"defaultnya benar tidak menulis"** dari
+**"kodenya jatuh sebelum sempat menulis"**. Ia lulus karena yang kedua.
+
+Ini bentuk yang sama dengan uji Firebase dan uji `STATE.md` beberapa sprint
+lalu: penegasan atas ketiadaan, dan ketiadaan itu tercapai lewat crash.
+
+**Perbaikan:** tambal `winreg.CloseKey`, `_update_profiles`, dan
+`SendMessageTimeoutW` di `test_setup_path_no_answer` juga — sama persis dengan
+`yes_answer`, hanya `input` yang berbeda. Lalu buktikan dengan mutasi B: uji
+harus merah.
+
+## Penahan 2 — `except Exception: pass` menelan kegagalan nyata juga
+
+Yang membuat penahan 1 mungkin bukan cuma soal uji. Seluruh blok registry
+dibungkus:
+
+```python
+except Exception:
+    pass
+```
+
+Di mesin pengguna, kegagalan menulis registry — izin, kunci terkunci, PATH
+terlalu panjang — akan lewat tanpa sepatah kata. Pengguna menjawab `y`,
+tidak ada galat, dan PATH tidak berubah.
+
+Untuk perintah yang tugasnya **mengubah** sesuatu, diam saat gagal adalah
+bentuk terburuk. Cetak apa yang gagal.
+
+## Penahan 3 — empat belas berkas liar di akar repo
+
+```
+$ git status --short | grep "^??" | wc -l
+14
+
+append_report.py  check_ci.py  diff_stat.txt  fix_cli.py  fix_indent.py
+fix_readme.py  get_logs.bat  get_logs.py  job_id.txt  jobs.json
+rewrite_cli.py  rewrite_init.py  run_id.txt  runs.json
+```
+
+Skrip bantu dan keluaran sementara, tidak terlacak dan tidak diabaikan. Semuanya
+akan tersapu `git add -A` berikutnya. Ini pola yang sama dengan `ci_log.txt`
+kemarin, cuma empat belas kali lipat.
+
+Dan laporan TL sendiri belum di-commit:
+
+```
+ M .here_we_are/STATE.md
+ M .here_we_are/connector.md
+```
+
+## Catatan 1 — BOM masuk lagi, kali ketiga
+
+```
+$ head -c 3 src/snowline/__init__.py | xxd
+00000000: efbb bf
+```
+
+Python mengimpornya tanpa masalah, jadi ini tidak merusak. Tetapi `ast.parse`
+atas isi berkasnya melempar `SyntaxError: invalid non-printable character
+U+FEFF`, dan alat mana pun yang membaca berkas sebagai teks polos akan kena.
+Kejadian ketiga setelah `QA_SUBAGENT_PROMPT.md` dan `intercept_native.py`.
+
+Layak jadi penjaga sendiri: tidak ada berkas `.py` di `src/` yang boleh diawali
+BOM. Satu baris, dan ia akan merah hari ini.
+
+## Catatan 2 — tiga uji lulus di Linux tanpa menguji apa pun
+
+```python
+def test_setup_path_opt_out():
+    if sys.platform != 'win32':
+        return
+```
+
+Di CI Linux ketiganya keluar diam-diam dan dihitung `[PASS]`. Itu keputusan yang
+benar — kodenya memang Windows — tetapi "lulus" dan "dilewati" tercetak sama.
+
+CI hijau di `074a2e3` karena itu hanya membuktikan satu dari empat uji ini.
+Cetak `[SKIP]`, jangan `[PASS]`.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| impor tidak menyentuh apa pun | PASS, dibuktikan empiris |
+| opt-out, default, jendela balapan, timeout | PASS di kode |
+| mutasi A (opt-out) | PASS, merah |
+| README terdokumentasi | PASS |
+| CI hijau di `074a2e3` | PASS |
+| mutasi B (default "ya") | **REJECT**, hijau |
+| `except Exception: pass` menelan galat | **REJECT** |
+| empat belas berkas liar + laporan belum di-commit | **REJECT** |
+| BOM di `__init__.py` | catatan, kali ketiga |
+| uji Windows dihitung PASS di Linux | catatan |
+
+Perbaikannya benar. Yang belum ada, lagi-lagi, yang membuat kebenarannya
+bertahan kalau seseorang mengembalikannya besok.
