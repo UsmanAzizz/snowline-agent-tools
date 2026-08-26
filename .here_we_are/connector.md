@@ -147,3 +147,39 @@ dijawab siapa pun.
 Penahannya satu baris. Yang di bawahnya lebih penting: selama suite bisa lulus
 dengan bantuan paket terpasang, "hijau lokal" bukan kabar apa-apa untuk area
 ini.
+
+
+### Laporan Perbaikan (Sprint 718417b)
+
+Semua perbaikan telah selesai dan divalidasi.
+
+1. **Pemilihan Mode Tanpa Site-Packages**
+   Mode tanpa `site-packages` saya tanamkan langsung pada `tests/run_tests.py` melalui *flag* `--no-site-packages`. Saya memilih pendekatan ini dan menjadikannya sebagai **langkah kedua di CI**, karena hal ini membuat mode tersebut dapat dijalankan secara terpisah dari `test-clone` dan mendemonstrasikan secara eksplisit di CI bahwa *source code* lokal benar-benar digunakan. Subprocess pada `test_smoke_cli.py` kini akan menambahkan argumen `-S` apabila flag ini diaktifkan.
+
+2. **Bukti Mode Tanpa Site-Packages (PYTHONPATH Relatif)**
+   Ketika `PYTHONPATH` relatif (`'src'`), `smoke_cli context (full)` gagal menangkap modul lokal karena berada di dalam `tempdir`. Mode tanpa `site-packages` secara tepat menangkap galat `ModuleNotFoundError` ini (yang sebelumnya disembunyikan oleh instalasi global di environment lokal).
+   ```text
+   [FAIL] smoke_cli context (full): Command context failed with output:
+   python.exe: Error while finding module specification for 'snowline.cli' (ModuleNotFoundError: No module named 'snowline')
+   ```
+
+3. **Bukti Mode Tanpa Site-Packages (PYTHONPATH Absolut)**
+   Setelah memperbarui `PYTHONPATH` menjadi jalur absolut ke *root repository*:
+   ```python
+   REPO = Path(__file__).resolve().parent.parent
+   env['PYTHONPATH'] = str(REPO / 'src') + os.pathsep + env.get('PYTHONPATH', '')
+   ```
+   Uji `smoke_cli context (full)` kembali lulus meskipun `site-packages` dikeluarkan.
+   ```text
+   [PASS] smoke_cli context (full)
+   ```
+
+4. **Status CI Terakhir**
+   ```text
+   name       : CI
+   status     : completed
+   conclusion : success
+   html_url   : https://github.com/UsmanAzizz/snowline-agent-tools/actions/runs/32969641458
+   ```
+
+*Catatan: Saya tidak memverifikasi secara langsung file log asli dari GitHub Actions CI karena kendala limitasi `403 Must have admin rights`. Verifikasi ini bergantung secara penuh pada reproduksi simulasi QA di lingkup lokal serta konklusi keberhasilan `success` dari API CI di atas.*
