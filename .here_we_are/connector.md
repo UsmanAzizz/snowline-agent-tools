@@ -1079,3 +1079,130 @@ Penjaganya sudah ada; ia hanya perlu satu direktori lagi.
 Penyatuan aman dilakukan. Tetapi jangan disatukan dulu — kalau pencocokan
 akhirannya memang salah, lebih murah memperbaikinya di satu tempat setelah
 disatukan, dan lebih murah lagi memutuskannya sebelum menyentuh apa pun.
+
+
+# PM -> TL: Sprint 39 — pemurnian daftar alat dan labelnya
+
+Dua dari sembilan belas yang dihitung sebagai alat bukan alat. Bukan
+redundansi — salah hitung. Dan salah hitungnya sudah menyebar ke tiga tempat.
+
+## Yang datanya sudah menunjukkan sendiri
+
+Pola isi foldernya cukup jelas untuk dijadikan definisi:
+
+```
+$ (hitung .py dan .md per folder skill)
+17 folder    py=1  md=1 (SKILL.md)      alat sungguhan
+companion    py=8  md=1 (SKILL.md)      paket, bukan satu berkas — tetap alat
+plan_tracker py=0  md=1 (PLAN_TEMPLATE) tidak ada kode sama sekali
+tree_gen     py=1  md=0                 modul bersama, tanpa SKILL.md
+```
+
+```
+$ find skills -maxdepth 2 -name "*.md" | xargs -n1 basename | sort | uniq -c
+     17 SKILL.md
+      1 PLAN_TEMPLATE.md
+```
+
+**Definisi yang menulis dirinya sendiri: alat adalah folder yang punya
+`SKILL.md`.** Jumlahnya tepat 17.
+
+## Angka yang salah, dan di mana saja
+
+```
+README.md:167          ## Tools (19)        tabelnya 19 baris
+STATE.md:22            tools beruji 13 / 19
+STATE.md:75            5 perkakas belum beruji: ... plan_tracker ...
+kenyataan              17 alat
+```
+
+Butir 75 yang paling merugikan: `plan_tracker` terdaftar sebagai alat yang
+belum berujii, menuntut pekerjaan yang tidak mungkin dikerjakan siapa pun —
+tidak ada kode untuk diuji.
+
+## Entri 1 — putuskan kedua anomali
+
+Bukan dihapus begitu saja. Keduanya punya isi, dan keputusannya beda.
+
+**`plan_tracker`** cuma `PLAN_TEMPLATE.md`. Fungsinya — melacak rencana —
+sekarang dikerjakan `STATE.md` dan `connector.md`. Chamber menggantikannya tanpa
+ada yang mencabutnya.
+
+```
+a  hapus; catat di connector bahwa chamber menggantikannya
+b  pindahkan templatnya ke chamber_templates/, hapus foldernya dari skills/
+```
+
+**`tree_gen`** modul bersama yang diimpor `smart_tree`. Ia berfungsi dan
+dipakai — cuma bukan alat yang dipanggil pengguna.
+
+```
+a  pindahkan ke lokasi yang jelas modul, mis. skills/_shared/
+b  biarkan di tempatnya, dan definisi "alat = punya SKILL.md" yang
+   mengeluarkannya dari hitungan
+```
+
+Pilih satu untuk masing-masing, tulis alasannya. **Yang (b) untuk `tree_gen`
+paling murah** dan tidak menyentuh impor yang sudah bekerja — memindahkan modul
+berarti mengubah `smart_tree` yang sekarang tidak rusak.
+
+## Entri 2 — samakan angkanya di ketiga tempat
+
+```
+README.md:167     judul dan tabelnya
+STATE.md:22       13 / 19
+STATE.md:75       keluarkan plan_tracker dari daftar belum-berujii
+```
+
+Ambil angkanya dari perintah, jangan diketik. Sudah tiga kali angka di
+`STATE.md` salah karena diketik.
+
+Dan sebutkan definisinya di `STATE.md`, sebaris di bawah angkanya — sama seperti
+definisi `beruji` yang sudah ada:
+
+```
+(alat = folder di skills/ yang punya SKILL.md)
+```
+
+## Entri 3 — penjaga, supaya tidak melenceng lagi
+
+Satu uji yang menegaskan tiga hal:
+
+```
+tiap folder di skills/ (selain rules/) punya SKILL.md ATAU terdaftar
+  sebagai modul bersama
+tiap folder yang punya SKILL.md punya minimal satu .py
+jumlah alat di README dan STATE.md sama dengan hitungan sebenarnya
+```
+
+**Syarat lulus:** dibuktikan mutasi tiga arah dengan `PYTHONPATH=src` —
+tambahkan folder tanpa `SKILL.md`, hapus satu `.py` dari folder ber-SKILL.md,
+dan ubah angka di README. Ketiganya harus merah, masing-masing menyebut apa
+yang salah.
+
+Butir ketiga yang paling berguna: itu yang mencegah angka di dokumen melenceng
+dari kenyataan, dan itu sudah terjadi tiga kali.
+
+## Yang TIDAK dikerjakan sprint ini
+
+Label `MENGIKAT`/`SEPARUH`/`ANJURAN` di `skills/rules/` tidak disentuh.
+Kedelapannya berlabel dan `STATE.md` mencatatnya 8/8. Kalau ada yang mau
+diperiksa di sana, itu sprint sendiri — dan pertanyaannya bukan "apakah
+berlabel" melainkan "apakah labelnya benar", yang butuh memeriksa tiap aturan
+terhadap kode.
+
+Penyatuan penegak scope juga tidak. Ia menunggu keputusan PM soal penambatan
+jalur ke akar proyek.
+
+## Bentuk laporan
+
+Ke connector lewat `snowline add-entry --from-file`, keluaran mentah, sebutkan
+apa yang TIDAK kamu periksa, berakhir di keluaran terakhir. Tanpa vonis atas
+pekerjaanmu sendiri.
+
+Sebelum commit: `git add <berkas>` lalu `git diff --cached --stat`.
+
+Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, jalankan kedua
+mode.
+
+**Tidak dikunci.**
