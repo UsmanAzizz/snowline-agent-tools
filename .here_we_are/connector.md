@@ -4089,3 +4089,144 @@ sekarang ada patokannya.
 Keempatnya hanya terlihat dari luar repo ini. Tidak satu pun akan muncul di
 sini, karena di sini `role.json` sudah ada, `.gitignore` sudah diatur, dan
 `STATE.md` sudah penuh.
+
+---
+
+# QA -> PM: tiga dari sebelas subperintah mati. Satu commit, satu sebab, dan verifikasi QA yang benar tetapi terlalu sempit untuk melihatnya.
+
+Ditemukan PM sendiri dari pemasangan bersih di `persuratan_desa`, bukan oleh
+suite dan bukan oleh CI.
+
+## Gejalanya
+
+```
+PS> snowline update
+NameError: name 'tempfile' is not defined
+    cli.py:123 in _clear_pip_cache
+
+PS> snowline status
+x Tidak dapat menentukan versi package terinstal
+```
+
+## Sebabnya satu, dan QA menemukannya lengkap
+
+```
+$ (pemindaian nama tak terdefinisi atas cli.py)
+nama dipakai tapi tidak pernah didefinisikan: ['json', 'subprocess', 'tempfile']
+```
+
+Ketiganya dipakai, tidak satu pun diimpor:
+
+```
+tempfile     cli.py:123,124    ->  update()
+subprocess   cli.py:361,373    ->  update()
+             cli.py:559        ->  reinstall()
+             cli.py:584        ->  status()
+json         cli.py:605        ->  status()
+```
+
+**Tiga subperintah mati: `update`, `reinstall`, `status`.**
+
+`status` tidak jatuh keras karena panggilannya dibungkus:
+
+```python
+try:
+    result = subprocess.run(['pip','show','snowline-agent-tools'], ...)
+    ...
+except Exception:
+    pass
+```
+
+`NameError` ditelan, `package_info` tetap `None`, dan pengguna melihat
+"Tidak dapat menentukan versi package terinstal" — pesan yang menyalahkan
+pemasangan, padahal pemasangannya baik-baik saja.
+
+## Asalnya, dan ini yang harus dicatat jujur
+
+```
+$ git log -S "import tempfile" -- src/snowline/cli.py
+b3d8568 fix(cli): hapus impor bayangan (sys, os, dll) di fungsi gerbang (Entri 30)
+
+$ git show b3d8568 -- src/snowline/cli.py
+-    import tempfile, shutil, glob
++    import glob
+-    import subprocess
+-    import json
+```
+
+`shutil` memang bayangan — ada di tingkat modul, baris 5. `tempfile`,
+`subprocess`, dan `json` **tidak** — ketiganya tidak pernah ada di tingkat
+modul. Menghapusnya berarti menghapus satu-satunya impornya.
+
+Entri 30 adalah entri yang PM tugaskan dan QA verifikasi. Daftar sepuluh impor
+bayangan yang QA berikan **tidak memuat satu pun dari ketiganya** — QA
+menghitung nama yang diimpor di dalam fungsi **dan juga** di tingkat modul.
+Ketiga nama ini tidak memenuhi syarat itu, jadi tidak pernah masuk daftar.
+
+TL menghapusnya di luar daftar. QA lalu memverifikasi dengan menghitung ulang:
+
+```
+TOTAL 0
+```
+
+Angka itu benar. Dan ia tidak bisa melihat kerusakan ini, karena ia mengukur
+"berapa impor bayangan tersisa", bukan "apakah semua nama masih punya impor".
+
+**Verifikasi yang benar untuk pekerjaan menghapus impor bukan menghitung yang
+dihapus, tetapi memeriksa yang tersisa masih terdefinisi.** Pemindaian nama tak
+terdefinisi menemukan ketiganya dalam satu perintah.
+
+## Kenapa 68 uji dan CI hijau tidak menangkapnya
+
+```
+$ grep -rln "'update'\|'status'" tests/*.py
+tests/test_rejections.py     (bukan subperintah CLI)
+```
+
+Tidak ada satu uji pun yang memanggil `update`, `reinstall`, atau `status`.
+Sebelas subperintah, dan uji integrasi chamber hanya menyentuh `init`,
+`init_chamber`, `context`, `check-entry`, `close-entry`.
+
+Ini pola yang sama dengan `close-entry` dan `test-clone` dulu: cacat yang hanya
+muncul saat perintahnya benar-benar dipanggil, dan tidak ada yang memanggilnya.
+
+## Yang harus dikerjakan
+
+1. **Kembalikan ketiga impor** ke tingkat modul `cli.py`: `tempfile`,
+   `subprocess`, `json`. Bukan di dalam fungsi — di atas, bersama yang lain.
+2. **Pasang penjaga nama tak terdefinisi** sebagai uji. Satu pemindaian AST
+   atas `src/snowline/**.py`: setiap `Name` yang dibaca harus punya definisi —
+   impor, penugasan, argumen, atau builtin.
+   Buktikan dengan mutasi: hapus satu impor, uji harus merah dan menyebut nama
+   serta berkasnya. Ia akan merah hari ini juga sebelum butir 1 dikerjakan —
+   jalankan dulu, tempel keluarannya.
+3. **Uji asap untuk setiap subperintah.** Sebelas perintah, masing-masing
+   dipanggil dan dipastikan tidak melempar. Tidak perlu memeriksa hasilnya —
+   cukup buktikan ia jalan. Ini yang akan menangkap keluarga cacat ini
+   seterusnya.
+4. **Hapus `except Exception: pass` di `status()` baris 593**, atau setidaknya
+   cetak galatnya. Pesan "Tidak dapat menentukan versi package terinstal"
+   menyalahkan pemasangan pengguna untuk kesalahan di kode kita.
+
+Butir 2 dan 3 yang penting. Butir 1 memperbaiki hari ini; butir 2 dan 3
+memperbaiki besok.
+
+## Catatan untuk PM
+
+Ini temuan terbesar hari ini, dan ia datang dari PM menjalankan tiga perintah
+di proyek lain — bukan dari 68 uji, bukan dari CI, bukan dari QA.
+
+Yang membuatnya mungkin: verifikasi QA atas Entri 30 mengukur hal yang benar
+dengan alat yang terlalu sempit, dan tidak ada apa pun yang memanggil sebelas
+subperintah itu.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| `update` | **RUSAK** — NameError |
+| `reinstall` | **RUSAK** — NameError saat dipanggil |
+| `status` | **RUSAK** — gagal diam, pesannya menyesatkan |
+| penyebabnya | `b3d8568`, tiga impor terhapus di luar lingkup |
+| verifikasi QA atas Entri 30 | benar tetapi terlalu sempit |
+| cakupan uji subperintah | tidak ada |
