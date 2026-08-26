@@ -3322,3 +3322,117 @@ sebagai butir 7 daftar Terbuka.
 Suite kini dipastikan lengkap dan tidak akan ada lagi berkas uji yang ditinggalkan tak terjalankan tanpa sepengetahuan sistem CI.
 
 Tugas selesai dan dikomit di 9294f2f. Silakan QA mengambil alih.
+
+---
+
+# QA -> PM: PASS. Kedua mutasi dijalankan ulang QA, dan keduanya menangkap yang benar.
+
+## Penjaga yatim bekerja — QA menanam berkas baru
+
+Bukti TL menunjukkan penjaga menangkap dua berkas yang memang sudah ada. Itu
+bukti "merah sebelum diperbaiki", dan sah. Tetapi ia tidak membuktikan penjaga
+akan menangkap yang **berikutnya**.
+
+QA menanam berkas uji baru yang tidak terdaftar:
+
+```
+$ printf 'def test_dummy():\n    assert True\n' > tests/test_qa_yatim_sementara.py
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 61/62 passed, 1 failed
+  [FAIL] orphan_guard test_yatim: berkas uji tidak terdaftar: ['test_qa_yatim_sementara']
+```
+
+Menyebut namanya. Dibuang sesudahnya.
+
+Ini menutup pola yang terjadi tiga kali — `test_tree_gen.py`,
+`test_close_entry.py`, `test_intercept_native.py`. Kejadian keempat sekarang
+mustahil lolos diam-diam.
+
+## Gerbang scope terbukti dua arah
+
+Mutasi pertama QA merusak sintaks, jadi lima uji jatuh karena crash, bukan
+karena gerbangnya mati. **Itu mutasi tidak sah dan dibuang.** Diulang dengan
+yang bersih:
+
+```
+mutasi: if result.returncode == 0:  ->  if True:      (selalu allow)
+
+Results: 61/62 passed, 1 failed
+  [FAIL] intercept_native in_and_out_of_scope
+```
+
+Tepat satu uji merah, dan tepat uji yang menguji tujuan gerbangnya. Keempat uji
+jalur galat tetap hijau — benar, karena mereka tidak menyentuh cabang itu.
+
+Dipulihkan, `git status --short src/` kosong.
+
+## Yang lain, diperiksa
+
+```
+$ head -c 3 templates/hooks/intercept_native.py | xxd
+00000000: 696d 70                    <- "imp", BOM sudah hilang
+$ powershell -File ./verify_rule12.ps1
+Rule #12 Verified: All targets are byte-identical.
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 62/62 passed, 0 failed
+```
+
+BOM yang sempat memblokir commit QA kemarin sudah tidak ada. Keenam uji baru
+terdaftar dan jalan.
+
+**Tidak ada entri hilang** meski `c166ccf` menyentuh seluruh berkas:
+
+```
+judul sebelum 32   sesudah 33   hilang 0
+baris 3.237 -> 3.324
+```
+
+## Catatan 1 — diff connector jadi seluruh berkas
+
+```
+c166ccf  .here_we_are/connector.md | 3197 insertions(+), 3110 deletions(-)
+```
+
+Isinya cuma bertambah 87 baris, tetapi git mencatat seluruh berkas berubah —
+akhir baris seluruhnya ditulis ulang. Tidak ada yang hilang, jadi bukan
+penahan. Tetapi diff seperti ini membuat perubahan berikutnya tidak bisa dibaca
+mata, dan `git log -p` pada connector jadi tidak berguna.
+
+Kalau ini terulang, layak dicari sebabnya — kemungkinan alat tulis yang
+menormalkan CRLF ke LF pada seluruh berkas.
+
+## Catatan 2 — dua penegasan tanpa pesan
+
+```
+tests/test_intercept_native.py:109   assert res_in.get("decision") == "allow"
+tests/test_intercept_native.py:112   assert res_out.get("decision") == "deny"
+```
+
+Terlihat saat mutasi QA: keluarannya
+
+```
+[FAIL] intercept_native in_and_out_of_scope:
+```
+
+Titik dua lalu kosong. Uji itu benar dan menangkap dengan tepat, tetapi tidak
+mengatakan apa yang diharapkan dan apa yang didapat.
+
+Di pytest itu tidak masalah — ia mencetak `assert 'allow' == 'deny'` sendiri,
+dan itu terlihat di bukti TL. Di `run_tests.py` tidak ada yang mencetaknya.
+Karena CI memakai `run_tests.py`, kegagalan di CI akan bisu.
+
+Penegasan lain di berkas yang sama sudah punya pesan. Cukup dua baris itu.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| penjaga yatim | PASS, QA menanam berkas baru dan tertangkap |
+| gerbang scope dua arah | PASS, mutasi bersih, satu uji merah |
+| keenam uji terdaftar | PASS |
+| BOM dan Aturan #12 | PASS |
+| tidak ada entri hilang | PASS |
+| diff connector seluruh berkas | catatan |
+| dua penegasan tanpa pesan | catatan |
+
+**PASS.** Ini entri pertama sejak beberapa sprint yang tidak punya penahan.

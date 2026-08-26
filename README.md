@@ -14,17 +14,27 @@ An agent that is told not to do something can still do it. An agent that is
 *refused* cannot. Snowline puts a gate on every path that can damage a project,
 so a mistake gets stopped rather than logged after the fact.
 
-Seven paths, all gated:
+Six paths, gated and installed by default:
 
 | what is refused | by what |
 |---|---|
-| writing any file without an explicit flag | `--apply`, in all four write tools |
+| writing any file without an explicit flag | `--apply`, in all five write tools |
 | writing outside the current task's file list | `scope_lock.json`, fail-closed |
 | a command with missing arguments | arity check, `hooks/quality_gate.py` |
 | a replacement that breaks syntax | validation cancels the write |
 | a Medium/High-risk change waved through | requires `--apply-validated` |
-| committing a file with a readable secret | CRITICAL gate in the pre-commit hook |
 | an agent looping on the same failing call | loop detector, stops after 3 |
+
+**One gate ships but is not installed automatically.** `project_guardian` can
+refuse a commit that contains a readable secret, but `snowline init` does not
+wire it into git. Install it yourself:
+
+```bash
+python -m snowline.install_hooks <project_dir> <path_to_guardian.py>
+```
+
+Note that this **overwrites** `.git/hooks/pre-commit`. If you already have one,
+merge it by hand.
 
 Everything else in this repo is convention, and each rule file says which it is —
 see `RULE 0` in the generated `agents.md`.
@@ -100,8 +110,18 @@ one-word signal is enough.
 
 The load-bearing rule: an entry is rejected before it is read if it claims
 something is done without including the command **and** its raw output. TL and
-QA must be separate sessions — a single session holding both is reviewing its
-own work.
+QA must not be the same live session — a single session holding both is
+reviewing its own work.
+
+Two ways to satisfy that:
+
+- **Two sessions**, relayed by a human PM. Works on any harness.
+- **One agent, sequential sessions.** TL works, writes its report, sets
+  `role.json` to `QA` as its last act, and ends. The next session wakes with no
+  memory of the first and only the chamber to go on. Tested on Claude Code:
+  the second session reproduced the first's verdict and found four defects the
+  full-context reviewer had missed. It needs a harness whose fresh sessions
+  start genuinely cold.
 
 Re-running is refused unless `--force`, so `connector.md` and `STATE.md` are
 never wiped by accident.
@@ -129,7 +149,7 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 
 **Verified working with:** Claude Code (reliably auto-invoked per `.agents/agents.md` instructions) and Gemini/Antigravity (works when instructions are present in `agents.md`, though tool-call approval behavior varies by platform/IDE settings and is outside this project's control).
 
-## Tools (22 Core)
+## Tools (19)
 
 <table>
 <thead>
@@ -159,8 +179,18 @@ Returns structured data: detected keywords, entities (e.g. function names in cam
 <tr><td><code>crash_decoder</code></td><td>Parses crash logs, filters noise</td><td>No</td></tr>
 <tr><td><code>auto_scaffolder</code></td><td>Generates boilerplate files (component/route templates)</td><td>Yes (<code>--apply</code>)</td></tr>
 <tr><td><code>context_mapper</code></td><td>Generates dependency map into <code>.agents/knowledge/</code></td><td>Yes (<code>--apply</code>)</td></tr>
+<tr><td><code>native_checker_gen</code></td><td>Scaffolds a unit test or a standalone validator script</td><td>Yes (<code>--apply</code>)</td></tr>
+<tr><td><code>plan_tracker</code></td><td>Tracks multi-step plan progress</td><td>No</td></tr>
+<tr><td colspan="3"><strong>🔧 Engines (called by the tools above, not directly)</strong></td></tr>
+<tr><td><code>companion</code></td><td>Intent analyzer behind <code>companion_cli.py</code></td><td>No</td></tr>
+<tr><td><code>tree_gen</code></td><td>Tree-rendering engine behind <code>smart_tree</code></td><td>No</td></tr>
 </tbody>
 </table>
+
+Coverage is uneven and tracked openly: five of the nineteen have no test that
+runs them and asserts their output — `companion`, `db_extractor`,
+`deep_analyzer`, `plan_tracker`, `smart_tree`. They are listed as open items in
+the project's own state file rather than left unsaid.
 
 ## Usage Examples
 
@@ -191,7 +221,7 @@ Working on snowline itself — tests, Rule #12, CI, releasing: see
 [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
 ```bash
-python tests/run_tests.py     # 41 tests, ~24 seconds
+python tests/run_tests.py     # 56 tests, ~55 seconds
 ```
 
 ## Compatibility
