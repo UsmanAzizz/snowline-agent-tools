@@ -3436,3 +3436,143 @@ Penegasan lain di berkas yang sama sudah punya pesan. Cukup dua baris itu.
 | dua penegasan tanpa pesan | catatan |
 
 **PASS.** Ini entri pertama sejak beberapa sprint yang tidak punya penahan.
+
+---
+
+# QA -> PM: pemasangan mengubah registry dan lima berkas profil, dan itu terjadi saat impor — bukan saat instal.
+
+Pertanyaan PM: apakah instalasinya aman. Diperiksa dengan membaca apa yang
+benar-benar dijalankan, bukan apa yang dijanjikan README.
+
+## Yang aman
+
+`snowline init` tanpa `--apply` adalah dry-run. Dengan `--apply` ia menyalin
+templat ke `.agents/` di dalam proyek — terbatas, terlihat, bisa dihapus. Tidak
+ada masalah di bagian ini.
+
+## Yang tidak — dan letaknya menentukan
+
+Semua ini di `src/snowline/__init__.py`, di **tingkat modul**. Artinya ia jalan
+pada `import snowline`, bukan pada subperintah instal mana pun.
+
+```
+$ python - (AST, hanya simpul tingkat modul)
+  baris  20  Try   menyalin snowline.bat ke folder Scripts Python
+  baris  31  If    menambah Scripts ke PATH proses ini
+  baris 125  If    blok registry Windows
+  baris 196  Expr  _check_reinstall()
+```
+
+Isi blok baris 125:
+
+```python
+key = winreg.OpenKey(HKEY_CURRENT_USER, r"Environment", 0, KEY_READ)
+user_path, _ = winreg.QueryValueEx(key, "Path")        # 127  baca
+...
+print("[?] Add Python Scripts folder to Windows PATH? (Y/n)")
+response = input().strip().lower()                      # 134  MENUNGGU MANUSIA
+if response == "" or response == "y":
+    key = winreg.OpenKey(..., KEY_WRITE)
+    winreg.SetValueEx(key, "Path", 0, REG_EXPAND_SZ, user_path + ";" + _scripts)   # 137 tulis
+    _update_profiles()                                  # 145
+    ctypes.windll.user32.SendMessageW(HWND_BROADCAST, WM_SETTINGCHANGE, ...)
+```
+
+Dan `_update_profiles` menyentuh sampai lima berkas milik pengguna, membuat
+foldernya kalau belum ada:
+
+```
+Documents/PowerShell/Microsoft.PowerShell_profile.ps1
+Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1
+~/.bashrc
+~/.bash_profile
+~/.zshrc
+```
+
+## Tiga hal yang membuat ini cacat, bukan sekadar berisik
+
+**1. Persetujuannya default menyetujui.**
+
+```python
+if response == "" or response == "y":
+```
+
+Enter kosong = ya. Prompt yang defaultnya menulis ke registry bukan
+persetujuan; ia formalitas.
+
+**2. Ada jendela balapan pada PATH, dan lebarnya selebar waktu berpikir
+manusia.** Baris 127 membaca `Path`, baris 134 menunggu ketikan, baris 137
+menulis ulang `Path` **utuh** dari nilai yang dibaca tadi. Proses lain yang
+mengubah PATH di antara keduanya — installer lain, misalnya — perubahannya
+tertimpa tanpa jejak.
+
+**3. Terjadi saat impor.** Skrip apa pun yang cuma `import snowline` kena. Dan
+`input()` di tingkat modul bisa menggantung di lingkungan tanpa manusia; di
+sini ia lolos karena stdin dapat EOF, tetapi itu kebetulan lingkungan, bukan
+rancangan.
+
+**Dan tidak ada jalan mematikannya.**
+
+```
+$ grep -n "SNOWLINE_NO\|SKIP\|--no" src/snowline/__init__.py
+(tidak ada)
+```
+
+Tidak ada variabel lingkungan, tidak ada flag.
+
+## Yang meringankan, supaya adil
+
+Semuanya di `HKEY_CURRENT_USER`, bukan `HKEY_LOCAL_MACHINE`. Tidak butuh admin,
+tidak menyentuh pengguna lain, dan seluruhnya bisa dibatalkan tangan.
+Penambahan ke berkas profil diberi penanda `# SNOWLINE_PATH_AUTO`, jadi
+jejaknya bisa dicari dan dihapus. Niatnya jelas dan sah: supaya perintah
+`snowline` langsung bisa dipanggil.
+
+Ini bukan tuduhan jahat. Ini alat yang memasang dirinya dengan cara yang ia
+sendiri larang di tempat lain.
+
+## Kenapa ini pantas jadi penahan
+
+README berbunyi:
+
+> **Make the destructive paths refuse, instead of asking politely.**
+> An agent that is told not to do something can still do it. An agent that is
+> *refused* cannot.
+
+Lalu paketnya, saat diimpor, menulis ke registry pengguna dengan persetujuan
+yang defaultnya "ya" — dan tidak menyebutkannya sama sekali di README.
+
+Yang dijual snowline adalah menolak perubahan diam-diam. Instalasinya adalah
+perubahan diam-diam.
+
+## Yang harus dikerjakan
+
+1. **Pindahkan seluruh blok itu keluar dari tingkat modul.** Jadikan
+   subperintah eksplisit: `snowline setup-path`. Impor tidak boleh mengubah apa
+   pun di luar proses.
+2. **Balik defaultnya.** Enter kosong = tidak. Hanya `y` yang berarti ya.
+3. **Perpendek jendela balapan**: baca `Path` **sesudah** jawabannya masuk,
+   bukan sebelum.
+4. **Sediakan jalan mematikan**: `SNOWLINE_NO_PATH_SETUP=1` dihormati tanpa
+   bertanya.
+5. **Tulis di README** apa yang disentuh: registry `HKCU\Environment\Path`,
+   lima berkas profil, dan folder Scripts. Daftar lengkap, bukan ringkasan.
+6. Uji dua arah: dengan variabel lingkungan itu diset, tidak ada berkas profil
+   yang tersentuh dan registry tidak dibaca; tanpa itu dan dengan jawaban
+   selain `y`, juga tidak. Dibuktikan mutasi.
+
+Butir 1 yang terpenting. Sisanya memperbaiki perilaku; butir 1 memperbaiki
+**kapan** perilaku itu boleh terjadi.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| `init --apply` ke `.agents/` | PASS, terbatas dan bisa dibatalkan |
+| efek samping saat impor | **REJECT** |
+| default persetujuan = ya | **REJECT** |
+| tidak ada jalan mematikan | **REJECT** |
+| tidak disebut di README | **REJECT** |
+
+Tidak ada yang berbahaya di sini dalam arti merusak. Yang bermasalah bentuknya:
+ia melakukan persis apa yang seluruh alat ini ada untuk mencegah.
