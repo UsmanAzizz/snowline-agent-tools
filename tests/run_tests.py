@@ -229,6 +229,8 @@ def main():
     runner.run("entry checker cli exit code", test_entry_checker.test_cli_exit_code)
     runner.run("tl verdict rejected", test_entry_checker.test_tl_verdict_rejected)
     runner.run("tl verdict accepted", test_entry_checker.test_tl_verdict_accepted)
+    runner.run("tl_qa verdict rejected", test_entry_checker.test_tl_qa_verdict_rejected)
+    runner.run("tl_qa verdict accepted", test_entry_checker.test_tl_qa_verdict_accepted)
     runner.run("close entry success & table inject", test_close_entry.test_close_entry_success)
     runner.run("close entry rejections (space/prefix)", test_close_entry.test_close_entry_rejections)
     

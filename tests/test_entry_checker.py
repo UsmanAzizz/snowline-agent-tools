@@ -151,3 +151,26 @@ Berikut laporannya.
 Saya tidak memeriksa apakah ini sudah stabil atau bersih sepenuhnya.
 """
     assert check_entry(content) is True
+
+def test_tl_qa_verdict_rejected():
+    import sys
+    import io
+    old_stdout = sys.stdout
+    sys.stdout = capsys = io.StringIO()
+    content = """# TL -> QA
+Berikut laporannya.
+Kode ini sudah bersih dan siap rilis.
+"""
+    assert check_entry(content) is False
+    out = capsys.getvalue()
+    sys.stdout = old_stdout
+    assert "bersih" in out
+    assert "baris" in out
+
+def test_tl_qa_verdict_accepted():
+    content = """# TL -> QA
+Berikut laporannya.
+### Apa yang tidak saya periksa
+Saya tidak memeriksa apakah ini sudah stabil atau bersih sepenuhnya.
+"""
+    assert check_entry(content) is True

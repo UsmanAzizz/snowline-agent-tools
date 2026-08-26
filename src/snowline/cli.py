@@ -850,12 +850,6 @@ Silakan tuangkan seluruh temuanmu ke dalam berkas `TEST_REPORT.md` sesuai format
 
 ## 6. Keputusan yang tidak bisa kamu periksa
 
-<!--
-Cara membaca (jangan dihapus):
-daftarnya kosong atau sepele        council tidak perlu
-daftarnya panjang dan berakibat     council punya alasan
--->
-
 Selama tugas ini, adakah keputusan yang kamu ambil tanpa cara memastikan
 keputusan itu benar? Bukan yang salah — yang tidak bisa diperiksa.
 

@@ -21,8 +21,8 @@ def test_init_test_creates_files():
                 
             with open("TEST_REPORT.md", "r", encoding="utf-8") as f:
                 text = f.read()
-                if "Cara membaca" not in text: raise AssertionError()
-                if "council tidak perlu" not in text: raise AssertionError()
+                
+                if "council" in text.lower(): raise AssertionError()
                 
             with open("SNOWLINE_TEST.md", "r", encoding="utf-8") as f:
                 text = f.read()
