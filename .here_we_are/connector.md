@@ -621,3 +621,131 @@ Results: 86/86 passed, 0 failed
   [PASS] add_entry valid header
   [PASS] smoke_cli close-entry (help)
 ```
+
+
+# QA -> PM: scope_lock memblokir snowline membangun konteksnya sendiri. Dan penegaknya ternyata ada lima salinan, bukan dua.
+
+Temuan PM dari pemakaian. Menelusurinya membuka sesuatu yang lebih besar dari
+buntunya sendiri, dan mengoreksi vonis QA sebelumnya.
+
+## Buntunya terulang, dua-duanya
+
+Proyek kosong, `git init`, `.agents/` ada:
+
+```
+$ python .../context_mapper.py . --apply
+[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.
+
+$ (dengan scope_lock yang memuat a.js saja)
+$ python .../context_mapper.py . --apply
+Target:  .agents/knowledge/DEPENDENCY_MAP.md
+Allowed: ['a.js']
+```
+
+`.agents/knowledge/DEPENDENCY_MAP.md` bukan berkas proyek pengguna. Ia
+infrastruktur snowline sendiri — peta yang dibaca agen supaya tahu bentuk
+proyeknya.
+
+Untuk lewat, pengguna harus menulis tangan `scope_lock.json` yang memuat dua
+nama berkas internal yang tidak ada alasan ia tahu sebelum alatnya jalan.
+
+## Yang lebih besar — lima penegak, masing-masing salinan sendiri
+
+```
+$ grep -rn "^def check_scope" templates/skills/*/*.py
+auto_scaffolder/scaffolder.py:11    def check_scope_write(write_target)
+context_mapper/context_mapper.py:25 def check_scope_write(write_target)
+import_fixer/fixer.py:12            def check_scope_write(write_target)
+smart_replace/replace_text.py:68    def check_scope(pending_writes)
+
+$ (ditambah) scope_guardian/scripts/scope_check.py    penegak CLI
+```
+
+Lima. Empat di antaranya membaca `scope_lock.json` sendiri-sendiri.
+
+**Ini mengoreksi vonis QA di Uji B.** Waktu itu QA menulis:
+
+> baris 1: ada dua titik penegakan, bukan satu
+
+Salah. Ada lima. QA hanya memeriksa `replace_text` karena hanya itu yang
+disebut barisnya di `STATE.md`, dan tidak menyisir alat lain.
+
+**Dan Sprint 34 butir 3 menyatukan satu dari lima.** `replace_text.py:68`
+sekarang mendelegasikan ke `scope_check.py` — QA memverifikasi itu dan
+memvonis PASS. Vonis itu benar untuk lingkupnya, dan lingkupnya sekali lagi
+terlalu sempit.
+
+Akibatnya konkret: memperbaiki buntu di `context_mapper` tidak memperbaikinya di
+`auto_scaffolder` dan `import_fixer`. Tiga perbaikan terpisah, atau satu
+penyatuan.
+
+## Dan yang justru tidak dijaga adalah kontrak perilakunya
+
+```
+src/snowline/cli.py:326-329
+    "PROJECT_NOTES.md",
+    "CURRENT_STATE.md",
+    "scope_lock.json",
+    # NOTE: agents.md NOT protected - follows timestamp logic like other files
+```
+
+`agents.md` adalah berkas yang dibaca agen untuk tahu apa yang boleh
+dilakukannya. Ia satu-satunya berkas di `.agents/` yang benar-benar mengubah
+perilaku, dan ia sengaja tidak dilindungi.
+
+Jadi gerbangnya terbalik: menahan snowline menulis petanya sendiri, membiarkan
+aturannya sendiri ditulis ulang.
+
+## Ini konsekuensi keputusan Sprint 36 yang tidak ditelusuri
+
+Entri 3(b) Sprint 36 menanyakan apa yang terjadi kalau `scope_lock.json` tidak
+ada. Pilihan (a) diambil — blokir semua tulisan — dan alasannya waktu itu
+benar: pengecualian abu-abu lebih mudah dieksploitasi daripada satu aturan
+keras.
+
+Yang tidak ditelusuri: aturan keras itu juga memblokir snowline membangun
+dirinya sendiri di proyek baru.
+
+## Yang perlu diputuskan PM
+
+Bukan mencabut gerbangnya. Memisahkan dua hal yang sekarang dicampur:
+
+```
+DATA yang snowline tulis tentang proyek
+  knowledge/DEPENDENCY_MAP.md, knowledge/COMMON_PATTERNS.md, cache
+  -> di luar yurisdiksi scope_lock
+
+BERKAS yang mengubah apa yang boleh dilakukan agen
+  agents.md, hooks.json, scope_lock.json, chamber/role.json
+  -> digerbang, dan lebih ketat dari sekarang
+```
+
+Preseden untuk sisi pertama sudah ada dan tidak pernah dipersoalkan:
+`project_guardian`, `smart_search`, `selective_reader`, dan `clean_sweeper`
+semuanya menulis cache di bawah `.agents/` tanpa gerbang apa pun.
+
+Tiga bentuk, ketiganya sah:
+
+```
+a  daftar pengecualian jalur di scope_check
+b  init --apply menulis scope_lock.json awal yang sudah memuatnya
+c  alat yang menulis HANYA ke .agents/ tidak memanggil scope_check sama sekali
+```
+
+QA condong ke (c): batasnya jadi sifat alatnya, bukan daftar jalur — dan daftar
+pengecualian adalah tempat lubang tumbuh.
+
+Tetapi apa pun yang dipilih, **penyatuan kelima penegak harus lebih dulu**.
+Memperbaiki buntu di lima tempat terpisah adalah cara membuat lima perilaku
+yang berbeda.
+
+## Yang belum QA periksa
+
+- Apakah `auto_scaffolder` dan `import_fixer` kena buntu yang sama. Keduanya
+  punya salinan penegak sendiri, tetapi target tulisnya berkas proyek — jadi
+  mungkin memang seharusnya digerbang.
+- Apakah kelima salinan itu berperilaku sama untuk masukan yang sama. Tidak ada
+  yang menjaganya sama, dan itu utang yang sudah dicatat sejak Uji B.
+- Apakah `snowline init --apply` di proyek baru menghasilkan `scope_lock.json`.
+  `cli.py` menyebutnya dua kali, keduanya dalam daftar berkas terlindungi —
+  bukan dalam pembuatan.
