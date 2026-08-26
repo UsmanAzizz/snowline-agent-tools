@@ -183,3 +183,98 @@ Semua perbaikan telah selesai dan divalidasi.
    ```
 
 *Catatan: Saya tidak memverifikasi secara langsung file log asli dari GitHub Actions CI karena kendala limitasi `403 Must have admin rights`. Verifikasi ini bergantung secara penuh pada reproduksi simulasi QA di lingkup lokal serta konklusi keberhasilan `success` dari API CI di atas.*
+
+---
+
+# QA -> PM: PASS. Mode tanpa site-packages menangkap persis apa yang tidak bisa dilihat mode biasa.
+
+## Bukti yang menentukan
+
+QA mengembalikan `PYTHONPATH` ke relatif — cacat sprint lalu — lalu menjalankan
+kedua mode:
+
+```
+mutasi: env['PYTHONPATH'] = str(REPO / 'src')  ->  'src'
+
+mode normal                 Results: 81/81 passed, 0 failed
+mode --no-site-packages     Results: 80/81 passed, 1 failed
+                              [FAIL] smoke_cli context (full)
+```
+
+Satu mutasi, dua mode, dua jawaban berbeda. Mode biasa buta terhadapnya; mode
+baru menangkapnya. Itu tepat alasan mode ini ada, dibuktikan dalam satu jalan.
+
+Dipulihkan, `git status --short tests/` kosong.
+
+## Rancangannya menutup kedua sisi
+
+```python
+tests/run_tests.py:8-10
+if '--no-site-packages' in sys.argv:
+    sys.path[:] = [p for p in sys.path if 'site-packages' not in p]
+    os.environ['SNOWLINE_TEST_NO_SITE_PACKAGES'] = '1'
+
+tests/test_smoke_cli.py:12
+    cmd.append('-S')
+```
+
+Runner-nya membersihkan `sys.path` sendiri, lalu menandai lingkungan supaya
+subproses uji asap ikut memakai `-S`. Keduanya perlu — membersihkan salah
+satunya saja meninggalkan separuh jalur masih tertambal paket terpasang.
+
+Dan CI menjalankan keduanya:
+
+```yaml
+- name: Run test suite (with installed packages)
+- name: Run test suite (pure local tree, no site-packages)
+```
+
+Menjalankan keduanya lebih baik daripada mengganti yang lama. Yang pertama
+menguji pengalaman pengguna terpasang, yang kedua menguji kode yang sebenarnya
+di-commit.
+
+## Diperiksa QA sendiri
+
+```
+mode normal                 81/81
+mode --no-site-packages     81/81
+CI  42c0ba5                 conclusion: success
+```
+
+## Catatan — BOM, kejadian kelima, dan penjaganya tidak menjangkau `tests/`
+
+```
+$ (pindai BOM di tests/)
+  BOM: tests/run_tests.py
+  BOM: tests/test_intercept_native.py
+  BOM: tests/test_name_guard.py
+  BOM: tests/test_orphan_guard.py
+
+$ grep -n "Path(" tests/test_bom_guard.py
+5:    src_dir = Path("src")
+```
+
+Empat berkas uji berawalan BOM, termasuk `run_tests.py` sendiri. Penjaga BOM
+hanya menyisir `src/`.
+
+Tidak merusak — Python mengimpornya tanpa masalah, dan CI hijau. Tetapi ini
+kelas yang sama yang sudah lima kali muncul, dan penjaganya sudah ada; ia
+hanya perlu satu direktori lagi.
+
+Bukan penahan. Layak jadi satu baris di sprint berikutnya, bersama pekerjaan
+lain — jangan jadi sprint sendiri.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| `PYTHONPATH` absolut | PASS |
+| mode `--no-site-packages` | PASS, runner dan subproses keduanya |
+| dua langkah di CI | PASS |
+| bukti dua arah | PASS, dibuktikan QA dengan mutasi |
+| CI hijau di `42c0ba5` | PASS |
+| BOM di `tests/` | catatan |
+
+**PASS tanpa penahan.** Rantai yang dimulai dari `snowline update` jatuh di
+proyek PM sekarang tertutup, dan yang menutupnya bukan perbaikan satu kali —
+melainkan mode uji yang akan menangkap keluarga cacat yang sama besok.
