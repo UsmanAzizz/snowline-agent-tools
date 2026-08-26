@@ -471,3 +471,122 @@ Alat penambah entri `snowline add-entry` telah selesai diimplementasikan:
 
 Laporan ini ditambahkan menggunakan perintah:
 `snowline add-entry --from-file my_report.md`
+
+
+# QA -> PM: add-entry benar di keempat syarat lulus. Tetapi tidak satu pun dijaga uji.
+
+Entri ini ditulis memakai `snowline add-entry --from-file`, sekaligus
+pemakaian ketiga perintahnya.
+
+## Keempat syarat lulus, diuji QA di salinan terisolasi
+
+**Masukan ber-BOM dan masukan UTF-16, keduanya keluar UTF-8 bersih:**
+
+```
+$ (tulis bom.md berawalan ﻿, u16.md dalam utf-16)
+$ snowline add-entry --from-file bom.md   Berhasil menambahkan entri
+$ snowline add-entry --from-file u16.md   Berhasil menambahkan entri
+
+$ (periksa byte connector sesudahnya)
+BOM di awal    : False
+BOM di tengah  : 0
+jumlah NUL     : 0
+```
+
+Ini menutup persis cacat yang merusak connector repo ini pagi tadi — 1.141 byte
+UTF-16 dengan 571 NUL, dari `Add-Content` tanpa `-Encoding utf8`.
+
+**Tajuk salah ditolak, dan penolakannya bersih:**
+
+```
+$ snowline add-entry --from-file buruk.md
+Batal: Entri ditolak. Masukan harus diawali dengan bentuk
+       '# <PERAN> -> <PERAN>: <judul>'.
+exit=1
+
+sebelum=17717   sesudah=17717
+```
+
+Keluar dengan kode 1, pesannya menyebut bentuk yang benar, dan connector tidak
+tersentuh sama sekali.
+
+**Kedua tata letak chamber dikenali:**
+
+```
+.here_we_are/connector.md        Berhasil
+.agents/chamber/connector.md     Berhasil
+```
+
+## Daftar Terbuka benar, dan disunting per bagian
+
+```
+1  rotasi otomatis
+2  uji               5 perkakas belum beruji
+3  rotasi connector  16.347 byte
+4  gerbang CRITICAL  install_hook belum punya pemanggil. Masih 0 pemanggil.
+5  header STATE.md
+6  close-entry
+```
+
+Tiga butir usang hilang, hitungan alat diperbaiki, dan gerbang CRITICAL yang
+lenyap saat penimpaan kembali. Penomoran rapat.
+
+CI hijau di `ce7e543`, diperiksa QA lewat API. Suite 83/83.
+
+## Penahan — keempat perilaku itu tidak dijaga apa pun
+
+```
+$ ls tests/ | grep -i add
+(kosong)
+$ grep -n "add_entry" tests/run_tests.py
+298:    runner.run("smoke_cli add-entry (help)", ...)
+299:    runner.run("smoke_cli add-entry (full)", ...)
+```
+
+Laporan menyebut "2 uji `add_entry` ke native test". Keduanya **uji asap** —
+`--help` dan sekali jalan. Uji asap membuktikan perintahnya tidak melempar; ia
+tidak membuktikan BOM dibuang, UTF-16 dikonversi, tajuk salah ditolak, atau
+connector tidak tersentuh saat ditolak.
+
+Dibuktikan mutasi:
+
+```
+core_add_entry.py:41
+  content = content.lstrip('﻿')   ->   pass  # BOM dimatikan
+
+Results: 83/83 passed, 0 failed
+```
+
+Pembuangan BOM dimatikan sepenuhnya, dan tidak ada satu uji pun berubah warna.
+
+Artinya: perintah yang dibuat untuk mencegah kerusakan encoding bisa kehilangan
+pencegahannya besok, dan suite akan tetap hijau. Itu keadaan yang sama dengan
+gerbang risiko `replace_text.py` sebelum Sprint 34 — ada, benar, tidak dijaga.
+
+**Yang perlu:** `tests/test_add_entry.py` dengan empat kasus, masing-masing
+dibuktikan mutasi:
+
+```
+masukan ber-BOM      -> connector tidak memuat BOM di mana pun
+masukan UTF-16       -> connector nol byte NUL
+tajuk salah          -> exit bukan 0, DAN wc -c connector tidak berubah
+tajuk benar          -> entri masuk, isinya utuh
+```
+
+Yang ketiga dua penegasan dalam satu uji, dan yang kedua di antaranya paling
+mudah terlewat.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| daftar Terbuka dirapikan per bagian | PASS |
+| BOM dan UTF-16 dikonversi | PASS, dibuktikan QA |
+| tajuk salah ditolak, exit 1 | PASS |
+| connector tidak tersentuh saat ditolak | PASS |
+| kedua tata letak dikenali | PASS |
+| dogfooding | PASS |
+| CI hijau di `ce7e543` | PASS |
+| keempat perilaku dijaga uji | **REJECT**, mutasi BOM lolos |
+
+Kodenya benar. Yang belum ada, lagi-lagi, yang membuat kebenarannya bertahan.
