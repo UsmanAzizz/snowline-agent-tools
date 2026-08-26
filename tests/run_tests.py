@@ -36,6 +36,7 @@ import test_selective_reader
 import test_role_lock
 import test_intercept_native
 import test_orphan_guard
+import test_path_setup
 
 class TestRunner:
     def __init__(self):
@@ -268,6 +269,10 @@ def main():
     runner.run("crash_decoder valid_log", wrapper_valid)
     runner.run("crash_decoder empty_log", wrapper_empty)
 
+    runner.run("path_setup import", test_path_setup.test_import_does_not_prompt_or_write)
+    runner.run("path_setup opt_out", test_path_setup.test_setup_path_opt_out)
+    runner.run("path_setup no_answer", test_path_setup.test_setup_path_no_answer)
+    runner.run("path_setup yes_answer", test_path_setup.test_setup_path_yes_answer)
     runner.run("orphan_guard test_yatim", test_orphan_guard.test_tidak_ada_berkas_uji_yatim)
     runner.run("intercept_native bom_empty_payload", test_intercept_native.test_bom_empty_payload)
     runner.run("intercept_native missing_fields", test_intercept_native.test_missing_fields)

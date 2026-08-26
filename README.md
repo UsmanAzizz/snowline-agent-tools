@@ -52,6 +52,21 @@ see `RULE 0` in the generated `agents.md`.
 pip install git+https://github.com/UsmanAzizz/snowline-agent-tools.git
 ```
 
+### Global Setup (Optional)
+By default, Snowline is completely portable and importing it modifies nothing. To make the `snowline` command available globally in any terminal without prefixing `python -m`, run:
+```bash
+python -m snowline.cli setup-path
+```
+
+This is the **only** command that modifies your system environment. If you answer `y`, it will:
+- **Registry**: Append Python Scripts to `HKCU\Environment\Path`
+- **Folder**: Copy `snowline.bat` wrapper to your Python `Scripts` folder
+- **PowerShell Profiles**: Add Path configuration to `Documents/PowerShell/Microsoft.PowerShell_profile.ps1` and `Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
+- **Bash Profiles**: Add Path configuration to `~/.bashrc`, `~/.bash_profile`, and `~/.zshrc`
+
+To explicitly opt-out and suppress any prompts (useful in CI/CD), set:
+`SNOWLINE_NO_PATH_SETUP=1`
+
 Initialize in your project:
 ```bash
 python -m snowline.cli init --apply

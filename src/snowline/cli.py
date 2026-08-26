@@ -833,6 +833,7 @@ def main():
     
     p_test_clone = subparsers.add_parser("test-clone", help="Jalankan tes di klon repositori bersih")
     p_test_clone.add_argument("--cmd", help="Perintah khusus untuk menjalankan tes", default=None)
+    p_setup_path = subparsers.add_parser("setup-path", help="Setup PATH and profiles")
     subparsers.add_parser("path", help="Show installation paths")
     subparsers.add_parser("status", help="Check package + project layers for updates")
 
@@ -884,6 +885,9 @@ def main():
             sys.path.insert(0, os.path.dirname(__file__))
             from core_test_clone import run_test_clone
         run_test_clone(args.cmd)
+    elif args.command == "setup-path":
+        from snowline import setup_path
+        setup_path()
     elif args.command == "path":
         show_path()
     elif args.command == "status":
