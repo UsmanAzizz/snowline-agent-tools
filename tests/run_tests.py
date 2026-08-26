@@ -34,6 +34,8 @@ import test_rejections
 import test_encoding
 import test_selective_reader
 import test_role_lock
+import test_intercept_native
+import test_orphan_guard
 
 class TestRunner:
     def __init__(self):
@@ -265,6 +267,13 @@ def main():
             sys.stdout = old_stdout
     runner.run("crash_decoder valid_log", wrapper_valid)
     runner.run("crash_decoder empty_log", wrapper_empty)
+
+    runner.run("orphan_guard test_yatim", test_orphan_guard.test_tidak_ada_berkas_uji_yatim)
+    runner.run("intercept_native bom_empty_payload", test_intercept_native.test_bom_empty_payload)
+    runner.run("intercept_native missing_fields", test_intercept_native.test_missing_fields)
+    runner.run("intercept_native malformed_json", test_intercept_native.test_malformed_json)
+    runner.run("intercept_native missing_scope_lock", test_intercept_native.test_missing_scope_lock)
+    runner.run("intercept_native in_and_out_of_scope", test_intercept_native.test_in_and_out_of_scope)
 
     success = runner.summary()
 
