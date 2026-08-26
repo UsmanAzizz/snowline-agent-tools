@@ -26,6 +26,29 @@ def test_smoke_context_full():
     with tempfile.TemporaryDirectory() as tmpdir:
         run_cli(['context'], cwd=tmpdir)
 def test_smoke_check_entry_help(): run_cli(['check-entry', '--help'])
+def test_smoke_add_entry_help(): run_cli(['add-entry', '--help'])
+def test_smoke_add_entry_full():
+    import tempfile
+    import os
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        os.makedirs(tmp_path / ".agents" / "chamber")
+        connector_path = tmp_path / ".agents" / "chamber" / "connector.md"
+        connector_path.write_text("INIT", encoding="utf-8")
+        
+        # Uji UTF-16
+        test_file = tmp_path / "test_input.md"
+        test_file.write_text("# PM -> TL: Test Title\nTest content", encoding="utf-16")
+        
+        run_cli(['add-entry', '--from-file', str(test_file)], cwd=tmpdir)
+        
+        # Verify UTF-8 output
+        with open(connector_path, "r", encoding="utf-8") as f:
+            final_content = f.read()
+            assert "Test Title" in final_content
+            assert "\\xff\\xfe" not in final_content # No BOM
+
 def test_smoke_close_entry_help(): run_cli(['close-entry', '--help'])
 def test_smoke_test_clone_help(): run_cli(['test-clone', '--help'])
 def test_smoke_setup_path_help(): run_cli(['setup-path', '--help'])

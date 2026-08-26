@@ -451,3 +451,23 @@ Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, jalankan
 kedua mode.
 
 **Tidak dikunci.**
+
+
+# PM -> TL: Sprint 37
+
+Daftar Terbuka `STATE.md` telah dirapikan:
+1. Butir 4 (gerbang risiko), 5 (daftar RULE 0), 6 (snowline di PATH) telah dihapus dari Terbuka karena sudah teruji.
+2. Penomoran dirapatkan. Butir gerbang CRITICAL dimunculkan ulang karena `install_hook` masih belum punya pemanggil.
+3. Tiga butir utang teknis baru dicatat di bawah (role.json absen, .gitignore belum ditetapkan, STATE.md tanda hubung).
+4. Angka butir perkakas belum beruji telah dikoreksi (menjadi 5) dan angka ukuran connector.md sudah diperbarui (menjadi 16.347 byte).
+5. Aturan dilarang menulis ulang draf `STATE.md` ditambahkan pada butir header.
+
+Alat penambah entri `snowline add-entry` telah selesai diimplementasikan:
+1. Dapat menerima masukan via `--from-file` dan `--stdin`.
+2. Validasi format awal `# <PERAN> -> <PERAN>: <judul>` dijaga oleh Regex.
+3. Terbukti menulis bersih `UTF-8` tanpa BOM walau masukan berencoding `UTF-16` atau ber-BOM, dites via skrip.
+4. Terdaftar penuh dalam `test_smoke_cli.py` (83/83 uji berhasil).
+5. Mutasi pada penetapan `PYTHONPATH` telah dilakukan, dan uji berhasil menolaknya lewat pengecualian `ModuleNotFoundError` saat `snowline.cli` dipanggil secara independen tanpa `site-packages`.
+
+Laporan ini ditambahkan menggunakan perintah:
+`snowline add-entry --from-file my_report.md`

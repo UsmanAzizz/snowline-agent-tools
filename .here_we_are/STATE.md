@@ -72,25 +72,28 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
 1  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B).
                      Rotasi harus dibuatkan perintah CLI snowline rotate
                      yang memvalidasi baris masuk = baris keluar.
-2  uji               8 perkakas belum berujii: clean_sweeper, companion,
-                     crash_decoder, db_extractor, deep_analyzer,
-                     native_checker_gen, plan_tracker, smart_tree.
+2  uji               5 perkakas belum beruji: companion, db_extractor,
+                     deep_analyzer, plan_tracker, smart_tree.
                      Alasan lama "kalau rusak langsung kelihatan" sudah
                      terbantah — impact_analyzer, smart_search, dan
                      selective_reader baca-saja dan gagal tanpa terlihat.
                      Pilih menurut bahayanya, bukan baca-saja atau bukan.
-3  rotasi connector  connector.md saat ini berukuran ~17 KB, sudah rotasi (terselesaikan, namun close-entry tidak mengecek nomor tabel ganda).
-4  gerbang risiko    replace_text.py:570 tanpa uji. Butir 9: gerbang tanpa uji
-                     tidak bisa dibedakan dari gerbang yang tidak ada.
-5  daftar RULE 0     AGENTS.md menunjuk replace_text.py:536, kodenya di :570.
-                     Rujukan baris di aturan tidak ada yang menjaga.
-6  snowline di PATH  yang terpasang di site-packages tertinggal dari repo:
-                     init_chamber-nya 7 berkas, sumber repo 8.
-7  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
-                     otomatisasinya sekarang)
-8  close-entry       (Utang baru) close-entry saat menyisipkan topik ke tabel
+3  rotasi connector  connector.md saat ini berukuran 16.347 byte, sudah rotasi (terselesaikan, namun close-entry tidak mengecek nomor tabel ganda).
+4  gerbang CRITICAL  install_hook belum punya pemanggil. Masih 0 pemanggil.
+5  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
+                     otomatisasinya sekarang). STATE.md disunting per bagian.
+                     Jangan menulis ulang seluruh berkas dari draf — draf yang
+                     disiapkan lebih awal akan menimpa perubahan yang terjadi
+                     di antaranya.
+6  close-entry       (Utang baru) close-entry saat menyisipkan topik ke tabel
                      TUTUP tidak mengecek penomoran Terbuka, sehingga
                      sempat terjadi nomor ganda pada daftar ini.
+7  role.json absen   role.json tidak dipasang oleh init_chamber, sehingga kunci
+                     peran tidak ada di proyek baru.
+8  .gitignore        .gitignore tidak diputuskan, .agents/ jadi untracked di
+                     proyek baru.
+9  STATE.md tanda-   STATE.md dikirim berisi tanda hubung, sehingga sesi baru
+                     tidak dapat apa-apa.
 ```
 
 TUTUP lewat chamber, arsip per topik:

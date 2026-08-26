@@ -295,6 +295,8 @@ def main():
     runner.run("smoke_cli init_chamber (help)", test_smoke_cli.test_smoke_init_chamber_help)
     runner.run("smoke_cli context (full)", test_smoke_cli.test_smoke_context_full)
     runner.run("smoke_cli check-entry (help)", test_smoke_cli.test_smoke_check_entry_help)
+    runner.run("smoke_cli add-entry (help)", test_smoke_cli.test_smoke_add_entry_help)
+    runner.run("smoke_cli add-entry (full)", test_smoke_cli.test_smoke_add_entry_full)
     runner.run("smoke_cli close-entry (help)", test_smoke_cli.test_smoke_close_entry_help)
     runner.run("smoke_cli test-clone (help)", test_smoke_cli.test_smoke_test_clone_help)
     runner.run("smoke_cli setup-path (help)", test_smoke_cli.test_smoke_setup_path_help)
