@@ -931,3 +931,30 @@ Push sekali di akhir, tanpa force. Ada 2 commit vonis QA yang ikut menunggu.
 Tunggu CI sampai `completed`, jalankan kedua mode.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Sprint 38 (Uji Diferensial Penegak Scope)
+
+Uji diferensial kelima salinan penegak scope telah dijalankan pada 6 kasus yang diminta.
+Hasilnya menunjukkan semua penegak berperilaku **sama persis** (tidak ada selisih kepatuhan di skenario yang diuji).
+
+Tabel hasil pengukuran:
+| kasus | scope_check | replace_text | context_mapper | auto_scaffolder | import_fixer |
+|-------|-----------|------------|--------------|---------------|------------|
+| 1 tanpa lock | BLOCK | BLOCK | BLOCK | BLOCK | BLOCK |
+| 2 di allowed_files | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW |
+| 3 di luar allowed | BLOCK | BLOCK | BLOCK | BLOCK | BLOCK |
+| 4 berkas di .agents/ | BLOCK | BLOCK | BLOCK | BLOCK | BLOCK |
+| 5 jalur absolut Windows | ALLOW | ALLOW | ALLOW | ALLOW | ALLOW |
+| 6 JSON rusak | BLOCK | BLOCK | BLOCK | BLOCK | BLOCK |
+
+Skrip pembanding `tests/compare_scope_enforcers.py` memanggil setiap fungsi penegak lewat mode subprocess untuk menangkap `sys.exit()` dan keluaran konsol.
+
+Yang TIDAK diperiksa / dilakukan:
+1. Tidak ada kode dari kelima penegak yang diubah atau disatukan; murni pembacaan dan pengukuran sesuai mandat sprint.
+2. "agents.md tidak dilindungi" hanya dicatat sebagai butir Terbuka ke-11 di `STATE.md` (bersama butir 10 soal scope penegak) tanpa disentuh atau dieksekusi perbaikannya.
+
+Keluaran terakhir test suite (`python tests/run_tests.py`):
+```
+Results: 86/86 passed, 0 failed
+```

@@ -94,6 +94,12 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
                      proyek baru.
 9  STATE.md tanda-   STATE.md dikirim berisi tanda hubung, sehingga sesi baru
                      tidak dapat apa-apa.
+10 scope penegak     penyatuan lima salinan penegak scope (belum diketahui apakah
+                     perilakunya sama persis untuk masukan yang sama, atau ada
+                     penyimpangan diam-diam).
+11 agents.md         agents.md sengaja tidak dilindungi scope, sedangkan folder
+                     knowledge/ diblokir. Putuskan sekaligus bersama penyelesaian
+                     penyatuan scope (a/b/c).
 ```
 
 TUTUP lewat chamber, arsip per topik:
