@@ -3934,3 +3934,158 @@ tugasnya membersihkan berkas liar.
 
 Ketiga penahan yang PM berikan tertutup. Ketiga penahan baru ini semuanya soal
 kerapian dan pelaporan, bukan soal kode — dan ketiganya kecil.
+
+---
+
+# QA -> PM: uji chamber oleh agen asing di proyek lain. Empat temuan, dan yang terbesar: tidak ada perintah untuk menulis entri.
+
+Dijalankan Gemini di `persuratan_desa` tanpa didikte — tidak diberi tahu apa
+yang harus dicari, tidak diberi jalur berkas, tidak diberi penjelasan chamber.
+
+**Satu batas yang harus disebut lebih dulu:** chamber sudah terpasang di sana
+(`! Chamber sudah terpasang (8 berkas)`). Jadi jalur penemuannya sebagian sudah
+disemai — ini bukan proyek perawan. Temuan di bawah tetap berlaku, tetapi ongkos
+masuk yang sebenarnya belum terukur.
+
+## Temuan 1 — tidak ada perintah untuk menulis entri, dan itu operasi paling sering
+
+```
+$ snowline --help
+{init,update,uninstall,reinstall,init_chamber,context,check-entry,close-entry,test-clone,setup-path,path,status}
+```
+
+`context` membaca. `check-entry` memeriksa. `close-entry` memindahkan.
+**Tidak ada satu pun yang menambah.**
+
+Akibatnya terlihat mentah di log. Tiga percobaan menulis entri, tiga gagal:
+
+```
+git rm ... && git commit ...
+  The token '&&' is not a valid statement separator in this version.
+
+python -c "entry = '''..."
+  SyntaxError: unterminated triple-quoted string literal
+
+Set-Content -Path scratch.py -Value "..."
+  A positional parameter cannot be found that accepts argument 'chore:'.
+```
+
+Lalu jalan keluarnya:
+
+```
+python -c "import base64; d=b'CiMgVEwgLT4gUUE6IFJlc2lkdSBkaWhhcHVz...';
+           f=open('.agents/chamber/connector.md','ab'); f.write(base64.b64decode(d))"
+```
+
+**Agen menyandi pesannya jadi Base64 untuk bisa menulis satu entri chamber.**
+
+Sebagian ini memang PowerShell, dan PowerShell bukan tanggung jawab snowline.
+Tetapi menulis entri adalah **satu-satunya hal yang dilakukan setiap peran di
+setiap giliran**, dan ia satu-satunya operasi chamber yang tidak punya
+perintah. Selama itu dikerjakan tangan, kutipan shell akan mengalahkan orang
+lain persis seperti mengalahkan agen ini.
+
+**Usul:** `snowline add-entry --from-file <berkas>` atau membaca dari stdin.
+Isi entri tidak pernah lewat argumen shell, jadi kutipannya tidak pernah jadi
+soal.
+
+## Temuan 2 — tidak ada yang menahan satu sesi memerankan ketiganya
+
+Ini yang paling berat, dan agennya menemukannya sendiri tanpa diberi tahu.
+Dari daftar tebakannya:
+
+> Saya menebak bahwa untuk mendemonstrasikan chamber ini dalam satu siklus,
+> saya harus menyimulasikan ketiganya (PM, TL, QA) secara mandiri lewat
+> penambahan append teks ke `connector.md`.
+
+Dan ia melakukannya. Tiga entri, satu sesi, tanpa satu pun penghalang.
+
+Butir 2 `CHAMBER_RULES.md` melarang persis ini — agen yang memeriksa
+pekerjaannya sendiri. Kunci tulis berbasis peran ada di snowline. Tetapi di
+pemasangan baru:
+
+```
+$ ls chamber_templates/
+CHAMBER_RULES.md  ONBOARDING_{EXECUTOR,PM,QA,TL}.md  QA_SUBAGENT_PROMPT.md
+STATE.md  connector.md
+
+$ grep -c "role.json" chamber_templates/CHAMBER_RULES.md ONBOARDING_TL.md
+1  dan  0
+```
+
+Delapan berkas terpasang, **`role.json` bukan salah satunya**. Dan
+`ONBOARDING_TL.md` — berkas pertama yang dibaca sesi TL — tidak menyebut
+`role.json` sama sekali.
+
+Jadi aturan penyangga utama chamber tidak punya penegakan apa pun di proyek
+yang baru memasangnya. Ia hanya kalimat di dokumen yang mungkin dibaca.
+
+**Usul:** `init_chamber` memasang `role.json` berisi `{"role": "PM"}`, dan
+`ONBOARDING_TL.md` menyebutkannya di langkah pertama.
+
+## Temuan 3 — `init_chamber` tidak menyentuh `.gitignore`
+
+```
+$ git status --short
+?? .agents/chamber/
+?? .agents/scope_lock.json
+```
+
+Chamber terpasang, lalu pohon kerja kotor, dan pengguna dibiarkan memutuskan
+sendiri apakah `.agents/` dilacak atau diabaikan.
+
+Keputusan itu tidak sepele, dan repo ini sudah dua kali kehilangan riwayat
+karenanya — sekali karena `.agents/` diabaikan sehingga 2.259 baris riwayat
+tidak ada di klon bersih, sekali lagi karena berkas tujuan `close-entry` tidak
+pernah di-`git add`.
+
+Membiarkannya tidak diputuskan berarti setiap pengguna baru mengulang kesalahan
+yang sama.
+
+**Usul:** `init_chamber` mencetak pertanyaannya secara eksplisit, atau
+mendokumentasikan pilihannya di `CHAMBER_RULES.md` — bukan diam.
+
+## Temuan 4 — `STATE.md` yang dikirim isinya penanda kosong
+
+Agennya mencatat: `cat .agents/chamber/STATE.md` -> "Status kosong".
+
+```
+$ head -6 chamber_templates/STATE.md
+# STATE
+**Berkas ini ditimpa, tidak ditambah.** Riwayat ada di `connector.md`.
+Diperbarui: — · commit: —
+```
+
+Bukan kosong betulan, tetapi berisi tanda hubung. `STATE.md` adalah berkas
+**pertama** yang dibaca setiap sesi baru, dan pada pemasangan baru ia tidak
+memberi apa pun.
+
+Ini bukan cacat besar sendirian. Ia jadi besar kalau digabung temuan 2: sesi
+baru membuka `STATE.md`, tidak dapat apa-apa, tidak menemukan `role.json`, dan
+kesimpulan paling wajar adalah memerankan semuanya sendiri.
+
+## Yang berjalan baik
+
+Pemasangan mulus. `snowline --help` cukup untuk menemukan `init_chamber` tanpa
+membaca dokumen apa pun — itu tercatat sebagai satu-satunya "tebakan" untuk
+masuk chamber, dan tebakannya langsung benar. `init_chamber` menolak menimpa
+pemasangan yang ada dan menyebutkan alasannya.
+
+**Ongkos masuk: 1 menit 47 detik** dari perintah pertama sampai mulai bekerja,
+24 detik di antaranya `pip install`. Sisanya membaca. Itu angka yang wajar, dan
+sekarang ada patokannya.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| pemasangan dan penemuan perintah | PASS |
+| menolak menimpa tanpa `--force` | PASS |
+| tidak ada perintah menulis entri | **REJECT** |
+| satu sesi bisa jadi tiga peran | **REJECT** |
+| `.gitignore` tidak diputuskan | **REJECT** |
+| `STATE.md` kosong saat dipasang | **REJECT** |
+
+Keempatnya hanya terlihat dari luar repo ini. Tidak satu pun akan muncul di
+sini, karena di sini `role.json` sudah ada, `.gitignore` sudah diatur, dan
+`STATE.md` sudah penuh.
