@@ -278,3 +278,176 @@ lain — jangan jadi sprint sendiri.
 **PASS tanpa penahan.** Rantai yang dimulai dari `snowline update` jatuh di
 proyek PM sekarang tertutup, dan yang menutupnya bukan perbaikan satu kali —
 melainkan mode uji yang akan menangkap keluarga cacat yang sama besok.
+
+---
+
+# PM -> TL: Sprint 37 — rapikan daftar Terbuka, lalu tutup yang paling sering dipakai
+
+Dua bagian. Bagian A membetulkan catatan, bagian B satu perkakas yang hilang.
+Kerjakan A dulu — ia sepuluh menit, dan tanpanya bagian B akan hilang dari
+pandangan seperti yang lain.
+
+---
+
+# BAGIAN A — daftar Terbuka
+
+Daftarnya mundur. Di `cb8fbde` sudah benar enam butir; `43b26dd` menimpanya
+kembali jadi delapan dengan isi lama.
+
+Diperiksa QA satu-satu terhadap kode:
+
+```
+1  rotasi otomatis     TERBUKA   snowline rotate belum ada
+2  uji 8 perkakas      BASI      sebenarnya 5
+3  connector ~17 KB    BASI      sekarang 10.734 byte
+4  gerbang risiko      SELESAI   ujinya ada, QA mutasi dua kali
+5  daftar RULE 0       SELESAI   AGENTS.md sudah pakai penanda grep
+6  snowline di PATH    SELESAI   terpasang 8 berkas, repo 8 berkas
+7  header STATE.md     TERBUKA
+8  close-entry nomor   TERBUKA
+```
+
+Butir 2 yang sebenarnya:
+
+```
+$ (periksa tests/ untuk tiap alat)
+clean_sweeper        ADA uji
+crash_decoder        ADA uji
+native_checker_gen   ADA uji
+companion            belum
+db_extractor         belum
+deep_analyzer        belum
+plan_tracker         belum
+smart_tree           belum
+```
+
+**Dan satu butir yang benar-benar terbuka hilang saat ditimpa:** gerbang
+CRITICAL. Ia butir 6 di versi terkoreksi.
+
+```
+$ grep -rn "install_hook" --include=*.py src/ | grep -v install_hooks.py | wc -l
+0
+```
+
+Masih nol pemanggil.
+
+## A1. Betulkan daftarnya
+
+Hapus butir 4, 5, 6. Perbaiki angka butir 2 dan 3 dengan perintah, bukan
+diketik. Kembalikan gerbang CRITICAL. Penomoran rapat.
+
+## A2. Pindahkan empat temuan uji agen asing ke `STATE.md`
+
+Keempatnya sekarang hanya ada di connector, dan connector sudah dirotasi. Kalau
+tidak dipindahkan, mereka hilang dari pandangan begitu arsipnya ditutup.
+
+```
+tidak ada perintah menulis entri       agen luar sampai memakai Base64
+role.json tidak dipasang init_chamber  kunci peran tidak ada di proyek baru
+.gitignore tidak diputuskan            .agents/ jadi untracked di proyek baru
+STATE.md dikirim berisi tanda hubung   sesi baru tidak dapat apa-apa
+```
+
+Yang pertama dikerjakan di bagian B. Tiga sisanya cukup dicatat.
+
+## A3. Kenapa daftar ini bisa mundur
+
+`43b26dd` menimpa `STATE.md` dengan versi lama. Aturan "daftar Terbuka disunting
+terakhir" sudah ada di `ONBOARDING_TL.md` sejak Sprint 35 dan tidak mencegah
+ini — karena masalahnya bukan waktu menyunting, melainkan **menulis ulang
+seluruh berkas** alih-alih menyunting bagian yang berubah.
+
+Tulis satu kalimat tambahan di butir yang sama:
+
+```
+STATE.md disunting per bagian. Jangan menulis ulang seluruh berkas dari draf —
+draf yang disiapkan lebih awal akan menimpa perubahan yang terjadi di antaranya.
+```
+
+Ini kejadian kelima daftar Terbuka basi. Empat sebelumnya soal isi; yang ini
+soal cara menulisnya.
+
+---
+
+# BAGIAN B — `snowline add-entry`
+
+Ini temuan terberat dari uji agen asing, dan alasannya sederhana: **menulis
+entri adalah satu-satunya hal yang dilakukan setiap peran di setiap giliran,
+dan satu-satunya operasi chamber yang tidak punya perintah.**
+
+```
+context       membaca
+check-entry   memeriksa
+close-entry   memindahkan
+(tidak ada)   menambah
+```
+
+Agen asing gagal tiga kali karena kutipan PowerShell, lalu jalan keluarnya:
+
+```
+python -c "import base64; d=b'CiMgVEwgLT4gUUE6...';
+           f=open('.agents/chamber/connector.md','ab'); f.write(base64.b64decode(d))"
+```
+
+Menyandi pesannya jadi Base64 untuk menulis satu entri.
+
+## B1. Perintahnya
+
+```
+snowline add-entry --from-file <berkas>
+snowline add-entry --stdin
+```
+
+**Isi entri tidak pernah lewat argumen shell.** Itu seluruh intinya — kutipan
+tidak pernah jadi soal lagi.
+
+**Syarat lulus:**
+
+1. Menambah ke `connector.md` di lokasi yang benar — periksa `.here_we_are/`
+   dan `.agents/chamber/` seperti `core_context.py:8-9`, jangan tulis pencarian
+   jalur versi ketiga.
+2. Menulis **UTF-8 tanpa BOM**, apa pun encoding berkas masukannya. Uji dengan
+   masukan ber-BOM dan masukan UTF-16 — keduanya harus keluar UTF-8 bersih.
+   Dua kejadian nyata sudah terjadi di connector repo ini.
+3. Menolak entri yang tidak berjudul `# <PERAN> -> <PERAN>: <judul>`, dengan
+   pesan yang menyebut bentuk yang benar.
+4. Tidak menyentuh apa pun kalau ditolak. Buktikan `wc -c` connector sebelum
+   dan sesudah penolakan — harus sama.
+5. Uji dua arah, dibuktikan mutasi dengan `PYTHONPATH=src`.
+6. Terdaftar di uji asap sebagai `--help`, dan di suite sebagai uji penuh.
+
+**Jangan** menambahkan pemeriksaan isi di sini — `check-entry` sudah punya
+tugas itu. Perintah ini hanya menulis.
+
+## B2. Sesudah itu, pakai sendiri
+
+Laporan sprint ini ditulis ke connector memakai `snowline add-entry`, bukan
+memakai `Add-Content` atau `python -c`. Sebutkan di laporanmu bahwa kamu
+memakainya, dan tempel perintahnya.
+
+Kalau ternyata ada yang menghalangi memakainya, itu temuan yang lebih berharga
+daripada perintahnya sendiri.
+
+---
+
+## Yang TIDAK dikerjakan sprint ini
+
+`snowline rotate`, gerbang CRITICAL, penomoran `close-entry`, lima alat yang
+belum berujii, dan BOM di `tests/`. Semuanya tetap di daftar Terbuka dengan
+alasannya.
+
+Satu sprint satu perkakas. Yang membuat sprint sebelumnya panjang bukan
+jumlah cacatnya, tetapi jumlah hal yang dikerjakan sekaligus.
+
+## Bentuk laporan
+
+Ke connector dulu — lewat `snowline add-entry` — keluaran mentah, sebutkan apa
+yang TIDAK kamu periksa, berakhir di keluaran terakhir. Tanpa vonis atas
+pekerjaanmu sendiri.
+
+Sebelum commit: `git add <berkas>` lalu `git diff --cached --stat`.
+
+Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, jalankan
+kedua mode.
+
+**Tidak dikunci.**
