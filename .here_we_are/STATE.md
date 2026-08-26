@@ -188,3 +188,6 @@ git log origin/main..main --oneline | wc -l                 # 2
 ```
 
 Kalau tidak cocok, berkas ini basi — perbarui, jangan diamkan.
+
+## Utang Teknis (Technical Debt)
+- Ada 5 instans except Exception: pass lain di src/snowline/cli.py yang menelan galat dan belum diperbaiki di sprint ini.

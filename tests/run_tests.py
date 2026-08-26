@@ -1,4 +1,4 @@
-"""
+﻿"""
 Simple test runner for Snowline Agent Tools
 Run with: python tests/run_tests.py
 """
@@ -39,6 +39,7 @@ import test_intercept_native
 import test_orphan_guard
 import test_bom_guard
 import test_name_guard
+import test_smoke_cli
 import test_path_setup
 
 class TestRunner:
@@ -126,8 +127,8 @@ def test_generate_simple_tree_no_icons():
         open(os.path.join(tmpdir, 'test.txt'), 'w').close()
         result = generate_simple_tree(tmpdir)
         assert 'test.txt' in result
-        assert '📄' not in result
-        assert '📁' not in result
+        assert 'ðŸ“„' not in result
+        assert 'ðŸ“' not in result
 
 def test_get_tree_stats_returns_dict():
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -282,6 +283,19 @@ def main():
     runner.run("path_setup exception", test_path_setup.test_setup_path_exception)
     runner.run("bom_guard test_no_bom_in_src", test_bom_guard.test_no_bom_in_src)
     runner.run("name_guard no_undefined", test_name_guard.test_no_undefined_names)
+    runner.run("smoke_cli init (full)", test_smoke_cli.test_smoke_init_full)
+    runner.run("smoke_cli update (full)", test_smoke_cli.test_smoke_update_full)
+    runner.run("smoke_cli uninstall (help)", test_smoke_cli.test_smoke_uninstall_help)
+    runner.run("smoke_cli reinstall (full)", test_smoke_cli.test_smoke_reinstall_full)
+    runner.run("smoke_cli init_chamber (help)", test_smoke_cli.test_smoke_init_chamber_help)
+    runner.run("smoke_cli context (full)", test_smoke_cli.test_smoke_context_full)
+    runner.run("smoke_cli check-entry (help)", test_smoke_cli.test_smoke_check_entry_help)
+    runner.run("smoke_cli close-entry (help)", test_smoke_cli.test_smoke_close_entry_help)
+    runner.run("smoke_cli test-clone (help)", test_smoke_cli.test_smoke_test_clone_help)
+    runner.run("smoke_cli setup-path (help)", test_smoke_cli.test_smoke_setup_path_help)
+    runner.run("smoke_cli path (full)", test_smoke_cli.test_smoke_path_full)
+    runner.run("smoke_cli status (full)", test_smoke_cli.test_smoke_status_full)
+
     runner.run("orphan_guard test_yatim", test_orphan_guard.test_tidak_ada_berkas_uji_yatim)
     runner.run("intercept_native bom_empty_payload", test_intercept_native.test_bom_empty_payload)
     runner.run("intercept_native missing_fields", test_intercept_native.test_missing_fields)

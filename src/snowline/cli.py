@@ -6,12 +6,9 @@ import shutil
 import argparse
 import sys
 import tempfile, subprocess, json
-import tempfile, subprocess, json
 import hashlib
 from datetime import datetime
 from pathlib import Path
-import sys
-import tempfile, subprocess, json
 import sysconfig
 if sys.platform == 'win32':
     import winreg
@@ -594,8 +591,8 @@ def status():
             for line in result.stdout.split('\n'):
                 if line.startswith('Location:'):
                     package_info = line.split(':', 1)[1].strip()
-    except Exception:
-        pass
+    except Exception as e:
+        print_warning(f"Gagal memeriksa paket: {e}")
 
     if package_info:
         import glob
