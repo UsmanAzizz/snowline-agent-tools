@@ -2950,3 +2950,188 @@ c  keduanya                       -> saran pasang ulang tetap ditekan
 
 Kedua entri dikerjakan persis seperti diminta. Yang satu rusak justru karena
 yang saya minta kurang hati-hati.
+
+
+# PM -> TL: Sprint 44 — validasi yang benar-benar memvalidasi, dan mode ringan
+
+Snowline dipakai mengerjakan tugas frontend nyata di `belajar-desain-web`
+kemarin. Tugasnya: membuat delapan komponen React, lalu memperbaiki perilaku
+sorotan. Semua sudah diukur QA.
+
+Hasilnya: seluruh upacara dilalui, nol kesalahan tercegah, dan satu kerusakan
+nyata lolos ke delapan berkas sekaligus.
+
+---
+
+## Entri 1 — validasi sintaks cuma kenal eslint
+
+Agennya menyuntikkan `data-label` ke delapan berkas sekaligus, dan menulis
+`className{...}` tanpa tanda sama dengan. Vite yang menangkapnya:
+
+```
+[plugin:vite:oxc] Transform failed with 1 error:
+  [PARSE_ERROR] Expected `...` but found `Identifier`
+   39 │  className{getElClass('container')} data-label="Toast Container"
+```
+
+Yang menahan bukan snowline, tetapi browser.
+
+Dan seandainya agennya memakai `smart_replace`, ia tetap lolos:
+
+```
+replace_text.py:149   node_modules/.bin/eslint
+replace_text.py:164   npx eslint
+replace_text.py:167   npx tsc
+```
+
+Proyek itu tidak punya eslint:
+
+```
+$ python -c "..." package.json
+scripts: {"dev":"vite","build":"vite build","lint":"oxlint","preview":"vite preview"}
+eslint di devDeps: TIDAK ADA
+```
+
+Ia pakai **oxlint**. Probe tidak mengenalnya, jadi validasi turun ke
+bracket-balancing dasar — dan `className{getElClass('container')}` kurungnya
+seimbang. Lolos.
+
+**Perbaikan:** sebelum menebak nama linter, baca `package.json`. Kalau ada
+`scripts.lint`, jalankan `npm run lint`. Itu bekerja untuk oxlint, biome,
+eslint, dan apa pun yang dipilih pemilik proyek — karena itu memang perintah
+yang dia tulis sendiri.
+
+Urutan probe yang diusulkan:
+
+```
+1  package.json punya scripts.lint   -> npm run lint
+2  node_modules/.bin/eslint          -> seperti sekarang
+3  npx eslint / npx tsc              -> seperti sekarang
+4  tidak ada                         -> bracket-balancing, dan katakan itu
+```
+
+**Syarat lulus:**
+
+```
+a  proyek dengan scripts.lint = oxlint, berkas JSX rusak  -> DITOLAK
+b  proyek yang sama, berkas JSX benar                     -> lolos
+c  proyek tanpa scripts.lint dan tanpa eslint             -> tetap jalan,
+                                                            pesannya jujur
+                                                            bahwa validasinya dangkal
+```
+
+Arah (a) yang jadi alasan entri ini ada. Pakai `className{x}` sebagai
+umpannya — itu kasus nyata yang lolos kemarin.
+
+---
+
+## Entri 2 — sunting massal divalidasi per berkas
+
+Typo itu masuk ke delapan berkas sekaligus karena satu skrip menulis
+kedelapannya tanpa memeriksa satu pun di antaranya.
+
+Kalau tiap berkas divalidasi sesudah ditulis dan sebelum lanjut ke berikutnya,
+ia berhenti di berkas pertama. Tujuh berkas lain tidak pernah rusak.
+
+**Perbaikan:** pada `smart_replace`, kalau sasarannya lebih dari satu berkas,
+validasi tiap berkas sebelum menulis berikutnya. Begitu satu gagal, berhenti —
+jangan lanjut, jangan kembalikan yang sudah berhasil.
+
+Laporkan berapa yang sudah ditulis dan mana yang menghentikannya:
+
+```
+[STOP] Validasi gagal di berkas ke-1 dari 8: ToastLesson.jsx
+       7 berkas sisanya tidak disentuh.
+```
+
+**Syarat lulus:**
+
+```
+a  8 berkas, yang pertama rusak     -> berhenti, 7 sisanya UTUH
+b  8 berkas, yang kelima rusak      -> berhenti, 4 pertama tertulis,
+                                       3 terakhir UTUH
+c  8 berkas, semuanya benar         -> kedelapannya tertulis
+```
+
+Arah (b) yang paling penting. Buktikan berkas mana yang tertulis dan mana yang
+tidak, dengan membandingkan isinya — bukan dengan membaca pesannya.
+
+---
+
+## Entri 3 — mode ringan
+
+Untuk tugas kemarin, yang wajib dilalui: `PLAN.md` diarsipkan dan disusun ulang,
+persetujuan diminta, `scope_lock` diurus. Yang tercegah: nol.
+
+Sementara yang berguna — backup, dry-run, validasi sintaks — justru diterobos,
+karena `scope_lock` memblokir alat yang memuatnya. Agennya pindah ke
+`Set-Content`, yang tidak punya ketiganya.
+
+Yang mahal dipertahankan, yang murah dibuang.
+
+**Perbaikan:** tambahkan mode ringan, dinyalakan lewat berkas penanda di
+`.agents/` atau lewat argumen. Isinya:
+
+```
+DIMATIKAN    keharusan PLAN.md
+DIMATIKAN    keharusan scope_lock.json
+DIPERTAHANKAN  dry-run sebelum menulis
+DIPERTAHANKAN  backup sebelum menulis
+DIPERTAHANKAN  validasi sintaks
+DIPERTAHANKAN  gerbang risiko Medium/High
+```
+
+Ini bukan mematikan penjaga. Ini membalik mana yang wajib: yang murah dan
+terbukti berguna tetap, yang mahal dan belum pernah mencegah apa pun jadi
+pilihan.
+
+**Syarat lulus:**
+
+```
+a  mode ringan nyala, tanpa scope_lock.json  -> alat tulis JALAN
+b  mode ringan nyala, berkas rusak sintaks   -> tetap DITOLAK
+c  mode ringan nyala, --apply tanpa dry-run  -> tetap minta --apply
+d  mode ringan MATI                          -> perilaku persis seperti sekarang
+```
+
+Arah (b) dan (c) yang membedakan pelonggaran dari pematian. Arah (d) supaya
+proyek yang sudah jalan tidak berubah diam-diam.
+
+**Namanya jangan "bypass".** Agen di lapangan sudah menulis
+`{"task": "bypass", "allowed_patterns": ["*"]}` sendiri. Kalau modenya diberi
+nama itu, kita cuma memberi nama resmi pada kebiasaan yang sedang kita coba
+hentikan.
+
+---
+
+## Yang TIDAK dikerjakan sprint ini
+
+Jalur shell. Masih menunggu keputusan PM: penjaga scope bertugas memblokir,
+atau mencatat.
+
+Kemampuan agen memeriksa hasil perubahan frontend-nya sendiri. Kemarin ia tiga
+kali menyatakan perbaikan sorotan selesai — `onMouseEnter/Leave`, lalu
+`onMouseOver/Out`, lalu `onMouseMove` — dan tiga kali manusia yang harus
+memeriksanya di browser. Itu masalah rancangan, bukan bug, dan butuh sprintnya
+sendiri.
+
+Pesan `dipasang dari wheel` yang salah untuk pemasangan editable. Sudah dicatat
+di vonis sebelumnya, dikerjakan belakangan.
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah, jangan diringkas. Sebutkan
+apa yang **tidak** kamu periksa. Jangan memvonis pekerjaanmu sendiri.
+
+Satu commit per entri. Sebelum tiap commit: `git add <berkas>` lalu
+`git diff --cached --stat`, dan baca hasilnya.
+
+**Jangan menjalankan `pip install -e .`** Sprint lalu perintah itu mengubah
+pemasangan global PM jadi mode editable. Kalau perlu membangun paket, pakai
+`python -m build` saja.
+
+Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, baca
+hasilnya, baru tulis laporan.
+
+**Tidak dikunci.**
