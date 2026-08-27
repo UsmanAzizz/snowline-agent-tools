@@ -66,12 +66,14 @@ def is_file_in_scope(filepath, allowed_files, allowed_patterns):
 def check_scope(target_file):
     # Normalize path separators for comparison
     target_file = target_file.replace('\\', '/')
-    current_dir = os.path.abspath(os.path.dirname(target_file))
+    current_dir = os.path.abspath(os.getcwd())
     lock_file_path = None
+    lock_dir = None
     while True:
         candidate = os.path.join(current_dir, '.agents', 'scope_lock.json')
         if os.path.exists(candidate):
             lock_file_path = candidate
+            lock_dir = current_dir
             break
         parent = os.path.dirname(current_dir)
         if parent == current_dir:
@@ -81,6 +83,12 @@ def check_scope(target_file):
     if not lock_file_path:
         print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
         print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
+        sys.exit(1)
+        
+    abs_target = os.path.abspath(target_file).replace('\\', '/')
+    abs_lock_dir = lock_dir.replace('\\', '/')
+    if not abs_target.startswith(abs_lock_dir):
+        print(f"[BLOCKED] File '{target_file}' is OUTSIDE the project boundary ({lock_dir}).")
         sys.exit(1)
 
     try:
