@@ -67,9 +67,11 @@ class TestRunner:
         except AssertionError as e:
             self.failed += 1
             self.results.append(f"  [FAIL] {name}: {e}")
+            print(f"::error title=FAIL {name}::{e}")
         except Exception as e:
             self.failed += 1
             self.results.append(f"  [ERROR] {name}: {e}")
+            print(f"::error title=ERROR {name}::{e}")
 
     def summary(self):
         total = self.passed + self.failed
