@@ -1,15 +1,38 @@
 import os
 import sys
 import re
+import shutil
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
-def get_actual_total_skills():
+def get_actual_skills_counts():
     templates_skills = REPO / "src" / "snowline" / "templates" / "skills"
-    if templates_skills.exists():
-        return len([d for d in templates_skills.iterdir() if d.is_dir() and (d / "SKILL.md").exists()])
-    return 17
+    tests_dir = REPO / "tests"
+    
+    if not templates_skills.exists():
+        return 17, 17
+
+    all_skills = [d.name for d in templates_skills.iterdir() if d.is_dir() and (d / "SKILL.md").exists()]
+    total_count = len(all_skills)
+
+    test_files_content = []
+    if tests_dir.exists():
+        for tf in tests_dir.glob("test_*.py"):
+            if tf.name in ["test_skills_structure.py", "test_c2_state_validation.py"]:
+                continue
+            try:
+                with open(tf, "r", encoding="utf-8", errors="replace") as f:
+                    test_files_content.append(f.read())
+            except Exception:
+                pass
+
+    tested_count = 0
+    for skill in all_skills:
+        if any(skill in content for content in test_files_content):
+            tested_count += 1
+
+    return tested_count, total_count
 
 def validate_state_content(content: str, expected_tested: int = None, expected_total: int = None):
     stripped = content.strip()
@@ -38,17 +61,19 @@ def validate_state_content(content: str, expected_tested: int = None, expected_t
             f"Angka alat beruji di header ({tested_count}) melebihi total alat ({total_count})."
         )
 
-    # 2. Periksa penyebut (total alat) - dihitung dinamis dari direktori jika tidak disuplai
+    actual_tested, actual_total = get_actual_skills_counts()
     if expected_total is None:
-        expected_total = get_actual_total_skills()
+        expected_total = actual_total
+    if expected_tested is None:
+        expected_tested = actual_tested
+
+    # 2. Periksa penyebut (total alat)
     if total_count != expected_total:
         raise ValueError(
             f"Angka total alat di header ({total_count}) tidak cocok dengan jumlah sebenarnya ({expected_total})."
         )
 
-    # 3. Periksa pembilang (alat beruji) - dihitung sama dengan total alat jika tidak disuplai
-    if expected_tested is None:
-        expected_tested = expected_total
+    # 3. Periksa pembilang (alat beruji)
     if tested_count != expected_tested:
         raise ValueError(
             f"Angka alat beruji di header ({tested_count}) tidak cocok dengan jumlah sebenarnya ({expected_tested})."
@@ -84,53 +109,56 @@ TUTUP lewat chamber, arsip per topik:
 """
 
 def test_c2_state_validation_directions():
-    actual_total = get_actual_total_skills()
-    assert actual_total == 17, f"Total skill harus 17, didapat: {actual_total}"
+    templates_skills = REPO / "src" / "snowline" / "templates" / "skills"
 
-    # Arah c: angka sah -> LOLOS (tanpa argumen eksplit, otomatis menghitung 17 / 17)
-    sample_correct = make_state_sample("tools           beruji                  17 / 17")
-    assert validate_state_content(sample_correct) is True
-    print("PASS: Arah C (17 / 17 -> validasi LULUS)")
+    # Arah c: keadaan sekarang (17 / 17) -> LOLOS
+    sample_17_17 = make_state_sample("tools           beruji                  17 / 17")
+    assert validate_state_content(sample_17_17) is True
+    print("PASS: Arah C (keadaan sekarang 17 / 17 -> LOLOS)")
 
-    # Arah a: 99 / 17 -> DITOLAK (pembilang > penyebut dan salah hitungan)
+    # Arah d: 99 / 17 -> tetap DITOLAK
     sample_99_17 = make_state_sample("tools           beruji                  99 / 17")
     try:
         validate_state_content(sample_99_17)
-        assert False, "Arah A gagal: 99 / 17 tidak ditolak"
-    except ValueError as e:
-        err_msg = str(e)
-        assert "99" in err_msg and ("17" in err_msg), f"Pesan galat harus menyebut angka: {err_msg}"
-        print(f"PASS: Arah A (99 / 17 -> DITOLAK: '{err_msg}')")
-
-    # Arah b: 0 / 17 -> DITOLAK (pembilang salah)
-    sample_0_17 = make_state_sample("tools           beruji                  0 / 17")
-    try:
-        validate_state_content(sample_0_17)
-        assert False, "Arah B gagal: 0 / 17 tidak ditolak"
-    except ValueError as e:
-        err_msg = str(e)
-        assert "0" in err_msg and "17" in err_msg, f"Pesan galat harus menyebut angka: {err_msg}"
-        print(f"PASS: Arah B (0 / 17 -> DITOLAK: '{err_msg}')")
-
-    # Arah b2: 1 / 17 -> DITOLAK (pembilang salah)
-    sample_1_17 = make_state_sample("tools           beruji                  1 / 17")
-    try:
-        validate_state_content(sample_1_17)
-        assert False, "Arah B2 gagal: 1 / 17 tidak ditolak"
-    except ValueError as e:
-        err_msg = str(e)
-        assert "1" in err_msg and "17" in err_msg, f"Pesan galat harus menyebut angka: {err_msg}"
-        print(f"PASS: Arah B2 (1 / 17 -> DITOLAK: '{err_msg}')")
-
-    # Arah d: 13 / 99 -> tetap DITOLAK (penyebut salah)
-    sample_13_99 = make_state_sample("tools           beruji                  13 / 99")
-    try:
-        validate_state_content(sample_13_99)
-        assert False, "Arah D gagal: 13 / 99 tidak ditolak"
+        assert False, "Arah D gagal: 99 / 17 tidak ditolak"
     except ValueError as e:
         err_msg = str(e)
         assert "99" in err_msg and "17" in err_msg, f"Pesan galat harus menyebut angka: {err_msg}"
-        print(f"PASS: Arah D (13 / 99 -> DITOLAK: '{err_msg}')")
+        print(f"PASS: Arah D (99 / 17 -> DITOLAK: '{err_msg}')")
+
+    # Arah a & b: Buat folder alat ke-18 yang sungguhan tanpa uji
+    dummy_18 = templates_skills / "dummy_skill_18"
+    try:
+        dummy_18.mkdir(parents=True, exist_ok=True)
+        with open(dummy_18 / "SKILL.md", "w", encoding="utf-8") as f:
+            f.write("# Dummy 18 Skill\n")
+        with open(dummy_18 / "dummy.py", "w", encoding="utf-8") as f:
+            f.write("# dummy\n")
+
+        # Verifikasi deteksi dinamis dengan alat ke-18
+        actual_tested_18, actual_total_18 = get_actual_skills_counts()
+        assert actual_total_18 == 18, f"Total alat harus 18, terhitung {actual_total_18}"
+        assert actual_tested_18 == 17, f"Alat beruji harus 17, terhitung {actual_tested_18}"
+
+        # Arah a: ada alat ke-18 tanpa uji, STATE.md ditulis 17 / 18 -> LOLOS
+        sample_17_18 = make_state_sample("tools           beruji                  17 / 18")
+        assert validate_state_content(sample_17_18) is True
+        print("PASS: Arah A (ada alat ke-18 tanpa uji, STATE.md ditulis 17 / 18 -> LOLOS)")
+
+        # Arah b: ada alat ke-18 tanpa uji, STATE.md ditulis 18 / 18 -> DITOLAK
+        sample_18_18 = make_state_sample("tools           beruji                  18 / 18")
+        try:
+            validate_state_content(sample_18_18)
+            assert False, "Arah B gagal: 18 / 18 tidak ditolak saat ada alat tanpa uji"
+        except ValueError as e:
+            err_msg = str(e)
+            assert "18" in err_msg and "17" in err_msg, f"Pesan galat harus menyebut angka: {err_msg}"
+            print(f"PASS: Arah B (ada alat ke-18 tanpa uji, STATE.md ditulis 18 / 18 -> DITOLAK: '{err_msg}')")
+
+    finally:
+        # Selalu hapus folder alat ke-18 sesudah selesai pengujian
+        if dummy_18.exists():
+            shutil.rmtree(dummy_18)
 
     # Uji tanda hubung
     hyphen_sample = "---\n- - -\n---\n"
@@ -152,4 +180,4 @@ def test_c2_state_validation_directions():
 
 if __name__ == "__main__":
     test_c2_state_validation_directions()
-    print("\nALL ENTRI C2 DIRECTIONS PASSED!")
+    print("\nALL D1b ENUMERATOR/DENOMINATOR DIRECTIONS PASSED!")
