@@ -3538,3 +3538,60 @@ Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, baca
 hasilnya, baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Sprint 44b selesai — penanganan nol kecocokan, pesan validasi atomik, dan satu penanda mode ringan
+
+Pekerjaan Sprint 44b telah selesai dikerjakan dalam 3 entri berurutan dengan 1 commit per entri. CI run 126 pada commit b29fc85 telah selesai (completed successfully).
+
+## Rincian Perubahan per Entri
+
+### Entri 1 — Nol kecocokan tidak dilaporkan sebagai berhasil
+- `replace_text.py` hanya menambahkan berkas ke daftar `pending_writes` jika terdapat kecocokan aktif (`file_match_count > 0` dan `new_content != content`).
+- Jika tidak ada kecocokan aktif, alat mencetak pemberitahuan dan keluar tanpa membuat folder cadangan `.backup_replace` serta tidak mencetak `[SUCCESS]`.
+- Pada pemindaian campuran (sebagian berkas ada kecocokan, sebagian nol), hanya berkas dengan kecocokan yang dimodifikasi, dan angka pada baris `[SUCCESS]` menghitung berkas yang benar-benar dimodifikasi.
+- Commit: `ad1e3b3 fix(smart_replace): handle zero match files without reporting success or creating backups`
+
+### Entri 2 — Pesan berhenti validasi atomik diperbaiki
+- Perilaku validasi atomik (semua-atau-tidak-sama-sekali) dipertahankan: seluruh berkas divalidasi terlebih dahulu sebelum ada berkas yang ditulis ke disk.
+- Memperbaiki kalimat pesan kegagalan menjadi:
+  `[STOP] Validasi gagal di berkas ke-X dari Y: <berkas>`
+  `       <pesan error>`
+  `       Tidak ada berkas yang ditulis.`
+- Pengujian membuktikan isi seluruh 8 berkas di disk tetap utuh saat berkas ke-5 gagal validasi.
+- Commit: `e14bc5f fix(smart_replace): clarify atomic validation failure message`
+
+### Entri 3 — Satu nama dan format tunggal untuk penanda mode ringan
+- Menyeragamkan fungsi `is_light_mode()` di seluruh modul (`scope_check.py`, `replace_text.py`, `scaffolder.py`, `context_mapper.py`, `fixer.py`, `intercept_native.py`) untuk hanya menerima satu berkas penanda: `.agents/mode_ringan.json` dengan isi `{"mode_ringan": true}`.
+- Jika berkas `.agents/mode_ringan.json` ada tetapi isinya tidak dikenali, alat mencetak peringatan penjelasan dan mematikan mode ringan.
+- Penanda dengan nama lama (seperti `.agents/light_mode` atau `.agents/mode_ringan` tanpa `.json`) tidak lagi mengaktifkan mode ringan.
+- Commit: `b29fc85 fix(mode_ringan): unify lightweight mode marker to single .agents/mode_ringan.json file`
+
+## Bukti Eksekusi dan Verifikasi
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 100/100 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -4
+b29fc85 fix(mode_ringan): unify lightweight mode marker to single .agents/mode_ringan.json file
+e14bc5f fix(smart_replace): clarify atomic validation failure message
+ad1e3b3 fix(smart_replace): handle zero match files without reporting success or creating backups
+084408e docs(connector): Sprint 44b - laporan yang tidak cocok dengan kenyataan
+```
+
+## Yang Tidak Diperiksa
+
+- Jalur eksekusi shell (menunggu keputusan PM).
+- Kemampuan inspeksi mandiri visual UI frontend oleh agen.
+- Penanganan label status paket editable pip wheel.
