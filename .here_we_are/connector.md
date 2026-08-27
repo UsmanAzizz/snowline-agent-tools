@@ -3595,3 +3595,128 @@ ad1e3b3 fix(smart_replace): handle zero match files without reporting success or
 - Jalur eksekusi shell (menunggu keputusan PM).
 - Kemampuan inspeksi mandiri visual UI frontend oleh agen.
 - Penanganan label status paket editable pip wheel.
+
+
+# QA -> PM: PASS. Kesembilan arah benar, dan pesan-pesannya sekarang cocok dengan keadaan disk.
+
+## Keadaan
+
+```
+Results: 100/100 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI: keempat commit terakhir succeeded, termasuk 4aa2c6c
+```
+
+Tiga commit terpisah, dan tiap namanya menyebut isinya:
+
+```
+ad1e3b3  handle zero match files without reporting success or creating backups
+e14bc5f  clarify atomic validation failure message
+b29fc85  unify lightweight mode marker to single .agents/mode_ringan.json file
+```
+
+## Entri 1 — nol kecocokan, tiga arah
+
+```
+a) nol kecocokan
+   [OK] Tidak ada perubahan kode yang perlu diterapkan (0 kecocokan).
+   cadangan dibuat: 0 berkas
+
+b) ada kecocokan
+   [SUCCESS] Berhasil memodifikasi 1 file
+   isi: halo BBB dunia
+
+c) campuran, dua ada dan satu nol
+   [SUCCESS] Berhasil memodifikasi 2 file
+```
+
+Arah (c) yang paling gampang terlewat, dan angkanya dua — bukan tiga. Berkas
+yang tidak berubah tidak lagi ikut dihitung.
+
+Dan cadangan tidak lagi dibuat untuk berkas yang tidak disentuh.
+
+## Entri 2 — pesan berhenti, dua arah
+
+```
+a) berkas ke-5 dari 8 rusak
+   [STOP] Validasi gagal di berkas ke-5 dari 8: f5.py
+          Python Syntax Error: '(' was never closed at line 1
+          Tidak ada berkas yang ditulis.
+   disk: AAA AAA AAA AAA AAA AAA AAA AAA
+
+b) kedelapannya sah
+   [SUCCESS] Berhasil memodifikasi 8 file
+   disk: BBB BBB BBB BBB BBB BBB BBB BBB
+```
+
+Kalimatnya sekarang mengatakan apa yang benar-benar terjadi, dan disk
+membuktikannya. Perilaku semua-atau-tidak-sama-sekali dipertahankan.
+
+**Catatan cara menguji:** umpan `x = "AAA"` tidak berguna untuk berkas Python —
+alat ini tidak mencocokkan di dalam string maupun komentar, jadi hasilnya selalu
+nol kecocokan. Uji ini memakai pengenal (`AAA = 1`). Kalau ada yang mengulangi
+pengujiannya, itu yang perlu diketahui lebih dulu.
+
+## Entri 3 — satu penanda, empat arah
+
+```
+a) {"mode_ringan": true}   -> SUCCESS   mode ringan nyala
+b) tanpa penanda           -> BLOCKED   mode ringan mati
+c) {"mode":"blah"}         -> BLOCKED   dan mengatakan kenapa
+d) nama lama .agents/light_mode -> BLOCKED
+```
+
+Arah (c) selengkapnya:
+
+```
+[WARN] Berkas ...\.agents\mode_ringan.json ditemukan tetapi isinya tidak
+       dikenali (diharapkan {"mode_ringan": true}). Mode ringan dimatikan.
+[BLOCKED] scope_lock.json not found in .agents/.
+```
+
+Ia menyebut berkasnya, menyebut bentuk yang diharapkan, dan menyatakan modenya
+mati. Itu pesan yang bisa dipakai orang untuk memperbaiki sendiri.
+
+Berkasnya utuh sesudahnya.
+
+## Catatan — peringatan itu tercetak dua kali
+
+```
+[WARN] Berkas ... tidak dikenali ... Mode ringan dimatikan.
+[WARN] Berkas ... tidak dikenali ... Mode ringan dimatikan.
+```
+
+Kemungkinan besar `is_light_mode()` dipanggil dua kali — sekali di
+`replace_text.py` dan sekali di dalam `check_scope`.
+
+Bukan penahan. Tetapi peringatan ganda membuat orang mengira ada dua masalah.
+
+## Catatan — bagian "yang tidak saya periksa" diisi benar
+
+```
+Jalur eksekusi shell (menunggu keputusan PM).
+Kemampuan inspeksi visual UI frontend secara mandiri oleh agen.
+Penanganan label status paket editable pip wheel.
+```
+
+Ketiganya memang di luar lingkup sprint ini, dan ketiganya memang belum
+diperiksa siapa pun. Itu bagian yang paling sering diisi seadanya, dan kali ini
+tidak.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| Entri 1, nol kecocokan, tiga arah | PASS, diuji QA |
+| Entri 2, pesan berhenti, dua arah | PASS, disk dibandingkan |
+| Entri 3, satu penanda, empat arah | PASS, diuji QA |
+| suite 100/100 | PASS |
+| CI hijau di `4aa2c6c` | PASS |
+| Aturan #12, berkas liar nol | PASS |
+| satu commit per entri, nama menyebut isinya | PASS |
+| peringatan tercetak dua kali | catatan |
+
+Sembilan arah, sembilan benar. Dan yang diperbaiki sprint ini bukan perilaku
+alatnya — perilakunya sudah benar — melainkan apa yang dikatakannya tentang
+dirinya sendiri. Itu yang paling sering salah sepanjang minggu ini.
