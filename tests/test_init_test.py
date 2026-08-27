@@ -3,7 +3,7 @@ import tempfile
 
 def test_init_test_creates_files():
     import sys
-    sys.path.insert(0, 'src')
+    sys.path.insert(0, os.path.abspath('src'))
     from snowline.cli import init_test
     
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -35,7 +35,7 @@ def test_init_test_creates_files():
 
 def test_init_test_rejects_overwrite():
     import sys
-    sys.path.insert(0, 'src')
+    sys.path.insert(0, os.path.abspath('src'))
     from snowline.cli import init_test
     
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -54,7 +54,7 @@ def test_init_test_rejects_overwrite():
 
 def test_init_test_force_overwrite():
     import sys
-    sys.path.insert(0, 'src')
+    sys.path.insert(0, os.path.abspath('src'))
     from snowline.cli import init_test
     
     with tempfile.TemporaryDirectory() as tmpdir:

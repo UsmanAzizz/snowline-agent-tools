@@ -22,8 +22,10 @@ if sys.stdout.encoding != 'utf-8':
 # snowline_toolkit ke snowline. Jalur lama membuat runner ini mati diam-diam.
 AKAR = Path(__file__).parent.parent
 SKILLS = AKAR / "src" / "snowline" / "templates" / "skills"
+SRC = AKAR / "src"
 sys.path.insert(0, str(AKAR))
 sys.path.insert(0, str(SKILLS))
+sys.path.insert(0, str(SRC))
 
 from tree_gen.tree_gen import (
     parse_gitignore,
