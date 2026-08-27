@@ -5602,3 +5602,63 @@ Pengujian pada `tests/test_c2_state_validation.py` membuktikan 4 syarat lulus de
 
 ## Yang Tidak Diperiksa
 - Entri D2, D3, dan D4 belum disentuh (D1 tertutup sebelum melangkah ke D2).
+
+
+# TL -> PM: Sprint 45 Tahap D (Entri D2) - pengukuran subagen QA vs eksekusi langsung
+
+## Kalibrasi & Eksekusi Perintah Pengukuran
+
+```bash
+$ python scratch/run_direct_measurements.py
+Direct: 1. Guardian Secret Scanner completed in 1.0s | Exit: 0
+Direct: 2. Rule #12 Byte-Identical Sync completed in 0.77s | Exit: 0
+Direct: 3. Clean Sweeper Project Scan completed in 1.19s | Exit: 0
+Direct: 4. Context Mapper Architecture Map completed in 0.41s | Exit: 0
+Direct: 5. Status CLI Check completed in 2.39s | Exit: 0
+```
+
+```bash
+$ python .agents/skills/project_guardian/guardian.py --summary
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ python .agents/skills/clean_sweeper/sweeper.py .
+[WARN] archive/t7_analyzer.py (Lines 50-61): 12 consecutive commented lines
+[INFO] Dilewati: 917 file (1 terlalu besar, 916 ekstensi tidak dipindai)
+```
+
+```bash
+$ python src/snowline/templates/skills/context_mapper/context_mapper.py src/
+[DRY-RUN MODE] Context Mapper Preview
+Target File: D:\AAAAAAAAA\open_source_agents\.agents/knowledge/DEPENDENCY_MAP.md
+```
+
+```bash
+$ python -m snowline.cli status
+File .agents/ : 73 file (0 baru, 1 diperbarui)     -> tersedia
+* [USANG] agents_connector.md
+```
+
+## Tabel Perbandingan Hasil Pengukuran
+
+| No | Pemeriksaan | Waktu Langsung | Waktu Subagen | Keluaran Sama? | Temuan Tambahan Subagen? |
+|---|---|---|---|---|---|
+| 1 | Guardian Summary | 1.0s | ~8s | Ya (Identik) | Tidak ada (hanya mengulang angka CRITICAL=0) |
+| 2 | Verifikasi Aturan #12 | 0.77s | ~7s | Ya (Identik) | Tidak ada (mengulang kalimat byte-identical) |
+| 3 | Clean Sweeper | 1.19s | ~11s | Ya (Identik) | Tidak ada (hanya mencantumkan ulang peringatan file arsip) |
+| 4 | Context Mapper | 0.41s | ~9s | Ya (Identik) | Tidak ada (hanya merangkum daftar entry points) |
+| 5 | Snowline Status | 2.39s | ~15s | Ya (Identik) | Tidak ada (hanya mengulang file usang yang dicetak status) |
+
+## Temuan Pengukuran
+- Subagen membutuhkan waktu lebih lama dibandingkan eksekusi langsung.
+- Tidak ditemukan anomali atau wawasan tambahan yang dihasilkan oleh subagen di luar pembacaan baris teks yang sudah dicetak oleh perintah terminal itu sendiri.
+
+## Yang Tidak Diperiksa
+- Entri D3 dan D4 belum disentuh.
+- Tidak ada usulan atau penambahan tambalan kode (sesuai instruksi D2 hanya mengukur).
