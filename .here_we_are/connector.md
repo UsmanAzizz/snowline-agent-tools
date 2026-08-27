@@ -2763,3 +2763,38 @@ Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, baca
 hasilnya, baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Sprint 43 - Perapihan Git dan Penanda Penyebab
+
+Pekerjaan Sprint 43 telah dikerjakan dalam dua commit terpisah:
+
+1. **Commit 1 (`fc83054`) - Entri 1**:
+   - `src/snowline_agent_tools.egg-info` di-untrack dari git cache.
+   - `test_agent.md` di-untrack dan dihapus dari disk.
+   - Pola `src/*.egg-info/` ditambahkan ke `.gitignore`.
+   - Uji `pip install -e .` membuktikan `git status` tidak memunculkan berkas egg-info liar.
+
+2. **Commit 2 (`5ce2bd8`) - Entri 2**:
+   - Menambahkan variabel `pkg_unknown_kind` di `src/snowline/cli.py:619`.
+   - Nilai penanda `pkg_unknown_kind = "wheel"` di-set saat `vcs_info` kosong/tidak ada.
+   - Logika penekanan saran pasang ulang diubah menjadi `if pkg_unknown_kind != "wheel":`, bukan lagi mencocokkan substring teks.
+   - Uji mutasi teks membuktikan pengubahan kalimat pesan tidak memengaruhi perilaku penekanan saran.
+
+### Bukti Eksekusi & Uji
+
+```
+$ git log --oneline -2
+5ce2bd8 fix(sprint43): use pkg_unknown_kind marker instead of reason text matching in status
+fc83054 fix(sprint43): untrack egg-info and test_agent, ignore egg-info in gitignore
+
+$ python tests/run_tests.py
+Results: 95/95 passed, 0 failed
+```
+
+Status CI GitHub Actions:
+- Commit `5ce2bd8`: `status: completed`, `conclusion: success`.
+
+### Apa yang TIDAK saya periksa
+- Saya tidak memeriksa apakah ada file build legacy selain `.egg-info` (seperti `.tox` atau `.nox`) yang mungkin dibuat oleh toolchain pihak ketiga di luar setuptools/build standar.
+- Saya tidak memeriksa integrasi jika pengguna menggunakan manajer paket non-pip (seperti conda atau poetry) untuk mendeteksi `direct_url.json`.
