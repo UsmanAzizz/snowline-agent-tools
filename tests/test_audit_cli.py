@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 import tempfile
 import json
@@ -6,11 +6,13 @@ import shutil
 import subprocess
 from pathlib import Path
 
-CLI_SCRIPT = Path(__file__).parent.parent / "src" / "snowline" / "cli.py"
+REPO = Path(__file__).resolve().parent.parent
 
 def run_snowline_audit(args, cwd):
-    cmd = [sys.executable, str(CLI_SCRIPT), "audit"] + args
-    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8")
+    env = dict(os.environ)
+    env['PYTHONPATH'] = str(REPO / 'src') + os.pathsep + env.get('PYTHONPATH', '')
+    cmd = [sys.executable, "-m", "snowline.cli", "audit"] + args
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", env=env)
 
 def test_audit_directions():
     temp_dir = tempfile.mkdtemp(prefix="test_a4_")
@@ -35,7 +37,6 @@ def test_audit_directions():
             {"waktu": "2026-08-25T10:25:00", "alat": "shell", "berkas": "src/Header.jsx", "dalam_lingkup": True, "tugas": "perbaiki header"},
             {"waktu": "2026-08-25T10:30:00", "alat": "shell", "berkas": "src/Footer.jsx", "dalam_lingkup": True, "tugas": "perbaiki header"},
         ]
-        # Tambah 7 tulisan dalam lingkup
         for i in range(7):
             entries.append({"waktu": "2026-08-25T11:00:00", "alat": "smart_replace", "berkas": f"src/f{i}.jsx", "dalam_lingkup": True, "tugas": "perbaiki header"})
 

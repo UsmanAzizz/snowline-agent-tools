@@ -5,18 +5,20 @@ import shutil
 import subprocess
 from pathlib import Path
 
-CLI_SCRIPT = Path(__file__).parent.parent / "src" / "snowline" / "cli.py"
+REPO = Path(__file__).resolve().parent.parent
 
 def test_init_gitignore_and_scope():
     temp_dir = tempfile.mkdtemp(prefix="test_a6_")
+    env = dict(os.environ)
+    env['PYTHONPATH'] = str(REPO / 'src') + os.pathsep + env.get('PYTHONPATH', '')
     try:
         # 1. Initialize a clean git repo
         subprocess.run(["git", "init"], cwd=temp_dir, capture_output=True, check=True)
         
         # 2. Run snowline init --apply
         res_init = subprocess.run([
-            sys.executable, str(CLI_SCRIPT), "init", "--apply"
-        ], cwd=temp_dir, capture_output=True, text=True, encoding="utf-8")
+            sys.executable, "-m", "snowline.cli", "init", "--apply"
+        ], cwd=temp_dir, capture_output=True, text=True, encoding="utf-8", env=env)
         assert res_init.returncode == 0, f"init failed:\n{res_init.stdout}\n{res_init.stderr}"
         
         # Arah a: .agents/.gitignore ada dan isinya benar
