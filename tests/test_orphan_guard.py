@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 def test_tidak_ada_berkas_uji_yatim():
     berkas = {p.stem for p in Path('tests').glob('test_*.py')}

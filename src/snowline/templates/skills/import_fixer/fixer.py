@@ -1,3 +1,9 @@
+import os
+import sys
+import re
+import shutil
+import json
+from datetime import datetime
 
 def is_light_mode(start_dir=None):
     """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
@@ -26,12 +32,6 @@ def is_light_mode(start_dir=None):
         current_dir = parent
     return False
 
-import os
-import sys
-import re
-import shutil
-import json
-from datetime import datetime
 
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')

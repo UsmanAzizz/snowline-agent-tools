@@ -1,4 +1,4 @@
-﻿import ast
+import ast
 import builtins
 import sys
 from pathlib import Path

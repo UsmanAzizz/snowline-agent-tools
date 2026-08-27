@@ -4,11 +4,6 @@ import json
 import fnmatch
 from datetime import datetime
 
-# Umur maksimal scope_lock sebelum dianggap sisa tugas lama. Memperingatkan,
-# tidak memblokir: lock yang basi menyesatkan, tetapi memblokir karenanya akan
-# mematikan alat ini pada pemakaian pertama.
-MAX_UMUR_JAM = 24
-
 def is_light_mode(start_dir=None):
     """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
     if start_dir is None:
@@ -35,6 +30,13 @@ def is_light_mode(start_dir=None):
             break
         current_dir = parent
     return False
+
+
+# Umur maksimal scope_lock sebelum dianggap sisa tugas lama. Memperingatkan,
+# tidak memblokir: lock yang basi menyesatkan, tetapi memblokir karenanya akan
+# mematikan alat ini pada pemakaian pertama.
+MAX_UMUR_JAM = 24
+
 
 
 

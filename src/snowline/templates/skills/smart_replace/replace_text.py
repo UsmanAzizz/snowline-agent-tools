@@ -1,3 +1,16 @@
+import os
+import sys
+import argparse
+import re
+import shutil
+import subprocess
+import tempfile
+import ast
+import difflib
+import json
+import fnmatch
+from datetime import datetime
+from pathlib import Path
 
 def is_light_mode(start_dir=None):
     """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
@@ -26,19 +39,6 @@ def is_light_mode(start_dir=None):
         current_dir = parent
     return False
 
-import os
-import sys
-import argparse
-import re
-import shutil
-import subprocess
-import tempfile
-import ast
-import difflib
-import json
-import fnmatch
-from datetime import datetime
-from pathlib import Path
 
 # Force UTF-8 encoding for Windows terminal
 if sys.stdout.encoding.lower() != 'utf-8':

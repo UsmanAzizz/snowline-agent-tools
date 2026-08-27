@@ -1,3 +1,7 @@
+import sys
+import json
+import os
+import subprocess
 
 def is_light_mode(start_dir=None):
     """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
@@ -26,10 +30,6 @@ def is_light_mode(start_dir=None):
         current_dir = parent
     return False
 
-import sys
-import json
-import os
-import subprocess
 
 def main():
     try:

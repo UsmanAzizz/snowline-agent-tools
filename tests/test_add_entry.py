@@ -1,4 +1,4 @@
-﻿import tempfile
+import tempfile
 import os
 import sys
 import subprocess
