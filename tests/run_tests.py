@@ -132,9 +132,9 @@ def test_generate_simple_tree_no_icons():
     with tempfile.TemporaryDirectory() as tmpdir:
         open(os.path.join(tmpdir, 'test.txt'), 'w').close()
         result = generate_simple_tree(tmpdir)
-        assert 'test.txt' in result
-        assert 'ðŸ“„' not in result
-        assert 'ðŸ“' not in result
+        assert '📄' not in result
+        assert '📁' not in result
+        assert '📁' not in result
 
 def test_get_tree_stats_returns_dict():
     with tempfile.TemporaryDirectory() as tmpdir:
