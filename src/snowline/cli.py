@@ -616,6 +616,7 @@ def status():
         print_warning(f"Gagal memeriksa paket: {e}")
 
     pkg_unknown_reason = ""
+    pkg_unknown_kind = ""
     if package_info:
         import glob
         dist_info_pattern = os.path.join(package_info, 'snowline_agent_tools-*.dist-info')
@@ -629,14 +630,19 @@ def status():
                     vcs_info = data.get('vcs_info', {})
                     installed_commit = vcs_info.get('commit_id', '')
                     if not installed_commit:
+                        pkg_unknown_kind = "wheel"
                         pkg_unknown_reason = "direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)"
                 except Exception as e:
+                    pkg_unknown_kind = "parse_error"
                     pkg_unknown_reason = f"Gagal membaca direct_url.json: {e}"
             else:
+                pkg_unknown_kind = "no_direct_url"
                 pkg_unknown_reason = f"direct_url.json tidak ada di {matches[0]}"
         else:
+            pkg_unknown_kind = "no_dist_info"
             pkg_unknown_reason = f"dist-info tidak ditemukan di {package_info}"
     else:
+        pkg_unknown_kind = "no_package_info"
         pkg_unknown_reason = "Informasi lokasi package tidak ditemukan"
 
 
@@ -709,7 +715,7 @@ def status():
     if pkg_unknown:
         print_error("Tidak dapat menentukan versi package terinstal")
         print_info(f"Penyebab: {pkg_unknown_reason}")
-        if "dipasang dari wheel" not in pkg_unknown_reason:
+        if pkg_unknown_kind != "wheel":
             print_info("Coba: pip install --force-reinstall git+https://github.com/UsmanAzizz/snowline-agent-tools.git")
     elif pkg_latest:
         safe_print(f"  Paket         : commit {installed_commit[:8]}  (GitHub: {remote_commit[:8]})      -> terbaru")
