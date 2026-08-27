@@ -1034,6 +1034,10 @@ def main():
     
     p_close = subparsers.add_parser("close-entry", help="Pindahkan satu entri dari connector ke history/<topik>")
     p_close.add_argument("topik", help="Nama topik, misal 'caching', 'encoding'")
+
+    p_rot = subparsers.add_parser("rotate", help="Pindahkan riwayat entri connector ke history/<topik> secara aman")
+    p_rot.add_argument("topik", help="Nama topik arsip rotasi")
+    p_rot.add_argument("--apply", action="store_true", help="Terapkan rotasi secara permanen")
     
     p_audit = subparsers.add_parser("audit", help="Ringkas catatan tulisan dari write_log.jsonl")
     p_audit.add_argument("--sejak", help="Filter catatan sejak tanggal/waktu tertentu")

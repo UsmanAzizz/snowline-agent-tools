@@ -207,6 +207,7 @@ def main():
     import test_b3_init_chamber_role
     import test_b4_close_entry_renumber
     import test_b5_install_hooks
+    import test_c1_rotate
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -228,6 +229,8 @@ def main():
     runner.run("b4_close_entry_renumber", test_b4_close_entry_renumber.test_b4_renumber_terbuka_directions)
     print("Testing B5 install-hooks CLI...")
     runner.run("b5_install_hooks", test_b5_install_hooks.test_b5_install_hooks_directions)
+    print("Testing C1 snowline rotate...")
+    runner.run("c1_rotate", test_c1_rotate.test_c1_rotate_directions)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
@@ -348,6 +351,7 @@ def main():
     runner.run("add_entry valid header", test_add_entry.test_add_entry_valid)
     
     runner.run("smoke_cli close-entry (help)", test_smoke_cli.test_smoke_close_entry_help)
+    runner.run("smoke_cli rotate (help)", test_smoke_cli.test_smoke_rotate_help)
     runner.run("smoke_cli test-clone (help)", test_smoke_cli.test_smoke_test_clone_help)
     runner.run("smoke_cli setup-path (help)", test_smoke_cli.test_smoke_setup_path_help)
     runner.run("smoke_cli path (full)", test_smoke_cli.test_smoke_path_full)
