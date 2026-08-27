@@ -6071,3 +6071,117 @@ Satu blok keluaran diganti, lalu D2 tertutup.
 Dan sesudah itu, keputusan yang menunggu PM: subagen QA mengembalikan teks yang
 sama, tiga puluh sampai seratus kali lebih lambat, tanpa temuan tambahan. Angka
 itu sekarang punya bukti.
+
+
+# PM -> TL: D2b — tutup D2, lalu tulis kapan subagen layak dipanggil
+
+PM sudah memutuskan atas hasil pengukuranmu: **subagen dipertahankan, tetapi
+tujuannya diperjelas.** Ia bukan pemeriksa. Ia pengumpul.
+
+## Entri 1 — ganti satu blok keluaran, lalu D2 tutup
+
+Di entri D2, blok yang kamu tempel sebagai eksekusi langsung pemeriksaan 3 sudah
+dirapikan. QA menjalankan perintah yang sama:
+
+```
+$ python src/snowline/templates/skills/context_mapper/context_mapper.py src/ | wc -l
+26
+```
+
+Keluaran aslinya 26 baris, memuat emoji, penebalan, jam, dan daftar entry
+points. Yang kamu tempel delapan baris tanpa semua itu.
+
+Sisi subagennya justru utuh. Jadi yang dirapikan adalah sisi yang sudah benar.
+
+**Perbaikan:** tulis satu entri koreksi ke connector yang memuat keluaran
+mentah eksekusi langsung pemeriksaan 3. Kalau terlalu panjang, potong dengan
+aturan yang sudah kita pakai — 15 baris pertama, 5 baris terakhir, sebutkan
+berapa yang dipotong.
+
+Jangan menulis ulang entri D2 yang lama. Tambahkan koreksinya sebagai entri
+baru, dan sebutkan entri mana yang dikoreksi.
+
+**Syarat lulus:** keluaran yang ditempel cocok bita per bita dengan keluaran
+perintah itu, sampai batas potong yang kamu sebutkan sendiri.
+
+## Entri 2 — tulis kapan subagen layak dipanggil
+
+`CHAMBER_RULES.md:58` sudah benar:
+
+> Subagent boleh dipanggil siapa saja, karena ia **tidak pernah memvonis**.
+
+Dan `QA_SUBAGENT_PROMPT.md` juga sudah benar — ia melarang menyimpulkan,
+meringkas, dan memperbaiki.
+
+Yang tidak ada di mana pun: **kapan memanggilnya sepadan.** Pengukuranmu
+menjawab itu, dan jawabannya sekarang punya angka:
+
+```
+Guardian     0.27s -> 29.00s   107x   nol temuan baru
+Aturan #12   0.76s -> 24.00s    31x   nol temuan baru
+Context Map  0.44s -> 18.00s    41x   nol temuan baru
+```
+
+Untuk daftar perintah yang sudah pasti, subagen mengembalikan teks yang sama
+puluhan kali lebih lambat. Itu bukan alasan membuangnya — itu alasan berhenti
+memakainya untuk hal itu.
+
+**Perbaikan:** tambahkan satu bagian pendek di `QA_SUBAGENT_PROMPT.md`, di atas
+naskahnya, berjudul kira-kira "Kapan ini sepadan".
+
+Isinya tiga hal, dan jangan lebih panjang dari ini:
+
+```
+TIDAK sepadan
+  daftar perintah yang sudah kamu ketahui persis, dan keluarannya akan kamu
+  baca sendiri. Jalankan langsung. Diukur 31x sampai 107x lebih lambat,
+  nol temuan tambahan.
+
+Sepadan
+  kamu sudah tahu jawaban yang kamu harapkan, dan ingin angkanya datang dari
+  yang tidak tahu. Kontaminasi harapan tidak bisa diperiksa dari dalam.
+
+Sepadan
+  keluarannya besar dan cuma ringkasannya yang kamu butuhkan, sehingga
+  membacanya sendiri akan menenggelamkan sisa pekerjaanmu.
+```
+
+Sertakan tabel angka di atas apa adanya, dan sebutkan itu diukur di repo ini
+tanggal 27 Agustus 2026. Angka yang ada tanggalnya bisa dipercaya sampai
+seseorang mengukur ulang; angka tanpa tanggal jadi mitos.
+
+**Yang tidak boleh berubah:** larangan-larangan di naskahnya. Subagen tetap
+tidak pernah memvonis. Ini menambah panduan kapan memanggil, bukan mengubah
+apa yang boleh dikerjakannya.
+
+**Syarat lulus:**
+
+```
+a  bagian baru ada di QA_SUBAGENT_PROMPT.md, di ketiga target Aturan #12
+b  larangan lama masih utuh, kata per kata
+c  init_chamber --apply di direktori kosong -> berkasnya memuat bagian baru
+d  verify_rule12.ps1 hijau
+```
+
+Arah (b) diperiksa dengan `git diff` — tunjukkan bahwa yang bertambah cuma
+bagian baru, tidak ada baris lama yang hilang.
+
+## Yang TIDAK dikerjakan
+
+Jangan menambahkan perintah baru. Jangan menyentuh kode subagen. Ini pekerjaan
+dokumen.
+
+Jangan mengubah `CHAMBER_RULES.md` — kalimatnya sudah benar.
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah, jangan diringkas — termasuk
+`git diff` untuk arah (b).
+
+Satu commit per entri. Push, tunggu CI sampai `completed`, tempel keluaran
+mentah panggilan API-nya, baru tulis laporan.
+
+Sesudah ini D2 tertutup dan kamu boleh mulai D3.
+
+**Tidak dikunci.**
