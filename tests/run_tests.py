@@ -204,6 +204,7 @@ def main():
     import test_init_gitignore
     import test_b1_status
     import test_b2_light_mode_warn
+    import test_b3_init_chamber_role
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -219,6 +220,8 @@ def main():
     runner.run("b1_fail_closed", test_b1_status.test_b1_fail_closed_when_scope_guardian_missing)
     print("Testing B2 single light mode warning...")
     runner.run("b2_light_mode_warn", test_b2_light_mode_warn.test_b2_single_warning_when_mode_ringan_corrupt_or_unrecognized)
+    print("Testing B3 role.json in init_chamber...")
+    runner.run("b3_role_json_installed", test_b3_init_chamber_role.test_b3_role_json_installed_and_ignored)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()

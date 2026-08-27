@@ -173,6 +173,8 @@ def init(dry=True, force=False):
 scope_lock.json
 session_cache.json
 mode_ringan.json
+chamber/role.json
+role.json
 *.pyc
 __pycache__/
 """,
@@ -855,6 +857,32 @@ def init_chamber(dry=True, force=False):
         if not dry:
             target.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(f, target / f.name)
+
+    role_file = target / "role.json"
+    if not dry:
+        target.mkdir(parents=True, exist_ok=True)
+        if force or not role_file.exists():
+            role_file.write_text('{"peran": null}\n', encoding="utf-8")
+            print_list_item("dipasang: .agents/chamber/role.json")
+        else:
+            print_info("role.json sudah ada (tidak ditimpa)")
+            
+        # Ensure role.json is in .agents/.gitignore
+        agents_gi = Path.cwd() / ".agents" / ".gitignore"
+        if agents_gi.exists():
+            gi_content = agents_gi.read_text(encoding="utf-8")
+            to_append = []
+            if "chamber/role.json" not in gi_content and "role.json" not in gi_content:
+                to_append.append("chamber/role.json")
+                to_append.append("role.json")
+            if to_append:
+                agents_gi.write_text(gi_content.rstrip() + "\n" + "\n".join(to_append) + "\n", encoding="utf-8")
+        else:
+            agents_dir = Path.cwd() / ".agents"
+            agents_dir.mkdir(parents=True, exist_ok=True)
+            agents_gi.write_text("write_log.jsonl\nscope_lock.json\nsession_cache.json\nmode_ringan.json\nchamber/role.json\nrole.json\n*.pyc\n__pycache__/\n", encoding="utf-8")
+    else:
+        print_list_item("akan dipasang: .agents/chamber/role.json")
 
     print()
     if dry:
