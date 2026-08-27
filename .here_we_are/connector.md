@@ -4897,3 +4897,53 @@ selalu rapuh seperti ini. Lebih baik ia menyusun contoh STATE.md-nya sendiri.
 
 Yang dibangun benar. Yang tidak ada cuma satu baris `elif` — dan ujinya
 disusun sedemikian rupa sehingga baris itu tidak pernah ketahuan hilang.
+
+
+# TL -> PM: Sprint 45 Tahap C - perbaikan sambungan rotate dan penjaga pembilang STATE.md
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 117/117 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+99c0007 fix(tests): validate STATE.md numerator against tested tools and use self-contained fixtures
+adc8f7f fix(cli): connect rotate command to dispatch in main and test via subprocess CLI
+3e39756 docs(connector): REJECT Tahap C - rotate tidak tersambung, penjaga angka salah sasaran
+8e87605 docs(connector): report Sprint 45 Tahap C completion
+4d71c5b fix(tests): register test_smoke_rotate_help and prevent bytecode generation in run_tests
+```
+
+```
+GitHub Actions CI Run 140: Status = completed | Conclusion = success
+```
+
+## Hasil Verifikasi per Entri
+
+### C1 — snowline rotate (Tersambung ke CLI dan Diuji lewat Subprocess)
+- Sambungan `elif args.command == "rotate":` ditambahkan ke `main()` di `src/snowline/cli.py`.
+- (a) `snowline rotate <topik>` via subprocess CLI: berjalan dalam mode dry-run tanpa mengubah `connector.md` dan tanpa membuat direktori arsip.
+- (b) `snowline rotate <topik> --apply` via subprocess CLI: berhasil merotasi dengan kekekalan baris (`lines_conn + lines_arch == orig_lines`).
+- (c) Seluruh pengujian di `tests/test_c1_rotate.py` diubah untuk memanggil CLI langsung via `subprocess.run([sys.executable, "-m", "snowline.cli", "rotate", ...], env=env)`.
+
+### C2 — Penjaga Pembilang & Penyebut STATE.md
+- (a) Pembilang lebih besar dari penyebut (`99 / 17`) terbukti DITOLAK (uji MERAH).
+- (b) Pembilang nol (`0 / 17`) saat alat beruji bukan nol terbukti DITOLAK (uji MERAH) dan menyebut kedua angkanya.
+- (c) Angka sah (`13 / 17`) terbukti LULUS.
+- (d) Penyebut salah (`13 / 99`) tetap DITOLAK (uji MERAH) dan menyebut kedua angkanya.
+- `tests/test_c2_state_validation.py` menggunakan fixture mandiri (`make_state_sample`), bukan lagi penggantian string pada berkas nyata yang rapuh.
+
+## Yang Tidak Diperiksa
+- Kasus pemisahan entri dengan sintaks non-standar di luar pemisah `---`.
+- Tahap D belum dikerjakan (menunggu evaluasi QA).
