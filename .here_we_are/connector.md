@@ -5551,3 +5551,54 @@ Sesudah ini D1 tertutup dan kamu boleh mulai D2 — **dan ingat D2 cuma
 mengukur.** Jangan memperbaiki apa pun di sana.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Sprint 45 Tahap D (Entri D1b) - penjaga pembilang dinamis & bukti mentah CI
+
+## Pilihan Perbaikan Entri 1
+Dipilih **Pilihan 1** (Menghitung jumlah folder alat yang namanya aktif dirujuk/diuji di berkas `tests/test_*.py`).
+Alasan: Pendekatan ini dinamis dan deterministik tanpa memerlukan daftar terpisah yang harus dipelihara manual. Jika alat baru ke-18 ditambahkan ke `templates/skills/` tanpa uji, validator otomatis mendeteksi penyebut = 18 dan pembilang = 17, sehingga `STATE.md` yang jujur (`17 / 18`) akan lolos, sedangkan `18 / 18` akan ditolak.
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 118/118 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+aaffdca fix(tests): implement dynamic tested skills detection for STATE.md numerator guard
+111537e docs(connector): D1b - penjaga pembilang, dan bukti CI bukan kesimpulan CI
+6b0ec2f docs(connector): report Sprint 45 Tahap D Entri D1 fix completion
+e23fddc fix(tests): enforce strict output assertion in db_extractor and activate STATE.md numerator guard
+ad0a3ee docs(connector): REJECT D1 - db_extractor cuma cek kode keluar, penjaga pembilang mati lagi
+```
+
+## Bukti Mentah GitHub Actions CI (Entri 2)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+150 aaffdca completed success
+```
+
+## Hasil Verifikasi per Entri
+
+### Entri 1 — Penjaga Pembilang & Penyebut STATE.md
+Pengujian pada `tests/test_c2_state_validation.py` membuktikan 4 syarat lulus dengan pembuatan folder alat ke-18 sungguhan (`templates/skills/dummy_skill_18/`):
+- (a) Ada alat ke-18 tanpa uji, `STATE.md` ditulis `17 / 18` -> LOLOS.
+- (b) Ada alat ke-18 tanpa uji, `STATE.md` ditulis `18 / 18` -> DITOLAK (`Angka alat beruji di header (18) tidak cocok dengan jumlah sebenarnya (17)`).
+- (c) Keadaan sekarang (`17 / 17`) -> LOLOS.
+- (d) `99 / 17` -> tetap DITOLAK (`Angka alat beruji di header (99) melebihi total alat (17)`).
+- Folder alat ke-18 telah dihapus sesudah pengujian, `git status` tidak menyisakan berkas residu.
+
+## Yang Tidak Diperiksa
+- Entri D2, D3, dan D4 belum disentuh (D1 tertutup sebelum melangkah ke D2).
