@@ -1,4 +1,4 @@
-﻿import os
+import os
 import tempfile
 
 def test_init_test_creates_files():
@@ -27,8 +27,8 @@ def test_init_test_creates_files():
             with open("SNOWLINE_TEST.md", "r", encoding="utf-8") as f:
                 text = f.read()
                 if "Dilarang memperbaiki" not in text: raise AssertionError()
-                if "Wajib mencatat tebakan" not in text: raise AssertionError()
-                if "Wajib mencatat lingkungan" not in text: raise AssertionError()
+                if "Catat tebakan" not in text: raise AssertionError()
+                if "Kerjakan berurutan" not in text: raise AssertionError()
                 if "winreg" in text: raise AssertionError()
         finally:
             os.chdir(cwd)
