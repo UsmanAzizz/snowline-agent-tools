@@ -2798,3 +2798,155 @@ Status CI GitHub Actions:
 ### Apa yang TIDAK saya periksa
 - Saya tidak memeriksa apakah ada file build legacy selain `.egg-info` (seperti `.tox` atau `.nox`) yang mungkin dibuat oleh toolchain pihak ketiga di luar setuptools/build standar.
 - Saya tidak memeriksa integrasi jika pengguna menggunakan manajer paket non-pip (seperti conda atau poetry) untuk mendeteksi `direct_url.json`.
+
+
+# QA -> PM: kedua entri lulus dan mutasinya menggigit. Tetapi pemasangan global di mesin PM berubah jadi mode editable, dan syarat lulus saya sendiri yang menyarankannya.
+
+## Yang lulus, dibuktikan QA
+
+```
+Results: 95/95 passed, 0 failed
+Run #109  5ce2bd8  completed  success
+Run #110  d3f4231  completed  success
+Rule #12 Verified: All targets are byte-identical.
+```
+
+**Entri 1 — tiga berkas dilepas dari lacakan:**
+
+```
+egg-info terlacak : 0
+test_agent di git : 0
+test_agent di disk: 0
+berkas liar       : 0
+
+.gitignore:34  src/*.egg-info/
+.gitignore:35  *.egg-info/
+```
+
+**Entri 2 — penanda, bukan teks, dan dua arahnya diuji QA:**
+
+```
+a) keadaan wheel (direct_url tanpa vcs_info)
+   x Tidak dapat menentukan versi package terinstal
+   i Penyebab: direct_url.json ada tetapi tanpa vcs_info (...)
+   (tidak ada baris "Coba:")
+
+b) direct_url.json dihapus
+   i Penyebab: direct_url.json tidak ada di ...
+   i Coba: pip install --force-reinstall git+https://...
+```
+
+**Dan mutasinya menggigit.** QA mengganti seluruh kalimat pesannya:
+
+```
+i Penyebab: KALIMAT SUDAH DIUBAH TOTAL
+(tetap tidak ada baris "Coba:")
+```
+
+Kode lama akan memunculkan saran pasang ulang di situ, karena substringnya
+tidak cocok lagi. Sekarang tidak. Itu arah (c) yang jadi alasan entri ini ada,
+dan ia terbukti.
+
+**Dua commit terpisah**, `fc83054` dan `5ce2bd8`, masing-masing satu entri.
+
+## Penahan — pemasangan global PM berubah jadi editable, menunjuk ke repo ini
+
+```
+$ ls site-packages/*.pth
+__editable__.snowline_agent_tools-1.1.3.pth
+
+$ cat __editable__.snowline_agent_tools-1.1.3.pth
+D:\AAAAAAAAA\open_source_agents\src
+
+$ stat -c '%y' __editable__.snowline_agent_tools-1.1.3.pth
+2026-08-27 14:16:34
+```
+
+```
+$ python -c "import importlib.util; print(importlib.util.find_spec('snowline').origin)"
+D:\AAAAAAAAA\open_source_agents\src\snowline\__init__.py
+```
+
+Folder paket di `site-packages` sudah tidak ada. Perintah `snowline` di mesin
+ini sekarang menjalankan **pohon kerja repo**, termasuk perubahan yang belum
+di-commit.
+
+Akibatnya untuk PM:
+
+```
+1  setiap proyek di mesin ini memakai kode repo yang sedang dicheckout
+2  uji lapangan berikutnya tidak menguji versi rilis, tetapi meja kerja kita
+3  kalau ada yang setengah jadi di pohon kerja, semua proyek ikut kena
+```
+
+**Dan ini sebagian salah saya.** Syarat lulus Entri 1 yang saya tulis berbunyi:
+
+> `git status` sesudah `python -m build` (atau `pip install -e .`) -> bersih
+
+Saya menyebut `pip install -e .` sebagai pilihan, tanpa menyadari ia mengubah
+pemasangan global PM. Kamu menjalankan apa yang tertulis.
+
+**Perbaikan, dan ini urusan PM bukan TL:**
+
+```
+pip install --force-reinstall --no-cache-dir \
+  "git+https://github.com/UsmanAzizz/snowline-agent-tools.git@d3f4231"
+```
+
+**Untuk sprint berikutnya:** kalau perlu memastikan `git status` bersih sesudah
+build, pakai `python -m build` saja, atau `pip install -e . --target <folder
+sementara>`. Jangan sentuh pemasangan global.
+
+## Penahan 2 — pesan "dipasang dari wheel" salah untuk pemasangan editable
+
+Keadaan mesin PM sekarang:
+
+```
+$ cat direct_url.json
+{"dir_info": {"editable": true}, "url": "file:///D:/AAAAAAAAA/open_source_agents"}
+
+$ snowline status
+x Tidak dapat menentukan versi package terinstal
+i Penyebab: direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)
+```
+
+Ia bukan wheel. Berkasnya sendiri menuliskan `"editable": true`, dan pesannya
+mengabaikan itu lalu menebak salah.
+
+Penekanan saran pasang ulang kebetulan tetap benar untuk keadaan ini, jadi
+akibatnya ringan. Tetapi orang yang membaca pesan itu akan mencari wheel yang
+tidak pernah ada.
+
+**Perbaikan:** baca `dir_info.editable`. Kalau benar, `pkg_unknown_kind =
+"editable"` dan pesannya menyebut jalur yang ditunjuknya:
+
+```
+dipasang mode editable, menunjuk ke <url>
+```
+
+Itu justru pesan yang paling berguna dari semuanya, karena ia memberitahu
+kode mana yang sebenarnya jalan.
+
+**Syarat lulus:**
+
+```
+a  direct_url editable            -> pesannya menyebut editable dan jalurnya
+b  direct_url tanpa vcs_info dan  -> pesannya tetap menyebut wheel
+   tanpa dir_info
+c  keduanya                       -> saran pasang ulang tetap ditekan
+```
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| Entri 1, tiga berkas dilepas, `.gitignore` | PASS, diuji QA |
+| Entri 2, penanda bukan teks | PASS, dua arah |
+| Entri 2, mutasi kalimat | PASS, menggigit |
+| dua commit terpisah | PASS |
+| suite 95/95, CI hijau, Aturan #12 | PASS |
+| pemasangan global PM jadi editable | **REJECT**, sebagian salah QA |
+| pesan wheel salah untuk editable | **REJECT** |
+
+Kedua entri dikerjakan persis seperti diminta. Yang satu rusak justru karena
+yang saya minta kurang hati-hati.
