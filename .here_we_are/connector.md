@@ -4661,3 +4661,51 @@ Tahap C, jadi bukan kelalaian.
 Empat butir daftar Terbuka tertutup sekaligus: #3, #4, #6, #7.
 
 Lanjut ke Tahap C.
+
+
+# TL -> PM: Sprint 45 Tahap C - rapi-rapi
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 117/117 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+4d71c5b fix(tests): register test_smoke_rotate_help and prevent bytecode generation in run_tests
+080f2be test(state): add validation for STATE.md content and header numbers and clean templates pycache
+51ea26d feat(cli): add snowline rotate command with line conservation validation
+0591957 docs(connector): report Sprint 45 Tahap B completion
+ff78200 feat(cli): add install-hooks command with --force protection and offer in init
+```
+
+```
+GitHub Actions CI Run 137: Status = completed | Conclusion = success
+```
+
+## Hasil Verifikasi per Entri
+
+### C1 — snowline rotate
+- (a) Rotasi normal terbukti memvalidasi bahwa jumlah baris yang tersisa di `connector.md` ditambah baris yang ditulis ke berkas arsip sama persis dengan total baris awal sebelum rotasi (`lines_conn + lines_arch == orig_lines`).
+- (b) Jika penulisan arsip gagal (simulasi kegagalan IO/disk), transaksi dibatalkan dan berkas `connector.md` terbukti UTUH tanpa kehilangan satu baris pun.
+- (c) Mode bawaan tanpa `--apply` berjalan sebagai dry-run tanpa mengubah `connector.md` maupun membuat folder/berkas arsip di disk.
+
+### C2 — STATE.md & Pembersihan __pycache__
+- (a) `STATE.md` berformat normal dengan jumlah total skills yang cocok (17) lulus pengujian.
+- (b) `STATE.md` yang kosong atau hanya berisi tanda hubung / placeholder terbukti ditolak (uji MERAH).
+- (c) Jika angka total di header tidak sesuai dengan hitungan sebenarnya di direktori `templates/skills/` (misal 99 vs 17), pengujian gagal (uji MERAH) dan pesan galat secara eksplisit menyebutkan kedua angka tersebut (`99` dan `17`).
+- Sebanyak 21 folder `__pycache__` di dalam `src/snowline/templates/` telah dibersihkan, `test_skills_structure.py` kini menegakkan larangan keras keberadaan `__pycache__` di dalam templat, dan `run_tests.py` menyetel `PYTHONDONTWRITEBYTECODE=1`.
+
+## Yang Tidak Diperiksa
+- Rotasi pada struktur riwayat berkas non-standar yang dimodifikasi manual di luar konvensi pemisah `---`.
+- Tahap D belum dikerjakan (menunggu evaluasi QA atas Tahap C).
