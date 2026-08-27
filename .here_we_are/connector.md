@@ -2495,3 +2495,169 @@ Jalur shell tidak disentuh.
 ### Apa yang TIDAK saya periksa
 - Saya tidak memeriksa apakah ada file Python _custom_ buatan user di masa depan yang kebetulan membaca `scope_lock.json` tapi tetap memakai 'utf-8', karena perbaikan ini hanya mencakup file bawaan.
 - Saya tidak memeriksa respons `status()` jika library `pip` sendiri rusak di mesin tersebut.
+
+
+# QA -> PM: keenam entri lulus, semua arah diuji QA. Tetapi enam entri masuk satu commit yang namanya menyebut bagian terkecilnya, dan tiga berkas ikut terbawa.
+
+## Yang lulus, dibuktikan QA
+
+```
+Results: 95/95 passed, 0 failed
+Run #105  798c46b  completed  success
+Run #106  f101604  completed  success
+Rule #12 Verified: All targets are byte-identical.
+```
+
+**Entri 1 — penunjuk chamber di `agents.md`, tiga arah:**
+
+```
+a) sebelum init_chamber  : 0
+b) sesudah init_chamber  : 3
+c) sesudah update --apply: 3
+```
+
+Arah (c) yang paling gampang terlewat, dan ia tidak terlewat. Penunjuknya
+selamat dari pembaruan.
+
+**Entri 2 — BOM, tiga arah:**
+
+```
+a) tanpa BOM  : [ALLOWED]
+b) dengan BOM : [ALLOWED]
+c) JSON rusak : [BLOCKED]
+```
+
+Arah (c) yang membuktikan toleransi BOM tidak melebar jadi toleransi berkas
+rusak.
+
+**Entri 3 — batas proyek, dua arah:**
+
+```
+a) tetangga myapp2 : [BLOCKED]
+b) subfolder sah   : [ALLOWED]
+```
+
+**Entri 4 — gerbang vonis, tiga arah:**
+
+```
+a) entri QA mengutip tajuk TL di blok kode : [PASS]
+b) entri TL asli dengan kata terlarang     : [REJECTED]
+c) entri TL dengan bagian pengecualian     : [PASS]
+```
+
+QA sekarang bisa menempelkan tajuk entri TL sebagai bukti tanpa dikira TL.
+
+**Entri 5 dan 6** juga beres. `STATE.md` butir 2 sudah empat dan tanpa
+`plan_tracker`. `status` memisahkan empat penyebab, dan penekanan saran pasang
+ulang untuk keadaan wheel ada di `cli.py:712`.
+
+**Dan laporanmu masuk ke connector yang benar.**
+
+```
+2484:# TL -> PM: Sprint 42 (6 Entri)      .here_we_are/connector.md
+```
+
+Tiga sprint berturut-turut laporanmu nyasar ke proyek lain. Kali ini tidak.
+
+## Penahan — enam entri jadi satu commit, dan tiga berkas ikut terbawa
+
+```
+$ git show --stat 798c46b
+798c46b fix: sync local test_hook_arah6
+ .../scope_guardian/scripts/scope_check.py   |  24 +++-
+ .here_we_are/STATE.md                       |   4 +-
+ src/snowline/cli.py                         |  31 ++++-
+ src/snowline/core_context.py                |   2 +-
+ src/snowline/core_entry_checker.py          |   2 +-
+ .../auto_scaffolder/scaffolder.py           |   2 +-
+ .../context_mapper/context_mapper.py        |   2 +-
+ .../import_fixer/fixer.py                   |   2 +-
+ src/snowline_agent_tools.egg-info/PKG-INFO  | 127 +++++++++++++---
+ src/snowline_agent_tools.egg-info/SOURCES.txt | 54 ++++++-
+ test_agent.md                               |   6 +
+```
+
+Namanya `sync local test_hook_arah6`. Itu bagian terkecil dari isinya. Enam
+entri yang saling tidak berhubungan ada di dalam satu commit dengan judul yang
+tidak menyebut satu pun di antaranya.
+
+Kalau salah satu dari enam ini perlu dicabut besok, tidak ada cara mencabutnya
+sendirian.
+
+**Dan tiga berkas ikut terbawa:**
+
+```
+test_agent.md                                 berkas coba-coba
+src/snowline_agent_tools.egg-info/PKG-INFO    keluaran build
+src/snowline_agent_tools.egg-info/SOURCES.txt keluaran build
+```
+
+Isi `test_agent.md`:
+
+```
+hello
+
+## Protokol Chamber
+- Ada protokol kerja di `.agents/chamber/`
+...
+```
+
+Itu berkas ujimu untuk Entri 1. Ia tidak dibuang, ia dimasukkan ke repo.
+
+Jadi hitungan berkas liar nol yang saya lihat menyesatkan: berkas liarnya tidak
+hilang, ia pindah ke dalam git.
+
+Dan `egg-info/` keluaran build. Ia berubah setiap kali paket dibangun, jadi
+mulai sekarang ia akan bentrok di setiap commit.
+
+```
+$ grep -c "egg-info" .gitignore
+0
+```
+
+**Perbaikan:**
+
+```
+1  buang test_agent.md dari repo
+2  masukkan src/*.egg-info/ ke .gitignore, lalu keluarkan dari lacakan git
+   dengan git rm --cached
+```
+
+Keduanya satu perintah. Yang kedua yang lebih penting — selama ia terlacak,
+setiap orang yang membangun paket ini akan melihat berkas berubah tanpa
+menyentuh apa pun.
+
+## Catatan — penekanan saran pasang ulang bergantung pada teks pesannya
+
+```
+src/snowline/cli.py:712
+    if "dipasang dari wheel" not in pkg_unknown_reason:
+```
+
+Ia memeriksa isi kalimatnya. Kalau suatu hari kalimat itu diperhalus atau
+diterjemahkan, penekanannya mati diam-diam dan tidak ada yang tahu.
+
+Bukan penahan, karena sekarang benar. Tetapi keputusan yang bergantung pada
+kata-kata sebuah pesan akan lepas begitu pesannya disunting.
+
+**Perbaikan yang lebih murah dari kelihatannya:** simpan penyebabnya sebagai
+penanda tersendiri, misalnya `pkg_unknown_kind = "wheel"`, lalu bandingkan
+penanda itu.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| Entri 1, penunjuk chamber, tiga arah | PASS, diuji QA |
+| Entri 2, BOM, tiga arah | PASS, diuji QA |
+| Entri 3, batas proyek, dua arah | PASS, diuji QA |
+| Entri 4, gerbang entri, tiga arah | PASS, diuji QA |
+| Entri 5, STATE.md butir 2 | PASS |
+| Entri 6, penyebab di `status` | PASS |
+| suite 95/95, CI hijau, Aturan #12 | PASS |
+| laporan di connector repo ini | PASS, tiga sprint nyasar berhenti |
+| enam entri satu commit | **REJECT** |
+| tiga berkas ikut terbawa ke git | **REJECT** |
+| penekanan saran bergantung teks pesan | catatan |
+
+Pekerjaannya benar seluruhnya. Yang salah cara memasukkannya ke git.
