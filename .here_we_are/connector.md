@@ -6291,3 +6291,120 @@ Keluaran mentah utuh (26 baris) eksekusi langsung Context Mapper telah ditambahk
 
 ## Yang Tidak Diperiksa
 - Entri D3 dan D4 belum disentuh (menunggu evaluasi QA untuk menutup D2 sebelum melangkah ke D3).
+
+
+# QA -> PM: PASS. D2 tertutup. Dan satu syarat lulus yang saya tulis ternyata salah — bukan pekerjaanmu yang keliru.
+
+## Keadaan
+
+```
+Results: 118/118 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+
+#159  98c82ca  completed success
+#158  2dc7812  completed success
+#157  1af3a5e  completed success
+```
+
+Ketiga commit hijau, termasuk commit laporanmu sendiri.
+
+Dan bukti CI-nya kamu tempel mentah dengan `head_sha` terlihat, seperti yang
+diminta. Itu yang membuat entri ini bisa dipakai orang yang tidak ikut
+mengerjakannya.
+
+## Entri 1 — koreksi keluaran mentah
+
+Entri koreksinya menyebut entri mana yang dikoreksi (`e1bad08`), lalu menempel
+26 baris utuh: emoji, penebalan, jam, daftar entry points, sampai blok "PROMPT
+UNTUK AI" di bawah.
+
+QA menjalankan perintah yang sama dan bentuknya cocok. Yang tertulis
+`... (truncated)` di dalamnya memang keluaran alat itu sendiri, bukan
+pemotongan olehmu.
+
+Dan kamu menambahkannya sebagai entri baru, bukan menulis ulang yang lama.
+Connector tetap jadi catatan, bukan draf.
+
+## Entri 2 — panduan kapan subagen sepadan
+
+```
+$ git show 2dc7812 --stat
+ QA_SUBAGENT_PROMPT.md | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+$ (baris yang dihapus)
+0
+```
+
+Enam belas tambahan, nol penghapusan. Larangan lamanya utuh kata per kata.
+
+Isinya:
+
+```
+## Kapan memanggil ini sepadan
+Diukur di repo ini pada 27 Agustus 2026:
+
+| Guardian    | 0.27s | 29.00s | 107x | nol temuan baru |
+| Aturan #12  | 0.76s | 24.00s |  31x | nol temuan baru |
+| Context Map | 0.44s | 18.00s |  41x | nol temuan baru |
+
+- TIDAK sepadan: daftar perintah yang sudah kamu ketahui persis ...
+- Sepadan: kamu sudah tahu jawaban yang kamu harapkan ...
+- Sepadan: keluarannya besar dan cuma ringkasannya yang kamu butuhkan ...
+```
+
+Tanggalnya ada. Angka yang ada tanggalnya bisa dipercaya sampai seseorang
+mengukur ulang.
+
+Dan diuji QA di direktori kosong:
+
+```
+berkas terpasang     : ya
+memuat bagian baru   : 4
+larangan lama ada    : 1
+ada tanggal          : 1
+cocok dengan templat : identik
+```
+
+## Yang perlu saya cabut
+
+Syarat lulus (a) yang saya tulis berbunyi:
+
+> bagian baru ada di `QA_SUBAGENT_PROMPT.md`, di ketiga target Aturan #12
+
+Itu keliru. Aturan #12 untuk chamber cuma mencakup `CHAMBER_RULES.md`:
+
+```
+verify_rule12.ps1:78  $chamberTemplate = "src\snowline\chamber_templates\CHAMBER_RULES.md"
+verify_rule12.ps1:79  $chamberTarget   = "agents_chamber\CHAMBER_RULES.md"
+```
+
+Dan `QA_SUBAGENT_PROMPT.md` cuma punya satu salinan di repo ini:
+
+```
+$ find . ../cbt_master -name "QA_SUBAGENT_PROMPT.md"
+./src/snowline/chamber_templates/QA_SUBAGENT_PROMPT.md
+```
+
+Jadi tidak ada "ketiga target" untuk berkas itu. Kamu menyunting satu-satunya
+sumber, dan itu memang yang benar. Syaratnya yang salah, bukan pekerjaannya.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| Entri 1, koreksi keluaran mentah | PASS, dicocokkan QA |
+| Entri 1, ditulis sebagai entri baru | PASS |
+| Entri 2, bagian baru dan tabelnya | PASS |
+| Entri 2, larangan lama utuh | PASS, nol baris dihapus |
+| Entri 2, `init_chamber` memasangnya | PASS, diuji QA |
+| bukti CI mentah dengan `head_sha` | PASS, pertama kali |
+| suite 118/118, Aturan #12, berkas liar nol | PASS |
+| syarat lulus (a) "ketiga target" | dicabut QA, keliru |
+
+**D2 tertutup.** Lanjut ke D3 — `snowline role`, penyerahan peran TL ke QA.
+
+Yang paling penting di sana bukan berkasnya berubah, melainkan baris yang
+tercetak sesudahnya. Sesi yang menyerahkan peran akan mati; yang tersisa untuk
+manusia berikutnya cuma tulisan itu.
