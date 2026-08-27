@@ -4,10 +4,39 @@ import json
 import fnmatch
 from datetime import datetime
 
+def is_light_mode(start_dir=None):
+    """Memeriksa apakah mode ringan aktif via berkas penanda .agents/mode_ringan.json."""
+    if start_dir is None:
+        start_dir = os.getcwd()
+    current_dir = os.path.abspath(start_dir)
+    while True:
+        agents_dir = os.path.join(current_dir, '.agents')
+        if os.path.isdir(agents_dir):
+            marker_path = os.path.join(agents_dir, 'mode_ringan.json')
+            if os.path.exists(marker_path):
+                try:
+                    with open(marker_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if isinstance(data, dict) and data.get('mode_ringan') is True:
+                        return True
+                    else:
+                        print(f"[WARN] Berkas {marker_path} ditemukan tetapi isinya tidak dikenali (diharapkan {{\"mode_ringan\": true}}). Mode ringan dimatikan.")
+                        return False
+                except Exception as e:
+                    print(f"[WARN] Berkas {marker_path} ditemukan tetapi format JSON tidak valid ({e}). Mode ringan dimatikan.")
+                    return False
+            return False
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
+    return False
 # Umur maksimal scope_lock sebelum dianggap sisa tugas lama. Memperingatkan,
 # tidak memblokir: lock yang basi menyesatkan, tetapi memblokir karenanya akan
 # mematikan alat ini pada pemakaian pertama.
 MAX_UMUR_JAM = 24
+
+
 
 
 def peringatan_kesegaran(scope_data):
@@ -63,7 +92,7 @@ def is_file_in_scope(filepath, allowed_files, allowed_patterns):
     return False
 
 
-def check_scope(target_file):
+def check_scope(target_file, light_mode=False):
     # Normalize path separators for comparison
     target_file = target_file.replace('\\', '/')
     current_dir = os.path.abspath(os.getcwd())
@@ -81,6 +110,9 @@ def check_scope(target_file):
         current_dir = parent
     
     if not lock_file_path:
+        if light_mode or is_light_mode():
+            print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
+            return True
         print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
         print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
@@ -167,7 +199,8 @@ def check_scope(target_file):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: python scope_check.py <file_path>")
+        print("Usage: python scope_check.py <file_path> [--mode-ringan]")
         sys.exit(1)
     
-    check_scope(sys.argv[1])
+    light_flag = any(arg in ['--mode-ringan', '--lightweight', '--light'] for arg in sys.argv[2:])
+    check_scope(sys.argv[1], light_mode=light_flag)

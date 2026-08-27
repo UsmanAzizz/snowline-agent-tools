@@ -10,7 +10,7 @@ from pathlib import Path
 # Add skills directory to path
 skills_path = Path(__file__).parent.parent / "src" / "snowline" / "templates" / "skills"
 sys.path.insert(0, str(skills_path))
-from scope_guardian.scripts.scope_check import check_scope
+from scope_guardian.scripts.scope_check import check_scope, is_light_mode
 
 class TestScopeCheck:
     """Tests for scope_check function"""
@@ -150,12 +150,16 @@ class TestScopeCheck:
                 os.chdir(original_cwd)
 
     def test_mode_ringan_allowed(self):
-        """Should allow execution without scope_lock.json when mode ringan marker is present"""
+        """(a) mode_ringan.json with {"mode_ringan": true} enables light mode.
+        (b) missing marker -> mode ringan OFF.
+        (c) mode_ringan.json with unrecognized content -> mode ringan OFF with warning.
+        (d) old marker name -> mode ringan OFF."""
+        # Arah a: mode_ringan.json valid -> lolos tanpa scope_lock.json
         with tempfile.TemporaryDirectory() as tmpdir:
             agents_dir = os.path.join(tmpdir, '.agents')
             os.makedirs(agents_dir)
-            with open(os.path.join(agents_dir, 'mode_ringan'), 'w') as f:
-                f.write('')
+            with open(os.path.join(agents_dir, 'mode_ringan.json'), 'w', encoding='utf-8') as f:
+                json.dump({"mode_ringan": True}, f)
 
             target_file = os.path.join(tmpdir, 'src', 'components', 'Button.jsx')
             os.makedirs(os.path.dirname(target_file), exist_ok=True)
@@ -165,6 +169,29 @@ class TestScopeCheck:
             original_cwd = os.getcwd()
             os.chdir(tmpdir)
             try:
+                assert is_light_mode(tmpdir) is True
                 assert check_scope(os.path.relpath(target_file, tmpdir)) is True
             finally:
                 os.chdir(original_cwd)
+
+        # Arah b: berkas tidak ada -> MATI (check_scope False)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = os.path.join(tmpdir, '.agents')
+            os.makedirs(agents_dir)
+            assert is_light_mode(tmpdir) is False
+
+        # Arah c: berkas ada tetapi format salah -> MATI
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = os.path.join(tmpdir, '.agents')
+            os.makedirs(agents_dir)
+            with open(os.path.join(agents_dir, 'mode_ringan.json'), 'w', encoding='utf-8') as f:
+                json.dump({"mode": "blah"}, f)
+            assert is_light_mode(tmpdir) is False
+
+        # Arah d: nama lama -> MATI
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = os.path.join(tmpdir, '.agents')
+            os.makedirs(agents_dir)
+            with open(os.path.join(agents_dir, 'light_mode'), 'w', encoding='utf-8') as f:
+                f.write('')
+            assert is_light_mode(tmpdir) is False

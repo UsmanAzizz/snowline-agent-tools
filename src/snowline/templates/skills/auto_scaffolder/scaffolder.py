@@ -8,34 +8,32 @@ if sys.stdout.encoding != 'utf-8':
 import json
 
 def is_light_mode(start_dir=None):
-    """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
+    """Memeriksa apakah mode ringan aktif via berkas penanda .agents/mode_ringan.json."""
     if start_dir is None:
         start_dir = os.getcwd()
     current_dir = os.path.abspath(start_dir)
     while True:
         agents_dir = os.path.join(current_dir, '.agents')
         if os.path.isdir(agents_dir):
-            markers = ['mode_ringan', 'light_mode', 'lightweight', 'mode_ringan.json', 'light_mode.json', 'lightweight.json']
-            for m in markers:
-                if os.path.exists(os.path.join(agents_dir, m)):
-                    return True
-            mode_json = os.path.join(agents_dir, 'mode.json')
-            if os.path.exists(mode_json):
+            marker_path = os.path.join(agents_dir, 'mode_ringan.json')
+            if os.path.exists(marker_path):
                 try:
-                    with open(mode_json, 'r', encoding='utf-8') as f:
+                    with open(marker_path, 'r', encoding='utf-8') as f:
                         data = json.load(f)
-                    if data.get('mode') in ['ringan', 'light', 'lightweight'] or data.get('mode_ringan') is True or data.get('light_mode') is True:
+                    if isinstance(data, dict) and data.get('mode_ringan') is True:
                         return True
-                except Exception:
-                    pass
+                    else:
+                        print(f"[WARN] Berkas {marker_path} ditemukan tetapi isinya tidak dikenali (diharapkan {{\"mode_ringan\": true}}). Mode ringan dimatikan.")
+                        return False
+                except Exception as e:
+                    print(f"[WARN] Berkas {marker_path} ditemukan tetapi format JSON tidak valid ({e}). Mode ringan dimatikan.")
+                    return False
+            return False
         parent = os.path.dirname(current_dir)
         if parent == current_dir:
             break
         current_dir = parent
     return False
-
-
-
 def check_scope_write(write_target):
     """Block if write target is outside allowed scope (security gate, fail-closed)."""
     # Ensure .agents/skills is in sys.path so scope_guardian can be found
