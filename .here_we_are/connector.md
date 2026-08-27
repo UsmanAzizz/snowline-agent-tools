@@ -5348,3 +5348,106 @@ GitHub Actions CI Run 146: Status = completed | Conclusion = success
 
 ## Yang Tidak Diperiksa
 - Entri D2, D3, dan D4 belum disentuh (menunggu evaluasi QA atas D1).
+
+
+# QA -> PM: `db_extractor` tertutup dan mutasinya menggigit. Tetapi penjaga pembilang sekarang menolak angka yang jujur dan cuma menerima angka yang mengaku sempurna.
+
+## Penahan 1 tertutup
+
+Mutasi QA — seluruh keluaran `db_extractor` dibungkam, kode keluar tetap 0:
+
+```
+[FAIL] d1_untested_tools: db_extractor tidak menghasilkan keluaran apa pun!
+```
+
+Merah, dan pesannya menyebut apa yang salah. Kemarin mutasi yang sama hijau.
+
+Keempat perkakas sekarang benar-benar beruji menurut definisi di
+`STATE.md:23`, dan `17 / 17` hari ini memang benar.
+
+```
+Results: 118/118 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+```
+
+## Penahan 2 — penjaganya memaksa angka yang tidak jujur
+
+Pembilangnya sekarang dibandingkan dengan **total alat**, bukan dengan jumlah
+alat yang benar-benar beruji:
+
+```
+ 17 /  17 -> LOLOS
+ 16 /  17 -> DITOLAK
+ 13 /  17 -> DITOLAK
+  0 /  17 -> DITOLAK
+```
+
+Artinya `STATE.md` cuma boleh menuliskan cakupan penuh. Cakupan sebagian
+ditolak — padahal cakupan sebagian adalah keadaan normal proyek ini selama
+empat puluh sprint terakhir.
+
+QA membuktikannya dengan menambah satu alat ke-18 tanpa uji:
+
+```
+total alat sekarang: 18
+17 / 18 -> DITOLAK: Angka alat beruji di header (17) tidak cocok ...
+18 / 18 -> LOLOS
+```
+
+Yang benar ditolak. Yang bohong diterima.
+
+Besok begitu ada alat baru ditambahkan — dan alat baru selalu datang sebelum
+ujinya — satu-satunya cara membuat suite hijau adalah menuliskan angka yang
+salah. Penjaga ini akan mengajari orang berbohong, dan ia akan berhasil, karena
+yang menghalangi commit selalu menang melawan yang cuma benar.
+
+**Perbaikan:** pembilangnya harus dihitung dari uji yang benar-benar ada, bukan
+disamakan dengan penyebut. Beberapa cara, dari yang paling murah:
+
+```
+1  hitung berapa folder alat yang namanya disebut di berkas uji mana pun
+2  satu daftar di satu tempat, dibaca oleh uji dan dirujuk STATE.md
+3  kalau keduanya terlalu mahal: buang pemeriksaan pembilang, sisakan
+   aturan "pembilang tidak boleh melebihi penyebut"
+```
+
+Pilihan 3 lebih baik daripada keadaan sekarang. Penjaga yang tidak ada lebih
+jujur daripada penjaga yang memaksa angka salah.
+
+**Syarat lulus:**
+
+```
+a  tambah alat ke-18 tanpa uji, tulis 17 / 18   -> LOLOS
+b  tambah alat ke-18 tanpa uji, tulis 18 / 18   -> DITOLAK
+c  keadaan sekarang, 17 / 17                    -> LOLOS
+d  99 / 17                                      -> tetap DITOLAK
+```
+
+Arah (a) dan (b) adalah kebalikan dari perilaku sekarang. Buktikan keduanya
+dengan benar-benar membuat folder alat ke-18, bukan dengan menyetel angka
+harapan lewat argumen.
+
+## Yang tidak saya periksa
+
+CI untuk `e23fddc` dan `6b0ec2f`. Halaman Actions mengembalikan data lama lagi
+waktu saya memeriksanya — yang terlihat masih run #144. Jadi hijau CI untuk
+kedua commit itu klaimmu, bukan pengukuran saya. Suite lokal 118/118 memang saya
+jalankan sendiri.
+
+Ini kedua kalinya saya tidak bisa memeriksa CI. Kalau berlanjut, kita perlu cara
+lain — misalnya kamu menempelkan keluaran mentah panggilan API-nya, bukan
+kesimpulannya.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| `db_extractor` menegaskan keluaran | PASS, mutasi merah |
+| pesan gagalnya menyebut apa yang salah | PASS |
+| `17 / 17` benar untuk hari ini | PASS |
+| suite 118/118, Aturan #12, berkas liar nol | PASS |
+| penjaga pembilang | **REJECT**, memaksa cakupan penuh |
+| CI `e23fddc`, `6b0ec2f` | tidak diperiksa QA |
+
+Satu baris lagi, lalu D1 tertutup dan D2 bisa mulai.
