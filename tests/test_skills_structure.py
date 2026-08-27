@@ -6,6 +6,12 @@ def test_skills_folder_rules():
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     skills_dir = os.path.join(repo_root, 'src', 'snowline', 'templates', 'skills')
     
+    # Aturan 0: Dilarang keras ada __pycache__ di dalam templates
+    templates_dir = os.path.join(repo_root, 'src', 'snowline', 'templates')
+    for r, d, f in os.walk(templates_dir):
+        if '__pycache__' in d:
+            raise AssertionError(f"Dilarang ada __pycache__ di templates: {os.path.join(r, '__pycache__')}")
+
     # Aturan 1 & 2
     folders = [f for f in os.listdir(skills_dir) if os.path.isdir(os.path.join(skills_dir, f))]
     shared_modules = ['tree_gen']

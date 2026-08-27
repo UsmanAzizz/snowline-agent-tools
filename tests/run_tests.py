@@ -208,6 +208,7 @@ def main():
     import test_b4_close_entry_renumber
     import test_b5_install_hooks
     import test_c1_rotate
+    import test_c2_state_validation
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -231,6 +232,8 @@ def main():
     runner.run("b5_install_hooks", test_b5_install_hooks.test_b5_install_hooks_directions)
     print("Testing C1 snowline rotate...")
     runner.run("c1_rotate", test_c1_rotate.test_c1_rotate_directions)
+    print("Testing C2 STATE.md validation...")
+    runner.run("c2_state_validation", test_c2_state_validation.test_c2_state_validation_directions)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
