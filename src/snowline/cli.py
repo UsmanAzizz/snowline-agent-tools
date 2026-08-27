@@ -817,50 +817,63 @@ def init_test(force=False):
 
     snowline_test_content = """# Panduan Pengujian Snowline
 
-Kamu diminta untuk menguji paket alat agen ini di lingkungan saat ini.
+Kamu diminta memakai paket alat agen ini untuk mengerjakan pekerjaan sungguhan
+di proyek tempat kamu berada sekarang, lalu melaporkan apa yang terjadi.
 
-Ikuti aturan ketat berikut selama pengujian:
+Ini bukan tinjauan dan bukan penilaian. Jangan menulis apakah snowline bagus,
+berguna, atau menjanjikan. Tulis apa yang kamu jalankan dan apa yang keluar.
 
-1. **Dilarang memperbaiki.** Jangan mencoba memperbaiki masalah, menambal kode, atau mengubah konfigurasi agar perintahnya berjalan. Tugasmu hanya menguji dan melaporkan.
-2. **Wajib mencatat tebakan.** Jika kamu mencari suatu fitur dan tidak menemukannya, atau jika kamu harus menebak cara memakai suatu perintah karena informasinya tidak ada/kurang jelas, wajib catat tebakan tersebut.
-3. **Wajib mencatat lingkungan.** Sebelum mulai, catat rincian lingkunganmu (Sistem Operasi, versi Python, status pemasangan snowline terpasang di sistem atau dari sumber, dan versinya).
-4. Kamu bebas menjalankan perintah apa pun yang menurutmu lazim.
+## Aturan
 
-Silakan tuangkan seluruh temuanmu ke dalam berkas `TEST_REPORT.md` sesuai format yang ada di dalamnya.
+1. **Dilarang memperbaiki.** Jangan menambal kode, mengubah konfigurasi, atau
+   mengakali perintah supaya jalan. Kalau macet, catat macetnya lalu lanjut ke
+   tugas berikutnya.
+2. **Dilarang meringkas keluaran.** Tempel mentah. Tidak boleh ada
+   "*(dan 46 berkas lainnya)*" atau "*keluarannya panjang*". Kalau memang
+   panjang, tempel 15 baris pertama dan 5 baris terakhir, dan katakan berapa
+   baris yang dipotong.
+3. **Tidak ada klaim tanpa keluaran.** Kalimat "berhasil", "jalan", atau
+   "sesuai harapan" hanya boleh muncul tepat di bawah keluaran yang
+   menunjukkannya.
+4. **Dilarang membaca sumber snowline.** Jangan membuka repositori snowline-agent-tools, jangan membaca site-packages/snowline/. Kamu menguji dari luar. Kalau tebakan pertamamu salah, cara kedua salah, dan petunjuk layarnya tidak membantu — itu temuan. Kalau jawabannya tidak ada di --help atau docstring biasa, dan kamu baru bisa menemukannya setelah membaca file Python sumbernya, itu juga temuan: alatnya butuh dokumentasi yang lebih baik.
+5. **Catat tebakan.** Kalau kamu mencari sesuatu dan tidak ada, atau kamu harus menebak maksud argumennya, catat tebakan itu.
+6. **Kerjakan berurutan.** M1 sampai M9, jangan dilompati. Kalau satu hal gagal keras sampai kamu tidak bisa jalan sama sekali, baru tinggalkan.
+7. **Pakai alat dari proyek ini saja.** Semua skrip yang kamu jalankan harus berasal dari `.agents/` proyek tempat kamu sekarang. Jangan memanggil skrip dari proyek lain di mesin ini, walaupun jalurnya kamu tahu.
 """
 
     test_report_content = """# Laporan Pengujian Snowline
 
-## 1. Lingkungan
+Laporan ini bukan penilaian. Jangan menulis apakah snowline bagus atau tidak.
+
+## 0. Lingkungan
+
 - OS: 
 - Python: 
-- Snowline terpasang / sumber: 
-- Versi: 
+- Terpasang di sistem / dari sumber: 
+- Versi persis: 
+- Perintah yang membuktikan versinya:
 
-## 2. Perintah dan Keluaran
-*(Tuliskan perintah yang dijalankan dan keluaran mentahnya, termasuk jika gagal)*
+## 1. Masuk tanpa dituntun
 
-## 3. Yang Tidak Jalan
-*(Satu baris per hal, cantumkan perintah dan galatnya)*
+## 2. Companion
 
-## 4. Yang Harus Ditebak
-*(Satu baris per hal)*
+## 3. Satu suntingan sungguhan
 
-## 5. Ongkos Masuk
-*(Dalam detik, dari perintah pertama sampai mulai bekerja)*
+## 4. Batas tulis
 
-## 6. Keputusan yang tidak bisa kamu periksa
+## 5. Chamber: pasang dan baca
 
-Selama tugas ini, adakah keputusan yang kamu ambil tanpa cara memastikan
-keputusan itu benar? Bukan yang salah — yang tidak bisa diperiksa.
+## 6. Chamber: gerbang entri, dua arah
 
-Satu baris per keputusan, dan sebutkan apa yang akan membuktikannya salah
-seandainya ada.
+## 7. Satu agen, dua sesi
 
-Kalau tidak ada, tulis: tidak ada.
+## 8. Subagen QA
 
-## 7. Catatan Bebas
-*(Apa pun yang tidak muat di atas)*
+## 9. Alat yang tidak kamu sentuh
+
+## 10. Keputusan yang tidak bisa kamu periksa
+
+## 11. Ke mana waktunya habis
 """
 
     with open(snowline_test_path, "w", encoding="utf-8", newline="") as f:
