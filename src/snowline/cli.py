@@ -640,8 +640,14 @@ def status():
                     vcs_info = data.get('vcs_info', {})
                     installed_commit = vcs_info.get('commit_id', '')
                     if not installed_commit:
-                        pkg_unknown_kind = "wheel"
-                        pkg_unknown_reason = "direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)"
+                        dir_info = data.get('dir_info', {})
+                        if isinstance(dir_info, dict) and dir_info.get('editable') is True:
+                            pkg_unknown_kind = "editable"
+                            url_target = data.get('url', '')
+                            pkg_unknown_reason = f"dipasang dalam mode editable (menunjuk ke {url_target})"
+                        else:
+                            pkg_unknown_kind = "wheel"
+                            pkg_unknown_reason = "direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)"
                 except Exception as e:
                     pkg_unknown_kind = "parse_error"
                     pkg_unknown_reason = f"Gagal membaca direct_url.json: {e}"
@@ -728,7 +734,7 @@ def status():
     if pkg_unknown:
         print_error("Tidak dapat menentukan versi package terinstal")
         print_info(f"Penyebab: {pkg_unknown_reason}")
-        if pkg_unknown_kind != "wheel":
+        if pkg_unknown_kind not in ("wheel", "editable"):
             print_info("Coba: pip install --force-reinstall git+https://github.com/UsmanAzizz/snowline-agent-tools.git")
     elif pkg_latest:
         safe_print(f"  Paket         : commit {installed_commit[:8]}  (GitHub: {remote_commit[:8]})      -> terbaru")

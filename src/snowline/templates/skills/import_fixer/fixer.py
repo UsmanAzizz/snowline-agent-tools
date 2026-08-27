@@ -45,8 +45,9 @@ def check_scope_write(write_target):
         from scope_guardian.scripts.scope_check import check_scope
         return check_scope(write_target)
     except Exception as e:
-        print(f"[WARN] Failed to import check_scope from scope_guardian: {e}")
-        return True, True, ""
+        print(f"[BLOCKED] Failed to import check_scope from scope_guardian: {e}")
+        print("Pastikan skill scope_guardian terpasang di sebelah skill ini.")
+        sys.exit(1)
 
 IGNORE_DIRS = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
 EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx']

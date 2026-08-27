@@ -202,6 +202,7 @@ def main():
     import test_audit_cli
     import test_scope_callers
     import test_init_gitignore
+    import test_b1_status
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -212,6 +213,9 @@ def main():
     runner.run("unified_scope_callers", test_scope_callers.test_all_5_callers_after_unification)
     print("Testing init gitignore (Entry A6)...")
     runner.run("init_gitignore directions", test_init_gitignore.test_init_gitignore_and_scope)
+    print("Testing B1 status (editable/wheel)...")
+    runner.run("b1_status directions", test_b1_status.test_b1_status_directions)
+    runner.run("b1_fail_closed", test_b1_status.test_b1_fail_closed_when_scope_guardian_missing)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
