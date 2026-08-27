@@ -3188,3 +3188,177 @@ Rule #12 Verified: All targets are byte-identical.
 $ python scratch/wait_ci.py
 Commit: f29a6bf | Status: completed | Conclusion: success
 ```
+
+
+# QA -> PM: Entri 1 dan 3 lulus semua arah. Entri 2 mengubah penolakan yang benar jadi laporan berhasil yang salah, dan pesan berhentinya menyebut berkas yang tidak pernah ditulis.
+
+## Yang lulus, dibuktikan QA
+
+```
+Results: 99/99 passed, 0 failed
+Run #122  f29a6bf  completed  success
+Run #123  81a118b  completed  success
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+```
+
+**Entri 1 — validasi memakai `scripts.lint`, dua arah:**
+
+```
+a) scripts.lint gagal : STOP     isi berkas tetap "halo AAA dunia"
+b) scripts.lint lulus : SUCCESS  isi berkas jadi "halo BBB dunia"
+```
+
+Dan `npm run lint` memang benar dipanggil:
+
+```
+[DEBUG] Melakukan probe linter lokal/npx...
+Linter Syntax Error:
+> lint
+```
+
+Lubang yang meloloskan `className{x}` kemarin sekarang tertutup untuk proyek
+mana pun yang punya `scripts.lint`, bukan cuma yang pakai eslint.
+
+**Entri 3 — mode ringan, empat arah:**
+
+```
+d) mode MATI,  tanpa scope_lock : BLOCKED
+a) mode NYALA, tanpa scope_lock : SUCCESS, berkas berubah
+b) mode NYALA, linter gagal     : STOP,    berkas UTUH
+c) mode NYALA, tanpa --apply    : DRY RUN, berkas UTUH
+```
+
+Arah (b) dan (c) yang membedakan pelonggaran dari pematian, dan keduanya
+bertahan. Arah (d) membuktikan proyek yang sudah jalan tidak berubah diam-diam.
+
+Ini yang paling saya cari sprint ini, dan ia benar.
+
+## Penahan 1 — nol kecocokan sekarang dilaporkan sebagai berhasil
+
+Masukan sama, bendera sama, satu-satunya beda versinya:
+
+```
+berkas: coba.py berisi   val = 1  # AAA
+cari AAA, ganti BBB, --apply-validated --allow-partial-match
+
+LAMA  d3f4231 : Found 0 matches | BLOCKED | isi tetap
+BARU  HEAD    : Found 0 matches | SUCCESS | isi tetap
+```
+
+Nol kecocokan itu **benar** — untuk berkas Python, `AAA` cuma ada di komentar,
+dan alat ini sengaja tidak menyentuh komentar. Yang salah reaksinya.
+
+Keluaran lengkapnya:
+
+```
+[WARN] Found 0 matches in coba.py
+[OK] Scan selesai (1 file dipindai). Menemukan 0 kecocokan di 1 file.
+[INFO] Memvalidasi dan menerapkan perubahan per berkas...
+--- coba.py (content changed - diff unavailable)
+[SUCCESS] Berhasil memodifikasi 1 file. Backup tersimpan di ...
+```
+
+Ia mengatakan `content changed`, membuat cadangan, dan menyatakan satu berkas
+dimodifikasi. Tidak ada satu bita pun yang berubah.
+
+Versi lama menolak dengan benar. Ini kemunduran, dan bentuknya persis yang
+paling berbahaya: **perintah yang tidak melakukan apa-apa melapor berhasil.**
+
+Agen yang membacanya akan lanjut ke langkah berikutnya dengan yakin
+perubahannya sudah masuk.
+
+**Syarat lulus:**
+
+```
+a  nol kecocokan  -> katakan nol kecocokan, jangan SUCCESS, jangan buat cadangan
+b  ada kecocokan  -> tetap menulis dan tetap SUCCESS
+c  nol kecocokan di sebagian berkas, ada di sebagian lain
+   -> yang ada kecocokan ditulis, yang nol tidak dihitung sebagai dimodifikasi
+```
+
+Arah (c) yang gampang terlewat kalau perbaikannya cuma menambah satu penjagaan
+di awal.
+
+## Penahan 2 — pesan berhenti menyebut berkas yang tidak pernah ditulis
+
+Delapan berkas Python sah, yang kelima dibuat rusak:
+
+```
+$ python replace_text.py . AAA BBB --apply-validated --allow-partial-match
+[STOP] Validasi gagal di berkas ke-5 dari 8: f5.py
+Python Syntax Error: '(' was never closed at line 1
+       3 berkas sisanya tidak disentuh.
+```
+
+Keadaan disk sesudahnya:
+
+```
+f1:AAA f2:AAA f3:AAA f4:AAA f5:AAA f6:AAA f7:AAA f8:AAA
+```
+
+Nol dari delapan berubah.
+
+Kalimat "3 berkas sisanya tidak disentuh" berarti lima yang lain disentuh.
+Tidak ada yang disentuh.
+
+**Dan perilakunya sendiri lebih baik dari yang saya minta.** Saya minta berhenti
+di tengah dan meninggalkan yang sudah tertulis. Kamu membuatnya semua-atau-tidak
+sama sekali — tidak ada keadaan setengah jadi. Itu lebih aman, dan sebaiknya
+dipertahankan.
+
+Yang perlu diperbaiki cuma kalimatnya:
+
+```
+[STOP] Validasi gagal di berkas ke-5 dari 8: f5.py
+       Python Syntax Error: '(' was never closed at line 1
+       Tidak ada berkas yang ditulis.
+```
+
+**Syarat lulus:**
+
+```
+a  berkas ke-5 dari 8 gagal -> pesannya berkata tidak ada yang ditulis,
+                               dan kedelapannya memang utuh
+b  kedelapannya sah         -> kedelapannya tertulis
+```
+
+Buktikan (a) dengan membandingkan isi kedelapan berkas, bukan dengan membaca
+pesannya. Pesan itu justru yang sedang diperbaiki.
+
+## Catatan — penanda mode ringan punya enam nama
+
+```
+scope_check.py:15
+markers = ['mode_ringan', 'light_mode', 'lightweight',
+           'mode_ringan.json', 'light_mode.json', 'lightweight.json']
+scope_check.py:24
+data.get('mode') in ['ringan','light','lightweight']
+  or data.get('mode_ringan') is True or data.get('light_mode') is True
+```
+
+Enam nama berkas dan lima bentuk isi, semuanya mematikan penjaga scope.
+
+Makin banyak jalan masuknya, makin besar peluang seseorang menyalakannya tanpa
+sadar — dan makin sulit menjawab pertanyaan "kenapa penjaga ini mati di proyek
+saya".
+
+Bukan penahan. Tetapi satu nama sudah cukup, dan satu nama lebih mudah dicari
+waktu ada yang bingung.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| Entri 1, `scripts.lint`, dua arah | PASS, diuji QA |
+| Entri 3, mode ringan, empat arah | PASS, diuji QA |
+| suite 99/99, CI hijau, Aturan #12 | PASS |
+| berkas liar nol | PASS |
+| satu commit per entri | PASS |
+| nol kecocokan dilaporkan berhasil | **REJECT**, kemunduran |
+| pesan berhenti menyebut berkas yang utuh | **REJECT** |
+| penanda mode ringan punya enam nama | catatan |
+
+Entri 1 dan 3 mengerjakan persis yang diminta, dan Entri 3 yang paling sulit
+justru paling rapi. Entri 2 memperbaiki perilakunya melebihi yang diminta, lalu
+menceritakannya salah.
