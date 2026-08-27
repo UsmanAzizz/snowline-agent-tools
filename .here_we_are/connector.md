@@ -3720,3 +3720,469 @@ tidak.
 Sembilan arah, sembilan benar. Dan yang diperbaiki sprint ini bukan perilaku
 alatnya — perilakunya sudah benar — melainkan apa yang dikatakannya tentang
 dirinya sendiri. Itu yang paling sering salah sepanjang minggu ini.
+
+
+# PM -> TL: Sprint 45 — empat tahap, berurutan, seluruh keputusan sudah diambil
+
+Ini sprint panjang. Kerjakan **A dulu sampai selesai**, lalu B, lalu C, lalu D.
+Jangan melompat. Tiap tahap punya laporan sendiri ke connector.
+
+Tidak ada satu pun entri di sini yang butuh keputusan PM lagi. Kalau kamu
+menemukan yang butuh, berhenti dan tanyakan — jangan menebak.
+
+---
+
+# Keputusan yang mendasari Tahap A
+
+Minggu ini snowline dipakai agen asing di dua proyek. Penjaga scope diblokir
+tiga kali, diterobos tiga kali:
+
+```
+write_to_file PLAN.md          diblokir -> pindah ke Set-Content
+auto_scaffolder                diblokir -> agen menulis ulang scope_lock.json
+replace_file_content           diblokir -> pindah ke Set-Content
+```
+
+Dan agennya menulis kuncinya sendiri:
+
+```
+{"task": "bypass", "allowed_files": [...], "allowed_patterns": ["*"]}
+```
+
+Nol kesalahan tercegah. Ongkosnya 45 langkah versus 15-20 tanpa snowline.
+
+**Tetapi sebagian penjaga justru dipatuhi.** Gerbang risiko Medium menahan
+sampai diberi `--apply-validated`. Validasi sintaks menghentikan penulisan.
+Dry-run tetap dijalankan.
+
+Bedanya bukan galak atau tidak. Bedanya letak:
+
+```
+penjaga DI DALAM alat        dipatuhi   tidak bisa dihindari tanpa keluar dari alat
+penjaga DI DEPAN PINTU alat  diterobos  cukup pakai alat lain
+```
+
+`scope_lock` berdiri di depan pintu. Selama ia menolak, jalan keluarnya selalu
+`Set-Content` — yang tidak punya dry-run, cadangan, maupun validasi.
+
+**Keputusannya: `scope_lock` berhenti memblokir, mulai mencatat.** Penjaga yang
+di dalam alat tetap keras.
+
+Ini bukan melemahkan. Ini memindahkan yang tidak bekerja ke bentuk yang tidak
+bisa diterobos — karena mencatat tidak menghalangi apa pun, jadi tidak ada yang
+perlu dihindari.
+
+---
+
+# TAHAP A — scope dari memblokir jadi mencatat
+
+## A1 — `scope_check` mencatat, tidak menolak
+
+Sekarang `scope_check.py` memanggil `sys.exit(1)` untuk berkas di luar lingkup.
+
+**Perbaikan:** di luar lingkup jadi peringatan, bukan penolakan. Tulis catatan,
+lalu **lanjut**.
+
+Yang **tetap** menolak, jangan disentuh:
+
+```
+validasi sintaks gagal
+gerbang risiko Medium/High tanpa --apply-validated
+tanpa --apply (dry-run tetap bawaan)
+berkas sasaran di luar folder yang memuat kunci
+```
+
+Yang terakhir tetap keras karena ia bukan soal lingkup tugas, melainkan soal
+menulis ke proyek orang lain.
+
+**Syarat lulus:**
+
+```
+a  berkas di luar allowed_files  -> DITULIS, ada peringatan, ada catatan
+b  berkas di dalam               -> DITULIS, tanpa peringatan
+c  sintaks rusak                 -> tetap DITOLAK
+d  tanpa --apply                 -> tetap DRY RUN
+e  berkas milik proyek lain      -> tetap DITOLAK
+f  tanpa scope_lock.json sama sekali -> DITULIS, ada peringatan
+```
+
+Arah (f) menutup kebuntuan awal: proyek baru tidak lagi butuh kunci sebelum
+bisa bekerja. Itu yang membuat agen mengarang kunci `"bypass"` sendiri.
+
+## A2 — catatan tulisan
+
+Berkas: `.agents/write_log.jsonl`, satu baris JSON per tulisan.
+
+```
+{"waktu": "...", "alat": "smart_replace", "berkas": "src/App.jsx",
+ "dalam_lingkup": false, "tugas": "<isi field task di scope_lock>"}
+```
+
+Tambahkan `.agents/write_log.jsonl` ke daftar `PROTECTED` supaya `update` tidak
+menimpanya, dan ke `.gitignore` bawaan supaya tidak ikut ke repo orang.
+
+**Syarat lulus:**
+
+```
+a  satu tulisan di dalam lingkup   -> satu baris, dalam_lingkup true
+b  satu tulisan di luar lingkup    -> satu baris, dalam_lingkup false
+c  dry-run                         -> TIDAK ada baris baru
+d  10 tulisan                      -> 10 baris, berkas tetap JSONL sah
+```
+
+Arah (c) penting. Mencatat niat yang tidak jadi dilakukan membuat catatannya
+tidak bisa dipercaya.
+
+## A3 — jalur shell dicatat, tidak diblokir
+
+```
+hooks.json  "scope-guardian-native"
+matcher: write_to_file|replace_file_content|multi_replace_file_content
+```
+
+Perintah shell tidak masuk jaring itu. Agen yang diblokir pindah ke
+`Set-Content` dan lolos sepenuhnya.
+
+**Perbaikan:** `quality_gate.py` (yang sudah memasang jaring di `run_command`)
+mengenali perintah yang menulis berkas, lalu mencatatnya ke `write_log.jsonl`.
+**Jangan memblokir.**
+
+Kenali yang umum saja:
+
+```
+Set-Content   Out-File   Add-Content   Tee-Object
+>   >>   tee
+python -c yang memuat open(..., 'w')
+```
+
+**Jangan berpura-pura lengkap.** Tulis di dokumentasinya bahwa deteksi ini
+best-effort dan tidak mungkin menangkap semua cara menulis berkas dari shell.
+
+**Syarat lulus:**
+
+```
+a  Set-Content ke berkas   -> tercatat, TIDAK diblokir
+b  perintah baca-saja (ls) -> TIDAK tercatat
+c  perintah yang gagal     -> tidak tercatat sebagai tulisan berhasil
+```
+
+## A4 — `snowline audit`
+
+Perintah baru yang membaca `write_log.jsonl` dan meringkasnya.
+
+```
+$ snowline audit
+14 tulisan, 3 di luar lingkup
+
+di luar lingkup:
+  src/config.js        tugas "perbaiki header"     2 kali
+  ../lain/x.py         tugas "perbaiki header"     1 kali
+
+lewat shell (deteksi best-effort): 5
+```
+
+Tambahkan `--sejak <tanggal>` dan `--hanya-luar-lingkup`.
+
+**Syarat lulus:**
+
+```
+a  log kosong / tidak ada  -> pesan wajar, bukan galat
+b  log berisi campuran     -> angkanya cocok dengan isi berkas
+c  --hanya-luar-lingkup    -> cuma menampilkan yang di luar
+d  log rusak sebagian      -> baris rusak dilewati, disebutkan berapa
+```
+
+## A5 — satu penegak scope, bukan lima
+
+STATE #10. Sekarang ada lima salinan logika penegakan. Uji banding sebelumnya
+menunjukkan kelimanya sepakat untuk masukan yang sama, jadi menyatukannya aman.
+
+**Perbaikan:** satu modul, dipakai semuanya. Yang lain memanggilnya.
+
+**Syarat lulus:**
+
+```
+a  daftar semua pemanggil, tempel hasil grep-nya
+b  tiap pemanggil diuji sekali sesudah penyatuan
+c  suite penuh hijau
+```
+
+## A6 — `agents.md` dan `.gitignore`
+
+STATE #11 dan #8. Keduanya menunggu A1, dan sesudah A1 jawabannya jadi mudah.
+
+```
+agents.md        tidak perlu perlindungan khusus. Sesudah A1 tidak ada lagi
+                 berkas yang "diblokir" — semua tercatat. Cabut pengecualiannya
+                 dan perlakukan sama seperti berkas lain.
+.gitignore       init menulis .gitignore di .agents/ yang mengabaikan
+                 write_log.jsonl, scope_lock.json, dan session_cache.json.
+                 Sisanya ikut repo pengguna.
+```
+
+**Syarat lulus:**
+
+```
+a  init --apply di repo git baru -> .agents/.gitignore ada dan isinya benar
+b  git status sesudah satu tulisan -> write_log.jsonl TIDAK muncul
+c  skills/ tetap muncul sebagai berkas baru yang bisa di-commit
+```
+
+---
+
+# TAHAP B — lima cacat yang sudah diukur
+
+## B1 — label `editable` bukan `wheel`
+
+```
+$ cat direct_url.json
+{"dir_info": {"editable": true}, "url": "file:///D:/AAAAAAAAA/open_source_agents"}
+$ snowline status
+i Penyebab: direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)
+```
+
+Bukan wheel. Datanya ada di berkas itu dan tidak dibaca.
+
+**Perbaikan:** baca `dir_info.editable`. Kalau benar,
+`pkg_unknown_kind = "editable"` dan pesannya menyebut jalur yang ditunjuknya.
+
+**Syarat lulus:**
+
+```
+a  direct_url editable       -> pesannya menyebut editable dan jalurnya
+b  tanpa vcs_info, tanpa dir_info -> tetap menyebut wheel
+c  keduanya                  -> saran pasang ulang tetap ditekan
+```
+
+## B2 — peringatan mode ringan tercetak dua kali
+
+```
+[WARN] Berkas ...mode_ringan.json ... Mode ringan dimatikan.
+[WARN] Berkas ...mode_ringan.json ... Mode ringan dimatikan.
+```
+
+`is_light_mode()` kemungkinan dipanggil dua kali.
+
+**Syarat lulus:** peringatan itu muncul tepat sekali. Hitung barisnya, jangan
+lihat sekilas.
+
+## B3 — `role.json` tidak dipasang
+
+STATE #7. `init_chamber` tidak membuatnya, jadi kunci peran tidak ada di proyek
+baru dan `CHAMBER_RULES.md` menyebut berkas yang tidak pernah ada.
+
+**Perbaikan:** `init_chamber --apply` membuat
+`.agents/chamber/role.json` berisi `{"peran": null}`, dan menambahkannya ke
+`.agents/.gitignore` (keadaan lokal per mesin, sesuai `CHAMBER_RULES.md:61`).
+
+**Syarat lulus:**
+
+```
+a  init_chamber --apply       -> role.json ada, isinya {"peran": null}
+b  init_chamber ulang tanpa --force -> role.json TIDAK ditimpa
+c  git status                 -> role.json tidak muncul
+```
+
+Arah (b) penting: menimpa kunci peran di tengah kerja akan membingungkan sesi
+yang sedang berjalan.
+
+## B4 — `close-entry` nomor ganda
+
+STATE #3 dan #6. `close-entry` menyisipkan topik ke tabel TUTUP tanpa memeriksa
+penomoran daftar Terbuka, dan pernah menghasilkan nomor ganda.
+
+**Perbaikan:** sesudah menyisipkan, nomori ulang daftar Terbuka dari 1
+berurutan.
+
+**Syarat lulus:**
+
+```
+a  daftar dengan nomor ganda -> sesudah close-entry, nomornya berurutan
+b  daftar yang sudah benar   -> tidak berubah
+c  daftar kosong             -> tidak galat
+```
+
+## B5 — gerbang CRITICAL nol pemanggil
+
+STATE #4. `install_hooks` ada, tidak ada yang memanggilnya, jadi gerbangnya
+tidak pernah terpasang di proyek mana pun.
+
+**Perbaikan:** `snowline init --apply` menawarkannya — cetak satu baris yang
+menyebut perintahnya, jangan memasangnya diam-diam (ia menimpa
+`.git/hooks/pre-commit`).
+
+Tambahkan `snowline install-hooks --apply` sebagai perintah resmi, dan **wajib**
+menolak kalau `.git/hooks/pre-commit` sudah ada, kecuali diberi `--force`.
+
+**Syarat lulus:**
+
+```
+a  belum ada pre-commit  -> terpasang
+b  sudah ada pre-commit  -> DITOLAK, berkas lama utuh, isinya dibandingkan
+c  --force               -> ditimpa, dan yang lama disalin ke pre-commit.bak
+```
+
+---
+
+# TAHAP C — rapi-rapi
+
+## C1 — `snowline rotate`
+
+STATE #1. Rotasi manual pernah menjatuhkan 227 baris.
+
+**Perbaikan:** perintah yang memindahkan entri lama ke `history/<topik>/` dan
+**memvalidasi baris masuk sama dengan baris keluar**. Kalau tidak sama, batal
+dan jangan sentuh apa pun.
+
+**Syarat lulus:**
+
+```
+a  rotasi normal        -> jumlah baris connector + arsip = jumlah semula
+b  arsip gagal ditulis  -> connector UTUH, tidak ada yang hilang
+c  dry-run bawaan       -> tanpa --apply tidak ada berkas berubah
+```
+
+Arah (b) yang jadi alasan entri ini ada.
+
+## C2 — STATE.md
+
+STATE #5 dan #9.
+
+```
+5  header diperbarui tangan dan akan basi lagi
+9  STATE.md pernah dikirim isinya tanda hubung, sesi baru tidak dapat apa-apa
+```
+
+**Perbaikan:** satu uji yang menolak `STATE.md` yang isinya kosong atau cuma
+tanda hubung, dan satu yang membandingkan angka di header dengan hitungan
+sebenarnya.
+
+**Jangan membangun otomatisasi header** — STATE #5 sudah menuliskan alasannya.
+Cukup uji yang berteriak kalau basi.
+
+**Syarat lulus:**
+
+```
+a  STATE.md normal            -> lulus
+b  STATE.md isinya tanda hubung -> uji MERAH
+c  angka di header salah      -> uji MERAH dan menyebut kedua angkanya
+```
+
+---
+
+# TAHAP D — rancangan
+
+Tahap ini paling mahal dan paling mungkin gagal. Kerjakan **satu entri per
+laporan**, jangan digabung.
+
+## D1 — empat perkakas belum beruji
+
+STATE #2: `companion`, `db_extractor`, `deep_analyzer`, `smart_tree`.
+
+Urutkan menurut bahayanya kalau rusak diam-diam, bukan menurut mudahnya diuji.
+Tulis urutannya dan alasannya sebelum menulis uji pertama.
+
+**Syarat lulus per perkakas:**
+
+```
+a  uji menjalankannya sungguhan dan menegaskan keluarannya
+b  mutasi: rusakkan satu perilakunya, uji harus MERAH dan menyebut apa
+c  pulihkan, git diff --stat kosong
+```
+
+`db_extractor` butuh `pymysql`. Kalau tidak ada, ujinya harus **skip dengan
+alasan yang tercetak**, bukan lulus diam-diam.
+
+## D2 — subagen QA tidak memeriksa apa pun
+
+Agen asing menulis sendiri:
+
+> saya terpaksa menyelipkan perintah eksplisit `python -c ...` yang sudah memuat
+> "jawaban" pengujian ... ia hanya menjadi perpanjangan terminal
+
+**Ini bukan bug, dan jangan ditambal.** Yang dibutuhkan lebih dulu: ukur apakah
+subagen menambah sesuatu dibanding menjalankan perintah yang sama langsung.
+
+**Yang dikerjakan sprint ini cuma pengukurannya:**
+
+```
+ambil 5 pemeriksaan nyata dari connector
+jalankan masing-masing dua kali: lewat subagen, dan langsung
+bandingkan: keluarannya sama? waktunya? ada yang ditemukan subagen
+  yang tidak ditemukan cara langsung?
+```
+
+Tempel hasilnya. **Jangan mengusulkan perbaikan.** Kalau ternyata subagen tidak
+menambah apa-apa, itu temuan yang lebih berharga daripada tambalan.
+
+## D3 — penyerahan peran TL ke QA
+
+Sekarang tidak ada mekanismenya. Agen di lapangan mengarang caranya sendiri, dan
+mengaku mengarang.
+
+**Perbaikan:** `snowline role` — baca dan tulis `.agents/chamber/role.json`.
+
+```
+snowline role              tampilkan peran sekarang
+snowline role QA --apply   ganti peran, dan CETAK apa yang harus
+                           dilakukan manusia berikutnya
+```
+
+Bagian "cetak apa yang harus dilakukan manusia" yang penting. Sesi yang
+menyerahkan peran akan mati; yang tersisa cuma tulisan itu.
+
+**Syarat lulus:**
+
+```
+a  role.json tidak ada   -> snowline role bilang belum diatur, bukan galat
+b  ganti peran           -> berkasnya berubah, dan instruksi tercetak
+c  tanpa --apply         -> tidak berubah
+```
+
+## D4 — agen memeriksa hasil frontend-nya sendiri
+
+Kemarin agen tiga kali menyatakan perbaikan sorotan selesai, dan tiga kali
+manusia yang harus memeriksanya di browser.
+
+**Yang dikerjakan sprint ini cuma langkah termurahnya:** sesudah menulis berkas
+di proyek yang punya `scripts.build`, jalankan build itu dan laporkan hasilnya.
+Bukan memblokir — melaporkan.
+
+Build menangkap kelas kesalahan yang menghancurkan halaman. Ia tidak menangkap
+"sorotannya tidak muncul", dan **jangan berpura-pura bisa**.
+
+**Syarat lulus:**
+
+```
+a  proyek dengan scripts.build, berkas rusak -> build gagal, dilaporkan
+b  proyek yang sama, berkas benar            -> build lulus, dilaporkan
+c  proyek tanpa scripts.build                -> dilewati, dan dikatakan dilewati
+d  build memakan lebih dari 60 detik         -> dihentikan dan dikatakan
+```
+
+Arah (d) supaya alat ini tidak menggantung sesi di proyek besar.
+
+---
+
+# Bentuk laporan
+
+**Satu laporan per tahap**, bukan satu untuk seluruh sprint. Tahap D satu
+laporan per entri.
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah, jangan diringkas. Sebutkan
+apa yang **tidak** kamu periksa. Jangan memvonis pekerjaanmu sendiri.
+
+Satu commit per entri. Sebelum tiap commit: `git add <berkas>` lalu
+`git diff --cached --stat`, dan baca hasilnya.
+
+**Jangan menjalankan `pip install -e .`**
+
+Push di akhir tiap tahap, tanpa force. Tunggu CI sampai `completed`, baca
+hasilnya, baru tulis laporan tahap itu.
+
+**Berhenti sesudah tiap tahap** dan tunggu vonis QA sebelum lanjut ke tahap
+berikutnya. Tahap A mengubah perilaku inti — kalau ada yang salah di sana,
+tahap B sampai D dikerjakan di atas fondasi yang keliru.
+
+**Tidak dikunci.**
