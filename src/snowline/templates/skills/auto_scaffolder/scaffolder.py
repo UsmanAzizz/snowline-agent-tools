@@ -35,34 +35,16 @@ def is_light_mode(start_dir=None):
         current_dir = parent
     return False
 def check_scope_write(write_target):
-    """Block if write target is outside allowed scope (security gate, fail-closed)."""
-    # Ensure .agents/skills is in sys.path so scope_guardian can be found
-    _SKILLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # -> .agents/skills
-    if _SKILLS not in sys.path:
-        sys.path.insert(0, _SKILLS)
-    from scope_guardian.scripts.scope_check import is_file_in_scope
-
-    lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
-    if not os.path.exists(lock_file):
-        if is_light_mode():
-            print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
-            return
-        print("[WARN] scope_lock.json not found in .agents/. Menulis tanpa batasan lingkup.")
+    """Enforce scope check using the unified scope_guardian module."""
+    skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if skills_dir not in sys.path:
+        sys.path.insert(0, skills_dir)
     try:
-        with open(lock_file, 'r', encoding='utf-8-sig') as f:
-            scope_data = json.load(f)
-    except Exception:
-        print("[BLOCKED] Failed to parse scope_lock.json.")
-        sys.exit(1)
-    allowed_files = scope_data.get('allowed_files', [])
-    allowed_patterns = scope_data.get('allowed_patterns', [])
-    task = scope_data.get('task', 'Unknown task')
-    if not is_file_in_scope(write_target, allowed_files, allowed_patterns):
-        print(f"[WARN] Write target is OUT OF SCOPE.")
-        print(f"Task: {task}")
-        print(f"Target: {write_target}")
-        print(f"Allowed: {allowed_files}")
-
+        from scope_guardian.scripts.scope_check import check_scope
+        return check_scope(write_target)
+    except Exception as e:
+        print(f"[WARN] Failed to import check_scope from scope_guardian: {e}")
+        return True, True, ""
 
 def check_task_state(is_apply=False):
     if is_apply:
@@ -200,6 +182,11 @@ def generate_scaffold(file_type, name, target_dir, apply_mode):
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(content)
             print(f"[OK] Successfully generated {filename} at {target_dir}")
+            try:
+                from scope_guardian.scripts.scope_check import record_write
+                record_write("auto_scaffolder", filepath, True)
+            except Exception:
+                pass
             print("\n" + "=" * 60)
             print("PROMPT UNTUK AI (Copy-Paste ini):")
             print(f'"Berdasarkan hasil Auto-Scaffolder di atas, tolong gunakan tool replace_file_content untuk mulai mengisi logika yang sesungguhnya di dalam {filename}."')

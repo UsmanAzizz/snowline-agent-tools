@@ -32,46 +32,27 @@ def is_light_mode(start_dir=None):
             break
         current_dir = parent
     return False
+
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
-
 def check_scope_write(write_target):
-    """Block if write target is outside allowed scope (security gate, fail-closed)."""
-    # Ensure .agents/skills is in sys.path so scope_guardian can be found
-    _SKILLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # -> .agents/skills
-    if _SKILLS not in sys.path:
-        sys.path.insert(0, _SKILLS)
-    from scope_guardian.scripts.scope_check import is_file_in_scope
-
-    lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
-    if not os.path.exists(lock_file):
-        if is_light_mode():
-            print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
-            return
-        print("[WARN] scope_lock.json not found in .agents/. Menulis tanpa batasan lingkup.")
+    """Enforce scope check using the unified scope_guardian module."""
+    skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if skills_dir not in sys.path:
+        sys.path.insert(0, skills_dir)
     try:
-        with open(lock_file, 'r', encoding='utf-8-sig') as f:
-            scope_data = json.load(f)
-    except Exception:
-        print("[BLOCKED] Failed to parse scope_lock.json.")
-        sys.exit(1)
-    allowed_files = scope_data.get('allowed_files', [])
-    allowed_patterns = scope_data.get('allowed_patterns', [])
-    task = scope_data.get('task', 'Unknown task')
-    if not is_file_in_scope(write_target, allowed_files, allowed_patterns):
-        print(f"[WARN] Write target is OUT OF SCOPE.")
-        print(f"Task: {task}")
-        print(f"Target: {write_target}")
-        print(f"Allowed: {allowed_files}")
-
+        from scope_guardian.scripts.scope_check import check_scope
+        return check_scope(write_target)
+    except Exception as e:
+        print(f"[WARN] Failed to import check_scope from scope_guardian: {e}")
+        return True, True, ""
 
 IGNORE_DIRS = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
 EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx']
 
 def find_file(filename, root_dir):
     matches = []
-    # If filename has no extension, we will search for it with common extensions
     has_ext = any(filename.endswith(ext) for ext in EXTENSIONS)
     search_names = [filename] if has_ext else [filename + ext for ext in EXTENSIONS]
     
@@ -85,14 +66,10 @@ def find_file(filename, root_dir):
 def compute_relative_path(source_file, target_file):
     source_dir = os.path.dirname(os.path.abspath(source_file))
     target_abs = os.path.abspath(target_file)
-    # Get relative path from source_dir to target_file
     rel_path = os.path.relpath(target_abs, source_dir)
-    # Convert Windows backslashes to forward slashes for imports
     rel_path = rel_path.replace('\\', '/')
-    # Ensure it starts with ./ or ../
     if not rel_path.startswith('.'):
         rel_path = './' + rel_path
-    # Remove extension for JS/TS imports
     for ext in EXTENSIONS:
         if rel_path.endswith(ext):
             rel_path = rel_path[:-len(ext)]
@@ -100,7 +77,7 @@ def compute_relative_path(source_file, target_file):
     return rel_path
 
 def fix_import(source_file, broken_import, apply_mode):
-    print("  SMART IMPORT FIXER  ")
+    print("=== SMART IMPORT FIXER ===")
     print("=" * 60)
 
     # Check scope before writing
@@ -120,7 +97,6 @@ def fix_import(source_file, broken_import, apply_mode):
         print(f"[FAIL] Could not find any file named {basename} in the project.")
         return
         
-    # Finding 2B: proximity tiebreaker for multiple matches
     if len(matches) > 1:
         source_dir = os.path.dirname(os.path.abspath(source_file))
         def proximity_score(match):
@@ -131,14 +107,13 @@ def fix_import(source_file, broken_import, apply_mode):
                 rel = os.path.relpath(match_dir, source_dir)
                 if rel == '.':
                     return 0
-                # Count number of '..' components in relative path
                 return rel.count('..') + rel.count(os.sep)
             except:
                 return 999
         matches.sort(key=proximity_score)
         if proximity_score(matches[0]) < proximity_score(matches[-1]):
             target_file = matches[0]
-            print(f"[INFO] Multiple matches found   using nearest one: {target_file}")
+            print(f"[INFO] Multiple matches found -> using nearest one: {target_file}")
         else:
             print(f"[FAIL] Multiple files found with basename '{basename}':")
             for m in matches:
@@ -156,13 +131,11 @@ def fix_import(source_file, broken_import, apply_mode):
         with open(source_file, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        # Finding 2A: use quote-backreference regex to avoid substring corruption
         escaped = re.escape(broken_import)
-        pattern = re.compile(r'([\'"])' + escaped + r'\1')
+        pattern = re.compile(r'([\'\"])' + escaped + r'\1')
         if pattern.search(content):
             new_content = pattern.sub(lambda m: m.group(1) + new_import + m.group(1), content)
         elif broken_import in content:
-            # Fallback: plain replace only if pattern didn't match (e.g. unusual quote char)
             new_content = content.replace(broken_import, new_import)
         else:
             print(f"[WARN] The import '{broken_import}' was not found in {source_file}.")
@@ -184,6 +157,11 @@ def fix_import(source_file, broken_import, apply_mode):
                 
             print("\n" + "=" * 60)
             print(f"[OK] Import fixed! Backup saved to {backup_dir}")
+            try:
+                from scope_guardian.scripts.scope_check import record_write
+                record_write("import_fixer", source_file, True)
+            except Exception:
+                pass
             
     except Exception as e:
         print(f"[FAIL] Error processing file: {e}")

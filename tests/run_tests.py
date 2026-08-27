@@ -200,12 +200,15 @@ def main():
     import test_write_log
     import test_shell_tracking
     import test_audit_cli
+    import test_scope_callers
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
     runner.run("shell_tracking directions", test_shell_tracking.test_shell_tracking_directions)
     print("Testing audit CLI (Entry A4)...")
     runner.run("audit_cli directions", test_audit_cli.test_audit_directions)
+    print("Testing unified scope callers (Entry A5)...")
+    runner.run("unified_scope_callers", test_scope_callers.test_all_5_callers_after_unification)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()

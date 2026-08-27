@@ -50,32 +50,16 @@ PY_PATTERN = re.compile(r"(?:^|\n)\s*(?:from|import|use|include(?:_once)?|requir
 WORD_PATTERN = re.compile(r'\b\w+\b')
 
 def check_scope_write(write_target):
-    """Block if write target is outside allowed scope (security gate, fail-closed)."""
-    _SKILLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if _SKILLS not in sys.path:
-        sys.path.insert(0, _SKILLS)
-    from scope_guardian.scripts.scope_check import is_file_in_scope
-
-    lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
-    if not os.path.exists(lock_file):
-        if is_light_mode():
-            print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
-            return
-        print("[WARN] scope_lock.json not found in .agents/. Menulis tanpa batasan lingkup.")
+    """Enforce scope check using the unified scope_guardian module."""
+    skills_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if skills_dir not in sys.path:
+        sys.path.insert(0, skills_dir)
     try:
-        with open(lock_file, 'r', encoding='utf-8-sig') as f:
-            scope_data = json.load(f)
-    except Exception:
-        print("[BLOCKED] Failed to parse scope_lock.json.")
-        sys.exit(1)
-    allowed_files = scope_data.get('allowed_files', [])
-    allowed_patterns = scope_data.get('allowed_patterns', [])
-    task = scope_data.get('task', 'Unknown task')
-    if not is_file_in_scope(write_target, allowed_files, allowed_patterns):
-        print(f"[WARN] Write target is OUT OF SCOPE.")
-        print(f"Task: {task}")
-        print(f"Target: {write_target}")
-        print(f"Allowed: {allowed_files}")
+        from scope_guardian.scripts.scope_check import check_scope
+        return check_scope(write_target)
+    except Exception as e:
+        print(f"[WARN] Failed to import check_scope from scope_guardian: {e}")
+        return True, True, ""
 
 def extract_dependencies(content, target_names_set):
     found = set()
@@ -281,6 +265,11 @@ def main():
         os.makedirs(knowledge_path, exist_ok=True)
         with open(map_file, 'w', encoding='utf-8') as f:
             f.write(map_content)
+        try:
+            from scope_guardian.scripts.scope_check import record_write
+            record_write("context_mapper", map_file, True)
+        except Exception:
+            pass
             
         if patterns_content:
             with open(patterns_path, 'w', encoding='utf-8') as f:
