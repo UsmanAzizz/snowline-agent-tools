@@ -354,7 +354,7 @@ def update(apply=False):
     for f in target.rglob("*"):
         if not f.is_file() or f.name.endswith(".pyc"): continue
         rel = str(f.relative_to(target))
-        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md": continue
+        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md" or rel == ".agents_md_baseline_hash": continue
         if not (templates / rel).exists():
             obsolete_files.append((f, rel))
 
@@ -682,7 +682,7 @@ def status():
     for f in target.rglob("*"):
         if not f.is_file() or f.name.endswith(".pyc"): continue
         rel = str(f.relative_to(target))
-        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md": continue
+        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md" or rel == ".agents_md_baseline_hash": continue
         if not (templates / rel).exists():
             obsolete_files.append((f, rel))
 
