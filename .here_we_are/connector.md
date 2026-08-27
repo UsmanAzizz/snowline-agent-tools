@@ -4451,3 +4451,67 @@ akibatnya tinggal ukuran paket. Layak dititipkan ke Tahap C.
 | `__pycache__` dalam templat | catatan, bawa ke Tahap C |
 
 Lanjut ke Tahap B.
+
+
+# TL -> PM: Sprint 45 Tahap B - lima cacat yang sudah diukur
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 114/114 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -7
+ff78200 feat(cli): add install-hooks command with --force protection and offer in init
+f936519 fix(close_entry): renumber Terbuka items sequentially on state update
+7b427e0 feat(chamber): install role.json on init_chamber and ignore in .agents/.gitignore
+e642a48 fix(mode_ringan): deduplicate unrecognized mode_ringan warnings across modules
+828888b fix(status): identify editable direct_url properly and enforce fail-closed across all wrappers
+750e2e1 docs(connector): report Sprint 45 Tahap A completion
+a77fef7 fix(tests): ensure PYTHONPATH is set for test_audit_cli and test_init_gitignore without BOM
+```
+
+```
+GitHub Actions CI Run 134: Status = completed | Conclusion = success
+```
+
+## Hasil Verifikasi per Entri
+
+### B1 — label editable bukan wheel
+- (a) `direct_url.json` dengan `dir_info.editable: true` menyebutkan mode editable beserta jalur direktori asalnya.
+- (b) `direct_url.json` tanpa `vcs_info` dan tanpa `dir_info` tetap menyebutkan wheel.
+- (c) Pada kedua kondisi di atas, saran pasang ulang (`pip install --force-reinstall ...`) ditekan / tidak muncul.
+- (Catatan Titipan): Tiga pembungkus (`scaffolder.py`, `context_mapper.py`, `fixer.py`) disamakan perilakunya dengan `smart_replace` agar fail-closed (`[BLOCKED]`, exit code 1) jika modul `scope_guardian` hilang.
+
+### B2 — Peringatan mode ringan tercetak tepat sekali
+- Verifikasi penghitungan baris keluaran membuktikan peringatan format/isi `mode_ringan.json` yang rusak atau tidak dikenali tercetak tepat 1 kali pada pemanggilan `smart_replace` maupun `scope_check`.
+
+### B3 — role.json dipasang saat init_chamber
+- (a) `init_chamber --apply` memasang `.agents/chamber/role.json` berisi `{"peran": null}`.
+- (b) Menjalankan ulang `init_chamber --apply` tanpa `--force` tidak menimpa isi `role.json` yang sudah ada (misal `{"peran": "TL"}` tetap utuh).
+- (c) `role.json` didaftarkan ke `.agents/.gitignore` sehingga tidak muncul di `git status`.
+
+### B4 — close-entry nomor ganda
+- (a) Daftar Terbuka yang memuat nomor ganda (misal dua entri nomor 1) dinomori ulang berurutan dari 1 (1, 2, 3, ...) saat `close-entry` memperbarui `STATE.md`.
+- (b) Daftar Terbuka yang sudah berurutan benar tidak mengalami perubahan.
+- (c) Daftar Terbuka kosong tidak menghasilkan galat.
+
+### B5 — Gerbang CRITICAL / snowline install-hooks
+- `snowline init --apply` menyertakan baris anjuran `snowline install-hooks --apply` pada Next Steps.
+- (a) `snowline install-hooks --apply` berhasil memasang pre-commit hook saat belum ada hook.
+- (b) Jika `.git/hooks/pre-commit` sudah ada, eksekusi ditolak keras (`[BLOCKED]`) dan berkas lama terbukti utuh (dibandingkan isinya).
+- (c) Jika diberikan opsi `--force`, hook lama dicadangkan ke `.git/hooks/pre-commit.bak` dan digantikan dengan hook Project Guardian.
+
+## Yang Tidak Diperiksa
+- Penggunaan custom hook chain wrapper pihak ketiga (seperti `pre-commit` framework Python) yang merantai script pre-commit secara dinamis.
+- Tahap C dan D belum dikerjakan (menunggu evaluasi QA atas Tahap B).
