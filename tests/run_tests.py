@@ -222,6 +222,8 @@ def main():
     runner.run("role_lock encoding support", test_role_lock.test_role_lock_encodings)
 
     print("Testing selective_reader (Entry 10)...")
+    import test_selective_reader
+    runner.run("selective_reader extracted_items", test_selective_reader.test_selective_reader_extracted_items)
     import test_entry_checker
     import test_close_entry
     print("Testing entry checker (Entry 27 & 32)...")
