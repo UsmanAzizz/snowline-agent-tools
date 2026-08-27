@@ -4947,3 +4947,126 @@ GitHub Actions CI Run 140: Status = completed | Conclusion = success
 ## Yang Tidak Diperiksa
 - Kasus pemisahan entri dengan sintaks non-standar di luar pemisah `---`.
 - Tahap D belum dikerjakan (menunggu evaluasi QA).
+
+
+# QA -> PM: PASS. Perintah rotasi tersambung dan ujinya sekarang benar-benar menguji perintahnya. Penjaga angka menangkap keempat kasus.
+
+## C1 — `snowline rotate` lewat CLI sungguhan
+
+```
+$ snowline rotate arsip
+  Jalankan ulang dengan --apply untuk menerapkan rotasi.
+  connector: 16 -> 16 | arsip: 0 berkas
+
+$ snowline rotate arsip --apply
+[SUCCESS] Rotasi berhasil: 16 baris dipindah ke history\arsip\01-arsip.md,
+          0 baris tersisa di connector.md.
+  semula 16 | connector 0 | arsip 16 | jumlah 16
+```
+
+Bukan lagi spanduk bawaan. Kekekalan barisnya terjaga.
+
+**Dan ujinya sekarang menggigit.** QA menghapus cabang dispatch-nya:
+
+```
+mutasi: cabang dispatch rotate DIHAPUS
+Results: 116/117 passed, 1 failed
+  [FAIL] c1_rotate
+```
+
+Itu yang penting. Sebelumnya ujinya mengimpor fungsinya langsung, jadi cabang
+yang hilang tidak pernah ketahuan. Sekarang hilangnya satu baris `elif` membuat
+suite merah.
+
+## C2 — penjaga angka, lima kasus
+
+```
+ 13 /  17 -> LOLOS
+ 99 /  17 -> DITOLAK: Angka alat beruji di header (99) melebihi total alat (17).
+  0 /  17 -> DITOLAK: Angka alat beruji (0) tidak cocok dengan jumlah sebenarnya
+ 13 /  99 -> DITOLAK: Angka total alat (99) tidak cocok dengan jumlah sebenarnya
+ 20 /  17 -> DITOLAK: Angka alat beruji (20) melebihi total alat (17).
+```
+
+Pembilangnya sekarang dijaga, dan pesannya menyebut kedua angkanya.
+
+Dan catatan saya soal uji yang rapuh sudah dibereskan — ia memakai
+`make_state_sample()` sendiri, bukan menyalin isi berkas sungguhan lalu
+mengganti teks di dalamnya.
+
+```
+Results: 117/117 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+```
+
+## Catatan 1 — kedua angka sekarang diketik, bukan dihitung
+
+```
+tests/test_c2_state_validation.py:8
+def validate_state_content(content, expected_tested: int = 13, expected_total: int = 17):
+```
+
+Keduanya nilai bawaan yang diketik. Tidak ada yang dihitung dari berkas.
+
+Versi sebelumnya menghitung penyebutnya sendiri:
+
+```
+actual_skills_count = len([d for d in templates_skills.iterdir()
+                           if (d / "SKILL.md").exists()])
+```
+
+Perbaikan ini menghilangkannya.
+
+Akibatnya: begitu ada uji baru ditulis untuk `smart_tree`, angkanya harus
+diubah di **dua** tempat — `STATE.md` dan nilai bawaan ini. Kalau yang kedua
+terlupa, penjaganya akan menolak `STATE.md` yang justru benar. Dan orang yang
+melihat uji merah untuk angka yang benar biasanya mengembalikan angkanya, bukan
+memperbaiki ujinya.
+
+Sudah empat kali angka di `STATE.md` salah karena diketik. Ini menambah satu
+tempat lagi untuk diketik.
+
+**Perbaikan:** kembalikan perhitungan penyebutnya dari `templates/skills/`.
+Pembilangnya memang sulit dihitung dan boleh tetap diketik — tetapi kalau
+begitu, taruh angkanya satu tempat saja, dan biarkan `STATE.md` membacanya dari
+situ atau sebaliknya.
+
+Aturan "pembilang tidak boleh melebihi penyebut" tidak butuh angka apa pun dan
+akan selalu benar. Itu bagian terbaik dari penjaga ini.
+
+## Catatan 2 — pesan gagal masih kosong
+
+```
+  [FAIL] c1_rotate: 
+```
+
+Berakhir dengan titik dua kosong. Penegasannya tanpa pesan, jadi di CI
+kegagalannya tidak mengatakan apa yang salah.
+
+Ini kedua kalinya saya mencatat bentuk yang sama — sebelumnya di
+`init_test creates_files`. Layak dibereskan sekaligus untuk seluruh suite,
+bukan satu per satu.
+
+## Yang tidak saya periksa
+
+CI untuk `220479e`. Halaman Actions mengembalikan data lama waktu saya
+memeriksanya, dan permintaan langsung ke API ditolak. Jadi hijau CI untuk commit
+itu adalah klaimmu, bukan pengukuran saya. Suite lokal 117/117 memang saya
+jalankan sendiri.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| C1, rotasi lewat CLI, dua mode | PASS, diuji QA |
+| C1, uji menggigit saat dispatch dihapus | PASS, mutasi merah |
+| C2, lima kasus angka | PASS, diuji QA |
+| C2, fixture mandiri | PASS, catatan tertutup |
+| suite 117/117, Aturan #12, berkas liar nol | PASS |
+| CI `220479e` | tidak diperiksa QA |
+| kedua angka diketik, bukan dihitung | catatan |
+| pesan gagal kosong | catatan, kedua kalinya |
+
+Tahap C tertutup. Lanjut ke Tahap D — dan ingat, D2 dan D4 cuma mengukur.
+Jangan memperbaiki apa pun di sana.
