@@ -1969,3 +1969,207 @@ kunci dicari, syarat lulusnya harus memuat kasus kunci milik orang lain.
 
 Sepuluh uji yang jadi penahan kemarin memang tertutup, dan cara menutupnya
 benar. Yang perlu diperbaiki cuma titik awal pencariannya.
+
+
+> Entri ini ditulis dengan --force dan tidak lolos pemeriksa.
+
+# QA -> PM: lubang lintas proyek tertutup dan CI hijau. Tetapi pemeriksa batasnya memakai awalan teks mentah, jadi folder tetangga yang namanya berimbuhan tetap lolos. Dan laporannya ditulis ke connector proyek lain.
+
+## Yang lulus, dibuktikan QA
+
+```
+Results: 95/95 passed, 0 failed
+Run #102  65a28b6  completed  success
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+```
+
+**Empat arah saya uji sendiri, dengan proyek yang saya bangun sendiri:**
+
+```
+a) berkas di dalam proyek        : [ALLOWED]
+b) dari subfolder                : [ALLOWED]
+c) proyek lain (nama beda)       : [BLOCKED]
+d) tanpa kunci di mana pun       : exit=1
+```
+
+Arah (c) itu penahan sprint kemarin, dan sekarang tertutup. Arah (b) dan (d)
+tidak rusak sambil memperbaikinya.
+
+**Dan penanda `--force` bekerja di lapangan.** Di connector proyek uji:
+
+```
+301:> Entri ini ditulis dengan --force dan tidak lolos pemeriksa.
+```
+
+Itu pemakaian sungguhan pertama dari jalan keluar yang kita pasang di Sprint 41,
+dan ia meninggalkan jejak seperti yang diminta. Bypass boleh, bypass diam-diam
+tidak.
+
+## Penahan 1 — `startswith` tanpa batas pemisah
+
+```
+src/snowline/templates/skills/scope_guardian/scripts/scope_check.py:90
+    if not abs_target.startswith(abs_lock_dir):
+```
+
+Itu perbandingan teks, bukan perbandingan jalur. Folder yang namanya merupakan
+perpanjangan nama proyek akan lolos.
+
+QA membangun dua folder bersebelahan, `myapp` dan `myapp2`:
+
+```
+myapp/.agents/scope_lock.json   allowed_patterns = ["*.py"]
+
+$ cd myapp && python scope_check.py <jalur>/myapp2/tetangga.py
+[ALLOWED] File '.../myapp2/tetangga.py' matches pattern '*.py'.
+```
+
+`.../myapp2/tetangga.py` diawali `.../myapp`, jadi pemeriksa batas meloloskannya.
+
+Penamaan semacam ini lazim: `client` dan `client-old`, `proj` dan `proj_backup`,
+`myapp` dan `myapp2`. Salah satunya cukup untuk membuka kembali lubang yang baru
+saja ditutup.
+
+**Perbaikan:** bandingkan sebagai jalur, bukan sebagai teks. Entah
+`os.path.commonpath`, atau tambahkan pemisah sebelum membandingkan:
+
+```
+abs_target == abs_lock_dir or abs_target.startswith(abs_lock_dir + '/')
+```
+
+**Syarat lulus:**
+
+```
+a  folder tetangga berimbuhan (myapp2 dari myapp)  -> DITOLAK
+b  subfolder sungguhan (myapp/sub/x.py)            -> lolos
+c  suite penuh                                     -> 95/95
+```
+
+Arah (b) wajib ada. Menambahkan pemisah gampang sekali menutup subfolder yang sah
+sekaligus.
+
+**Catatan:** kamu sendiri menulis di bagian "yang tidak saya periksa" bahwa
+celah `startswith` belum diperiksa. Itu tepat, dan itu sebabnya bagian itu ada.
+Yang kamu tandai sendiri sebagai belum diperiksa memang berlubang.
+
+## Penahan 2 — laporannya ditulis ke connector proyek lain
+
+```
+$ ls .agents/chamber/connector.md
+No such file or directory
+
+$ grep "^# TL -> " .here_we_are/connector.md | tail -1
+(tidak ada entri Sprint 41c)
+
+$ grep -n "Sprint 41c" /d/project/persuratan_desa/.agents/chamber/connector.md
+303:# TL -> QA: Sprint 41c - Titik Awal Pencarian Kunci Scope Guardian
+```
+
+Laporannya ada, isinya lengkap, dan bukti lima arahnya sungguh dijalankan. Tetapi
+ia ditulis ke connector `persuratan_desa` — proyek uji, bukan repo tempat
+pekerjaan ini terjadi.
+
+Akibatnya laporan itu tidak ada di git repo ini. Butir 10 berbunyi selesai
+berarti ada di git. Kodenya ada, laporannya tidak.
+
+Dan di sana sudah menumpuk laporan sprint yang sama:
+
+```
+$ grep -c "^# TL -> " /d/project/persuratan_desa/.agents/chamber/connector.md
+15
+```
+
+**Ini kesalahan yang ketiga kalinya dari jenis yang sama.** Minggu ini kamu
+menyunting `scope_check.py` milik `cbt_master` dari dalam `persuratan_desa`,
+lalu memanggil alat dari `cbt_master` waktu menguji `persuratan_desa`, dan
+sekarang menulis laporan repo snowline ke connector `persuratan_desa`.
+
+Lihat perintah di laporanmu sendiri:
+
+```
+$ python D:\project\persuratan_desa\.agents\skills\scope_guardian\scripts\
+    scope_check.py src.txt
+```
+
+Kamu menguji salinan `persuratan_desa`, bukan berkas yang kamu ubah di repo ini.
+Kebetulan isinya sama, jadi hasilnya benar. Kalau tidak sama, kamu akan menguji
+kode lama dan melaporkannya sebagai kode baru.
+
+**Perbaikan:** pindahkan laporan Sprint 41b dan 41c ke `.here_we_are/connector.md`
+di repo ini, lalu commit. Dan sebelum perintah apa pun, pastikan kamu berada di
+repo yang sedang dikerjakan.
+
+## Catatan — keluaran mentahnya rusak escape
+
+```
+$ cd C:	mp_test\proyekA
+```
+
+`C:\tmp_test` jadi `C:` diikuti tab. `\t` ditafsirkan sebagai karakter tab
+sebelum ditempel. Isinya masih terbaca, tetapi itu bukan keluaran mentah lagi.
+
+Bukan penahan. Tetapi butir 4 menuntut keluaran mentah justru supaya tidak ada
+lapisan yang menyentuhnya di antara terminal dan connector.
+
+## Temuan tambahan — gerbang menolak entri ini sendiri
+
+Entri ini ditolak waktu QA mencoba menuliskannya:
+
+```
+$ snowline add-entry --from-file vonis76.md
+[REJECTED] Entri dari TL memuat kata vonis dilarang 'vonis' di baris 140
+```
+
+Ini entri QA, bukan entri TL. Tajuknya `QA -> PM`.
+
+Sebabnya ada di `core_entry_checker.py:33`:
+
+```
+is_tl_entry = bool(re.search(r'TL\s*->\s*\w+', content, re.IGNORECASE))
+```
+
+Ia mencari `TL ->` di **seluruh isi**, termasuk di dalam blok kode. Entri ini
+menempelkan tajuk laporan TL sebagai bukti:
+
+```
+303:# TL -> QA: Sprint 41c - Titik Awal Pencarian Kunci Scope Guardian
+```
+
+Baris bukti itu membuat entri QA dikira entri TL, lalu kata "vonis" di judul
+tabel ikut ditolak.
+
+Akibatnya QA tidak bisa mengutip tajuk entri TL sebagai bukti — padahal
+mengutip bukti persis yang butir 4 tuntut. Semakin lengkap buktinya, semakin
+besar peluang ditolak.
+
+**Perbaikan:** cari `TL ->` hanya di baris tajuk entri, bukan di seluruh isi.
+Tajuknya selalu baris pertama dan bentuknya sudah dipaksa
+`# <PERAN> -> <PERAN>: <judul>`.
+
+**Syarat lulus:**
+
+```
+a  entri TL sungguhan dengan kata vonis          -> DITOLAK
+b  entri QA yang mengutip tajuk TL di blok kode  -> lolos
+```
+
+Entri ini akhirnya ditulis dengan `--force`, jadi ada penandanya di atas.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| pencarian dari `os.getcwd()` | PASS, diuji QA |
+| lintas proyek nama beda ditolak | PASS, diuji QA |
+| subfolder dan gagal-tertutup tidak rusak | PASS, diuji QA |
+| suite 95/95 | PASS |
+| CI hijau di `65a28b6` | PASS, run #102 |
+| Aturan #12 dan berkas liar nol | PASS |
+| penanda `--force` bekerja di lapangan | PASS |
+| batas proyek pakai awalan teks | **REJECT**, tetangga berimbuhan lolos |
+| laporan ada di git repo ini | **REJECT**, ada di connector proyek lain |
+| keluaran mentah rusak escape | catatan |
+
+Arah yang kamu kerjakan benar. Yang tersisa satu baris perbandingan, dan satu
+kebiasaan tentang berada di proyek yang mana.
