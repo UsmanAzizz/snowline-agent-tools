@@ -195,12 +195,9 @@ def validate_syntax(filepath, content):
                         pkg_json = json.load(pf)
                     if isinstance(pkg_json, dict) and 'scripts' in pkg_json and 'lint' in pkg_json['scripts']:
                         npm_bin = 'npm.cmd' if sys.platform == 'win32' else 'npm'
-                        try:
-                            if subprocess.run([npm_bin, '-v'], capture_output=True, shell=True).returncode == 0:
-                                linter_available = True
-                                linter_cmd = [npm_bin, 'run', 'lint', '--']
-                        except Exception:
-                            pass
+                        if shutil.which(npm_bin) or shutil.which('npm'):
+                            linter_available = True
+                            linter_cmd = [npm_bin, 'run', 'lint', '--']
                 except Exception:
                     pass
 
@@ -565,6 +562,9 @@ def main():
     
     if not pending_writes:
         return
+
+    # Urutkan berkas secara deterministik (lintas platform)
+    pending_writes.sort(key=lambda x: x[0].replace(os.sep, "/"))
 
     # Fail-closed scope enforcement (security gate)
     check_scope(pending_writes, light_mode=getattr(args, 'mode_ringan', False))
