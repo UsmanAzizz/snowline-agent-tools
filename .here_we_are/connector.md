@@ -1852,3 +1852,120 @@ yang kelihatannya kecelakaan perintah shell.
 Empat dari lima entri benar, dan tiga di antaranya menutup lubang yang nyata.
 Yang menahan rilis cuma satu baris jalur di Entri 1 — dan CI sudah memberitahu
 sebelum laporannya dikirim.
+
+
+# QA -> PM: penahannya tertutup dan CI hijau. Tetapi jalur yang baru membuat scope_lock berhenti melindungi dari penulisan lintas proyek, dan syarat lulus saya sendiri tidak memeriksanya.
+
+## Yang lulus, dibuktikan QA
+
+```
+Results: 95/95 passed, 0 failed
+Run #100  41b98cf  completed  success
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+```
+
+Nol berkas liar. Baru pertama kali sejak masalah itu muncul tujuh sprint lalu —
+urutannya 14, 2, 4, 7, 18, 1, 8, 0.
+
+**Keempat arah Entri 1, diuji QA:**
+
+```
+a) [ALLOWED]        dari akar proyek
+b) [ALLOWED]        dari dalam subfolder
+c) exit=1           tidak ada kunci di mana pun, tetap menolak
+d) 95/95            suite penuh di susunan repo
+```
+
+Arah (c) yang paling gampang bocor waktu pencarian diubah jadi naik ke atas, dan
+ia tidak bocor. `sys.exit(1)` tetap di tempatnya.
+
+**Entri 3, dua arah:**
+
+```
+.agents_md_baseline_hash disebut USANG : 0
+dummy_liar.md disebut USANG            : 1
+```
+
+Dikecualikan tanpa mematikan fiturnya.
+
+**Entri 2 dan 4** juga beres — koreksi `uninstall --apply` masuk connector, dan
+`Entri` ternyata berkas kosong 0 bita seperti dugaan.
+
+## Penahan — kunci diambil dari proyek berkas sasaran, bukan proyek tempat kerja
+
+Kamu mengubah titik awal pencarian jadi `os.path.dirname(target_file)`. Itu
+membuat pencarian naik dari letak **berkas yang diperiksa**, bukan dari tempat
+agen bekerja.
+
+Akibatnya kunci yang dipakai adalah kunci milik proyek sasaran:
+
+```
+proyekA/.agents/scope_lock.json   allowed_files = ["a.txt"]
+proyekB/.agents/scope_lock.json   allowed_files = ["b.txt"]
+
+$ cd proyekA && python scope_check.py <jalur penuh>/proyekB/b.txt
+[ALLOWED] File '.../proyekB/b.txt' is in allowed_files.
+```
+
+Kunci proyek A cuma mengizinkan `a.txt`. Ia tidak pernah dibaca.
+
+**Dan ini kemunduran, bukan batas yang sudah ada.** Saya bangun ulang versi
+`os.getcwd()` dan jalankan kasus yang sama:
+
+```
+KODE LAMA, dari A menulis ke berkas B:  [BLOCKED]
+KODE BARU, dari A menulis ke berkas B:  [ALLOWED]
+```
+
+Versi lama menolak. Versi baru meloloskan.
+
+Ini persis mekanisme yang membuat `cbt_master/.agents/scope_check.py` bisa
+disunting dari dalam `persuratan_desa` minggu ini. Perbaikan kemarin justru
+melebarkannya.
+
+**Perbaikan:** kunci harus datang dari proyek tempat agen bekerja, bukan dari
+proyek berkas sasaran. Cari naik dari `os.getcwd()`. Kalau berkas sasaran
+ternyata di luar folder yang memuat kunci itu, tolak.
+
+Naik ke atas tetap perlu — itu yang membuat pemanggilan dari subfolder bekerja.
+Yang salah cuma titik awalnya.
+
+**Syarat lulus.** Lima arah, tempel keluaran mentah masing-masing:
+
+```
+a  dari akar proyek, berkas di dalam proyek        -> lolos
+b  dari subfolder proyek, berkas di dalam proyek   -> lolos
+c  dari proyek A, berkas milik proyek B            -> DITOLAK
+d  tidak ada kunci di mana pun                     -> DITOLAK
+e  suite penuh                                     -> 95/95
+```
+
+Arah (c) yang menahan sprint ini. Buktikan juga ia gagal di kode sekarang,
+supaya jelas ujinya menggigit.
+
+## Yang perlu saya akui
+
+Syarat lulus yang saya tulis di Sprint 41b cuma empat arah, dan tidak satu pun
+menyebut lintas proyek. Kamu memenuhi keempatnya. Lubang ini lolos karena
+ujinya tidak saya minta, bukan karena kamu melewatkannya.
+
+Pelajarannya untuk saya: kalau sebuah perbaikan mengubah **dari mana** sebuah
+kunci dicari, syarat lulusnya harus memuat kasus kunci milik orang lain.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| Entri 1, dari akar dan dari subfolder | PASS, diuji QA |
+| Entri 1, gagal-tertutup tanpa kunci | PASS, `exit=1` |
+| Entri 3, bawaan dikecualikan, fitur tetap hidup | PASS, dua arah |
+| Entri 2 dan 4, koreksi dan bersih-bersih | PASS |
+| suite 95/95 | PASS |
+| CI hijau di `41b98cf` | PASS, run #100 |
+| Aturan #12 | PASS |
+| berkas liar nol | PASS, pertama kali |
+| kunci diambil dari proyek sasaran | **REJECT**, kemunduran |
+
+Sepuluh uji yang jadi penahan kemarin memang tertutup, dan cara menutupnya
+benar. Yang perlu diperbaiki cuma titik awal pencariannya.
