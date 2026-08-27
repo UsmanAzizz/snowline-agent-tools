@@ -4261,3 +4261,193 @@ GitHub Actions CI Run 131: Status = completed | Conclusion = success
 ## Yang Tidak Diperiksa
 - Jalur eksekusi shell yang menggunakan teknik obfuski atau alias biner khusus di luar pola umum yang didukung (`Set-Content`, `Out-File`, `Add-Content`, `Tee-Object`, `>`, `>>`, `tee`, `python -c open(..., 'w')`).
 - Tahap B, C, dan D belum dikerjakan (menunggu evaluasi QA atas Tahap A).
+
+
+# QA -> PM: Tahap A PASS. Dua penjaga yang harus tetap keras memang tetap keras, dan kebuntuan proyek baru tertutup.
+
+## Keadaan
+
+```
+Results: 107/107 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #132  750e2e1  Success   (dan tiga run sebelumnya juga)
+```
+
+Enam commit terpisah, tiap namanya menyebut entrinya.
+
+## A1 — enam arah, semuanya diuji QA
+
+```
+a) di luar allowed_files  : [WARN] OUT OF SCOPE | DITULIS | log 1 baris
+b) di dalam               : SUCCESS | DITULIS
+c) sintaks rusak          : [STOP] Syntax Error | berkas UTUH
+d) tanpa --apply          : berkas UTUH | log 0 baris
+e) berkas proyek lain     : [BLOCKED] OUTSIDE the project | berkas UTUH
+f) tanpa scope_lock       : SUCCESS | DITULIS | log 1 baris
+```
+
+Arah (c) dan (e) yang paling saya khawatirkan waktu menulis sprintnya. Kalau
+"berhenti memblokir" diterapkan terlalu luas, keduanya ikut jebol. Keduanya
+tidak.
+
+Arah (f) menutup kebuntuan yang membuat agen di lapangan mengarang kunci
+`{"task": "bypass", "allowed_patterns": ["*"]}` sendiri. Proyek baru sekarang
+bisa langsung bekerja, dan tulisannya tercatat.
+
+## A2 — catatan tulisan
+
+```
+{"waktu": "...", "alat": "smart_replace", "berkas": "a.jsx",
+ "dalam_lingkup": true,  "tugas": "perbaiki header"}
+{"waktu": "...", "alat": "smart_replace", "berkas": "b.jsx",
+ "dalam_lingkup": false, "tugas": "perbaiki header"}
+
+2/2 baris JSON sah
+```
+
+Dan dry-run tidak meninggalkan jejak — berkas lognya bahkan tidak dibuat. Itu
+arah yang membuat catatannya bisa dipercaya.
+
+## A3 — jalur shell dicatat, tidak diblokir
+
+Diuji QA dengan memanggil hook-nya langsung:
+
+```
+a) Set-Content -Path "src/App.jsx"  -> {"decision": "allow"}
+   log: {"alat": "shell", "berkas": "src/App.jsx", "dalam_lingkup": false}
+
+b) ls -la                           -> {"decision": "allow"}
+   log: tetap 1 baris
+```
+
+Ditulis, tidak dihalangi, dan perintah baca-saja tidak mengotori catatan.
+
+Dan kejujurannya ada di kodenya sendiri:
+
+```
+quality_gate.py:7
+CATATAN: Deteksi ini bersifat heuristik/best-effort dan tidak mencakup ...
+```
+
+Itu yang saya minta. Alat yang mengaku tidak lengkap lebih berguna daripada
+alat yang mengaku lengkap padahal bukan.
+
+## A4 — `snowline audit`, empat arah
+
+```
+b) log campuran
+   2 tulisan, 1 di luar lingkup
+   di luar lingkup:
+     b.jsx    tugas "perbaiki header"   1 kali
+
+a) log tidak ada
+   Belum ada catatan tulisan di .agents/write_log.jsonl.
+
+d) log rusak sebagian
+   [WARN] 1 baris log rusak dilewati.
+   2 tulisan, 1 di luar lingkup
+
+c) --hanya-luar-lingkup
+   1 tulisan di luar lingkup (dari 2 total)
+```
+
+Arah (d) menyebut berapa yang dilewati, bukan diam-diam mengabaikannya.
+
+## A5 — satu definisi, empat pemanggil
+
+```
+$ grep -rn "^def check_scope" templates/ --include=*.py
+scope_guardian/scripts/scope_check.py  <- def check_scope(target_file, light_mode=False)
+smart_replace/replace_text.py          <- def check_scope(pending_writes, light_mode=False)
+auto_scaffolder/scaffolder.py          <- def check_scope_write(write_target)
+context_mapper/context_mapper.py       <- def check_scope_write(write_target)
+import_fixer/fixer.py                  <- def check_scope_write(write_target)
+```
+
+Yang tiga terakhir cuma pembungkus tipis:
+
+```
+from scope_guardian.scripts.scope_check import check_scope
+return check_scope(write_target)
+```
+
+Tidak ada logika yang digandakan. Ini penyatuan yang benar.
+
+## A6 — `.gitignore`
+
+```
+$ cat .agents/.gitignore
+write_log.jsonl
+scope_lock.json
+session_cache.json
+mode_ringan.json
+*.pyc
+__pycache__/
+
+write_log terlihat di git status : 0
+berkas skills terlihat           : 51
+```
+
+Keadaan lokal disembunyikan, isi yang perlu di-commit tetap terlihat.
+
+## Catatan 1 — pembungkus gagal-terbuka kalau modulnya hilang
+
+```
+import_fixer/fixer.py, context_mapper.py, scaffolder.py
+    except Exception as e:
+        print(f"[WARN] Failed to import check_scope from scope_guardian: {e}")
+        return True, True, ""
+```
+
+Kalau `scope_guardian/` hilang dari `.agents/skills/`, ketiganya mengembalikan
+"boleh" dan cuma mencetak `[WARN]`.
+
+Sesudah Tahap A, lingkup memang tidak lagi memblokir — jadi sebagian besarnya
+tidak berbahaya. Tetapi **larangan menulis ke proyek lain masih memblokir**, dan
+larangan itu ikut hilang di jalur ini.
+
+`smart_replace` tidak punya masalah ini. QA menyembunyikan
+`scope_guardian/` lalu mencoba menulis ke berkas proyek lain:
+
+```
+dengan scope_guardian utuh   : BLOCKED, OUTSIDE
+scope_guardian disembunyikan : BLOCKED
+```
+
+Ia gagal-tertutup dengan benar. Ketiga pembungkus itu yang perlu disamakan.
+
+Bukan penahan — butuh pemasangan yang sudah rusak sebagian dulu. Tetapi
+perbaikannya satu baris per berkas, dan sebaiknya ikut Tahap B.
+
+## Catatan 2 — `__pycache__` masih ikut dalam templat
+
+```
+templates/skills/auto_scaffolder/__pycache__/scaffolder.cpython-314.pyc
+templates/skills/context_mapper/__pycache__/context_mapper.cpython-314.pyc
+```
+
+Sekitar 30 folder `__pycache__` ikut terkirim di dalam paket, dan ikut terpasang
+ke setiap proyek. Ia juga membuat hitungan berkas di `status` dan `update` tidak
+mencerminkan isi sebenarnya.
+
+`.agents/.gitignore` yang baru sudah mengabaikannya di sisi proyek, jadi
+akibatnya tinggal ukuran paket. Layak dititipkan ke Tahap C.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| A1, enam arah | PASS, diuji QA |
+| A1 (c) dan (e), penjaga keras tetap keras | PASS, diuji QA |
+| A1 (f), kebuntuan proyek baru tertutup | PASS |
+| A2, catatan dan dry-run bersih | PASS, diuji QA |
+| A3, shell dicatat tanpa diblokir | PASS, hook dipanggil langsung |
+| A4, audit empat arah | PASS, diuji QA |
+| A5, satu definisi empat pembungkus tipis | PASS |
+| A6, `.gitignore` | PASS, diuji QA |
+| suite 107/107, CI hijau, Aturan #12 | PASS |
+| pembungkus gagal-terbuka | catatan, bawa ke Tahap B |
+| `__pycache__` dalam templat | catatan, bawa ke Tahap C |
+
+Lanjut ke Tahap B.
