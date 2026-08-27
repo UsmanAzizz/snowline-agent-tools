@@ -198,8 +198,11 @@ def main():
         runner.run(name, test)
 
     import test_write_log
+    import test_shell_tracking
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
+    print("Testing shell tracking (Entry A3)...")
+    runner.run("shell_tracking directions", test_shell_tracking.test_shell_tracking_directions)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()

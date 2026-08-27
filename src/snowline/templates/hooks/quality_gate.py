@@ -1,3 +1,80 @@
+from datetime import datetime
+import re
+
+def detect_shell_write(cmd: str):
+    """
+    Deteksi best-effort perintah shell yang berpotensi menulis berkas.
+    CATATAN: Deteksi ini bersifat heuristik/best-effort dan tidak mencakup
+    seluruh cara penulisan berkas pada lingkungan shell kompleks.
+    
+    Mengenali:
+    - PowerShell: Set-Content, Out-File, Add-Content, Tee-Object
+    - Shell redirections: >, >>, tee
+    - Python one-liner: python -c dengan open(..., 'w'/'a')
+    """
+    cmd_clean = cmd.strip()
+    
+    # 1. PowerShell cmdlets
+    ps_match = re.search(r'\b(Set-Content|Out-File|Add-Content|Tee-Object)\b(?:\s+(?:-Path\s+)?[\'"]?([^\s\'"]+)[\'"]?)?', cmd_clean, re.IGNORECASE)
+    if ps_match:
+        target = ps_match.group(2) or "shell_output"
+        return True, target
+
+    # 2. Python one-liner with write
+    if "python" in cmd_clean and "-c" in cmd_clean and re.search(r'open\s*\(\s*[\'"][^\'"]+[\'"]\s*,\s*[\'"][wa]', cmd_clean):
+        py_match = re.search(r'open\s*\(\s*[\'"]([^\'"]+)[\'"]', cmd_clean)
+        target = py_match.group(1) if py_match else "python_script_target"
+        return True, target
+
+    # 3. Redirections (> or >>)
+    redir_match = re.search(r'(?<![=\-\d])>{1,2}\s*[\'"]?([a-zA-Z0-9_\-\.\/\\~]+)[\'"]?', cmd_clean)
+    if redir_match:
+        target = redir_match.group(1)
+        return True, target
+
+    # 4. Pipe to tee
+    tee_match = re.search(r'\|\s*tee(?:\s+-a)?\s+[\'"]?([^\s\'"]+)[\'"]?', cmd_clean, re.IGNORECASE)
+    if tee_match:
+        target = tee_match.group(1) or "tee_output"
+        return True, target
+
+    return False, ""
+
+def record_shell_write(target_cwd: str, target_file: str, cmd_str: str):
+    """Mencatat aktivitas penulisan berkas via shell ke write_log.jsonl."""
+    agents_dir = os.path.join(target_cwd, ".agents")
+    os.makedirs(agents_dir, exist_ok=True)
+    log_file = os.path.join(agents_dir, "write_log.jsonl")
+    
+    lock_file = os.path.join(agents_dir, "scope_lock.json")
+    task_name = ""
+    in_scope = False
+    if os.path.exists(lock_file):
+        try:
+            with open(lock_file, "r", encoding="utf-8-sig") as f:
+                s_data = json.load(f)
+            task_name = s_data.get("task", "")
+            allowed_files = [f.replace("\\", "/").lower() for f in s_data.get("allowed_files", [])]
+            target_norm = target_file.replace("\\", "/").lower()
+            if target_norm in allowed_files or any(target_norm.endswith("/" + a) or os.path.basename(target_norm) == a for a in allowed_files):
+                in_scope = True
+        except Exception:
+            pass
+            
+    entry = {
+        "waktu": datetime.now().isoformat(),
+        "alat": "shell",
+        "berkas": target_file.replace("\\", "/"),
+        "dalam_lingkup": in_scope,
+        "tugas": task_name or ""
+    }
+    
+    try:
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except Exception as e:
+        pass
+
 import sys
 import json
 import subprocess
@@ -214,6 +291,14 @@ def main():
             if safe_script in cmd:
                 print(json.dumps({"decision": "allow"}))
                 return
+
+    # Catat jika terdeteksi penulisan berkas via shell (A3 - best effort, tidak memblokir)
+    if tool_name == "run_command" or "CommandLine" in tool_call:
+        cmd = tool_call.get("CommandLine", "").strip()
+        target_cwd = clean_target_cwd(workspace_paths) if workspace_paths else os.getcwd()
+        is_write, target_file = detect_shell_write(cmd)
+        if is_write:
+            record_shell_write(target_cwd, target_file, cmd)
 
     # Jika aman atau bukan shell command berisiko, izinkan eksekusi
     print(json.dumps({"decision": "allow"}))
