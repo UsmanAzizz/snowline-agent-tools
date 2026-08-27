@@ -302,6 +302,7 @@ __pycache__/
     safe_print(f"{Colors.BOLD}Next Steps:{Colors.RESET}")
     print_list_item("Review .agents/agents.md for agent rules")
     print_list_item("Update .agents/PROJECT_NOTES.md with your project info")
+    print_list_item("Pasang gerbang keamanan git: snowline install-hooks --apply")
     print_list_item("Run 'snowline update' to sync new skills later")
 
     safe_print(f"\n{Colors.DIM}Location: {root}{Colors.RESET}\n")
@@ -1038,6 +1039,10 @@ def main():
     p_audit.add_argument("--sejak", help="Filter catatan sejak tanggal/waktu tertentu")
     p_audit.add_argument("--hanya-luar-lingkup", action="store_true", help="Hanya tampilkan berkas di luar lingkup")
 
+    p_ih = subparsers.add_parser("install-hooks", help="Pasang Project Guardian pre-commit hook")
+    p_ih.add_argument("--apply", action="store_true", help="Terapkan pemasangan hook")
+    p_ih.add_argument("--force", action="store_true", help="Timpa hook pre-commit yang sudah ada (simpan cadangan .bak)")
+
     p_test_clone = subparsers.add_parser("test-clone", help="Jalankan tes di klon repositori bersih")
     p_test_clone.add_argument("--cmd", help="Perintah khusus untuk menjalankan tes", default=None)
     p_setup_path = subparsers.add_parser("setup-path", help="Setup PATH and profiles")
@@ -1098,6 +1103,15 @@ def main():
             sys.path.insert(0, os.path.dirname(__file__))
             from core_audit import run_audit
         sys.exit(run_audit(sejak=args.sejak, hanya_luar_lingkup=args.hanya_luar_lingkup))
+    elif args.command == "install-hooks":
+        try:
+            from snowline.install_hooks import install_hook
+        except ImportError:
+            sys.path.insert(0, os.path.dirname(__file__))
+            from install_hooks import install_hook
+        success = install_hook(force=args.force, dry=not args.apply)
+        if not success:
+            sys.exit(1)
     elif args.command == "test-clone":
         try:
             from snowline.core_test_clone import run_test_clone

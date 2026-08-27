@@ -206,6 +206,7 @@ def main():
     import test_b2_light_mode_warn
     import test_b3_init_chamber_role
     import test_b4_close_entry_renumber
+    import test_b5_install_hooks
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -225,6 +226,8 @@ def main():
     runner.run("b3_role_json_installed", test_b3_init_chamber_role.test_b3_role_json_installed_and_ignored)
     print("Testing B4 close-entry renumbering...")
     runner.run("b4_close_entry_renumber", test_b4_close_entry_renumber.test_b4_renumber_terbuka_directions)
+    print("Testing B5 install-hooks CLI...")
+    runner.run("b5_install_hooks", test_b5_install_hooks.test_b5_install_hooks_directions)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
@@ -350,6 +353,7 @@ def main():
     runner.run("smoke_cli path (full)", test_smoke_cli.test_smoke_path_full)
     runner.run("smoke_cli status (full)", test_smoke_cli.test_smoke_status_full)
     runner.run("smoke_cli audit (help)", test_smoke_cli.test_smoke_audit_help)
+    runner.run("smoke_cli install-hooks (help)", test_smoke_cli.test_smoke_install_hooks_help)
 
     runner.run("orphan_guard test_yatim", test_orphan_guard.test_tidak_ada_berkas_uji_yatim)
     runner.run("intercept_native bom_empty_payload", test_intercept_native.test_bom_empty_payload)
