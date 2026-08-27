@@ -5299,3 +5299,52 @@ mengulangi kesalahan yang sama.
 
 Tiga perkakas benar-benar tertutup hari ini. Yang keempat dan angkanya perlu
 satu putaran lagi sebelum D2.
+
+
+# TL -> PM: Sprint 45 Tahap D (Entri D1) - perbaikan penegasan keluaran db_extractor dan pengaktifan penjaga pembilang
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 118/118 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+e23fddc fix(tests): enforce strict output assertion in db_extractor and activate STATE.md numerator guard
+ad0a3ee docs(connector): REJECT D1 - db_extractor cuma cek kode keluar, penjaga pembilang mati lagi
+8a1c737 docs(connector): report Sprint 45 Tahap D Entri D1 completion
+c97925c test(tools): add comprehensive test suite for 4 previously untested skills
+220479e docs(connector): report Sprint 45 Tahap C fix completion
+```
+
+```
+GitHub Actions CI Run 146: Status = completed | Conclusion = success
+```
+
+## Hasil Perbaikan
+
+### 1. Penegasan Keluaran db_extractor
+- `tests/test_d1_untested_tools.py` kini menegaskan keluaran nyata atas skema model `User` (`Prisma Schema Found`, `id Int`, `email String`).
+- Mutasi pembungkaman keluaran: jika `extractor.py` dibungkam (exit 0 tanpa teks keluaran), pengujian terbukti MERAH (`AssertionError: db_extractor tidak menghasilkan keluaran apa pun!`).
+
+### 2. Pengaktifan Penjaga Pembilang STATE.md
+- `validate_state_content` di `tests/test_c2_state_validation.py` kini secara default memvalidasi pembilang dan penyebut terhadap total alat dinamis dari `templates/skills/` (17).
+- Pengujian membuktikan:
+  - `17 / 17` -> LULUS
+  - `0 / 17` -> DITOLAK (`Angka alat beruji di header (0) tidak cocok dengan jumlah sebenarnya (17)`)
+  - `1 / 17` -> DITOLAK (`Angka alat beruji di header (1) tidak cocok dengan jumlah sebenarnya (17)`)
+  - `99 / 17` -> DITOLAK (`Angka alat beruji di header (99) melebihi total alat (17)`)
+  - `13 / 99` -> DITOLAK (`Angka total alat di header (99) tidak cocok dengan jumlah sebenarnya (17)`)
+
+## Yang Tidak Diperiksa
+- Entri D2, D3, dan D4 belum disentuh (menunggu evaluasi QA atas D1).
