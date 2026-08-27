@@ -3135,3 +3135,56 @@ Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, baca
 hasilnya, baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Sprint 44 selesai — validasi lint package.json, sunting massal per berkas, dan mode ringan
+
+Pekerjaan Sprint 44 telah selesai dikerjakan dalam 3 entri berurutan dengan 1 commit per entri (plus commit sinkronisasi pengujian CI). CI run terakhir f29a6bf telah selesai (completed: success).
+
+## Rincian Perubahan per Entri
+
+### Entri 1 — Validasi membaca package.json terlebih dahulu
+- `replace_text.py` memprioritaskan `scripts.lint` dari `package.json` (misal oxlint/eslint lokal) sebelum fallback ke linter global/npx.
+- Menambahkan uji `test_scripts_lint_package_json` dengan umpan `className{getElClass('container')}`. Uji membuktikan sintaks JSX cacat ditolak dan JSX valid lolos.
+- Commit: `d3a2243 fix(smart_replace): probe package.json scripts.lint before local/npx linter`
+
+### Entri 2 — Sunting massal divalidasi per berkas
+- `replace_text.py` memvalidasi sintaks per berkas secara sekuensial sebelum menulis ke disk. Jika satu berkas gagal, proses berhenti seketika tanpa menyentuh sisa berkas.
+- Mengurutkan daftar berkas secara deterministik (`pending_writes.sort`) lintas OS.
+- Menguji skenario 8 berkas:
+  - Berkas ke-1 rusak: berhenti di berkas ke-1, 7 sisa berkas utuh.
+  - Berkas ke-5 rusak: 4 berkas pertama tertulis, berkas ke-5 gagal, 3 sisa berkas utuh (dibuktikan lewat pembandingan isi berkas `p.baca`).
+  - 8 berkas valid: seluruh berkas berhasil tertulis.
+- Commit: `90d6a2b fix(smart_replace): validate each file sequentially before writing`
+
+### Entri 3 — Mode ringan (penanda berkas / argumen)
+- Menambahkan deteksi mode ringan (`.agents/mode_ringan`, `.agents/light_mode`, `.agents/lightweight`, atau argumen `--mode-ringan` / `--lightweight`) di `scope_check.py`, `replace_text.py`, `scaffolder.py`, `context_mapper.py`, `fixer.py`, dan `intercept_native.py`.
+- Dalam mode ringan:
+  - Keharusan `scope_lock.json` dan `PLAN.md` dilewati.
+  - Tetap mempertahankan: dry-run sebelum menulis, pembuatan backup, validasi sintaks, dan gerbang risiko Medium/High.
+- Membuktikan keempat syarat lulus:
+  - a: mode ringan aktif tanpa `scope_lock.json` -> alat tulis jalan.
+  - b: mode ringan aktif dengan berkas rusak sintaks -> tetap ditolak.
+  - c: mode ringan aktif tanpa `--apply` -> tetap dalam mode dry-run (tidak menulis).
+  - d: mode ringan mati -> perilaku asli tetap memblokir jika `scope_lock.json` tidak ada.
+- Commit: `ae7896c feat(mode_ringan): support lightweight mode via marker file or flag`
+
+## Bukti Eksekusi dan Verifikasi
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 99/99 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ python scratch/wait_ci.py
+Commit: f29a6bf | Status: completed | Conclusion: success
+```
