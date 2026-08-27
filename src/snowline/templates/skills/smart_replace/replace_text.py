@@ -529,31 +529,28 @@ def main():
         print("Anda WAJIB menjalankan linter/syntax check secara lokal terlebih dahulu.")
         print("Jika sudah aman, jalankan ulang menggunakan flag --apply-validated")
         sys.exit(1)
-    else:
-        # Validasi sintaks sebelum menulis ke disk jika menggunakan apply-validated
-        print("\n[INFO] Melakukan validasi syntax pada file yang akan diubah...")
-        for fp, old_content, new_content in pending_writes:
-            is_valid, msg = validate_syntax(fp, new_content)
-            display_name = os.path.basename(fp) if os.path.isfile(args.target_dir) else os.path.relpath(fp, args.target_dir)
-            if not is_valid:
-                print(f"\n[BLOCKED] Syntax validation failed in {display_name}")
+    total_files = len(pending_writes)
+    print("\n[INFO] Memvalidasi dan menerapkan perubahan per berkas...")
+    for i, (filepath, old_content, new_content) in enumerate(pending_writes):
+        display_name = os.path.basename(filepath) if os.path.isfile(args.target_dir) else os.path.relpath(filepath, args.target_dir)
+        is_valid, msg = validate_syntax(filepath, new_content)
+        if not is_valid:
+            remaining = total_files - (i + 1)
+            print(f"\n[STOP] Validasi gagal di berkas ke-{i+1} dari {total_files}: {display_name}")
+            if msg:
                 print(msg)
-                print("Eksekusi DIBATALKAN. Tidak ada file yang diubah.")
-                sys.exit(1)
-            elif msg:
-                print(f"  - {display_name}: {msg}")
-        print("[OK] Validasi syntax lolos.")
+            if remaining > 0:
+                print(f"       {remaining} berkas sisanya tidak disentuh.")
+            sys.exit(1)
+        elif msg:
+            print(f"  - {display_name}: {msg}")
 
-        # Tampilkan diff untuk setiap file
-        print("\n[DIFF] Perubahan yang akan diterapkan:")
-        for fp, old_content, new_content in pending_writes:
-            print_diff(fp, old_content, new_content)
-
-    for filepath, old_content, new_content in pending_writes:
+        # Tampilkan diff dan tulis berkas
+        print_diff(filepath, old_content, new_content)
         backup_path = backup_file(filepath, backup_dir)
         with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
             f.write(new_content)
-            
+
     print(f"\n[SUCCESS] Berhasil memodifikasi {file_count} file. Backup tersimpan di {backup_dir}")
 
 if __name__ == '__main__':

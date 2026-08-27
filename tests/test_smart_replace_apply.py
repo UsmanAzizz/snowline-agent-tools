@@ -287,6 +287,33 @@ sys.exit(0)
         assert h_b.returncode == 0, f"Harus lolos linter scripts.lint:\n{h_b.stdout}"
         assert "World" in p.baca("Component.jsx"), "Berkas harus berubah saat sintaks valid"
 
+
+
+def test_sunting_massal_validasi_per_berkas():
+    """Validasi dilakukan per berkas sebelum menulis berkas berikutnya.
+    8 berkas, ke-5 rusak -> 4 pertama tertulis, ke-5 gagal, 3 terakhir utuh."""
+    berkas = {}
+    for i in range(8):
+        if i == 4:
+            berkas[f"File{i}.js"] = "const broken = { TARGET;\n"
+        else:
+            berkas[f"File{i}.js"] = f"const val{i} = TARGET;\n"
+
+    with ProyekUji(berkas) as p:
+        h = p.jalankan(".", "TARGET", "100", "--apply-validated")
+        assert h.returncode != 0, f"Harus gagal saat berkas ke-5 rusak:\n{h.stdout}"
+        assert "[STOP] Validasi gagal di berkas ke-5 dari 8: File4.js" in h.stdout
+        assert "3 berkas sisanya tidak disentuh" in h.stdout
+
+        # 4 pertama tertulis
+        for i in range(4):
+            assert p.baca(f"File{i}.js") == f"const val{i} = 100;\n", f"File{i}.js harusnya tertulis"
+
+        # Berkas ke-5 dan 3 terakhir utuh
+        assert p.baca("File4.js") == "const broken = { TARGET;\n"
+        for i in range(5, 8):
+            assert p.baca(f"File{i}.js") == f"const val{i} = TARGET;\n", f"File{i}.js harusnya tidak disentuh"
+
 DAFTAR = [
     ("--apply pada .js benar-benar menulis", test_apply_js_benar_benar_menulis),
     ("--apply pada .py lewat ast", test_apply_py_lewat_ast),
@@ -304,5 +331,6 @@ DAFTAR = [
     ("probe linter hanya dipanggil sekali", test_probe_linter_dipanggil_sekali),
     ("gerbang risiko Medium/High memblokir --apply", test_gerbang_risiko_medium_high),
     ("linter scripts.lint package.json diprioritaskan", test_scripts_lint_package_json),
+    ("sunting massal divalidasi per berkas", test_sunting_massal_validasi_per_berkas),
 ]
 
