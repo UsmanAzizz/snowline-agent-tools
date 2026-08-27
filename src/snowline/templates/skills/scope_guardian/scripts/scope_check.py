@@ -66,9 +66,19 @@ def is_file_in_scope(filepath, allowed_files, allowed_patterns):
 def check_scope(target_file):
     # Normalize path separators for comparison
     target_file = target_file.replace('\\', '/')
-    lock_file_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../..')), '.agents', 'scope_lock.json')
+    current_dir = os.path.abspath(os.path.dirname(target_file))
+    lock_file_path = None
+    while True:
+        candidate = os.path.join(current_dir, '.agents', 'scope_lock.json')
+        if os.path.exists(candidate):
+            lock_file_path = candidate
+            break
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
     
-    if not os.path.exists(lock_file_path):
+    if not lock_file_path:
         print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
         print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
