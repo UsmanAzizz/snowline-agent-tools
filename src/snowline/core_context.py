@@ -20,7 +20,7 @@ def get_scope_lock_content(root_dir):
         return "", "scope_lock.json (Tidak ditemukan)"
         
     try:
-        with open(lock_path, 'r', encoding='utf-8') as f:
+        with open(lock_path, 'r', encoding='utf-8-sig') as f:
             data = json.load(f)
     except Exception:
         return "", "scope_lock.json (Gagal diparse)"

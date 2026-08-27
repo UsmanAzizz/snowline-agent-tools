@@ -87,12 +87,12 @@ def check_scope(target_file):
         
     abs_target = os.path.abspath(target_file).replace('\\', '/')
     abs_lock_dir = lock_dir.replace('\\', '/')
-    if not abs_target.startswith(abs_lock_dir):
+    if abs_target != abs_lock_dir and not abs_target.startswith(abs_lock_dir + '/'):
         print(f"[BLOCKED] File '{target_file}' is OUTSIDE the project boundary ({lock_dir}).")
         sys.exit(1)
 
     try:
-        with open(lock_file_path, 'r', encoding='utf-8') as f:
+        with open(lock_file_path, 'r', encoding='utf-8-sig') as f:
             scope_data = json.load(f)
     except Exception as e:
         print(f"[BLOCKED] Failed to parse scope_lock.json: {e}")

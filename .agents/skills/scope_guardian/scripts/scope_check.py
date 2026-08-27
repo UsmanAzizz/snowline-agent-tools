@@ -66,15 +66,33 @@ def is_file_in_scope(filepath, allowed_files, allowed_patterns):
 def check_scope(target_file):
     # Normalize path separators for comparison
     target_file = target_file.replace('\\', '/')
-    lock_file_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../..')), '.agents', 'scope_lock.json')
+    current_dir = os.path.abspath(os.getcwd())
+    lock_file_path = None
+    lock_dir = None
+    while True:
+        candidate = os.path.join(current_dir, '.agents', 'scope_lock.json')
+        if os.path.exists(candidate):
+            lock_file_path = candidate
+            lock_dir = current_dir
+            break
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
     
-    if not os.path.exists(lock_file_path):
+    if not lock_file_path:
         print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
         print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
+        
+    abs_target = os.path.abspath(target_file).replace('\\', '/')
+    abs_lock_dir = lock_dir.replace('\\', '/')
+    if abs_target != abs_lock_dir and not abs_target.startswith(abs_lock_dir + '/'):
+        print(f"[BLOCKED] File '{target_file}' is OUTSIDE the project boundary ({lock_dir}).")
+        sys.exit(1)
 
     try:
-        with open(lock_file_path, 'r', encoding='utf-8') as f:
+        with open(lock_file_path, 'r', encoding='utf-8-sig') as f:
             scope_data = json.load(f)
     except Exception as e:
         print(f"[BLOCKED] Failed to parse scope_lock.json: {e}")

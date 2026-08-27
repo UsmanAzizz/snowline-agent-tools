@@ -72,8 +72,8 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
 1  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B).
                      Rotasi harus dibuatkan perintah CLI snowline rotate
                      yang memvalidasi baris masuk = baris keluar.
-2  uji               5 perkakas belum beruji: companion, db_extractor,
-                     deep_analyzer, plan_tracker, smart_tree.
+2  uji               4 perkakas belum beruji: companion, db_extractor,
+                     deep_analyzer, smart_tree.
                      Alasan lama "kalau rusak langsung kelihatan" sudah
                      terbantah — impact_analyzer, smart_search, dan
                      selective_reader baca-saja dan gagal tanpa terlihat.

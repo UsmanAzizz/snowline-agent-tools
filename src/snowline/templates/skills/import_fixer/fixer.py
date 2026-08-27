@@ -22,7 +22,7 @@ def check_scope_write(write_target):
         print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
         sys.exit(1)
     try:
-        with open(lock_file, 'r', encoding='utf-8') as f:
+        with open(lock_file, 'r', encoding='utf-8-sig') as f:
             scope_data = json.load(f)
     except Exception:
         print("[BLOCKED] Failed to parse scope_lock.json.")

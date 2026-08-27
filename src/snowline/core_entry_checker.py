@@ -30,7 +30,7 @@ def check_entry(content):
         has_output = True
 
 
-    is_tl_entry = bool(re.search(r'TL\s*->\s*\w+', content, re.IGNORECASE))
+    is_tl_entry = bool(re.match(r'^\s*#\s*TL\s*->\s*\w+', content.lstrip(), re.IGNORECASE))
     
     if is_tl_entry:
         verdict_words = ["bersih", "stabil", "siap rilis", "sepenuhnya", "selesai 100%", "PASS", "vonis"]

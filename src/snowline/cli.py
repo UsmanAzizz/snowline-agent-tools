@@ -486,6 +486,8 @@ def update(apply=False):
 
         # Overwrite with template
         shutil.copy2(agents_template, agents_dest)
+        if (target.parent / "chamber").exists():
+            _ensure_chamber_pointer(agents_dest)
         save_agents_md_hash(agents_dest)
         print_info(f"Updated: agents.md")
 
@@ -613,6 +615,7 @@ def status():
     except Exception as e:
         print_warning(f"Gagal memeriksa paket: {e}")
 
+    pkg_unknown_reason = ""
     if package_info:
         import glob
         dist_info_pattern = os.path.join(package_info, 'snowline_agent_tools-*.dist-info')
@@ -625,8 +628,17 @@ def status():
                         data = json.load(f)
                     vcs_info = data.get('vcs_info', {})
                     installed_commit = vcs_info.get('commit_id', '')
-                except Exception:
-                    pass
+                    if not installed_commit:
+                        pkg_unknown_reason = "direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)"
+                except Exception as e:
+                    pkg_unknown_reason = f"Gagal membaca direct_url.json: {e}"
+            else:
+                pkg_unknown_reason = f"direct_url.json tidak ada di {matches[0]}"
+        else:
+            pkg_unknown_reason = f"dist-info tidak ditemukan di {package_info}"
+    else:
+        pkg_unknown_reason = "Informasi lokasi package tidak ditemukan"
+
 
     remote_commit = None
     try:
@@ -696,7 +708,9 @@ def status():
     # Layer 1: Package
     if pkg_unknown:
         print_error("Tidak dapat menentukan versi package terinstal")
-        print_info("Coba: pip install --force-reinstall git+https://github.com/UsmanAzizz/snowline-agent-tools.git")
+        print_info(f"Penyebab: {pkg_unknown_reason}")
+        if "dipasang dari wheel" not in pkg_unknown_reason:
+            print_info("Coba: pip install --force-reinstall git+https://github.com/UsmanAzizz/snowline-agent-tools.git")
     elif pkg_latest:
         safe_print(f"  Paket         : commit {installed_commit[:8]}  (GitHub: {remote_commit[:8]})      -> terbaru")
     elif pkg_behind:
@@ -773,6 +787,16 @@ def status():
 
 
 
+
+def _ensure_chamber_pointer(agents_md_path):
+    """Appends chamber pointer to agents.md if not present."""
+    if not agents_md_path.exists():
+        return
+    content = agents_md_path.read_text(encoding="utf-8")
+    if "CHAMBER_RULES.md" not in content:
+        pointer = "\n## Protokol Chamber\n- Ada protokol kerja di `.agents/chamber/`\n- Baca `CHAMBER_RULES.md` sebelum melapor\n- Laporan ditulis lewat: `snowline add-entry --from-file <berkas>`\n"
+        agents_md_path.write_text(content + pointer, encoding="utf-8")
+
 def init_chamber(dry=True, force=False):
     """Pasang chamber — protokol kerja PM/TL/QA. Opsional, terpisah dari init."""
     templates = Path(__file__).parent / "chamber_templates"
@@ -812,6 +836,7 @@ def init_chamber(dry=True, force=False):
         print_info("Jalankan ulang dengan --apply untuk benar-benar memasang.")
         return
 
+    _ensure_chamber_pointer(Path.cwd() / ".agents" / "agents.md")
     print_success(f"Chamber terpasang di {target}")
     print()
     safe_print(f"{Colors.BOLD}Langkah berikutnya:{Colors.RESET}")
