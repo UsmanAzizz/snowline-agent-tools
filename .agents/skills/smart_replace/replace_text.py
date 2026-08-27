@@ -145,20 +145,34 @@ def validate_syntax(filepath, content):
             linter_available = False
             linter_cmd = []
             
-            # Prioritaskan linter lokal
-            local_eslint = os.path.join(os.getcwd(), 'node_modules', '.bin', 'eslint')
-            if sys.platform == 'win32':
-                local_eslint += '.cmd'
-                
-            if os.path.exists(local_eslint):
+            # 1. Periksa scripts.lint di package.json
+            pkg_path = os.path.join(os.getcwd(), 'package.json')
+            if os.path.exists(pkg_path):
                 try:
-                    if subprocess.run([local_eslint, '-v'], capture_output=True).returncode == 0:
+                    with open(pkg_path, 'r', encoding='utf-8') as pf:
+                        pkg_json = json.load(pf)
+                    if isinstance(pkg_json, dict) and 'scripts' in pkg_json and 'lint' in pkg_json['scripts']:
+                        npm_bin = 'npm.cmd' if sys.platform == 'win32' else 'npm'
                         linter_available = True
-                        linter_cmd = [local_eslint, '--quiet']
+                        linter_cmd = [npm_bin, 'run', 'lint', '--']
                 except Exception:
                     pass
+
+            # 2. Prioritaskan linter lokal
+            if not linter_available:
+                local_eslint = os.path.join(os.getcwd(), 'node_modules', '.bin', 'eslint')
+                if sys.platform == 'win32':
+                    local_eslint += '.cmd'
+                    
+                if os.path.exists(local_eslint):
+                    try:
+                        if subprocess.run([local_eslint, '-v'], capture_output=True).returncode == 0:
+                            linter_available = True
+                            linter_cmd = [local_eslint, '--quiet']
+                    except Exception:
+                        pass
             
-            # Fallback ke npx jika lokal tidak ditemukan
+            # 3. Fallback ke npx jika lokal tidak ditemukan
             if not linter_available:
                 try:
                     if subprocess.run(['npx', 'eslint', '-v'], capture_output=True, shell=True).returncode == 0:
@@ -217,7 +231,7 @@ def validate_syntax(filepath, content):
             is_valid, err = check_brackets(content)
             if not is_valid:
                 return False, err
-            return True, "[WARN] Validasi menggunakan bracket-balancing dasar (Linter ESLint/TSC tidak ditemukan)."
+            return True, "[WARN] Validasi menggunakan bracket-balancing dasar (Linter scripts.lint/ESLint/TSC tidak ditemukan, validasi dangkal)."
             
     return True, "[WARN] Tipe file tidak dikenali untuk validasi syntax, pengecekan dilewati."
 

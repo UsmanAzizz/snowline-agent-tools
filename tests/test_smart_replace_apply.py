@@ -258,6 +258,35 @@ def test_gerbang_risiko_medium_high():
         assert "[SUCCESS]" in h2.stdout, f"Harus lolos dengan --apply-validated:\n{h2.stdout}"
         assert "return baru" in p.baca("kode0.js"), "Berkas harus berubah saat diloloskan"
 
+
+
+def test_scripts_lint_package_json():
+    """Urutan probe prioritas package.json scripts.lint (misal oxlint)."""
+    fake_linter = """import sys
+if len(sys.argv) > 1:
+    with open(sys.argv[1], "r", encoding="utf-8") as f:
+        c = f.read()
+    if "className{" in c:
+        print("[PARSE_ERROR] Expected ... but found Identifier in " + sys.argv[1])
+        sys.exit(1)
+sys.exit(0)
+"""
+    with ProyekUji({
+        "Component.jsx": "function App() { return <div className='container'>Hello</div>; }\n",
+        "fake_oxlint.py": fake_linter,
+        "package.json": json.dumps({"scripts": {"lint": "python fake_oxlint.py"}}),
+    }) as p:
+        # A: Broken JSX ditolak
+        h_a = p.jalankan(".", "className='container'", "className{getElClass('container')}", "--allow-partial-match", "--apply-validated")
+        assert h_a.returncode != 0, f"Harus ditolak linter scripts.lint:\n{h_a.stdout}"
+        assert "[PARSE_ERROR]" in h_a.stdout or "Syntax validation failed" in h_a.stdout
+        assert "className='container'" in p.baca("Component.jsx"), "Berkas tidak boleh berubah saat sintaks rusak"
+
+        # B: Valid JSX lolos
+        h_b = p.jalankan(".", "Hello", "World", "--allow-partial-match", "--apply-validated")
+        assert h_b.returncode == 0, f"Harus lolos linter scripts.lint:\n{h_b.stdout}"
+        assert "World" in p.baca("Component.jsx"), "Berkas harus berubah saat sintaks valid"
+
 DAFTAR = [
     ("--apply pada .js benar-benar menulis", test_apply_js_benar_benar_menulis),
     ("--apply pada .py lewat ast", test_apply_py_lewat_ast),
@@ -274,5 +303,6 @@ DAFTAR = [
     ("sintaks rusak membatalkan penulisan", test_sintaks_rusak_membatalkan_penulisan),
     ("probe linter hanya dipanggil sekali", test_probe_linter_dipanggil_sekali),
     ("gerbang risiko Medium/High memblokir --apply", test_gerbang_risiko_medium_high),
+    ("linter scripts.lint package.json diprioritaskan", test_scripts_lint_package_json),
 ]
 
