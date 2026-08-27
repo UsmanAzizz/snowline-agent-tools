@@ -32,6 +32,7 @@ def test_smoke_add_entry_help(): run_cli(['add-entry', '--help'])
 
 
 def test_smoke_close_entry_help(): run_cli(['close-entry', '--help'])
+def test_smoke_rotate_help(): run_cli(['rotate', '-h'])
 def test_smoke_test_clone_help(): run_cli(['test-clone', '--help'])
 def test_smoke_setup_path_help(): run_cli(['setup-path', '--help'])
 def test_smoke_path_full(): run_cli(['path'])

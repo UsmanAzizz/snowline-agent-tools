@@ -1,3 +1,7 @@
+import sys
+sys.dont_write_bytecode = True
+import os
+os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 """
 Simple test runner for Snowline Agent Tools
 Run with: python tests/run_tests.py
