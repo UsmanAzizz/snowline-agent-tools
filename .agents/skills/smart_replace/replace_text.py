@@ -604,6 +604,24 @@ def main():
         backup_path = backup_file(filepath, backup_dir)
         with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
             f.write(new_content)
+        try:
+            from scope_guardian.scripts.scope_check import record_write, is_file_in_scope
+            lock_path = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
+            in_scope = True
+            task_name = ""
+            if os.path.exists(lock_path):
+                try:
+                    with open(lock_path, 'r', encoding='utf-8-sig') as lf:
+                        s_data = json.load(lf)
+                    task_name = s_data.get('task', '')
+                    allowed_files = [f.replace('\\', '/') for f in s_data.get('allowed_files', [])]
+                    allowed_patterns = s_data.get('allowed_patterns', [])
+                    in_scope = is_file_in_scope(filepath, allowed_files, allowed_patterns)
+                except Exception:
+                    pass
+            record_write("smart_replace", filepath, in_scope, task_name)
+        except Exception:
+            pass
 
     print(f"\n[SUCCESS] Berhasil memodifikasi {len(pending_writes)} file. Backup tersimpan di {backup_dir}")
 

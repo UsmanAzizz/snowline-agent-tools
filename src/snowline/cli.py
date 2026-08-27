@@ -327,6 +327,8 @@ def update(apply=False):
         "PROJECT_NOTES.md",
         "CURRENT_STATE.md",
         "scope_lock.json",
+        "write_log.jsonl",
+        "mode_ringan.json",
         # NOTE: agents.md NOT protected - follows timestamp logic like other files
     }
 
@@ -676,6 +678,8 @@ def status():
         PROTECTED = {
             "memory.json", "PROJECT_CONTEXT.md", "PROJECT_NOTES.md",
             "CURRENT_STATE.md", "scope_lock.json",
+        "write_log.jsonl",
+        "mode_ringan.json",
         }
         skill_files = [
             f for f in templates.rglob("*")

@@ -197,6 +197,10 @@ def main():
     for name, test in UJI_SMART_REPLACE:
         runner.run(name, test)
 
+    import test_write_log
+    print("Testing write_log (Entry A2)...")
+    runner.run("write_log directions", test_write_log.test_write_log_directions)
+
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
     runner.run("scope_guardian allowed_exact_match", sg.test_allowed_exact_match)

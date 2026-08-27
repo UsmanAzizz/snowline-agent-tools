@@ -202,3 +202,57 @@ if __name__ == '__main__':
     
     light_flag = any(arg in ['--mode-ringan', '--lightweight', '--light'] for arg in sys.argv[2:])
     check_scope(sys.argv[1], light_mode=light_flag)
+
+
+def record_write(tool_name, filepath, in_scope, task_name=None, root_dir=None):
+    """Menuliskan satu baris log ke .agents/write_log.jsonl ketika berkas ditulis."""
+    if root_dir is None:
+        cur = os.path.abspath(os.getcwd())
+        while True:
+            candidate = os.path.join(cur, '.agents')
+            if os.path.isdir(candidate):
+                root_dir = cur
+                break
+            parent = os.path.dirname(cur)
+            if parent == cur:
+                break
+            cur = parent
+        if root_dir is None:
+            root_dir = os.path.abspath(os.getcwd())
+            
+    agents_dir = os.path.join(root_dir, '.agents')
+    os.makedirs(agents_dir, exist_ok=True)
+    log_file = os.path.join(agents_dir, 'write_log.jsonl')
+    
+    if task_name is None:
+        lock_file = os.path.join(agents_dir, 'scope_lock.json')
+        if os.path.exists(lock_file):
+            try:
+                with open(lock_file, 'r', encoding='utf-8-sig') as f:
+                    data = json.load(f)
+                task_name = data.get('task', '')
+            except Exception:
+                task_name = ''
+        else:
+            task_name = ''
+            
+    rel_berkas = filepath.replace('\\', '/')
+    if os.path.isabs(filepath):
+        try:
+            rel_berkas = os.path.relpath(filepath, root_dir).replace('\\', '/')
+        except Exception:
+            rel_berkas = filepath.replace('\\', '/')
+
+    entry = {
+        "waktu": datetime.now().isoformat(),
+        "alat": tool_name,
+        "berkas": rel_berkas,
+        "dalam_lingkup": bool(in_scope),
+        "tugas": task_name or ""
+    }
+    
+    try:
+        with open(log_file, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+    except Exception as e:
+        print(f"[WARN] Gagal menulis ke write_log.jsonl: {e}")
