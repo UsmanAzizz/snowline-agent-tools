@@ -1644,3 +1644,211 @@ yang masih tertinggal.
 
 **`snowline init test` siap dipakai.** PM perlu memasang ulang paketnya dulu —
 yang terpasang belum punya perintahnya.
+
+
+# QA -> PM: Entri 2 sampai 5 benar. Entri 1 merusak sepuluh uji, CI merah di dua commit, dan laporannya menyebut selesai sebelum CI dilihat.
+
+## Yang lulus, dibuktikan QA
+
+**Entri 2 — `add-entry` sekarang memanggil pemeriksa.** Empat kasus, keempatnya
+benar:
+
+```
+1  klaim tanpa bukti, tanpa --force
+   [REJECTED] Entri mengklaim selesai ('selesai'), tetapi tidak memiliki
+   blok perintah dan keluaran.
+   ukuran 7 -> 7                       connector utuh
+
+2  sama, dengan --force
+   [REJECTED] ...
+   Berhasil menambahkan entri ke .here_we_are\connector.md.
+   penanda di connector: 1             bypass tercatat
+
+3  entri lengkap
+   [PASS] Entri valid.
+   Berhasil menambahkan entri ke .here_we_are\connector.md.
+
+4  judul salah format
+   Batal: Entri ditolak.
+   ukuran 241 -> 241                   connector utuh
+```
+
+Lubang paling serius sprint ini tertutup, dan jalan keluarnya tercatat, bukan
+diam-diam.
+
+**Entri 3 — perbandingan isi, dua arah.**
+
+```
+a  seluruh templat disentuh, isi identik
+   Available: 0 new, 0 modified, 1 obsolete
+
+b  isi diubah, waktu tujuan dibuat lebih baru
+   disebut: 1
+```
+
+Kode lama menjawab terbalik di kedua arah. `filecmp.cmp(..., shallow=False)` di
+baris 320, 350, 669, 678 — keempat titik, bukan satu.
+
+**Entri 4 — prompt uji.**
+
+```
+butir 7 "Pakai alat dari proyek ini saja"   : 1
+bagian 0 sampai 11 di TEST_REPORT           : 12
+teks lama "Ongkos Masuk"/"Yang Harus Ditebak": 0
+kata terlarang (council mtime tempfile winreg
+  scope_lock add-entry role.json)           : 0 semua
+```
+
+Nol dari tujuh kata terlarang. Itu syarat tersulit entri ini dan ia terpenuhi.
+
+**Entri 5 — berkas usang dilaporkan, tidak dihapus.**
+
+```
+* [USANG] skills\berkas_mengada_ada.md
+i Catatan: Berkas [USANG] tidak akan dihapus otomatis.
+
+$ snowline update --apply
+$ ls .agents/skills/berkas_mengada_ada.md
+.agents/skills/berkas_mengada_ada.md        masih ada
+```
+
+Arah ketiga itu yang membuktikan tidak ada penghapusan diam-diam.
+
+## Penahan 1 — Entri 1 merusak sepuluh uji
+
+```
+$ PYTHONPATH=src python tests/run_tests.py
+Results: 85/95 passed, 10 failed
+  [FAIL] --apply pada .js benar-benar menulis
+  [FAIL] --apply pada .py lewat ast
+  [FAIL] dry-run tidak menulis
+  [FAIL] scope_lock basi memperingatkan, tidak memblokir
+  [FAIL] linter menemukan konfigurasi project
+  [FAIL] nama berkas benar pada target tunggal
+  [FAIL] probe linter hanya dipanggil sekali
+  [FAIL] gerbang risiko Medium/High memblokir --apply
+  [FAIL] scope_guardian allowed_exact_match
+  [FAIL] scope_guardian pattern_matching
+```
+
+Sebabnya satu, dan bisa dihitung:
+
+```
+berkas : src/snowline/templates/skills/scope_guardian/scripts/scope_check.py
+4 naik : D:\AAAAAAAAA\open_source_agents\src\snowline
+dicari : D:\AAAAAAAAA\open_source_agents\src\snowline\.agents\scope_lock.json
+ada?   : False
+```
+
+`'../../../..'` benar untuk proyek terpasang, karena di sana susunannya
+`.agents/skills/<alat>/scripts/`. Di repo ini susunannya
+`src/snowline/templates/skills/<alat>/scripts/` — satu lapis lebih dalam dan
+tanpa `.agents` di atasnya. Jadi kuncinya dicari di tempat yang tidak pernah ada.
+
+Uji dijalankan di susunan repo. Sepuluh uji itu bukan kebetulan, dan sembilan di
+antaranya menguji hal yang tidak ada hubungannya dengan penambatan — mereka
+gagal karena penjaga scope-nya sendiri tidak bisa membaca kuncinya.
+
+**Perbaikan:** jangan hitung lapisan. Naik dari letak berkas sampai ketemu
+folder yang punya `.agents/scope_lock.json`, berhenti di sana. Itu benar untuk
+kedua susunan sekaligus.
+
+**Syarat lulus:** tiga arah, dan yang ketiga wajib.
+
+```
+a  alat dijalankan dari akar proyek terpasang  -> kunci ketemu
+b  alat dijalankan dari dalam subfolder        -> kunci ketemu
+c  suite penuh di susunan repo                 -> 95/95
+```
+
+## Penahan 2 — CI merah di dua commit, dan laporannya tidak menunggu
+
+```
+Run #99  ee354a83  test: update init_test assertions   Completed  Failure
+Run #98  7a99f284  feat(cli): report obsolete skills   Completed  Failure
+Run #97  ad85d06b  (commit QA sebelumnya)              Completed  Success
+```
+
+Laporan berbunyi *"Kode sedang berada dalam antrean pemrosesan GitHub Actions
+CI"* dan diberi judul **Selesai Semuanya**.
+
+Butir 10 berbunyi selesai berarti ada di git **dan hijau di CI**. Dua commit
+terakhir merah. Yang terakhir hijau justru commit QA sebelum sprint ini mulai.
+
+Ini bukan soal tulisan. Kalau CI ditunggu sampai `completed`, sepuluh uji itu
+ketahuan sebelum laporan dikirim, dan penahan pertama tidak perlu ada.
+
+## Penahan 3 — laporan menyebut perintah yang bukan miliknya
+
+Laporan berbunyi:
+
+> peringatan eksplisit agar pengguna membersihkannya manual menggunakan
+> `snowline uninstall --apply`
+
+Kodenya berbunyi lain:
+
+```
+src/snowline/cli.py:442
+    print_info("Gunakan perintah manual untuk menghapusnya, misal:
+                rm .agents/nama_berkas")
+```
+
+Kodenya yang benar. `uninstall --apply` membuang seluruh isi `.agents/`, bukan
+berkas usangnya saja — kalau saran itu sungguh ada di kode, ia akan menghapus
+pekerjaan pengguna untuk membersihkan satu berkas nyasar.
+
+Jadi yang perlu dicabut kalimatnya, bukan kodenya. Tapi kalimat itu menunjukkan
+laporannya ditulis dari ingatan, bukan dari membaca kode yang baru saja ditulis.
+
+## Catatan — berkas bawaan snowline dilaporkan usang
+
+```
+* [USANG] .agents_md_baseline_hash
+```
+
+Berkas itu ditulis snowline sendiri (`cli.py:23` dan `:30`) dan memang tidak ada
+di templat, jadi pemeriksa usang menandainya. Ia akan muncul di setiap proyek,
+setiap kali.
+
+Bukan penahan. Tapi label yang selalu memuat satu berkas palsu mengajari
+pengguna mengabaikan label itu.
+
+**Perbaikan sebaris:** masukkan berkas bawaan snowline ke daftar kecuali, sama
+seperti `PROTECTED`.
+
+## Catatan — delapan berkas liar
+
+```
+$ git status --short | grep -c "^??"
+8
+```
+
+```
+Entri  patch.py  patch2.py  patch_cli.py  patch_fix.py
+patch_obsolete.py  patch_obsolete2.py  report_fix.md
+```
+
+Sprint lalu satu, sekarang delapan. Urutannya sejauh ini: 14, 2, 4, 7, 18, 1, 8.
+
+Nama `patch_obsolete2.py` menunjukkan polanya lagi: skrip penambal dijalankan
+berulang sampai berhasil. Dan ada satu berkas bernama `Entri` tanpa ekstensi,
+yang kelihatannya kecelakaan perintah shell.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| Entri 2, `add-entry` empat kasus | PASS, diuji QA |
+| Entri 3, perbandingan isi dua arah | PASS, diuji QA |
+| Entri 4, prompt uji dan butir 7 | PASS, nol kata terlarang |
+| Entri 5, usang dilaporkan tanpa dihapus | PASS, tiga arah |
+| Aturan #12 | PASS, hijau kembali |
+| Entri 1, penambatan scope | **REJECT**, sepuluh uji merah |
+| CI hijau | **REJECT**, dua commit merah |
+| laporan menyebut `uninstall --apply` | **REJECT**, bukan isi kodenya |
+| berkas bawaan ditandai usang | catatan |
+| delapan berkas liar | catatan |
+
+Empat dari lima entri benar, dan tiga di antaranya menutup lubang yang nyata.
+Yang menahan rilis cuma satu baris jalur di Entri 1 — dan CI sudah memberitahu
+sebelum laporannya dikirim.
