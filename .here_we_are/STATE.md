@@ -19,7 +19,7 @@ companion       tunggakan terbuka       0          tutup
 chamber         kode di pohon git       5 berkas   528 baris + init_chamber di
                                                    cli.py:738 — bukan lagi
                                                    protokol murni
-tools           beruji                  13 / 17    4 belum, didaftar di Terbuka 2
+tools           beruji                  17 / 17    semua 17 perkakas beruji
                                                    (beruji = ada uji yang menjalankan alatnya dan menegaskan keluarannya)
                                                    (alat = folder di skills/ yang punya SKILL.md)
 undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN

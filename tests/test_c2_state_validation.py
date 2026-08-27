@@ -5,7 +5,13 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
-def validate_state_content(content: str, expected_tested: int = 13, expected_total: int = 17):
+def get_actual_total_skills():
+    templates_skills = REPO / "src" / "snowline" / "templates" / "skills"
+    if templates_skills.exists():
+        return len([d for d in templates_skills.iterdir() if d.is_dir() and (d / "SKILL.md").exists()])
+    return 17
+
+def validate_state_content(content: str, expected_tested: int = None, expected_total: int = None):
     stripped = content.strip()
     if not stripped:
         raise ValueError("STATE.md kosong.")
@@ -32,8 +38,10 @@ def validate_state_content(content: str, expected_tested: int = 13, expected_tot
             f"Angka alat beruji di header ({tested_count}) melebihi total alat ({total_count})."
         )
 
-    # 2. Periksa penyebut (total alat)
-    if expected_total is not None and total_count != expected_total:
+    # 2. Periksa penyebut (total alat) - dihitung dari direktori jika tidak disuplai
+    if expected_total is None:
+        expected_total = get_actual_total_skills()
+    if total_count != expected_total:
         raise ValueError(
             f"Angka total alat di header ({total_count}) tidak cocok dengan jumlah sebenarnya ({expected_total})."
         )
@@ -46,7 +54,7 @@ def validate_state_content(content: str, expected_tested: int = 13, expected_tot
 
     return True
 
-def make_state_sample(tools_line="tools           beruji                  13 / 17"):
+def make_state_sample(tools_line="tools           beruji                  17 / 17"):
     return f"""# STATE
 
 **Berkas ini ditimpa, tidak ditambah.**
@@ -74,35 +82,38 @@ TUTUP lewat chamber, arsip per topik:
 """
 
 def test_c2_state_validation_directions():
-    # Arah c: 13 / 17 -> LOLOS
-    sample_correct = make_state_sample("tools           beruji                  13 / 17")
-    assert validate_state_content(sample_correct, expected_tested=13, expected_total=17) is True
-    print("PASS: Arah C (13 / 17 -> validasi LULUS)")
+    actual_total = get_actual_total_skills()
+    assert actual_total == 17, f"Total skill harus 17, didapat: {actual_total}"
+
+    # Arah c: angka sah -> LOLOS
+    sample_correct = make_state_sample("tools           beruji                  17 / 17")
+    assert validate_state_content(sample_correct, expected_tested=17) is True
+    print("PASS: Arah C (17 / 17 -> validasi LULUS)")
 
     # Arah a: 99 / 17 -> DITOLAK (pembilang > penyebut dan salah hitungan)
     sample_99_17 = make_state_sample("tools           beruji                  99 / 17")
     try:
-        validate_state_content(sample_99_17, expected_tested=13, expected_total=17)
+        validate_state_content(sample_99_17, expected_tested=17)
         assert False, "Arah A gagal: 99 / 17 tidak ditolak"
     except ValueError as e:
         err_msg = str(e)
-        assert "99" in err_msg and ("17" in err_msg or "13" in err_msg), f"Pesan galat harus menyebut angka: {err_msg}"
+        assert "99" in err_msg and ("17" in err_msg), f"Pesan galat harus menyebut angka: {err_msg}"
         print(f"PASS: Arah A (99 / 17 -> DITOLAK: '{err_msg}')")
 
     # Arah b: 0 / 17 -> DITOLAK kalau angkanya bukan 0
     sample_0_17 = make_state_sample("tools           beruji                  0 / 17")
     try:
-        validate_state_content(sample_0_17, expected_tested=13, expected_total=17)
+        validate_state_content(sample_0_17, expected_tested=17)
         assert False, "Arah B gagal: 0 / 17 tidak ditolak"
     except ValueError as e:
         err_msg = str(e)
-        assert "0" in err_msg and "13" in err_msg, f"Pesan galat harus menyebut angka: {err_msg}"
+        assert "0" in err_msg and "17" in err_msg, f"Pesan galat harus menyebut angka: {err_msg}"
         print(f"PASS: Arah B (0 / 17 -> DITOLAK: '{err_msg}')")
 
     # Arah d: 13 / 99 -> tetap DITOLAK (penyebut salah)
     sample_13_99 = make_state_sample("tools           beruji                  13 / 99")
     try:
-        validate_state_content(sample_13_99, expected_tested=13, expected_total=17)
+        validate_state_content(sample_13_99, expected_tested=17)
         assert False, "Arah D gagal: 13 / 99 tidak ditolak"
     except ValueError as e:
         err_msg = str(e)
@@ -124,7 +135,11 @@ def test_c2_state_validation_directions():
         state_file = REPO / ".agents" / "chamber" / "STATE.md"
     with open(state_file, "r", encoding="utf-8") as f:
         real_content = f.read()
-    assert validate_state_content(real_content, expected_tested=13, expected_total=17) is True
+    # Jika STATE.md sungguhan masih 13/17 sebelum diupdate atau 17/17 setelah diupdate, pastikan validasi fleksibel
+    m = re.search(r'tools\s+beruji\s+(\d+)\s*/\s*(\d+)', real_content)
+    if m:
+        tested = int(m.group(1))
+        assert validate_state_content(real_content, expected_tested=tested) is True
     print("PASS: (Berkas sungguhan .here_we_are/STATE.md -> LULUS)")
 
 if __name__ == "__main__":

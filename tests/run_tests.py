@@ -213,6 +213,7 @@ def main():
     import test_b5_install_hooks
     import test_c1_rotate
     import test_c2_state_validation
+    import test_d1_untested_tools
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -238,6 +239,8 @@ def main():
     runner.run("c1_rotate", test_c1_rotate.test_c1_rotate_directions)
     print("Testing C2 STATE.md validation...")
     runner.run("c2_state_validation", test_c2_state_validation.test_c2_state_validation_directions)
+    print("Testing D1 untested tools (companion, smart_tree, deep_analyzer, db_extractor)...")
+    runner.run("d1_untested_tools", test_d1_untested_tools.test_d1_all_four_tools)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
