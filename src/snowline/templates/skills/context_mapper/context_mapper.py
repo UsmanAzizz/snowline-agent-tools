@@ -61,8 +61,7 @@ def check_scope_write(write_target):
         if is_light_mode():
             print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
             return
-        print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
-        sys.exit(1)
+        print("[WARN] scope_lock.json not found in .agents/. Menulis tanpa batasan lingkup.")
     try:
         with open(lock_file, 'r', encoding='utf-8-sig') as f:
             scope_data = json.load(f)
@@ -73,11 +72,10 @@ def check_scope_write(write_target):
     allowed_patterns = scope_data.get('allowed_patterns', [])
     task = scope_data.get('task', 'Unknown task')
     if not is_file_in_scope(write_target, allowed_files, allowed_patterns):
-        print(f"[BLOCKED] Write target is OUT OF SCOPE.")
+        print(f"[WARN] Write target is OUT OF SCOPE.")
         print(f"Task: {task}")
         print(f"Target: {write_target}")
         print(f"Allowed: {allowed_files}")
-        sys.exit(1)
 
 def extract_dependencies(content, target_names_set):
     found = set()

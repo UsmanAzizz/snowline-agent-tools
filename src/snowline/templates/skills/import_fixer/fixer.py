@@ -49,8 +49,7 @@ def check_scope_write(write_target):
         if is_light_mode():
             print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
             return
-        print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
-        sys.exit(1)
+        print("[WARN] scope_lock.json not found in .agents/. Menulis tanpa batasan lingkup.")
     try:
         with open(lock_file, 'r', encoding='utf-8-sig') as f:
             scope_data = json.load(f)
@@ -61,11 +60,10 @@ def check_scope_write(write_target):
     allowed_patterns = scope_data.get('allowed_patterns', [])
     task = scope_data.get('task', 'Unknown task')
     if not is_file_in_scope(write_target, allowed_files, allowed_patterns):
-        print(f"[BLOCKED] Write target is OUT OF SCOPE.")
+        print(f"[WARN] Write target is OUT OF SCOPE.")
         print(f"Task: {task}")
         print(f"Target: {write_target}")
         print(f"Allowed: {allowed_files}")
-        sys.exit(1)
 
 
 IGNORE_DIRS = {'.git', 'node_modules', 'vendor', 'dist', 'build', '.history', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
@@ -102,7 +100,7 @@ def compute_relative_path(source_file, target_file):
     return rel_path
 
 def fix_import(source_file, broken_import, apply_mode):
-    print("🔗 SMART IMPORT FIXER 🔗")
+    print("  SMART IMPORT FIXER  ")
     print("=" * 60)
 
     # Check scope before writing
@@ -140,7 +138,7 @@ def fix_import(source_file, broken_import, apply_mode):
         matches.sort(key=proximity_score)
         if proximity_score(matches[0]) < proximity_score(matches[-1]):
             target_file = matches[0]
-            print(f"[INFO] Multiple matches found — using nearest one: {target_file}")
+            print(f"[INFO] Multiple matches found   using nearest one: {target_file}")
         else:
             print(f"[FAIL] Multiple files found with basename '{basename}':")
             for m in matches:
@@ -173,7 +171,7 @@ def fix_import(source_file, broken_import, apply_mode):
         if not apply_mode:
             print("\n" + "=" * 60)
             print("[OK] Dry-run complete. Found the correct path.")
-            print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
+            print("\nPROMPT UNTUK AI (Copy-Paste ini):")
             print(f'"Berdasarkan hasil pencarian Smart Import Fixer di atas, jalankan ulang perintah dengan tambahan flag --apply untuk memperbaiki rute secara otomatis."')
         else:
             backup_dir = os.path.join(root_dir, '.backup_replace', datetime.now().strftime("%Y%m%d_%H%M%S"))

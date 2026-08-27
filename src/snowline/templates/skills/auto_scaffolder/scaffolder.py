@@ -47,8 +47,7 @@ def check_scope_write(write_target):
         if is_light_mode():
             print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
             return
-        print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
-        sys.exit(1)
+        print("[WARN] scope_lock.json not found in .agents/. Menulis tanpa batasan lingkup.")
     try:
         with open(lock_file, 'r', encoding='utf-8-sig') as f:
             scope_data = json.load(f)
@@ -59,11 +58,10 @@ def check_scope_write(write_target):
     allowed_patterns = scope_data.get('allowed_patterns', [])
     task = scope_data.get('task', 'Unknown task')
     if not is_file_in_scope(write_target, allowed_files, allowed_patterns):
-        print(f"[BLOCKED] Write target is OUT OF SCOPE.")
+        print(f"[WARN] Write target is OUT OF SCOPE.")
         print(f"Task: {task}")
         print(f"Target: {write_target}")
         print(f"Allowed: {allowed_files}")
-        sys.exit(1)
 
 
 def check_task_state(is_apply=False):
@@ -162,7 +160,7 @@ module.exports = router;
 """
 
 def generate_scaffold(file_type, name, target_dir, apply_mode):
-    print("🏗️ AUTO-SCAFFOLDER 🏗️")
+    print("=== AUTO-SCAFFOLDER ===")
     print("=" * 60)
 
     if file_type.lower() not in ['react', 'api']:
@@ -195,7 +193,7 @@ def generate_scaffold(file_type, name, target_dir, apply_mode):
         print("--- Content Preview ---")
         print(content)
         print("=" * 50)
-        print("\n💡 PROMPT UNTUK AI (Copy-Paste ini):")
+        print("\nPROMPT UNTUK AI (Copy-Paste ini):")
         print(f'"Pratinjau berhasil. Silakan jalankan ulang perintah dengan tambahan flag --apply untuk membuat file {filename}."')
     else:
         try:
@@ -203,7 +201,7 @@ def generate_scaffold(file_type, name, target_dir, apply_mode):
                 f.write(content)
             print(f"[OK] Successfully generated {filename} at {target_dir}")
             print("\n" + "=" * 60)
-            print("💡 PROMPT UNTUK AI (Copy-Paste ini):")
+            print("PROMPT UNTUK AI (Copy-Paste ini):")
             print(f'"Berdasarkan hasil Auto-Scaffolder di atas, tolong gunakan tool replace_file_content untuk mulai mengisi logika yang sesungguhnya di dalam {filename}."')
         except Exception as e:
             print(f"[FAIL] Error generating file: {e}")

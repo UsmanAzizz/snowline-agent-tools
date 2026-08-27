@@ -134,19 +134,23 @@ def test_dry_run_tidak_menulis():
         assert p.baca("kode.js") == JS_SATU_BARIS, "dry-run mengubah berkas"
 
 
-def test_di_luar_scope_diblokir():
+def test_di_luar_scope_diperingatkan_dan_ditulis():
+    """(A1.a) Berkas di luar allowed_files ditulis, dengan peringatan."""
     with ProyekUji({"kode.js": JS_SATU_BARIS}, allowed_files=["lain.js"]) as p:
         h = p.jalankan(".", "namaLama", "namaBaru", "--apply")
-        assert "[BLOCKED]" in h.stdout, f"tidak diblokir:\n{h.stdout}"
-        assert p.baca("kode.js") == JS_SATU_BARIS, "berkas di luar scope berubah"
+        assert "[WARN]" in h.stdout and "OUT OF SCOPE" in h.stdout, f"tidak ada peringatan:\n{h.stdout}"
+        assert "[SUCCESS]" in h.stdout, f"seharusnya ditulis:\n{h.stdout}"
+        assert p.baca("kode.js") == "const namaBaru = 1;\n", "berkas seharusnya tertulis"
 
 
-def test_tanpa_scope_lock_diblokir_dan_menunjuk_skema():
+def test_tanpa_scope_lock_diperingatkan_dan_ditulis():
+    """(A1.f) Tanpa scope_lock.json sama sekali ditulis, dengan peringatan."""
     with ProyekUji({"kode.js": JS_SATU_BARIS}, dengan_lock=False) as p:
         h = p.jalankan(".", "namaLama", "namaBaru", "--apply")
-        assert "[BLOCKED]" in h.stdout
-        assert "scope_guardian.md" in h.stdout, \
-            f"pesan galat tidak menunjuk skemanya:\n{h.stdout}"
+        assert "[WARN]" in h.stdout and "scope_lock.json tidak ditemukan" in h.stdout, \
+            f"tidak ada peringatan:\n{h.stdout}"
+        assert "[SUCCESS]" in h.stdout, f"seharusnya ditulis:\n{h.stdout}"
+        assert p.baca("kode.js") == "const namaBaru = 1;\n", "berkas seharusnya tertulis"
 
 
 def test_scope_lock_basi_memperingatkan_tetapi_tidak_memblokir():
@@ -361,9 +365,8 @@ DAFTAR = [
     ("--apply pada .js benar-benar menulis", test_apply_js_benar_benar_menulis),
     ("--apply pada .py lewat ast", test_apply_py_lewat_ast),
     ("dry-run tidak menulis", test_dry_run_tidak_menulis),
-    ("berkas di luar scope diblokir", test_di_luar_scope_diblokir),
-    ("tanpa scope_lock diblokir dan menunjuk skema",
-     test_tanpa_scope_lock_diblokir_dan_menunjuk_skema),
+    ("berkas di luar scope diperingatkan dan ditulis", test_di_luar_scope_diperingatkan_dan_ditulis),
+    ("tanpa scope_lock diperingatkan dan ditulis", test_tanpa_scope_lock_diperingatkan_dan_ditulis),
     ("scope_lock basi memperingatkan, tidak memblokir",
      test_scope_lock_basi_memperingatkan_tetapi_tidak_memblokir),
     ("scope_lock segar tidak memperingatkan", test_scope_lock_segar_tidak_memperingatkan),

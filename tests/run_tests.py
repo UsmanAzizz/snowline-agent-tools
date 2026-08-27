@@ -200,8 +200,9 @@ def main():
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
     runner.run("scope_guardian allowed_exact_match", sg.test_allowed_exact_match)
-    runner.run("scope_guardian blocked_out_of_scope", sg.test_blocked_out_of_scope)
-    runner.run("scope_guardian missing_scope_lock", sg.test_missing_scope_lock)
+    runner.run("scope_guardian out_of_scope_warns_and_allows", sg.test_out_of_scope_warns_and_allows)
+    runner.run("scope_guardian missing_scope_lock_warns_and_allows", sg.test_missing_scope_lock_warns_and_allows)
+    runner.run("scope_guardian outside_project_boundary_blocked", sg.test_outside_project_boundary_blocked)
     runner.run("scope_guardian pattern_matching", sg.test_pattern_matching)
     runner.run("scope_guardian mode_ringan_allowed", sg.test_mode_ringan_allowed)
 

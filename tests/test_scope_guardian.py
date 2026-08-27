@@ -54,10 +54,9 @@ class TestScopeCheck:
             finally:
                 os.chdir(original_cwd)
 
-    def test_blocked_out_of_scope(self):
-        """Should block files not in scope"""
+    def test_out_of_scope_warns_and_allows(self):
+        """(A1.a) Should warn but allow files out of scope"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Create .agents directory and scope_lock.json
             agents_dir = os.path.join(tmpdir, '.agents')
             os.makedirs(agents_dir)
 
@@ -70,45 +69,54 @@ class TestScopeCheck:
             with open(os.path.join(agents_dir, 'scope_lock.json'), 'w') as f:
                 json.dump(scope_lock, f)
 
-            # Create a file OUT of scope
             os.makedirs(os.path.join(tmpdir, 'src', 'other'))
             target_file = os.path.join(tmpdir, 'src', 'other', 'Other.jsx')
             with open(target_file, 'w') as f:
                 f.write('// Other component')
 
-            # Change to temp directory
             original_cwd = os.getcwd()
             os.chdir(tmpdir)
 
             try:
-                # Should exit with code 1 (BLOCKED)
-                try:
-                    check_scope(os.path.relpath(target_file, tmpdir))
-                    assert False, "Expected SystemExit"
-                except SystemExit as e:
-                    if e.code == 1:
-                        assert True  # Blocked as expected
-                    else:
-                        assert False, f"Expected exit code 1, got {e.code}"
+                res = check_scope(os.path.relpath(target_file, tmpdir))
+                # res is (allowed, in_scope, task) -> allowed is True, in_scope is False
+                assert res[0] is True and res[1] is False
             finally:
                 os.chdir(original_cwd)
 
-    def test_missing_scope_lock(self):
-        """Should block if scope_lock.json is missing"""
+    def test_missing_scope_lock_warns_and_allows(self):
+        """(A1.f) Should warn but allow when scope_lock.json is missing"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            # No .agents directory
             target_file = os.path.join(tmpdir, 'test.js')
+            with open(target_file, 'w') as f:
+                f.write('// test')
 
             original_cwd = os.getcwd()
             os.chdir(tmpdir)
 
             try:
+                res = check_scope(os.path.relpath(target_file, tmpdir))
+                assert res[0] is True
+            finally:
+                os.chdir(original_cwd)
+
+    def test_outside_project_boundary_blocked(self):
+        """(A1.e) Should block files outside project root"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = os.path.join(tmpdir, '.agents')
+            os.makedirs(agents_dir)
+            with open(os.path.join(agents_dir, 'scope_lock.json'), 'w') as f:
+                json.dump({"task": "test", "allowed_files": []}, f)
+
+            outside_file = os.path.abspath(os.path.join(tmpdir, "..", "outside.txt"))
+            original_cwd = os.getcwd()
+            os.chdir(tmpdir)
+            try:
                 try:
-                    check_scope(os.path.relpath(target_file, tmpdir))
-                    assert False, "Expected SystemExit"
+                    check_scope(outside_file)
+                    assert False, "Expected SystemExit for outside project boundary"
                 except SystemExit as e:
-                    if e.code == 1:
-                        assert True  # Blocked as expected
+                    assert e.code == 1
             finally:
                 os.chdir(original_cwd)
 
@@ -170,7 +178,7 @@ class TestScopeCheck:
             os.chdir(tmpdir)
             try:
                 assert is_light_mode(tmpdir) is True
-                assert check_scope(os.path.relpath(target_file, tmpdir)) is True
+                assert check_scope(os.path.relpath(target_file, tmpdir))[0] is True
             finally:
                 os.chdir(original_cwd)
 

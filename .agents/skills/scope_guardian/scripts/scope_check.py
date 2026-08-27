@@ -112,10 +112,9 @@ def check_scope(target_file, light_mode=False):
     if not lock_file_path:
         if light_mode or is_light_mode():
             print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
-            return True
-        print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
-        print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
-        sys.exit(1)
+            return True, True, ""
+        print("[WARN] scope_lock.json tidak ditemukan di .agents/. Menulis tanpa batasan lingkup tugas.")
+        return True, True, ""
         
     abs_target = os.path.abspath(target_file).replace('\\', '/')
     abs_lock_dir = lock_dir.replace('\\', '/')
@@ -180,22 +179,21 @@ def check_scope(target_file, light_mode=False):
             if target_base == allowed_base:
                 print(f"[ALLOWED] File '{target_file}' is in allowed_files.")
                 print(f"[RISK] {risk_label}")
-                return True
+                return True, True, task
             
     # 2. Check patterns
     for pattern in allowed_patterns:
         if fnmatch.fnmatch(target_file, pattern):
             print(f"[ALLOWED] File '{target_file}' matches pattern '{pattern}'.")
             print(f"[RISK] {risk_label}")
-            return True
+            return True, True, task
             
-    # 3. If no match
-    print(f"[BLOCKED] File '{target_file}' is OUT OF SCOPE for the current task.")
+    # 3. If no match (Sprint 45: peringatan dan pencatatan, tidak menolak)
+    print(f"[WARN] File '{target_file}' is OUT OF SCOPE for the current task.")
     print(f"Task: {task}")
     print(f"Allowed files: {allowed_files}")
     print(f"Allowed patterns: {allowed_patterns}")
-    print("To proceed, you MUST ask the user to explicitly approve expanding the scope.")
-    sys.exit(1)
+    return True, False, task
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
