@@ -195,8 +195,12 @@ def validate_syntax(filepath, content):
                         pkg_json = json.load(pf)
                     if isinstance(pkg_json, dict) and 'scripts' in pkg_json and 'lint' in pkg_json['scripts']:
                         npm_bin = 'npm.cmd' if sys.platform == 'win32' else 'npm'
-                        linter_available = True
-                        linter_cmd = [npm_bin, 'run', 'lint', '--']
+                        try:
+                            if subprocess.run([npm_bin, '-v'], capture_output=True, shell=True).returncode == 0:
+                                linter_available = True
+                                linter_cmd = [npm_bin, 'run', 'lint', '--']
+                        except Exception:
+                            pass
                 except Exception:
                     pass
 

@@ -274,7 +274,7 @@ sys.exit(0)
     with ProyekUji({
         "Component.jsx": "function App() { return <div className='container'>Hello</div>; }\n",
         "fake_oxlint.py": fake_linter,
-        "package.json": json.dumps({"scripts": {"lint": "python fake_oxlint.py"}}),
+        "package.json": json.dumps({"scripts": {"lint": f"{sys.executable} fake_oxlint.py"}}),
     }) as p:
         # A: Broken JSX ditolak
         h_a = p.jalankan(".", "className='container'", "className{getElClass('container')}", "--allow-partial-match", "--apply-validated")
