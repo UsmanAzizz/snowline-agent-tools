@@ -3362,3 +3362,179 @@ waktu ada yang bingung.
 Entri 1 dan 3 mengerjakan persis yang diminta, dan Entri 3 yang paling sulit
 justru paling rapi. Entri 2 memperbaiki perilakunya melebihi yang diminta, lalu
 menceritakannya salah.
+
+
+# PM -> TL: Sprint 44b — dua laporan yang tidak cocok dengan kenyataan
+
+Entri 1 dan 3 Sprint 44 lulus semua arah dan sudah diverifikasi QA. Jangan
+diulang. Mode ringan khususnya rapi — empat arahnya benar, dan pelonggarannya
+tidak melonggarkan yang seharusnya tetap ketat.
+
+Yang tersisa dua, dan keduanya soal apa yang dikatakan alat, bukan apa yang
+dikerjakannya.
+
+---
+
+## Entri 1 — nol kecocokan dilaporkan sebagai berhasil
+
+Masukan sama, bendera sama, satu-satunya beda versinya:
+
+```
+berkas coba.py berisi:  val = 1  # AAA
+perintah: replace_text.py coba.py AAA BBB --apply-validated --allow-partial-match
+
+LAMA  d3f4231 : Found 0 matches | BLOCKED | isi tetap
+BARU  HEAD    : Found 0 matches | SUCCESS | isi tetap
+```
+
+Nol kecocokan itu **benar**. Untuk berkas Python, `AAA` cuma ada di komentar,
+dan alat ini memang sengaja tidak menyentuh komentar. Yang salah reaksinya.
+
+Keluaran lengkap versi sekarang:
+
+```
+[WARN] Found 0 matches in coba.py
+[OK] Scan selesai (1 file dipindai). Menemukan 0 kecocokan di 1 file.
+[INFO] Memvalidasi dan menerapkan perubahan per berkas...
+--- coba.py (content changed - diff unavailable)
+[SUCCESS] Berhasil memodifikasi 1 file. Backup tersimpan di ...
+```
+
+Ia berkata `content changed`, membuat cadangan, dan menyatakan satu berkas
+dimodifikasi. Tidak ada satu bita pun yang berubah.
+
+Versi lama menolak dengan benar. Ini kemunduran, dan bentuknya yang paling
+berbahaya: **perintah yang tidak melakukan apa-apa melapor berhasil.** Agen yang
+membacanya akan lanjut ke langkah berikutnya dengan yakin perubahannya sudah
+masuk.
+
+**Syarat lulus:**
+
+```
+a  nol kecocokan  -> katakan nol kecocokan. Bukan SUCCESS, dan jangan
+                     membuat cadangan untuk berkas yang tidak berubah
+b  ada kecocokan  -> tetap ditulis, tetap SUCCESS
+c  campuran: sebagian berkas ada kecocokan, sebagian nol
+   -> yang ada ditulis; yang nol tidak ikut dihitung sebagai dimodifikasi
+```
+
+Arah (c) yang gampang terlewat kalau perbaikannya cuma menambah satu penjagaan
+di awal. Buktikan dengan tiga berkas: dua ada kecocokan, satu tidak, lalu
+tunjukkan angka di baris `[SUCCESS]` menyebut dua, bukan tiga.
+
+---
+
+## Entri 2 — pesan berhenti menyebut berkas yang tidak pernah ditulis
+
+Delapan berkas Python sah, yang kelima sengaja dibuat rusak:
+
+```
+$ python replace_text.py . AAA BBB --apply-validated --allow-partial-match
+[STOP] Validasi gagal di berkas ke-5 dari 8: f5.py
+Python Syntax Error: '(' was never closed at line 1
+       3 berkas sisanya tidak disentuh.
+```
+
+Keadaan disk sesudahnya:
+
+```
+f1:AAA f2:AAA f3:AAA f4:AAA f5:AAA f6:AAA f7:AAA f8:AAA
+```
+
+Nol dari delapan berubah. Kalimat "3 berkas sisanya tidak disentuh" berarti lima
+yang lain disentuh. Tidak ada yang disentuh.
+
+**Perilakunya sendiri lebih baik dari yang saya minta.** Saya minta berhenti di
+tengah dan meninggalkan yang sudah tertulis. Kamu membuatnya semua-atau-tidak
+sama sekali — tidak ada keadaan setengah jadi.
+
+**Pertahankan perilakunya.** Yang diperbaiki cuma kalimatnya:
+
+```
+[STOP] Validasi gagal di berkas ke-5 dari 8: f5.py
+       Python Syntax Error: '(' was never closed at line 1
+       Tidak ada berkas yang ditulis.
+```
+
+**Syarat lulus:**
+
+```
+a  berkas ke-5 dari 8 gagal -> pesannya berkata tidak ada yang ditulis,
+                               dan kedelapannya memang masih utuh
+b  kedelapannya sah         -> kedelapannya tertulis
+```
+
+Buktikan (a) dengan membandingkan isi kedelapan berkas, bukan dengan membaca
+pesannya. Pesan itu justru yang sedang diperbaiki — memakainya sebagai bukti
+berarti menguji dengan alat yang rusak.
+
+---
+
+## Entri 3 — satu nama untuk penanda mode ringan
+
+```
+scope_check.py:15
+markers = ['mode_ringan', 'light_mode', 'lightweight',
+           'mode_ringan.json', 'light_mode.json', 'lightweight.json']
+scope_check.py:24
+data.get('mode') in ['ringan','light','lightweight']
+  or data.get('mode_ringan') is True or data.get('light_mode') is True
+```
+
+Enam nama berkas dan lima bentuk isi, semuanya mematikan penjaga scope.
+
+Makin banyak jalan masuknya, makin besar peluang seseorang menyalakannya tanpa
+sadar — dan makin sulit menjawab "kenapa penjaga ini mati di proyek saya".
+
+**Perbaikan:** pilih satu nama dan satu bentuk isi. Usul:
+
+```
+berkas : .agents/mode_ringan.json
+isi    : {"mode_ringan": true}
+```
+
+Kalau berkasnya ada tetapi isinya bukan bentuk itu, **jangan diam** — katakan
+berkasnya ditemukan tetapi isinya tidak dikenali, dan perlakukan sebagai mati.
+
+**Syarat lulus:**
+
+```
+a  .agents/mode_ringan.json berisi {"mode_ringan": true}  -> mode ringan NYALA
+b  berkas itu tidak ada                                   -> mode ringan MATI
+c  berkas itu ada tetapi isinya {"mode":"blah"}           -> MATI, dan
+                                                             mengatakan kenapa
+d  nama lama seperti .agents/light_mode                   -> MATI
+```
+
+Arah (c) yang penting. Penanda yang ada tetapi diam-diam tidak berlaku lebih
+membingungkan daripada penanda yang tidak ada.
+
+Arah (d) berarti perubahan ini memutus kompatibilitas dengan nama-nama lama.
+Itu disengaja — fiturnya baru satu sprint, belum ada yang memakainya.
+
+---
+
+## Yang TIDAK dikerjakan sprint ini
+
+Jalur shell. Masih menunggu keputusan PM: penjaga scope memblokir, atau
+mencatat.
+
+Kemampuan agen memeriksa hasil perubahan frontend-nya sendiri.
+
+Pesan `dipasang dari wheel` yang salah untuk pemasangan editable.
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah, jangan diringkas. Sebutkan
+apa yang **tidak** kamu periksa. Jangan memvonis pekerjaanmu sendiri.
+
+Satu commit per entri. Sebelum tiap commit: `git add <berkas>` lalu
+`git diff --cached --stat`, dan baca hasilnya.
+
+**Jangan menjalankan `pip install -e .`**
+
+Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, baca
+hasilnya, baru tulis laporan.
+
+**Tidak dikunci.**
