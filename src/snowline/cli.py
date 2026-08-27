@@ -5,6 +5,7 @@ import os
 import shutil
 import argparse
 import sys
+import filecmp
 import tempfile, subprocess, json
 import hashlib
 from datetime import datetime
@@ -316,7 +317,7 @@ def update(apply=False):
     agents_dest = target.parent / "agents.md"
     agents_md_modified = False
     if agents_template.exists() and agents_dest.exists():
-        if agents_template.stat().st_mtime > agents_dest.stat().st_mtime:
+        if not filecmp.cmp(agents_template, agents_dest, shallow=False):
             agents_md_modified = True
 
     # Protected files (will NOT be auto-updated)
@@ -346,7 +347,7 @@ def update(apply=False):
         dest = target / rel
         if not dest.exists():
             new_files.append((f, rel))
-        elif f.stat().st_mtime > dest.stat().st_mtime:
+        elif not filecmp.cmp(f, dest, shallow=False):
             modified_files.append((f, rel))
 
     total_current = len([f for f in target.rglob("*") if f.is_file()])
@@ -647,7 +648,7 @@ def status():
             and f.name != "AGENTS_TEMPLATE.md"
         ]
         if agents_template.exists() and agents_dest.exists():
-            if agents_template.stat().st_mtime > agents_dest.stat().st_mtime:
+            if not filecmp.cmp(agents_template, agents_dest, shallow=False):
                 agents_md_modified = True
         for f in skill_files:
             rel = str(f.relative_to(templates))
@@ -656,7 +657,7 @@ def status():
             dest = target / rel
             if not dest.exists():
                 new_files_count += 1
-            elif f.stat().st_mtime > dest.stat().st_mtime:
+            elif not filecmp.cmp(f, dest, shallow=False):
                 modified_files_count += 1
 
     total_current = len([f for f in target.rglob("*") if f.is_file()]) if target.exists() else 0
