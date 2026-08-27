@@ -169,6 +169,13 @@ def init(dry=True, force=False):
     # Root files (PROJECT_CONTEXT.md is NOT created - it's the historical one from git)
     agents_template = templates / "AGENTS_TEMPLATE.md"
     root_files = {
+        ".gitignore": """write_log.jsonl
+scope_lock.json
+session_cache.json
+mode_ringan.json
+*.pyc
+__pycache__/
+""",
         "agents.md": agents_template.read_text(encoding="utf-8") if agents_template.exists() else "# Agents Configuration\n",
         "memory.json": """{
   "version": "1.0",
@@ -329,6 +336,7 @@ def update(apply=False):
         "scope_lock.json",
         "write_log.jsonl",
         "mode_ringan.json",
+        ".gitignore",
         # NOTE: agents.md NOT protected - follows timestamp logic like other files
     }
 
@@ -680,6 +688,7 @@ def status():
             "CURRENT_STATE.md", "scope_lock.json",
         "write_log.jsonl",
         "mode_ringan.json",
+        ".gitignore",
         }
         skill_files = [
             f for f in templates.rglob("*")
