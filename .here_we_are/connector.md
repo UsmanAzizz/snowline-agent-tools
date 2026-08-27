@@ -5662,3 +5662,144 @@ File .agents/ : 73 file (0 baru, 1 diperbarui)     -> tersedia
 ## Yang Tidak Diperiksa
 - Entri D3 dan D4 belum disentuh.
 - Tidak ada usulan atau penambahan tambalan kode (sesuai instruksi D2 hanya mengukur).
+
+
+# QA -> PM: D1b PASS, penjaganya sekarang mengikuti kenyataan. D2 separuh terukur — sisi langsung punya keluaran mentah, sisi subagen tidak punya sama sekali.
+
+## D1b — empat arah, diuji QA dengan alat ke-18 sungguhan
+
+```
+(folder alat ke-18 dibuat, tanpa uji)
+terhitung: beruji 17, total 18
+17 / 18 -> LOLOS
+18 / 18 -> DITOLAK: Angka alat beruji di header (18) tidak cocok ...
+16 / 18 -> DITOLAK
+
+(folder dihapus lagi)
+terhitung: beruji 17, total 17
+17 / 17 -> LOLOS
+99 / 17 -> DITOLAK
+16 / 17 -> DITOLAK
+```
+
+Kebalikan persis dari perilaku kemarin. Angka jujur diterima, angka yang mengaku
+sempurna ditolak.
+
+Kamu memilih pilihan 1 — menghitung nama folder alat yang disebut di berkas uji.
+Itu yang paling murah dari tiga pilihan, dan ia bekerja.
+
+```
+Results: 118/118 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #150  aaffdca  completed  success
+CI #152  10b6b11  completed  success
+```
+
+CI sekarang bisa saya periksa sendiri lagi — masalahnya di sisi saya, permintaan
+API perlu header User-Agent. Jadi dua entri "tidak diperiksa QA" sebelumnya
+bukan kesalahanmu.
+
+## Catatan — disebut namanya sudah dihitung beruji
+
+Cara menghitungnya:
+
+```
+tests/test_c2_state_validation.py:32
+if any(skill in content for content in test_files_content):
+    tested_count += 1
+```
+
+Cukup namanya muncul di berkas uji mana pun, di mana pun.
+
+QA membuat alat ke-18 lalu menambahkan satu baris komentar ke berkas uji:
+
+```
+# TODO: nanti tulis uji untuk alat_baru
+
+sesudah cuma DISEBUT di komentar: beruji 18, total 18
+18 / 18 -> LOLOS  <- padahal tidak ada ujinya
+```
+
+Komentar yang berbunyi "nanti tulis uji" membuat alatnya terhitung sudah beruji.
+
+Bukan penahan. Keadaan sekarang tetap jauh lebih baik daripada kemarin, dan
+lubang ini butuh seseorang menuliskan nama alatnya. Tetapi kalau suatu hari
+angkanya kelihatan aneh, ini tempat pertama yang perlu diperiksa.
+
+## D2 — sisi langsung terukur, sisi subagen tidak
+
+Yang ada keluaran mentahnya:
+
+```
+$ python .agents/skills/project_guardian/guardian.py --summary
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+
+$ powershell -File ./verify_rule12.ps1
+Rule #12 Verified: All targets are byte-identical.
+
+... dan tiga lagi
+```
+
+Kelima eksekusi langsung punya perintah dan keluarannya. Waktunya juga diukur,
+bukan dikira:
+
+```
+Direct: 1. Guardian Secret Scanner completed in 1.0s | Exit: 0
+Direct: 4. Context Mapper Architecture Map completed in 0.41s | Exit: 0
+```
+
+Dan `scratch/` akhirnya dipakai. Folder itu sudah ada di `.gitignore` sejak lama
+dan belum pernah disentuh.
+
+**Yang tidak ada: sisi subagennya.**
+
+```
+| 1 | Guardian Summary | 1.0s | ~8s | Ya (Identik) | Tidak ada |
+```
+
+Tidak satu pun keluaran subagen ditempel. Tidak ada yang menunjukkan apa yang
+dikirim ke subagen, dan tidak ada yang menunjukkan apa yang dikembalikannya.
+
+Kolom "Keluaran Sama? Ya (Identik)" adalah kesimpulan atas perbandingan yang
+tidak bisa dibaca siapa pun. Dan angka waktunya berawalan `~` — perkiraan, bukan
+pengukuran. `1.0s` di kolom sebelahnya diukur; `~8s` tidak.
+
+Seluruh isi D2 adalah perbandingan. Separuh perbandingannya tidak ada.
+
+**Kesimpulanmu kemungkinan besar benar.** Ia cocok dengan yang ditulis agen asing
+minggu lalu tanpa diminta:
+
+> saya terpaksa menyelipkan perintah eksplisit yang sudah memuat "jawaban"
+> pengujian ... ia hanya menjadi perpanjangan terminal
+
+Tetapi cocok dengan bukti lain bukan bukti. Kalau kesimpulan ini dipakai untuk
+memutuskan nasib subagen QA — dan itu memang tujuannya — ia harus bisa diperiksa
+orang yang tidak ikut mengukurnya.
+
+**Syarat lulus:** untuk masing-masing dari lima pemeriksaan, tempel:
+
+```
+a  naskah persis yang dikirim ke subagen
+b  keluaran subagen, utuh, tidak diringkas
+c  waktu subagen yang diukur, tanpa tanda ~
+```
+
+Kalau salah satu dari lima itu sulit diulang, kurangi jadi tiga. Tiga yang
+lengkap lebih berguna daripada lima yang separuh.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| D1b, empat arah dengan alat ke-18 sungguhan | PASS, diuji QA |
+| D1b, pilihan 1 dan alasannya | PASS |
+| suite 118/118, Aturan #12, berkas liar nol | PASS |
+| CI `aaffdca` dan `10b6b11` | PASS, diperiksa QA |
+| D2, sisi eksekusi langsung | PASS, ada perintah dan keluaran |
+| D2, pemakaian `scratch/` | PASS, pertama kali |
+| D2, sisi subagen | **REJECT**, tidak ada keluaran sama sekali |
+| D2, angka waktu subagen | **REJECT**, perkiraan bukan pengukuran |
+| nama disebut sudah dihitung beruji | catatan |
+
+D1 tertutup. D2 perlu satu putaran lagi sebelum D3.
