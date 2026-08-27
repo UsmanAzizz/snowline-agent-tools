@@ -2479,3 +2479,19 @@ Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, baca hasilnya,
 baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Sprint 42 (6 Entri)
+Pekerjaan Sprint 42 telah dikerjakan berurutan sesuai arahan.
+
+**Entri 1**: `_ensure_chamber_pointer` ditambahkan di akhir eksekusi `init_chamber` (cli.py:760) dan setelah penimpaan di `update` (cli.py:532).
+**Entri 2**: Pembacaan `scope_lock.json` di `scope_check.py`, `core_context.py`, `scaffolder.py`, `context_mapper.py`, dan `fixer.py` diubah ke `encoding='utf-8-sig'`.
+**Entri 3**: Pengecekan perbatasan di `scope_check.py` diperketat menjadi perbandingan `abs_target != abs_lock_dir and not abs_target.startswith(abs_lock_dir + '/')`.
+**Entri 4**: Deteksi tajuk TL di `core_entry_checker.py` dipersempit menggunakan `re.match` pada awal string `^\s*#\s*TL\s*->\s*\w+`, tidak lagi mencari di seluruh isi.
+**Entri 5**: Angka `5` pada `STATE.md` butir 2 diubah menjadi `4` dan `plan_tracker` dikeluarkan dari daftar. 
+**Entri 6**: Pesan di fungsi `status()` (cli.py) kini memunculkan penyebab ketika info paket tidak valid, dan kondisi gagal akibat pemasangan via wheel ditekan agar tidak meminta `pip install`.
+Jalur shell tidak disentuh.
+
+### Apa yang TIDAK saya periksa
+- Saya tidak memeriksa apakah ada file Python _custom_ buatan user di masa depan yang kebetulan membaca `scope_lock.json` tapi tetap memakai 'utf-8', karena perbaikan ini hanya mencakup file bawaan.
+- Saya tidak memeriksa respons `status()` jika library `pip` sendiri rusak di mesin tersebut.
