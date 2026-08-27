@@ -246,7 +246,12 @@ def validate_syntax(filepath, content):
                     f.write(content)
                 # Need shell=True on Windows for npx
                 cmd = linter_cmd + [temp_path]
-                result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+                if sys.platform == 'win32':
+                    cmd_str = subprocess.list2cmdline(cmd)
+                else:
+                    import shlex
+                    cmd_str = shlex.join(cmd)
+                result = subprocess.run(cmd_str, capture_output=True, text=True, shell=True)
                 keluaran = f"{result.stdout.strip()}\n{result.stderr.strip()}".strip()
 
                 if result.returncode != 0:
