@@ -1,6 +1,47 @@
+import re
 import os
 import sys
 from pathlib import Path
+
+def renumber_terbuka(state_lines):
+    """Nomori ulang daftar Terbuka dari 1 berurutan."""
+    terbuka_idx = -1
+    for i, line in enumerate(state_lines):
+        if line.strip().startswith("## Terbuka"):
+            terbuka_idx = i
+            break
+    if terbuka_idx == -1:
+        return state_lines
+
+    block_start = -1
+    block_end = -1
+    for i in range(terbuka_idx + 1, len(state_lines)):
+        if state_lines[i].strip() == "```":
+            if block_start == -1:
+                block_start = i
+            else:
+                block_end = i
+                break
+    if block_start == -1 or block_end == -1:
+        return state_lines
+
+    current_num = 1
+    new_lines = list(state_lines)
+    for i in range(block_start + 1, block_end):
+        line = new_lines[i]
+        m = re.match(r'^(\s*)(\d+)(\s+)(.*)$', line)
+        if m:
+            prefix_space = m.group(1)
+            old_num_str = m.group(2)
+            mid_space = m.group(3)
+            rest = m.group(4)
+            total_width = len(old_num_str) + len(mid_space)
+            new_num_str = str(current_num)
+            space_needed = max(1, total_width - len(new_num_str))
+            new_lines[i] = f"{prefix_space}{new_num_str}{' ' * space_needed}{rest}"
+            current_num += 1
+
+    return new_lines
 
 def close_entry_command(topik: str):
     if ' ' in topik:
@@ -153,6 +194,7 @@ def close_entry_command(topik: str):
             new_line = f"{topik.ljust(20)} {'(entri baru)'.ljust(38)} {topic_path}"
             state_lines.insert(insert_idx, new_line)
             
+            state_lines = renumber_terbuka(state_lines)
             with open(state_file, 'w', encoding='utf-8') as f:
                 f.write('\n'.join(state_lines) + '\n')
     
