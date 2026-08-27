@@ -85,16 +85,17 @@ def rotate_command(topik: str, apply: bool = False):
         return
 
     # Apply mode: write archive first with transactional safety
-    history_dir.mkdir(parents=True, exist_ok=True)
     archive_text = ('\n'.join(archived_lines) + '\n')
-    
     orig_target_content = None
-    target_existed = target_archive.exists()
-    if target_existed:
-        with open(target_archive, 'r', encoding='utf-8') as f:
-            orig_target_content = f.read()
-
+    target_existed = False
+    
     try:
+        history_dir.mkdir(parents=True, exist_ok=True)
+        target_existed = target_archive.exists()
+        if target_existed:
+            with open(target_archive, 'r', encoding='utf-8') as f:
+                orig_target_content = f.read()
+                
         with open(target_archive, 'a', encoding='utf-8') as f:
             f.write(archive_text)
             

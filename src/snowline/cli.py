@@ -1099,6 +1099,13 @@ def main():
         except Exception as e:
             safe_print(f"{Colors.RED}Gagal menutup entri: {e}{Colors.RESET}")
             sys.exit(1)
+    elif args.command == "rotate":
+        try:
+            from snowline.core_rotate import rotate_command
+        except ImportError:
+            sys.path.insert(0, os.path.dirname(__file__))
+            from core_rotate import rotate_command
+        rotate_command(args.topik, apply=args.apply)
             
     elif args.command == "audit":
         try:
