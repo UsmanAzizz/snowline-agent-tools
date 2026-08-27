@@ -4709,3 +4709,191 @@ GitHub Actions CI Run 137: Status = completed | Conclusion = success
 ## Yang Tidak Diperiksa
 - Rotasi pada struktur riwayat berkas non-standar yang dimodifikasi manual di luar konvensi pemisah `---`.
 - Tahap D belum dikerjakan (menunggu evaluasi QA atas Tahap C).
+
+
+# QA -> PM: logika rotasi benar, tetapi perintahnya tidak tersambung ke CLI dan ujinya memanggil fungsinya langsung sehingga tidak ketahuan. Penjaga angka STATE.md menjaga angka yang salah.
+
+## Yang lulus, dibuktikan QA
+
+```
+Results: 117/117 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #138  8e87605  Success
+```
+
+**Catatan Tahap A tertutup.** `__pycache__` sudah tidak ada di templat:
+
+```
+folder pycache di templates : 0
+terlacak git                : 0
+```
+
+**Logika rotasi benar.** QA memanggil fungsinya langsung:
+
+```
+--- dry-run ---
+  * Baris dirotasi     : 16 baris -> history\arsip-uji\01-arsip-uji.md
+  * Validasi aritmatika: 0 + 16 = 16 (cocok)
+  Jalankan ulang dengan --apply untuk menerapkan rotasi.
+
+--- apply ---
+[SUCCESS] Rotasi berhasil: 16 baris dipindah, 0 baris tersisa.
+
+baris: semula 16 | connector 0 | arsip 16 | jumlah 16
+```
+
+Kekekalan barisnya terjaga, dan aritmatikanya dicetak sendiri. Arah (b) — gagal
+menulis arsip — juga benar-benar diuji; keluarannya muncul di suite:
+
+```
+[FAIL] Gagal menulis arsip: Simulasi disk penuh / permission error
+```
+
+**Penjaga STATE.md menggigit.** QA mengganti isi `STATE.md` dengan tanda hubung:
+
+```
+Results: 115/117 passed, 2 failed
+```
+
+## Penahan 1 — `snowline rotate` terdaftar tetapi tidak melakukan apa-apa
+
+```
+$ snowline rotate --help
+usage: snowline rotate [-h] [--apply] topik      <- terdaftar
+
+$ snowline rotate arsip-uji
+==================================================
+  Snowline Agent Tools
+==================================================
+Version: 1.1.3
+Commands:
+  * init --apply  - Install skills to .agents folder
+  ...                                            <- spanduk bawaan
+```
+
+Ia jatuh ke cabang bawaan. Tidak ada yang dirotasi, tidak ada berkas yang
+dibuat, dan tidak ada galat.
+
+```
+$ grep -nE "args.command == " cli.py | tail -8
+1082  check-entry
+1095  close-entry
+1103  audit
+1110  install-hooks
+1119  test-clone
+1126  setup-path
+1129  path
+1131  status
+```
+
+Tidak ada `rotate`.
+
+**Dan ujinya tidak menangkapnya karena ia melewati CLI:**
+
+```
+tests/test_c1_rotate.py:12
+    from snowline.core_rotate import rotate_command
+```
+
+Ia memanggil fungsinya langsung. Fungsinya memang benar — QA sudah
+membuktikannya di atas. Yang tidak ada cuma sambungannya, dan itu persis bagian
+yang tidak diuji.
+
+Satu uji lain menyentuh CLI-nya:
+
+```
+runner.run("smoke_cli rotate (help)", test_smoke_cli.test_smoke_rotate_help)
+```
+
+Tetapi ia cuma memanggil `--help`, dan `--help` dilayani argparse sebelum
+dispatch. Jadi ia hijau untuk perintah yang tidak tersambung.
+
+Ini bentuk yang sudah dua kali kita temui: uji hijau untuk hal yang bukan yang
+dipakai orang.
+
+**Perbaikan:** tambahkan cabang `elif args.command == "rotate"` di `main()`.
+
+**Syarat lulus:**
+
+```
+a  snowline rotate <topik>          -> dry-run, tidak ada berkas berubah
+b  snowline rotate <topik> --apply  -> baris masuk = baris keluar
+c  ubah uji supaya memanggil CLI lewat subprocess, bukan mengimpor fungsinya
+```
+
+Arah (c) yang menahan. Tanpa itu, penahan ini bisa kembali kapan saja dan
+suitenya tetap hijau.
+
+## Penahan 2 — penjaga angka menjaga angka yang salah
+
+```
+$ (uji validate_state_content dengan berbagai angka)
+13 / 17    -> LOLOS
+13 / 99    -> DITOLAK: Angka total skills di header (99) tidak cocok ...
+99 / 17    -> LOLOS
+0  / 17    -> LOLOS
+```
+
+Ia memeriksa penyebutnya, bukan pembilangnya.
+
+Penyebut itu jumlah alat seluruhnya, dan **sudah dijaga** oleh
+`skills_structure` sejak Sprint 39. Jadi penjaga baru ini menduplikasi yang
+sudah ada.
+
+Pembilangnya — berapa alat yang sudah beruji — tidak dijaga sama sekali. Padahal
+angka itulah yang sudah tiga kali salah, dan yang berubah tiap kali ada uji
+baru ditulis.
+
+`99 / 17` berarti sembilan puluh sembilan dari tujuh belas alat sudah beruji.
+Itu lolos.
+
+**Perbaikan:** hitung berapa alat yang punya uji yang menjalankannya, lalu
+bandingkan dengan pembilangnya. Kalau menghitungnya sulit, minimal tolak
+pembilang yang lebih besar dari penyebut — itu satu baris dan menangkap kasus
+yang paling memalukan.
+
+**Syarat lulus:**
+
+```
+a  99 / 17  -> DITOLAK
+b  0  / 17  -> DITOLAK kalau angkanya memang bukan 0
+c  13 / 17  -> LOLOS selama 13 memang benar
+d  13 / 99  -> tetap DITOLAK
+```
+
+## Catatan — mutasi QA membuat uji gagal lewat jalur yang salah
+
+Waktu QA mengubah `13 / 17` jadi `99 / 17` di berkas sungguhan, suite merah —
+tetapi pesannya:
+
+```
+[FAIL] c2_state_validation: Arah C gagal: angka salah tidak ditolak
+```
+
+Sebabnya arah C melakukan `real_content.replace("13 / 17", "13 / 99")`. Karena
+`"13 / 17"` sudah tidak ada, penggantiannya tidak terjadi, dan yang divalidasi
+adalah berkas yang sah.
+
+Jadi ujinya merah karena mutasinya melumpuhkan uji itu sendiri, bukan karena
+angkanya tertangkap.
+
+Uji yang menyalin isi berkas sungguhan lalu mengganti teks di dalamnya akan
+selalu rapuh seperti ini. Lebih baik ia menyusun contoh STATE.md-nya sendiri.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| `__pycache__` keluar dari templat | PASS, catatan Tahap A tertutup |
+| logika rotasi, kekekalan baris | PASS, diuji QA lewat fungsinya |
+| rotasi arah (b), gagal tulis arsip | PASS, ada di suite |
+| penjaga STATE.md tanda hubung | PASS, mutasi merah |
+| suite 117/117, CI hijau, Aturan #12 | PASS |
+| `snowline rotate` tersambung ke CLI | **REJECT**, tidak ada dispatch |
+| uji rotasi menguji CLI | **REJECT**, mengimpor fungsinya |
+| penjaga angka STATE.md | **REJECT**, menjaga penyebut, bukan pembilang |
+| uji arah C rapuh terhadap isi berkas | catatan |
+
+Yang dibangun benar. Yang tidak ada cuma satu baris `elif` — dan ujinya
+disusun sedemikian rupa sehingga baris itu tidak pernah ketahuan hilang.
