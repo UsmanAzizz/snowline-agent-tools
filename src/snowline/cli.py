@@ -350,6 +350,14 @@ def update(apply=False):
         elif not filecmp.cmp(f, dest, shallow=False):
             modified_files.append((f, rel))
 
+    obsolete_files = []
+    for f in target.rglob("*"):
+        if not f.is_file() or f.name.endswith(".pyc"): continue
+        rel = str(f.relative_to(target))
+        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md": continue
+        if not (templates / rel).exists():
+            obsolete_files.append((f, rel))
+
     total_current = len([f for f in target.rglob("*") if f.is_file()])
 
     print_info(f"Current skills: {total_current}")
@@ -398,16 +406,16 @@ def update(apply=False):
 
     pkg_behind = (installed_commit and remote_commit and installed_commit != remote_commit)
 
-    if not new_files and not modified_files and not agents_md_modified and not pkg_behind:
+    if not new_files and not modified_files and not agents_md_modified and not pkg_behind and not obsolete_files:
         print_success("All skills are up to date!")
         return
 
-    if pkg_behind and not new_files and not modified_files and not agents_md_modified:
+    if pkg_behind and not new_files and not modified_files and not agents_md_modified and not obsolete_files:
         print_warning("Package version tertinggal!")
         print_info("Skill files sudah sinkron. Jalankan 'snowline reinstall --latest' untuk update package.")
         return
 
-    print_info(f"Available: {len(new_files)} new, {len(modified_files)} modified")
+    print_info(f"Available: {len(new_files)} new, {len(modified_files)} modified, {len(obsolete_files)} obsolete")
 
     if not apply:
         print_section("Changes to be applied:")
@@ -423,6 +431,16 @@ def update(apply=False):
             print_info(f"... and {len(modified_files) - 10} more modified files")
         
         # Warning for agents.md
+        for _, rel in obsolete_files[:10]:
+            print_list_item(f"[USANG] {rel}")
+        if len(obsolete_files) > 10:
+            print_info(f"... and {len(obsolete_files) - 10} more obsolete files")
+
+
+        if obsolete_files:
+            print_info("Catatan: Berkas [USANG] tidak akan dihapus otomatis.")
+            print_info("Gunakan perintah manual untuk menghapusnya, misal: rm .agents/nama_berkas")
+
         if agents_md_modified:
             print()
             print_warning("[WARN] agents.md akan diperbarui!")
@@ -660,6 +678,14 @@ def status():
             elif not filecmp.cmp(f, dest, shallow=False):
                 modified_files_count += 1
 
+    obsolete_files = []
+    for f in target.rglob("*"):
+        if not f.is_file() or f.name.endswith(".pyc"): continue
+        rel = str(f.relative_to(target))
+        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md": continue
+        if not (templates / rel).exists():
+            obsolete_files.append((f, rel))
+
     total_current = len([f for f in target.rglob("*") if f.is_file()]) if target.exists() else 0
     agents_sinkron = (new_files_count == 0 and modified_files_count == 0 and not agents_md_modified)
     agents_tersedia = (new_files_count > 0 or modified_files_count > 0 or agents_md_modified)
@@ -683,6 +709,16 @@ def status():
     safe_print(f"  File .agents/ : {total_current} file ({new_files_count} baru, {modified_files_count} diperbarui)     -> {'sinkron' if agents_sinkron else 'tersedia'}")
 
     if agents_tersedia:
+        for _, rel in obsolete_files[:10]:
+            print_list_item(f"[USANG] {rel}")
+        if len(obsolete_files) > 10:
+            print_info(f"... and {len(obsolete_files) - 10} more obsolete files")
+
+
+        if obsolete_files:
+            print_info("Catatan: Berkas [USANG] tidak akan dihapus otomatis.")
+            print_info("Gunakan perintah manual untuk menghapusnya, misal: rm .agents/nama_berkas")
+
         if agents_md_modified:
             safe_print(f"                 -> {1 + modified_files_count} perubahan (termasuk agents.md)")
         safe_print(f"                 -> snowline update --apply")
