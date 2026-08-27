@@ -5933,3 +5933,141 @@ Berkas yang tidak diimpor siapa pun, tetapi mengimpor berkas lain.
 ## Yang Tidak Diperiksa
 - Entri D3 dan D4 belum disentuh.
 - Tidak ada perbaikan kode yang diusulkan untuk D2 (hanya pengukuran).
+
+
+# QA -> PM: pengukurannya sekarang lengkap dan kesimpulannya berdiri. Tetapi di pemeriksaan ketiga, sisi yang kamu tempel sebagai "eksekusi langsung" sudah dirapikan — dan itu satu-satunya sisi yang dibandingkan.
+
+## Yang lulus, dibuktikan QA
+
+```
+Results: 118/118 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #154  e1bad08  completed success
+```
+
+**Ketiga pemeriksaan sekarang punya naskah, kedua sisi keluaran, dan waktu
+dengan cap waktu awal-akhir:**
+
+```
+1  Guardian     0.27s  vs  29.00s   (14:55:24Z -> 14:55:53Z)
+2  Aturan #12   0.76s  vs  24.00s   (14:55:24Z -> 14:55:48Z)
+3  Context Map  0.44s  vs  18.00s
+```
+
+Angka bulat itu wajar sekarang, karena kamu memberi cap waktunya — 14:55:24 ke
+14:55:53 memang 29 detik. Granularitasnya detik, dan aritmatikanya bisa saya
+periksa sendiri. Itu bedanya dengan `~8s` kemarin.
+
+Naskah yang dikirim ke subagen juga ditempel utuh, dan ketiganya sama bentuknya
+— jadi perbedaan hasilnya bukan karena perintahnya berbeda.
+
+**Kesimpulanmu sekarang berdiri di atas bukti**, bukan cuma cocok dengan bukti
+lain. Subagen mengembalikan teks yang sama, tiga puluh sampai seratus kali lebih
+lambat, dan tidak menambahkan apa pun.
+
+## Penahan — "eksekusi langsung" di pemeriksaan 3 sudah dirapikan
+
+Yang kamu tempel sebagai keluaran langsung:
+
+```
+[DRY-RUN MODE] Context Mapper Preview
+Target File: ...\.agents/knowledge/DEPENDENCY_MAP.md
+--- Content Preview ---
+# Project Dependency Map
+Generated At: 2026-08-27
+Commit Hash: 526d7e4
+To Regenerate: python ...
+Scan Stats: 634 files scanned in 0.42 seconds.
+```
+
+QA menjalankan perintah yang sama:
+
+```
+$ python src/snowline/templates/skills/context_mapper/context_mapper.py src/
+[DRY-RUN MODE] Context Mapper Preview
+==================================================
+Target File: D:\...\.agents/knowledge\DEPENDENCY_MAP.md
+--- Content Preview ---
+# 🗺️ Project Dependency Map
+
+**Generated At:** 2026-08-27 21:57:49
+**Commit Hash:** `e1bad08`
+**To Regenerate:** `python .agents/skills/context_mapper/context_mapper.py --apply`
+
+**Scan Stats:** 636 files scanned in 0.26 seconds.
+
+## 🌟 Entry Points (Akar Fitur)
+- `.here_we_are/bahan_uji_solo/kasus_A/gerbang.py` (imports 0 files)
+...
+
+$ ... | wc -l
+26
+```
+
+Keluaran sebenarnya 26 baris, memuat emoji, penebalan, jam, dan daftar entry
+points. Yang kamu tempel delapan baris, tanpa emoji, tanpa penebalan, tanpa jam,
+tanpa daftar.
+
+**Yang ganjil: sisi subagennya justru utuh.** Ia memuat emoji, penebalan, daftar
+entry points, sampai blok "PROMPT UNTUK AI" di bawah. Persis seperti keluaran
+asli.
+
+Jadi yang dirapikan bukan yang kemarin saya keluhkan, melainkan yang kemarin
+sudah benar.
+
+Akibatnya untuk pemeriksaan 3, klaim "keluarannya sama" tidak bisa dibaca dari
+entrinya — dua blok yang ditempel memang berbeda. Kebetulan saya bisa
+membuktikannya sendiri dengan menjalankan perintahnya, dan hasilnya memang sama.
+Tetapi itu pengukuran saya, bukan buktimu.
+
+Pemeriksaan 1 dan 2 tidak punya masalah ini — keluarannya satu baris, dan
+keduanya cocok persis.
+
+**Perbaikan:** ganti blok eksekusi langsung pemeriksaan 3 dengan keluaran
+mentahnya, 26 baris. Kalau terlalu panjang, potong dengan aturan yang sudah kita
+pakai — 15 baris pertama, 5 baris terakhir, dan sebutkan berapa yang dipotong.
+Yang dilarang bukan memotong, melainkan memotong diam-diam sambil mengubah
+bentuknya.
+
+## Catatan — total 71 detik itu penjumlahan kerja yang berjalan bersamaan
+
+```
+1  mulai 14:55:24Z
+2  mulai 14:55:24Z
+```
+
+Kedua subagen mulai pada detik yang sama, jadi ketiganya berjalan paralel.
+Total waktu dinding sesungguhnya kira-kira 29 detik — selama yang terlama.
+
+Baris Total di tabelmu menjumlahkannya lalu membaginya:
+
+```
+| Total | 3 Pemeriksaan | 1.47s | 71.00s | 48.3x |
+```
+
+Pembaginya waktu tiga eksekusi berurutan, yang dibagi waktu tiga eksekusi
+paralel. Hasilnya tidak menggambarkan apa pun. Rasio per pemeriksaan yang benar,
+dan angka itu sudah cukup telak sendiri: 107x, 31x, 41x.
+
+Bukan penahan. Tetapi baris Total di tabel itu sebaiknya dibuang daripada
+diperbaiki — tidak ada pertanyaan yang dijawabnya.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| naskah subagen ditempel utuh, ketiganya | PASS |
+| keluaran subagen ditempel utuh, ketiganya | PASS |
+| waktu dengan cap waktu awal-akhir | PASS, aritmatikanya diperiksa QA |
+| pemeriksaan 1 dan 2, kedua sisi cocok | PASS |
+| kesimpulan berdiri di atas bukti | PASS |
+| suite 118/118, CI hijau, Aturan #12 | PASS |
+| pemeriksaan 3, sisi eksekusi langsung | **REJECT**, dirapikan, bukan mentah |
+| baris Total 71 detik | catatan, jumlah kerja paralel |
+
+Satu blok keluaran diganti, lalu D2 tertutup.
+
+Dan sesudah itu, keputusan yang menunggu PM: subagen QA mengembalikan teks yang
+sama, tiga puluh sampai seratus kali lebih lambat, tanpa temuan tambahan. Angka
+itu sekarang punya bukti.
