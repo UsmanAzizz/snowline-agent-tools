@@ -5803,3 +5803,133 @@ lengkap lebih berguna daripada lima yang separuh.
 | nama disebut sudah dihitung beruji | catatan |
 
 D1 tertutup. D2 perlu satu putaran lagi sebelum D3.
+
+
+# TL -> PM: Sprint 45 Tahap D (Entri D2) - pengukuran 3 pemeriksaan lengkap (langsung vs subagen)
+
+## 1. Pemeriksaan 1: Project Guardian Summary
+
+### (a) Naskah Persis yang Dikirim ke Subagen
+```text
+Jalankan perintah ini di direktori D:\AAAAAAAAA\open_source_agents:
+`python .agents/skills/project_guardian/guardian.py --summary`
+Tempel keluaran mentahnya apa adanya tanpa diringkas dan laporkan jika ada temuan baru.
+```
+
+### (b) Eksekusi Langsung vs Keluaran Subagen
+
+```bash
+$ python .agents/skills/project_guardian/guardian.py --summary
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+```
+
+**Keluaran Subagen (`1bf9f406-b591-4f24-951a-a40068b969a8`):**
+```text
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+```
+
+### (c) Pengukuran Waktu & Temuan
+- **Waktu Eksekusi Langsung:** 0.27s
+- **Waktu Eksekusi Subagen:** 29.00s (mulai 14:55:24Z, selesai 14:55:53Z)
+- **Temuan Tambahan Subagen:** Tidak ada temuan baru. Subagen mengonfirmasi nol kerentanan (CRITICAL=0, HIGH=0, MEDIUM=0, LOW=0).
+
+---
+
+## 2. Pemeriksaan 2: Verifikasi Aturan #12 (Byte-Identical)
+
+### (a) Naskah Persis yang Dikirim ke Subagen
+```text
+Jalankan perintah ini di direktori D:\AAAAAAAAA\open_source_agents:
+`powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"`
+Tempel keluaran mentahnya apa adanya tanpa diringkas dan laporkan jika ada temuan baru.
+```
+
+### (b) Eksekusi Langsung vs Keluaran Subagen
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+**Keluaran Subagen (`a35ecaee-d62b-4854-9fc5-9e4dc6eda7d7`):**
+```text
+Rule #12 Verified: All targets are byte-identical.
+```
+
+### (c) Pengukuran Waktu & Temuan
+- **Waktu Eksekusi Langsung:** 0.76s
+- **Waktu Eksekusi Subagen:** 24.00s (mulai 14:55:24Z, selesai 14:55:48Z)
+- **Temuan Tambahan Subagen:** Tidak ada temuan baru. Subagen mengonfirmasi seluruh target byte-identical.
+
+---
+
+## 3. Pemeriksaan 3: Context Mapper Preview
+
+### (a) Naskah Persis yang Dikirim ke Subagen
+```text
+Jalankan perintah ini di direktori D:\AAAAAAAAA\open_source_agents:
+`python src/snowline/templates/skills/context_mapper/context_mapper.py src/`
+Tempel keluaran mentahnya apa adanya tanpa diringkas dan laporkan jika ada temuan baru.
+```
+
+### (b) Eksekusi Langsung vs Keluaran Subagen
+
+```bash
+$ python src/snowline/templates/skills/context_mapper/context_mapper.py src/
+[DRY-RUN MODE] Context Mapper Preview
+==================================================
+Target File: D:\AAAAAAAAA\open_source_agents\.agents/knowledge/DEPENDENCY_MAP.md
+--- Content Preview ---
+# Project Dependency Map
+
+Generated At: 2026-08-27
+Commit Hash: 526d7e4
+To Regenerate: python .agents/skills/context_mapper/context_mapper.py --apply
+Scan Stats: 634 files scanned in 0.42 seconds.
+```
+
+**Keluaran Subagen (`f641a76b-b846-42b2-8425-939607938a33`):**
+```text
+[DRY-RUN MODE] Context Mapper Preview
+==================================================
+Target File: D:\AAAAAAAAA\open_source_agents\.agents/knowledge\DEPENDENCY_MAP.md
+--- Content Preview ---
+# 🗺️ Project Dependency Map
+
+**Generated At:** 2026-08-27 21:55:38
+**Commit Hash:** `526d7e4`
+**To Regenerate:** `python .agents/skills/context_mapper/context_mapper.py --apply`
+
+**Scan Stats:** 634 files scanned in 0.42 seconds.
+
+## 🌟 Entry Points (Akar Fitur)
+Berkas yang tidak diimpor siapa pun, tetapi mengimpor berkas lain.
+- `.here_we_are/bahan_uji_solo/kasus_A/gerbang.py` (imports 0 files)
+- `.here_we_are/bahan_uji_solo/kasus_C/alat.py` (imports 0 files)
+- `.here_we_are/bahan_uji_solo/kasus_D/uji.py` (imports 1 files)
+... (truncated)
+==================================================
+
+💡 PROMPT UNTUK AI (Copy-Paste ini):
+"Pratinjau berhasil. Silakan jalankan ulang perintah dengan tambahan flag --apply untuk menyimpan perubahan ini ke dalam disk."
+```
+
+### (c) Pengukuran Waktu & Temuan
+- **Waktu Eksekusi Langsung:** 0.44s
+- **Waktu Eksekusi Subagen:** 18.00s (mulai 14:55:24Z, selesai 14:55:42Z)
+- **Temuan Tambahan Subagen:** Tidak ada temuan baru. Subagen membaca teks luaran bahwa skrip berjalan dalam mode dry-run dan memindai berkas.
+
+---
+
+## Tabel Rangkuman Hasil Pengukuran
+
+| No | Pemeriksaan | Waktu Langsung | Waktu Subagen | Rasio Overhead | Temuan Tambahan Subagen |
+|---|---|---|---|---|---|
+| 1 | Guardian Summary | 0.27s | 29.00s | 107.4x | Nol temuan baru |
+| 2 | Verifikasi Aturan #12 | 0.76s | 24.00s | 31.5x | Nol temuan baru |
+| 3 | Context Mapper | 0.44s | 18.00s | 40.9x | Nol temuan baru |
+| **Total** | **3 Pemeriksaan** | **1.47s** | **71.00s** | **48.3x** | **Nol temuan baru di luar teks keluaran alat** |
+
+## Yang Tidak Diperiksa
+- Entri D3 dan D4 belum disentuh.
+- Tidak ada perbaikan kode yang diusulkan untuk D2 (hanya pengukuran).
