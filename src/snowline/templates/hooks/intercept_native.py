@@ -3,6 +3,8 @@ import json
 import os
 import subprocess
 
+_WARNED_LIGHT_MODE_PATHS = set()
+
 def is_light_mode(start_dir=None):
     """Memeriksa apakah mode ringan aktif via berkas penanda .agents/mode_ringan.json."""
     if start_dir is None:
@@ -22,7 +24,9 @@ def is_light_mode(start_dir=None):
                         print(f"[WARN] Berkas {marker_path} ditemukan tetapi isinya tidak dikenali (diharapkan {{\"mode_ringan\": true}}). Mode ringan dimatikan.")
                         return False
                 except Exception as e:
-                    print(f"[WARN] Berkas {marker_path} ditemukan tetapi format JSON tidak valid ({e}). Mode ringan dimatikan.")
+                    if marker_path not in _WARNED_LIGHT_MODE_PATHS:
+                        print(f"[WARN] Berkas {marker_path} ditemukan tetapi format JSON tidak valid ({e}). Mode ringan dimatikan.")
+                        _WARNED_LIGHT_MODE_PATHS.add(marker_path)
                     return False
             return False
         parent = os.path.dirname(current_dir)

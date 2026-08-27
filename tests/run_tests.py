@@ -203,6 +203,7 @@ def main():
     import test_scope_callers
     import test_init_gitignore
     import test_b1_status
+    import test_b2_light_mode_warn
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -216,6 +217,8 @@ def main():
     print("Testing B1 status (editable/wheel)...")
     runner.run("b1_status directions", test_b1_status.test_b1_status_directions)
     runner.run("b1_fail_closed", test_b1_status.test_b1_fail_closed_when_scope_guardian_missing)
+    print("Testing B2 single light mode warning...")
+    runner.run("b2_light_mode_warn", test_b2_light_mode_warn.test_b2_single_warning_when_mode_ringan_corrupt_or_unrecognized)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
