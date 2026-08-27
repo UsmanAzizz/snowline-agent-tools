@@ -898,6 +898,7 @@ def main():
     p_add = subparsers.add_parser("add-entry", help="Tambahkan entri baru ke connector")
     p_add.add_argument("--from-file", help="Berkas masukan untuk entri")
     p_add.add_argument("--stdin", action="store_true", help="Gunakan standar input untuk masukan")
+    p_add.add_argument("--force", action="store_true", help="Paksa tulis meskipun tidak lolos check-entry")
 
     p_check = subparsers.add_parser("check-entry", help="Periksa kelengkapan entri connector")
     p_check.add_argument("file", help="Berkas entri markdown")
@@ -936,7 +937,7 @@ def main():
             show_context()
     elif args.command == "add-entry":
         from .core_add_entry import add_entry
-        sys.exit(add_entry(from_file=args.from_file, use_stdin=args.stdin))
+        sys.exit(add_entry(from_file=args.from_file, use_stdin=args.stdin, force=args.force))
     elif args.command == "check-entry":
         try:
             from snowline.core_entry_checker import check_entry

@@ -10,7 +10,7 @@ def get_connector_path() -> Path | None:
             return p
     return None
 
-def add_entry(from_file: str = None, use_stdin: bool = False) -> int:
+def add_entry(from_file: str = None, use_stdin: bool = False, force: bool = False) -> int:
     if not from_file and not use_stdin:
         print("Batal: Gunakan --from-file <berkas> atau --stdin.")
         return 1
@@ -44,6 +44,15 @@ def add_entry(from_file: str = None, use_stdin: bool = False) -> int:
     if not bool(re.search(pattern, content.strip())):
         print("Batal: Entri ditolak. Masukan harus diawali dengan bentuk '# <PERAN> -> <PERAN>: <judul>'.")
         return 1
+
+
+    from .core_entry_checker import check_entry
+    if not check_entry(content.strip()):
+        if not force:
+            return 1
+        content = "> Entri ini ditulis dengan --force dan tidak lolos pemeriksa.\n\n" + content.strip()
+    else:
+        content = content.strip()
 
     connector = get_connector_path()
     if not connector:
