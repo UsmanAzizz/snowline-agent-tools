@@ -4186,3 +4186,78 @@ berikutnya. Tahap A mengubah perilaku inti — kalau ada yang salah di sana,
 tahap B sampai D dikerjakan di atas fondasi yang keliru.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Sprint 45 Tahap A - scope dari memblokir jadi mencatat
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 107/107 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -8
+a77fef7 fix(tests): ensure PYTHONPATH is set for test_audit_cli and test_init_gitignore without BOM
+868a111 feat(init): write .agents/.gitignore to ignore write_log.jsonl and runtime state
+65cf4e5 refactor(scope_guardian): unify scope enforcement into canonical scope_check module
+4184038 feat(cli): add snowline audit command to summarize write_log.jsonl
+e089281 feat(quality_gate): track shell write operations into write_log.jsonl without blocking
+7d4069d feat(scope_guardian): record file write operations into .agents/write_log.jsonl
+acb9dbf feat(scope_guardian): change scope_check to warn and record instead of blocking
+2796b5e docs(connector): Sprint 45 - empat tahap, scope dari memblokir jadi mencatat
+```
+
+```
+GitHub Actions CI Run 131: Status = completed | Conclusion = success
+```
+
+## Hasil Verifikasi per Entri
+
+### A1 — scope_check mencatat, tidak menolak
+- (a) Berkas di luar `allowed_files` ditulis dengan peringatan `[WARN] File ... is OUT OF SCOPE`.
+- (b) Berkas di dalam `allowed_files` ditulis tanpa peringatan.
+- (c) Sintaks rusak tetap dibatalkan/ditolak.
+- (d) Mode dry-run (tanpa `--apply`) tetap tidak menulis berkas.
+- (e) Berkas di luar folder batas proyek tetap ditolak keras (`[BLOCKED] File ... is OUTSIDE the project boundary`, exit code 1).
+- (f) Tanpa `scope_lock.json`, berkas tetap ditulis dengan peringatan `[WARN] scope_lock.json tidak ditemukan di .agents/`.
+
+### A2 — Catatan tulisan (.agents/write_log.jsonl)
+- (a) Satu tulisan di dalam lingkup menghasilkan satu baris log dengan `"dalam_lingkup": true`.
+- (b) Satu tulisan di luar lingkup menghasilkan satu baris log dengan `"dalam_lingkup": false`.
+- (c) Mode dry-run tidak menambahkan baris log baru.
+- (d) 10 penulisan menghasilkan 10 baris JSONL valid dan dapat di-parse.
+- Berkas `write_log.jsonl` didaftarkan ke `PROTECTED` pada pembaruan installer.
+
+### A3 — Jalur shell dicatat, tidak diblokir
+- (a) `Set-Content` dan pengalihan output (`>`, `>>`, `tee`) dicatat ke `write_log.jsonl` tanpa memblokir eksekusi.
+- (b) Perintah baca-saja (`ls`, `dir`, dsb.) tidak dicatat ke log.
+- (c) Perintah yang ditolak/gagal sebelum dieksekusi tidak dicatat sebagai tulisan berhasil.
+
+### A4 — snowline audit
+- (a) Saat log kosong atau belum ada, mencetak pesan informatif wajar dan keluar dengan kode 0.
+- (b) Log campuran diringkas akurat (total tulisan, jumlah di luar lingkup, rincian per berkas & tugas, dan hitungan shell).
+- (c) Opsi `--hanya-luar-lingkup` memfilter dan hanya menampilkan entri di luar lingkup.
+- (d) Baris log rusak dilewati dengan laporan peringatan jumlah baris yang rusak.
+
+### A5 — Satu penegak scope
+- Logika pemeriksaan lingkup dan pencatatan disatukan ke modul kanonikal `src/snowline/templates/skills/scope_guardian/scripts/scope_check.py`.
+- Seluruh 5 pemanggil (`scope_check.py`, `replace_text.py`, `scaffolder.py`, `context_mapper.py`, `fixer.py`, serta `intercept_native.py`) telah diuji dan mendelegasikan verifikasi ke modul tunggal tersebut.
+
+### A6 — agents.md dan .gitignore
+- (a) `snowline init --apply` di repositori git baru membuat `.agents/.gitignore` yang mengabaikan `write_log.jsonl`, `scope_lock.json`, `session_cache.json`, dan `mode_ringan.json`.
+- (b) `git status` sesudah penulisan log tidak memunculkan `write_log.jsonl` maupun `scope_lock.json`.
+- (c) Folder `.agents/skills/` dan `.agents/agents.md` tetap muncul sebagai berkas baru yang dapat di-commit.
+
+## Yang Tidak Diperiksa
+- Jalur eksekusi shell yang menggunakan teknik obfuski atau alias biner khusus di luar pola umum yang didukung (`Set-Content`, `Out-File`, `Add-Content`, `Tee-Object`, `>`, `>>`, `tee`, `python -c open(..., 'w')`).
+- Tahap B, C, dan D belum dikerjakan (menunggu evaluasi QA atas Tahap A).
