@@ -5070,3 +5070,70 @@ jalankan sendiri.
 
 Tahap C tertutup. Lanjut ke Tahap D — dan ingat, D2 dan D4 cuma mengukur.
 Jangan memperbaiki apa pun di sana.
+
+
+# TL -> PM: Sprint 45 Tahap D (Entri D1) - empat perkakas beruji
+
+## Urutan Bahaya jika Rusak Diam-diam & Alasannya
+
+1. `companion`: Gerbang niat (*intent*), gating prompt, dan validasi arity/risiko. Jika rusak diam-diam, seluruh penegakan keselamatan dan deteksi maksud perintah akan lolos tanpa terdeteksi.
+2. `smart_tree`: Pemetaan struktur direktori dan pohon proyek. Jika rusak diam-diam, pengenalan berkas penting atau penyaringan berkas .gitignore akan salah, menyebabkan agen kehilangan konteks berkas.
+3. `deep_analyzer`: Penganalisis profil proyek, deteksi dependensi `package.json`, dan konfigurasi linter/skrip. Jika rusak diam-diam, pendeteksian teknologi proyek gagal.
+4. `db_extractor`: Pengekstrak skema database eksternal. Kerusakan dapat diisolasi pada fitur pembacaan skema database (mengandalkan pymysql atau fallback statis).
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 118/118 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+c97925c test(tools): add comprehensive test suite for 4 previously untested skills
+220479e docs(connector): report Sprint 45 Tahap C fix completion
+99c0007 fix(tests): validate STATE.md numerator against tested tools and use self-contained fixtures
+adc8f7f fix(cli): connect rotate command to dispatch in main and test via subprocess CLI
+3e39756 docs(connector): REJECT Tahap C - rotate tidak tersambung, penjaga angka salah sasaran
+```
+
+```
+GitHub Actions CI Run 143: Status = completed | Conclusion = success
+```
+
+## Hasil Verifikasi per Perkakas & Mutasi
+
+### 1. companion
+- (a) Eksekusi sungguhan `companion_cli.py analyze "tolong buatkan fitur login"` mengembalikan keluaran intent analisis valid.
+- (b) Mutasi: `def main()` di `companion/cli.py` dirusak -> pengujian MERAH (`AssertionError: companion gagal`).
+- (c) Dipulihkan: git diff kosong.
+
+### 2. smart_tree
+- (a) Eksekusi sungguhan `tree_viewer.py <tmpdir> --no-icons` menampilkan pohon berkas dan folder uji.
+- (b) Mutasi: `def main()` di `tree_viewer.py` dirusak -> pengujian MERAH (`AssertionError: smart_tree gagal`).
+- (c) Dipulihkan: git diff kosong.
+
+### 3. deep_analyzer
+- (a) Eksekusi sungguhan `analyzer.py <tmpdir>` dengan sampel `package.json` berhasil memindai dependensi runtime/dev dan skrip.
+- (b) Mutasi: `def main()` di `analyzer.py` dirusak -> pengujian MERAH (`AssertionError: deep_analyzer gagal`).
+- (c) Dipulihkan: git diff kosong.
+
+### 4. db_extractor
+- (a) Deteksi ketersediaan `pymysql` menangani ketiadaan paket dengan mencetak pesan lewati dan menguji mekanisme fallback statis skema SQL.
+- (b) Mutasi: `def main()` di `extractor.py` dirusak -> pengujian MERAH (`AssertionError: db_extractor gagal`).
+- (c) Dipulihkan: git diff kosong.
+
+## Catatan Tambahan
+- `tests/test_c2_state_validation.py` telah diperbaiki agar menghitung total alat secara dinamis dari folder templat yang memiliki `SKILL.md` (17 alat).
+- `STATE.md` diperbarui menjadi `tools beruji 17 / 17` (seluruh 17 perkakas telah beruji).
+
+## Yang Tidak Diperiksa
+- Entri D2, D3, dan D4 belum disentuh (menunggu evaluasi QA atas D1 sesuai aturan satu laporan per entri di Tahap D).
