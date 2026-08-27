@@ -6222,3 +6222,72 @@ Berkas yang tidak diimpor siapa pun, tetapi mengimpor berkas lain.
 ```
 
 Keluaran ini memuat seluruh 26 baris mentah persis bita per bita dari skrip, termasuk header dry-run, timestamp, commit hash, scan stats, daftar entry points, dan prompt rekomendasi bawaan alat.
+
+
+# TL -> PM: Sprint 45 Tahap D (Entri D2b) - panduan kelayakan pemanggilan subagen di QA_SUBAGENT_PROMPT.md
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 118/118 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+2dc7812 docs(chamber): add guidance on when subagent invocation is worthwhile in QA_SUBAGENT_PROMPT.md
+1af3a5e docs(connector): add raw direct execution output correction for D2 check 3
+a1da8b9 docs(connector): D2b - tutup D2 dan tulis kapan subagen layak dipanggil
+e1bad08 docs(connector): report Sprint 45 Tahap D Entri D2 with complete subagent output and timing
+526d7e4 docs(connector): D1b selesai, D2 evaluasi - sisi subagen tanpa keluaran
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+158 2dc7812 completed success
+```
+
+## Hasil Verifikasi per Entri
+
+### Entri 1 — Koreksi Keluaran Mentah Pemeriksaan 3
+Keluaran mentah utuh (26 baris) eksekusi langsung Context Mapper telah ditambahkan ke connector pada commit `1af3a5e` (CI #157 completed success).
+
+### Entri 2 — Bagian Kelayakan Pemanggilan di QA_SUBAGENT_PROMPT.md
+- **(a) Bagian Baru**: Telah ditambahkan di bagian atas `QA_SUBAGENT_PROMPT.md` memuat tabel pengukuran bertanggal 27 Agustus 2026 dan 3 kriteria (TIDAK sepadan, Sepadan untuk eliminasi bias harapan, Sepadan untuk ringkasan output besar).
+- **(b) Integritas Larangan Lama (`git diff`)**:
+```diff
+--- a/src/snowline/chamber_templates/QA_SUBAGENT_PROMPT.md
++++ b/src/snowline/chamber_templates/QA_SUBAGENT_PROMPT.md
+@@ -1,3 +1,19 @@
++## Kapan memanggil ini sepadan
++
++Diukur di repo ini pada 27 Agustus 2026:
++
++| Pemeriksaan | Eksekusi Langsung | Lewat Subagen | Rasio Overhead | Temuan Tambahan |
++|---|---|---|---|---|
++| Guardian | 0.27s | 29.00s | 107x | nol temuan baru |
++| Aturan #12 | 0.76s | 24.00s | 31x | nol temuan baru |
++| Context Map | 0.44s | 18.00s | 41x | nol temuan baru |
++
++- **TIDAK sepadan**: daftar perintah yang sudah kamu ketahui persis, dan keluarannya akan kamu baca sendiri. Jalankan langsung. Diukur 31x sampai 107x lebih lambat, nol temuan tambahan.
++- **Sepadan**: kamu sudah tahu jawaban yang kamu harapkan, dan ingin angkanya datang dari yang tidak tahu. Kontaminasi harapan tidak bisa diperiksa dari dalam.
++- **Sepadan**: keluarannya besar dan cuma ringkasannya yang kamu butuhkan, sehingga membacanya sendiri akan menenggelamkan sisa pekerjaanmu.
++
++---
++
+```
+- **(c) Pengujian `init_chamber --apply` pada Direktori Kosong**: Terbukti memasang berkas `QA_SUBAGENT_PROMPT.md` yang memuat bagian baru dan mempertahankan seluruh klausul larangan lama.
+- **(d) Aturan #12**: `verify_rule12.ps1` lulus dan byte-identical.
+
+## Yang Tidak Diperiksa
+- Entri D3 dan D4 belum disentuh (menunggu evaluasi QA untuk menutup D2 sebelum melangkah ke D3).
