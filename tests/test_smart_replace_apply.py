@@ -324,6 +324,31 @@ def test_sunting_massal_validasi_per_berkas():
         for i in range(5, 8):
             assert p.baca(f"File{i}.js") == f"const val{i} = TARGET;\n", f"File{i}.js harusnya tidak disentuh"
 
+
+def test_nol_kecocokan_dan_campuran():
+    """(a) 0 kecocokan tidak melaporkan SUCCESS dan tidak membuat backup.
+    (c) Campuran 3 berkas (2 ada kecocokan, 1 nol) -> hanya 2 yang dimodifikasi, [SUCCESS] menyebut 2."""
+    # Arah a
+    with ProyekUji({"coba.py": "val = 1  # AAA\n"}) as p_a:
+        h_a = p_a.jalankan(".", "AAA", "BBB", "--apply-validated", "--allow-partial-match")
+        assert "[SUCCESS]" not in h_a.stdout, f"0 kecocokan tidak boleh [SUCCESS]:\n{h_a.stdout}"
+        assert not os.path.exists(os.path.join(p_a.dir, ".backup_replace")), "0 kecocokan tidak boleh membuat backup"
+        assert p_a.baca("coba.py") == "val = 1  # AAA\n"
+
+    # Arah c
+    berkas_c = {
+        "f1.py": "x = AAA\n",
+        "f2.py": "x = 100 # AAA\n",
+        "f3.py": "y = AAA\n"
+    }
+    with ProyekUji(berkas_c) as p_c:
+        h_c = p_c.jalankan(".", "AAA", "BBB", "--apply-validated", "--allow-partial-match")
+        assert "[SUCCESS]" in h_c.stdout, f"Harus sukses:\n{h_c.stdout}"
+        assert "Berhasil memodifikasi 2 file" in h_c.stdout, f"Harus menyebut 2 file bukan 3:\n{h_c.stdout}"
+        assert p_c.baca("f1.py") == "x = BBB\n"
+        assert p_c.baca("f2.py") == "x = 100 # AAA\n"
+        assert p_c.baca("f3.py") == "y = BBB\n"
+
 DAFTAR = [
     ("--apply pada .js benar-benar menulis", test_apply_js_benar_benar_menulis),
     ("--apply pada .py lewat ast", test_apply_py_lewat_ast),
@@ -342,5 +367,6 @@ DAFTAR = [
     ("gerbang risiko Medium/High memblokir --apply", test_gerbang_risiko_medium_high),
     ("linter scripts.lint package.json diprioritaskan", test_scripts_lint_package_json),
     ("sunting massal divalidasi per berkas", test_sunting_massal_validasi_per_berkas),
+    ("nol kecocokan dan campuran berkas", test_nol_kecocokan_dan_campuran),
 ]
 

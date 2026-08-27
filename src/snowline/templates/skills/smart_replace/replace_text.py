@@ -522,7 +522,6 @@ def main():
                 continue
                 
             if regex.search(content):
-                file_count += 1
                 # Process line by line, skipping matches inside strings and comments
                 new_lines = []
                 file_match_count = 0
@@ -535,11 +534,15 @@ def main():
                             file_match_count += 1
                     new_lines.append(new_line)
                 new_content = ''.join(new_lines)
-                match_count += file_match_count
 
                 rel_path = os.path.relpath(filepath, args.target_dir if os.path.isdir(args.target_dir) else os.path.dirname(args.target_dir))
-                print(f"[WARN] Found {file_match_count} matches in {rel_path}")
-                pending_writes.append((filepath, content, new_content))
+                if file_match_count > 0 and new_content != content:
+                    file_count += 1
+                    match_count += file_match_count
+                    print(f"[WARN] Found {file_match_count} matches in {rel_path}")
+                    pending_writes.append((filepath, content, new_content))
+                else:
+                    print(f"[WARN] Found 0 matches in {rel_path}")
 
     print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
     
@@ -561,6 +564,7 @@ def main():
     print(f"[RISK] {risk_level} (Widespread: {is_widespread}, Logic: {is_logic})")
     
     if not pending_writes:
+        print("\n[OK] Tidak ada perubahan kode yang perlu diterapkan (0 kecocokan).")
         return
 
     # Urutkan berkas secara deterministik (lintas platform)
@@ -603,7 +607,7 @@ def main():
         with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
             f.write(new_content)
 
-    print(f"\n[SUCCESS] Berhasil memodifikasi {file_count} file. Backup tersimpan di {backup_dir}")
+    print(f"\n[SUCCESS] Berhasil memodifikasi {len(pending_writes)} file. Backup tersimpan di {backup_dir}")
 
 if __name__ == '__main__':
     try:

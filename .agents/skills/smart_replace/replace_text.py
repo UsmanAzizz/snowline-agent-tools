@@ -12,6 +12,34 @@ import fnmatch
 from datetime import datetime
 from pathlib import Path
 
+def is_light_mode(start_dir=None):
+    """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
+    if start_dir is None:
+        start_dir = os.getcwd()
+    current_dir = os.path.abspath(start_dir)
+    while True:
+        agents_dir = os.path.join(current_dir, '.agents')
+        if os.path.isdir(agents_dir):
+            markers = ['mode_ringan', 'light_mode', 'lightweight', 'mode_ringan.json', 'light_mode.json', 'lightweight.json']
+            for m in markers:
+                if os.path.exists(os.path.join(agents_dir, m)):
+                    return True
+            mode_json = os.path.join(agents_dir, 'mode.json')
+            if os.path.exists(mode_json):
+                try:
+                    with open(mode_json, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if data.get('mode') in ['ringan', 'light', 'lightweight'] or data.get('mode_ringan') is True or data.get('light_mode') is True:
+                        return True
+                except Exception:
+                    pass
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
+    return False
+
+
 # Force UTF-8 encoding for Windows terminal
 if sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
@@ -65,7 +93,21 @@ def check_task_state(is_apply=False):
         print("Minta user approve pseudocode dulu sebelum --apply bisa dijalankan.")
         sys.exit(1)
 
-def check_scope(pending_writes):
+def check_scope(pending_writes, light_mode=False):
+    if light_mode or is_light_mode():
+        current_dir = os.path.abspath(os.getcwd())
+        has_lock = False
+        while True:
+            if os.path.exists(os.path.join(current_dir, '.agents', 'scope_lock.json')):
+                has_lock = True
+                break
+            parent = os.path.dirname(current_dir)
+            if parent == current_dir:
+                break
+            current_dir = parent
+        if not has_lock:
+            print("[INFO] Mode ringan aktif: keharusan scope_lock.json dilewati.")
+            return
     """Block if any file to be modified is outside allowed scope (security gate, fail-closed)."""
     
     # Inject skills directory to sys.path so we can import from other skills
@@ -153,8 +195,9 @@ def validate_syntax(filepath, content):
                         pkg_json = json.load(pf)
                     if isinstance(pkg_json, dict) and 'scripts' in pkg_json and 'lint' in pkg_json['scripts']:
                         npm_bin = 'npm.cmd' if sys.platform == 'win32' else 'npm'
-                        linter_available = True
-                        linter_cmd = [npm_bin, 'run', 'lint', '--']
+                        if shutil.which(npm_bin) or shutil.which('npm'):
+                            linter_available = True
+                            linter_cmd = [npm_bin, 'run', 'lint', '--']
                 except Exception:
                     pass
 
@@ -200,7 +243,12 @@ def validate_syntax(filepath, content):
                     f.write(content)
                 # Need shell=True on Windows for npx
                 cmd = linter_cmd + [temp_path]
-                result = subprocess.run(cmd, capture_output=True, text=True, shell=True)
+                if sys.platform == 'win32':
+                    cmd_str = subprocess.list2cmdline(cmd)
+                else:
+                    import shlex
+                    cmd_str = shlex.join(cmd)
+                result = subprocess.run(cmd_str, capture_output=True, text=True, shell=True)
                 keluaran = f"{result.stdout.strip()}\n{result.stderr.strip()}".strip()
 
                 if result.returncode != 0:
@@ -249,6 +297,7 @@ def get_args():
     parser.add_argument("--allow-partial-match", action="store_true", help="Allow partial/substring matching (disables word-boundary default)")
     parser.add_argument("--apply", action="store_true", help="Actually modify the files (Low risk only)")
     parser.add_argument("--apply-validated", action="store_true", help="Actually modify the files (Bypass Medium/High risk block)")
+    parser.add_argument("--mode-ringan", "--lightweight", "--light", action="store_true", help="Jalankan dalam mode ringan (tanpa keharusan scope_lock.json)")
     return parser.parse_args()
 
 def backup_file(filepath, backup_dir):
@@ -473,7 +522,6 @@ def main():
                 continue
                 
             if regex.search(content):
-                file_count += 1
                 # Process line by line, skipping matches inside strings and comments
                 new_lines = []
                 file_match_count = 0
@@ -486,11 +534,15 @@ def main():
                             file_match_count += 1
                     new_lines.append(new_line)
                 new_content = ''.join(new_lines)
-                match_count += file_match_count
 
                 rel_path = os.path.relpath(filepath, args.target_dir if os.path.isdir(args.target_dir) else os.path.dirname(args.target_dir))
-                print(f"[WARN] Found {file_match_count} matches in {rel_path}")
-                pending_writes.append((filepath, content, new_content))
+                if file_match_count > 0 and new_content != content:
+                    file_count += 1
+                    match_count += file_match_count
+                    print(f"[WARN] Found {file_match_count} matches in {rel_path}")
+                    pending_writes.append((filepath, content, new_content))
+                else:
+                    print(f"[WARN] Found 0 matches in {rel_path}")
 
     print(f"\n[OK] Scan selesai ({scanned_files} file dipindai). Menemukan {match_count} kecocokan di {file_count} file.")
     
@@ -512,10 +564,14 @@ def main():
     print(f"[RISK] {risk_level} (Widespread: {is_widespread}, Logic: {is_logic})")
     
     if not pending_writes:
+        print("\n[OK] Tidak ada perubahan kode yang perlu diterapkan (0 kecocokan).")
         return
 
+    # Urutkan berkas secara deterministik (lintas platform)
+    pending_writes.sort(key=lambda x: x[0].replace(os.sep, "/"))
+
     # Fail-closed scope enforcement (security gate)
-    check_scope(pending_writes)
+    check_scope(pending_writes, light_mode=getattr(args, 'mode_ringan', False))
 
     if not (args.apply or args.apply_validated):
         print("\n[DRY RUN] Ini hanya simulasi. Gunakan --apply untuk mengeksekusi.")
@@ -551,7 +607,7 @@ def main():
         with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
             f.write(new_content)
 
-    print(f"\n[SUCCESS] Berhasil memodifikasi {file_count} file. Backup tersimpan di {backup_dir}")
+    print(f"\n[SUCCESS] Berhasil memodifikasi {len(pending_writes)} file. Backup tersimpan di {backup_dir}")
 
 if __name__ == '__main__':
     try:
