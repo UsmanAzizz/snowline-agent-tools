@@ -991,6 +991,10 @@ def main():
     p_close = subparsers.add_parser("close-entry", help="Pindahkan satu entri dari connector ke history/<topik>")
     p_close.add_argument("topik", help="Nama topik, misal 'caching', 'encoding'")
     
+    p_audit = subparsers.add_parser("audit", help="Ringkas catatan tulisan dari write_log.jsonl")
+    p_audit.add_argument("--sejak", help="Filter catatan sejak tanggal/waktu tertentu")
+    p_audit.add_argument("--hanya-luar-lingkup", action="store_true", help="Hanya tampilkan berkas di luar lingkup")
+
     p_test_clone = subparsers.add_parser("test-clone", help="Jalankan tes di klon repositori bersih")
     p_test_clone.add_argument("--cmd", help="Perintah khusus untuk menjalankan tes", default=None)
     p_setup_path = subparsers.add_parser("setup-path", help="Setup PATH and profiles")
@@ -1044,6 +1048,13 @@ def main():
             safe_print(f"{Colors.RED}Gagal menutup entri: {e}{Colors.RESET}")
             sys.exit(1)
             
+    elif args.command == "audit":
+        try:
+            from snowline.core_audit import run_audit
+        except ImportError:
+            sys.path.insert(0, os.path.dirname(__file__))
+            from core_audit import run_audit
+        sys.exit(run_audit(sejak=args.sejak, hanya_luar_lingkup=args.hanya_luar_lingkup))
     elif args.command == "test-clone":
         try:
             from snowline.core_test_clone import run_test_clone

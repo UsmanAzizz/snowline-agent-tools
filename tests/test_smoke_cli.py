@@ -36,3 +36,9 @@ def test_smoke_test_clone_help(): run_cli(['test-clone', '--help'])
 def test_smoke_setup_path_help(): run_cli(['setup-path', '--help'])
 def test_smoke_path_full(): run_cli(['path'])
 def test_smoke_status_full(): run_cli(['status'])
+
+
+def test_smoke_audit_help():
+    result = run_cli(["audit", "-h"])
+    assert result.returncode == 0
+    assert "audit" in result.stdout.lower()

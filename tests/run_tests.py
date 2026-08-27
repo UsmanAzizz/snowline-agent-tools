@@ -199,10 +199,13 @@ def main():
 
     import test_write_log
     import test_shell_tracking
+    import test_audit_cli
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
     runner.run("shell_tracking directions", test_shell_tracking.test_shell_tracking_directions)
+    print("Testing audit CLI (Entry A4)...")
+    runner.run("audit_cli directions", test_audit_cli.test_audit_directions)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
@@ -327,6 +330,7 @@ def main():
     runner.run("smoke_cli setup-path (help)", test_smoke_cli.test_smoke_setup_path_help)
     runner.run("smoke_cli path (full)", test_smoke_cli.test_smoke_path_full)
     runner.run("smoke_cli status (full)", test_smoke_cli.test_smoke_status_full)
+    runner.run("smoke_cli audit (help)", test_smoke_cli.test_smoke_audit_help)
 
     runner.run("orphan_guard test_yatim", test_orphan_guard.test_tidak_ada_berkas_uji_yatim)
     runner.run("intercept_native bom_empty_payload", test_intercept_native.test_bom_empty_payload)
