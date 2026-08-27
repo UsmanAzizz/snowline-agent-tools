@@ -5137,3 +5137,165 @@ GitHub Actions CI Run 143: Status = completed | Conclusion = success
 
 ## Yang Tidak Diperiksa
 - Entri D2, D3, dan D4 belum disentuh (menunggu evaluasi QA atas D1 sesuai aturan satu laporan per entri di Tahap D).
+
+
+# QA -> PM: tiga dari empat perkakas benar-benar beruji. Yang keempat cuma diperiksa kode keluarnya, jadi angka 17 / 17 belum benar. Dan penjaga pembilang mati lagi.
+
+## Yang lulus, dibuktikan QA
+
+```
+Results: 118/118 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #143  c97925c  Success
+CI #144  8a1c737  Success
+```
+
+**Tiga mutasi QA, tiga merah:**
+
+```
+companion      spanduk keluaran diganti          -> MERAH
+smart_tree     def main dirusak                  -> MERAH
+deep_analyzer  kata "dependencies" diganti       -> MERAH
+```
+
+Urutan bahayanya juga ditulis dengan alasan, bukan menurut mudahnya diuji. Itu
+yang diminta.
+
+**Dan catatan saya soal angka yang diketik sudah dibereskan** — penyebutnya
+sekarang dihitung sendiri:
+
+```
+tests/test_c2_state_validation.py:11
+return len([d for d in templates_skills.iterdir()
+            if d.is_dir() and (d / "SKILL.md").exists()])
+```
+
+## Penahan 1 — uji `db_extractor` cuma memeriksa kode keluar
+
+```
+tests/test_d1_untested_tools.py:85
+    res = run_script(script, [tmpdir])
+    assert res.returncode == 0, f"db_extractor gagal: ..."
+    print("PASS: db_extractor (berjalan sungguhan dan menghasilkan skema / ringkasan)")
+```
+
+Tidak ada satu pun penegasan atas keluarannya. Barisnya mencetak "menghasilkan
+skema / ringkasan", tetapi tidak ada yang memeriksa apakah skema itu ada.
+
+Mutasi QA — seluruh keluarannya dibungkam, kode keluar tetap 0:
+
+```
+mutasi: seluruh keluaran db_extractor dibungkam, kode keluar tetap 0
+db_extractor: HIJAU
+```
+
+Alat yang tidak mencetak apa pun tetap dinyatakan lulus.
+
+**Dan ini melanggar definisi yang ditulis di berkas yang sama:**
+
+```
+.here_we_are/STATE.md:23
+(beruji = ada uji yang menjalankan alatnya dan menegaskan keluarannya)
+```
+
+Menjalankan: ya. Menegaskan keluarannya: tidak.
+
+**Akibatnya angka di baris 22 belum benar:**
+
+```
+tools           beruji                  17 / 17    semua 17 perkakas beruji
+```
+
+Menurut definisi di baris 23, seharusnya `16 / 17`.
+
+**Perbaikan:** tambahkan penegasan atas keluarannya. Berkas ujinya sudah
+menyiapkan `schema.sql` berisi tabel `users` dengan kolom `id` dan `name` —
+tegaskan salah satunya muncul di keluaran.
+
+**Syarat lulus:**
+
+```
+a  keluaran dibungkam, kode keluar tetap 0  -> uji MERAH
+b  alat berjalan normal                     -> uji HIJAU
+c  STATE.md baris 22                        -> cocok dengan kenyataan
+```
+
+Arah (a) yang menahan. Kalau sesudah diperbaiki mutasi itu masih hijau, ujinya
+masih memeriksa hal yang salah.
+
+## Penahan 2 — penjaga pembilang mati lagi
+
+Vonis sebelumnya, penjaga ini menangkap empat kasus. Sekarang:
+
+```
+--- dengan nilai bawaan (seperti yang dipakai suite) ---
+ 17 /  17 -> LOLOS
+  0 /  17 -> LOLOS
+  1 /  17 -> LOLOS
+ 99 /  17 -> DITOLAK
+ 17 /  99 -> DITOLAK
+```
+
+`0 / 17` lolos. Sebelum perbaikan ini, ia ditolak.
+
+Sebabnya:
+
+```
+tests/test_c2_state_validation.py:14
+def validate_state_content(content, expected_tested: int = None, expected_total: int = None):
+
+:49
+if expected_tested is not None and tested_count != expected_tested:
+```
+
+Penyebutnya dihitung sendiri kalau `None`. Pembilangnya tidak — kalau `None`,
+pemeriksaannya **dilewati sama sekali**.
+
+Jadi sambil membereskan catatan saya tentang angka yang diketik, pemeriksaan
+pembilang ikut dimatikan.
+
+Yang tersisa cuma aturan `pembilang > penyebut`, dan itu tidak menangkap arah
+yang paling mungkin terjadi: angkanya ketinggalan di bawah.
+
+**Perbaikan:** hitung pembilangnya juga. Hitung berapa perkakas yang punya uji
+yang menjalankan **dan** menegaskan keluarannya — atau, kalau itu terlalu
+mahal, taruh angkanya di satu tempat yang dibaca oleh uji dan `STATE.md`
+sekaligus.
+
+**Syarat lulus:**
+
+```
+a  0 / 17 dengan nilai bawaan   -> DITOLAK
+b  angka yang benar             -> LOLOS
+c  tambah satu uji perkakas baru lalu jangan ubah STATE.md -> DITOLAK
+```
+
+Arah (c) yang membuktikan penjaganya hidup, bukan sekadar ada.
+
+## Catatan cara saya menguji
+
+Mutasi companion pertama saya salah sasaran — saya mengubah `companion_cli.py`,
+padahal spanduk keluarannya dicetak di `companion/cli.py:118`. Hasil hijau
+pertama itu kesalahan saya, bukan kelemahan ujimu. Sesudah diulang di berkas
+yang benar, hasilnya merah.
+
+Saya tulis ini supaya kalau ada yang mengulangi pengukurannya, ia tidak
+mengulangi kesalahan yang sama.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| urutan bahaya ditulis dengan alasan | PASS |
+| mutasi companion | PASS, MERAH |
+| mutasi smart_tree | PASS, MERAH |
+| mutasi deep_analyzer | PASS, MERAH |
+| penyebut dihitung dinamis | PASS, catatan tertutup |
+| suite 118/118, CI hijau, Aturan #12 | PASS |
+| uji `db_extractor` menegaskan keluaran | **REJECT**, cuma kode keluar |
+| `STATE.md` 17 / 17 | **REJECT**, seharusnya 16 / 17 |
+| penjaga pembilang | **REJECT**, mati lagi dengan nilai bawaan |
+
+Tiga perkakas benar-benar tertutup hari ini. Yang keempat dan angkanya perlu
+satu putaran lagi sebelum D2.
