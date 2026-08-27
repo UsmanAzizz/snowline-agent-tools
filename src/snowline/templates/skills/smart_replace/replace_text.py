@@ -586,22 +586,21 @@ def main():
         print("Jika sudah aman, jalankan ulang menggunakan flag --apply-validated")
         sys.exit(1)
     total_files = len(pending_writes)
-    print("\n[INFO] Memvalidasi dan menerapkan perubahan per berkas...")
+    print("\n[INFO] Memvalidasi perubahan...")
     for i, (filepath, old_content, new_content) in enumerate(pending_writes):
         display_name = os.path.basename(filepath) if os.path.isfile(args.target_dir) else os.path.relpath(filepath, args.target_dir)
         is_valid, msg = validate_syntax(filepath, new_content)
         if not is_valid:
-            remaining = total_files - (i + 1)
             print(f"\n[STOP] Validasi gagal di berkas ke-{i+1} dari {total_files}: {display_name}")
             if msg:
-                print(msg)
-            if remaining > 0:
-                print(f"       {remaining} berkas sisanya tidak disentuh.")
+                print(f"       {msg}")
+            print("       Tidak ada berkas yang ditulis.")
             sys.exit(1)
         elif msg:
             print(f"  - {display_name}: {msg}")
 
-        # Tampilkan diff dan tulis berkas
+    # Terapkan perubahan jika seluruh berkas valid
+    for filepath, old_content, new_content in pending_writes:
         print_diff(filepath, old_content, new_content)
         backup_path = backup_file(filepath, backup_dir)
         with open(filepath, 'w', encoding='utf-8', newline='\n') as f:

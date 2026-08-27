@@ -300,8 +300,10 @@ sys.exit(0)
 
 
 def test_sunting_massal_validasi_per_berkas():
-    """Validasi dilakukan per berkas sebelum menulis berkas berikutnya.
-    8 berkas, ke-5 rusak -> 4 pertama tertulis, ke-5 gagal, 3 terakhir utuh."""
+    """Validasi seluruh berkas dilakukan sebelum menulis ke disk.
+    (a) 8 berkas, ke-5 rusak -> tidak ada yang ditulis, seluruh 8 berkas utuh di disk.
+    (b) 8 berkas sah -> seluruh 8 berkas tertulis."""
+    # Arah a: 8 berkas, ke-5 rusak
     berkas = {}
     for i in range(8):
         if i == 4:
@@ -313,17 +315,23 @@ def test_sunting_massal_validasi_per_berkas():
         h = p.jalankan(".", "TARGET", "100", "--apply-validated")
         assert h.returncode != 0, f"Harus gagal saat berkas ke-5 rusak:\n{h.stdout}"
         assert "[STOP] Validasi gagal di berkas ke-5 dari 8: File4.js" in h.stdout
-        assert "3 berkas sisanya tidak disentuh" in h.stdout
+        assert "Tidak ada berkas yang ditulis." in h.stdout
 
-        # 4 pertama tertulis
-        for i in range(4):
-            assert p.baca(f"File{i}.js") == f"const val{i} = 100;\n", f"File{i}.js harusnya tertulis"
+        # Pembuktian lewat isi berkas: SELURUH 8 berkas harus tetap utuh di disk
+        for i in range(8):
+            if i == 4:
+                assert p.baca(f"File{i}.js") == "const broken = { TARGET;\n", f"File{i}.js harusnya utuh"
+            else:
+                assert p.baca(f"File{i}.js") == f"const val{i} = TARGET;\n", f"File{i}.js harusnya utuh"
 
-        # Berkas ke-5 dan 3 terakhir utuh
-        assert p.baca("File4.js") == "const broken = { TARGET;\n"
-        for i in range(5, 8):
-            assert p.baca(f"File{i}.js") == f"const val{i} = TARGET;\n", f"File{i}.js harusnya tidak disentuh"
-
+    # Arah b: 8 berkas sah
+    berkas_valid = {f"File{i}.js": f"const val{i} = TARGET;\n" for i in range(8)}
+    with ProyekUji(berkas_valid) as p_v:
+        h_v = p_v.jalankan(".", "TARGET", "100", "--apply-validated")
+        assert h_v.returncode == 0, f"Harus sukses saat semua berkas sah:\n{h_v.stdout}"
+        assert "[SUCCESS] Berhasil memodifikasi 8 file." in h_v.stdout
+        for i in range(8):
+            assert p_v.baca(f"File{i}.js") == f"const val{i} = 100;\n", f"File{i}.js harusnya tertulis"
 
 def test_nol_kecocokan_dan_campuran():
     """(a) 0 kecocokan tidak melaporkan SUCCESS dan tidak membuat backup.
