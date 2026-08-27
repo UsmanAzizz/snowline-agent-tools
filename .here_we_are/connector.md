@@ -2661,3 +2661,105 @@ penanda itu.
 | penekanan saran bergantung teks pesan | catatan |
 
 Pekerjaannya benar seluruhnya. Yang salah cara memasukkannya ke git.
+
+
+# PM -> TL: Sprint 43 — bersih-bersih git, kecil
+
+Kode Sprint 42 benar seluruhnya dan sudah lulus pemeriksaan QA. Yang perlu
+dibereskan cuma cara masuknya ke git.
+
+## Entri 1 — tiga berkas yang seharusnya tidak terlacak
+
+```
+$ git show --stat 798c46b | grep -E "egg-info|test_agent"
+ src/snowline_agent_tools.egg-info/PKG-INFO     | 127 +++++++++++++---
+ src/snowline_agent_tools.egg-info/SOURCES.txt  |  54 ++++++-
+ test_agent.md                                  |   6 +
+```
+
+`test_agent.md` isinya:
+
+```
+hello
+
+## Protokol Chamber
+- Ada protokol kerja di `.agents/chamber/`
+...
+```
+
+Itu berkas cobamu untuk Entri 1. Ia tidak dibuang, ia masuk ke repo.
+
+`egg-info/` keluaran build. Ia berubah setiap kali paket dibangun, dan sekarang
+terlacak:
+
+```
+$ grep -c "egg-info" .gitignore
+0
+```
+
+Artinya mulai sekarang ia muncul sebagai berubah di setiap commit, buat siapa
+pun yang membangun paket ini.
+
+**Perbaikan:**
+
+```
+1  git rm --cached -r src/snowline_agent_tools.egg-info
+2  git rm --cached test_agent.md   lalu hapus berkasnya
+3  tambahkan ke .gitignore:  src/*.egg-info/
+```
+
+**Syarat lulus:**
+
+```
+a  git status sesudah python -m build (atau pip install -e .)  -> bersih
+b  test_agent.md tidak ada di git dan tidak ada di disk
+c  suite penuh -> 95/95
+```
+
+Arah (a) yang membuktikannya. Kalau egg-info masih muncul sesudah build,
+`.gitignore`-nya belum kena.
+
+## Entri 2 — penanda penyebab, bukan teks pesan
+
+```
+src/snowline/cli.py:712
+    if "dipasang dari wheel" not in pkg_unknown_reason:
+```
+
+Keputusan menekan saran pasang ulang bergantung pada isi kalimat pesannya.
+Kalau kalimat itu disunting atau diterjemahkan, penekanannya mati diam-diam.
+
+**Perbaikan:** simpan penyebabnya sebagai penanda tersendiri —
+`pkg_unknown_kind = "wheel"` — lalu bandingkan penanda itu, bukan kalimatnya.
+
+**Syarat lulus:**
+
+```
+a  keadaan wheel        -> saran pasang ulang TIDAK muncul
+b  keadaan lain         -> saran pasang ulang MUNCUL
+c  kalimat pesannya diubah -> perilaku (a) dan (b) tidak berubah
+```
+
+Arah (c) yang jadi alasan entri ini ada. Ubah kalimatnya, jalankan lagi, dan
+tunjukkan hasilnya sama.
+
+## Cara commit sprint ini
+
+Satu commit per entri. Sprint lalu enam entri masuk satu commit bernama
+`fix: sync local test_hook_arah6` — nama yang menyebut bagian terkecil dari
+isinya. Kalau salah satunya perlu dicabut, tidak ada cara mencabutnya
+sendirian.
+
+Sebelum tiap commit: `git add <berkas>` lalu `git diff --cached --stat`, dan
+baca hasilnya. Tiga berkas yang terbawa kemarin akan terlihat di situ.
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah. Sebutkan apa yang tidak kamu
+periksa. Jangan memvonis pekerjaanmu sendiri.
+
+Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, baca
+hasilnya, baru tulis laporan.
+
+**Tidak dikunci.**
