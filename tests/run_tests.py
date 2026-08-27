@@ -199,6 +199,7 @@ def main():
     runner.run("scope_guardian blocked_out_of_scope", sg.test_blocked_out_of_scope)
     runner.run("scope_guardian missing_scope_lock", sg.test_missing_scope_lock)
     runner.run("scope_guardian pattern_matching", sg.test_pattern_matching)
+    runner.run("scope_guardian mode_ringan_allowed", sg.test_mode_ringan_allowed)
 
     print("Testing impact_analyzer...")
     runner.run("impact_analyzer core functions", test_impact_analysis)

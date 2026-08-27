@@ -1,3 +1,31 @@
+
+def is_light_mode(start_dir=None):
+    """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
+    if start_dir is None:
+        start_dir = os.getcwd()
+    current_dir = os.path.abspath(start_dir)
+    while True:
+        agents_dir = os.path.join(current_dir, '.agents')
+        if os.path.isdir(agents_dir):
+            markers = ['mode_ringan', 'light_mode', 'lightweight', 'mode_ringan.json', 'light_mode.json', 'lightweight.json']
+            for m in markers:
+                if os.path.exists(os.path.join(agents_dir, m)):
+                    return True
+            mode_json = os.path.join(agents_dir, 'mode.json')
+            if os.path.exists(mode_json):
+                try:
+                    with open(mode_json, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if data.get('mode') in ['ringan', 'light', 'lightweight'] or data.get('mode_ringan') is True or data.get('light_mode') is True:
+                        return True
+                except Exception:
+                    pass
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
+    return False
+
 import sys
 import json
 import os
@@ -46,6 +74,9 @@ def main():
             
         scope_lock_path = os.path.join(os.path.dirname(__file__), "..", "scope_lock.json")
         if not os.path.exists(scope_lock_path):
+            if is_light_mode():
+                print(json.dumps({"decision": "allow", "reason": "[INFO] Mode ringan aktif: scope_lock.json dilewati."}))
+                sys.exit(0)
             print(json.dumps({"decision": "deny", "reason": "[BLOCKED] scope_lock.json tidak ditemukan di .agents/. Harap buat lock ini sebelum menulis berkas apa pun."}))
             sys.exit(0)
             

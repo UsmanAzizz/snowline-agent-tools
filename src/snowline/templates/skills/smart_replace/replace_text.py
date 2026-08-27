@@ -1,3 +1,31 @@
+
+def is_light_mode(start_dir=None):
+    """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
+    if start_dir is None:
+        start_dir = os.getcwd()
+    current_dir = os.path.abspath(start_dir)
+    while True:
+        agents_dir = os.path.join(current_dir, '.agents')
+        if os.path.isdir(agents_dir):
+            markers = ['mode_ringan', 'light_mode', 'lightweight', 'mode_ringan.json', 'light_mode.json', 'lightweight.json']
+            for m in markers:
+                if os.path.exists(os.path.join(agents_dir, m)):
+                    return True
+            mode_json = os.path.join(agents_dir, 'mode.json')
+            if os.path.exists(mode_json):
+                try:
+                    with open(mode_json, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if data.get('mode') in ['ringan', 'light', 'lightweight'] or data.get('mode_ringan') is True or data.get('light_mode') is True:
+                        return True
+                except Exception:
+                    pass
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
+    return False
+
 import os
 import sys
 import argparse
@@ -65,7 +93,21 @@ def check_task_state(is_apply=False):
         print("Minta user approve pseudocode dulu sebelum --apply bisa dijalankan.")
         sys.exit(1)
 
-def check_scope(pending_writes):
+def check_scope(pending_writes, light_mode=False):
+    if light_mode or is_light_mode():
+        current_dir = os.path.abspath(os.getcwd())
+        has_lock = False
+        while True:
+            if os.path.exists(os.path.join(current_dir, '.agents', 'scope_lock.json')):
+                has_lock = True
+                break
+            parent = os.path.dirname(current_dir)
+            if parent == current_dir:
+                break
+            current_dir = parent
+        if not has_lock:
+            print("[INFO] Mode ringan aktif: keharusan scope_lock.json dilewati.")
+            return
     """Block if any file to be modified is outside allowed scope (security gate, fail-closed)."""
     
     # Inject skills directory to sys.path so we can import from other skills
@@ -249,6 +291,7 @@ def get_args():
     parser.add_argument("--allow-partial-match", action="store_true", help="Allow partial/substring matching (disables word-boundary default)")
     parser.add_argument("--apply", action="store_true", help="Actually modify the files (Low risk only)")
     parser.add_argument("--apply-validated", action="store_true", help="Actually modify the files (Bypass Medium/High risk block)")
+    parser.add_argument("--mode-ringan", "--lightweight", "--light", action="store_true", help="Jalankan dalam mode ringan (tanpa keharusan scope_lock.json)")
     return parser.parse_args()
 
 def backup_file(filepath, backup_dir):
@@ -515,7 +558,7 @@ def main():
         return
 
     # Fail-closed scope enforcement (security gate)
-    check_scope(pending_writes)
+    check_scope(pending_writes, light_mode=getattr(args, 'mode_ringan', False))
 
     if not (args.apply or args.apply_validated):
         print("\n[DRY RUN] Ini hanya simulasi. Gunakan --apply untuk mengeksekusi.")

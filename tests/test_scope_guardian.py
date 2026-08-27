@@ -147,3 +147,23 @@ class TestScopeCheck:
                         assert False
             finally:
                 os.chdir(original_cwd)
+
+    def test_mode_ringan_allowed(self):
+        """Should allow execution without scope_lock.json when mode ringan marker is present"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            agents_dir = os.path.join(tmpdir, '.agents')
+            os.makedirs(agents_dir)
+            with open(os.path.join(agents_dir, 'mode_ringan'), 'w') as f:
+                f.write('')
+
+            target_file = os.path.join(tmpdir, 'src', 'components', 'Button.jsx')
+            os.makedirs(os.path.dirname(target_file), exist_ok=True)
+            with open(target_file, 'w') as f:
+                f.write('// Button')
+
+            original_cwd = os.getcwd()
+            os.chdir(tmpdir)
+            try:
+                assert check_scope(os.path.relpath(target_file, tmpdir)) is True
+            finally:
+                os.chdir(original_cwd)

@@ -1,3 +1,31 @@
+
+def is_light_mode(start_dir=None):
+    """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
+    if start_dir is None:
+        start_dir = os.getcwd()
+    current_dir = os.path.abspath(start_dir)
+    while True:
+        agents_dir = os.path.join(current_dir, '.agents')
+        if os.path.isdir(agents_dir):
+            markers = ['mode_ringan', 'light_mode', 'lightweight', 'mode_ringan.json', 'light_mode.json', 'lightweight.json']
+            for m in markers:
+                if os.path.exists(os.path.join(agents_dir, m)):
+                    return True
+            mode_json = os.path.join(agents_dir, 'mode.json')
+            if os.path.exists(mode_json):
+                try:
+                    with open(mode_json, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if data.get('mode') in ['ringan', 'light', 'lightweight'] or data.get('mode_ringan') is True or data.get('light_mode') is True:
+                        return True
+                except Exception:
+                    pass
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
+    return False
+
 import os
 import sys
 import json
@@ -18,6 +46,9 @@ def check_scope_write(write_target):
 
     lock_file = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
     if not os.path.exists(lock_file):
+        if is_light_mode():
+            print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
+            return
         print("[BLOCKED] scope_lock.json not found in .agents/. Create it first to define scope.")
         sys.exit(1)
     try:

@@ -9,6 +9,34 @@ from datetime import datetime
 # mematikan alat ini pada pemakaian pertama.
 MAX_UMUR_JAM = 24
 
+def is_light_mode(start_dir=None):
+    """Memeriksa apakah mode ringan aktif via berkas penanda di .agents/."""
+    if start_dir is None:
+        start_dir = os.getcwd()
+    current_dir = os.path.abspath(start_dir)
+    while True:
+        agents_dir = os.path.join(current_dir, '.agents')
+        if os.path.isdir(agents_dir):
+            markers = ['mode_ringan', 'light_mode', 'lightweight', 'mode_ringan.json', 'light_mode.json', 'lightweight.json']
+            for m in markers:
+                if os.path.exists(os.path.join(agents_dir, m)):
+                    return True
+            mode_json = os.path.join(agents_dir, 'mode.json')
+            if os.path.exists(mode_json):
+                try:
+                    with open(mode_json, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    if data.get('mode') in ['ringan', 'light', 'lightweight'] or data.get('mode_ringan') is True or data.get('light_mode') is True:
+                        return True
+                except Exception:
+                    pass
+        parent = os.path.dirname(current_dir)
+        if parent == current_dir:
+            break
+        current_dir = parent
+    return False
+
+
 
 def peringatan_kesegaran(scope_data):
     """Kembalikan daftar peringatan bila scope_lock tampak sisa tugas lama."""
@@ -63,7 +91,7 @@ def is_file_in_scope(filepath, allowed_files, allowed_patterns):
     return False
 
 
-def check_scope(target_file):
+def check_scope(target_file, light_mode=False):
     # Normalize path separators for comparison
     target_file = target_file.replace('\\', '/')
     current_dir = os.path.abspath(os.getcwd())
@@ -81,6 +109,9 @@ def check_scope(target_file):
         current_dir = parent
     
     if not lock_file_path:
+        if light_mode or is_light_mode():
+            print("[INFO] Mode ringan aktif: scope_lock.json dilewati.")
+            return True
         print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
         print("Skema dan contohnya: .agents/skills/rules/scope_guardian.md")
         sys.exit(1)
@@ -167,7 +198,8 @@ def check_scope(target_file):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("Usage: python scope_check.py <file_path>")
+        print("Usage: python scope_check.py <file_path> [--mode-ringan]")
         sys.exit(1)
     
-    check_scope(sys.argv[1])
+    light_flag = any(arg in ['--mode-ringan', '--lightweight', '--light'] for arg in sys.argv[2:])
+    check_scope(sys.argv[1], light_mode=light_flag)
