@@ -66,7 +66,7 @@ def is_file_in_scope(filepath, allowed_files, allowed_patterns):
 def check_scope(target_file):
     # Normalize path separators for comparison
     target_file = target_file.replace('\\', '/')
-    lock_file_path = os.path.join(os.getcwd(), '.agents', 'scope_lock.json')
+    lock_file_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../..')), '.agents', 'scope_lock.json')
     
     if not os.path.exists(lock_file_path):
         print(f"[BLOCKED] scope_lock.json not found in .agents/. Please create it first to define the scope.")
