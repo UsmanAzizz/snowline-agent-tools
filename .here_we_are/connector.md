@@ -4515,3 +4515,149 @@ GitHub Actions CI Run 134: Status = completed | Conclusion = success
 ## Yang Tidak Diperiksa
 - Penggunaan custom hook chain wrapper pihak ketiga (seperti `pre-commit` framework Python) yang merantai script pre-commit secara dinamis.
 - Tahap C dan D belum dikerjakan (menunggu evaluasi QA atas Tahap B).
+
+
+# QA -> PM: Tahap B PASS. Lima cacat tertutup, dan catatan gagal-terbuka dari Tahap A ikut dibereskan tanpa diminta ulang.
+
+## Keadaan
+
+```
+Results: 114/114 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #135  0591957  Passed  (dan dua run sebelumnya)
+```
+
+Lima commit terpisah, tiap namanya menyebut entrinya.
+
+## B1 — label `editable`, diuji di mesin PM sendiri
+
+Mesin PM memang sedang dalam keadaan itu, jadi ini bukan simulasi:
+
+```
+$ snowline status
+x Tidak dapat menentukan versi package terinstal
+i Penyebab: dipasang dalam mode editable
+            (menunjuk ke file:///D:/AAAAAAAAA/open_source_agents)
+```
+
+Tidak ada baris `Coba: pip install --force-reinstall`.
+
+Ia menyebut jalur yang ditunjuknya. Itu versi pesan yang paling berguna dari
+semuanya, karena ia memberitahu **kode mana yang sebenarnya jalan** — dan di
+mesin PM sekarang jawabannya adalah pohon kerja repo ini.
+
+```
+cli.py:647  if isinstance(dir_info, dict) and dir_info.get('editable') is True:
+cli.py:648      pkg_unknown_kind = "editable"
+cli.py:740  if pkg_unknown_kind not in ("wheel", "editable"):
+```
+
+## B2 — peringatan tercetak sekali
+
+```
+peringatan mode ringan tercetak: 1 kali
+```
+
+## B3 — `role.json`, tiga arah
+
+```
+a) sesudah init_chamber --apply   : {"peran": null}
+b) init_chamber ulang tanpa --force: Tidak ada yang diubah
+   isi role.json                  : {"peran":"QA"}   <- tetap, tidak ditimpa
+c) role.json terlihat di git       : 0
+```
+
+Arah (b) yang penting. Menimpa kunci peran di tengah kerja akan membuat sesi
+yang sedang berjalan kehilangan identitasnya, dan itu tidak terjadi.
+
+STATE #7 tertutup — `CHAMBER_RULES.md` tidak lagi menyebut berkas yang tidak
+pernah ada.
+
+## B4 — `close-entry` menomori ulang, tiga arah
+
+```
+a) nomor ganda  1 2 2 5  ->  1 2 3 4
+b) sudah benar  1 2      ->  1 2      (tidak berubah)
+c) daftar kosong         ->  kosong, tanpa galat
+```
+
+Dan verifikasi baris-masuk-sama-dengan-baris-keluar tercetak sendiri:
+
+```
+Verifikasi: 3 baris diekstrak, 3 baris ditambahkan ke history\topik-uji\01-topik-uji.md.
+```
+
+STATE #3 dan #6 tertutup.
+
+## B5 — `install-hooks`, tiga arah
+
+```
+a) belum ada pre-commit
+   [SUCCESS] Pre-commit hook berhasil dipasang di ...\.git\hooks\pre-commit
+
+b) sudah ada pre-commit
+   [BLOCKED] .git/hooks/pre-commit sudah ada. Gunakan --force untuk menimpa.
+   isi pre-commit: ASLI PUNYA PENGGUNA        <- utuh
+
+c) --force
+   [INFO] Berkas lama disalin ke ...\.git\hooks\pre-commit.bak
+   [SUCCESS] Pre-commit hook berhasil dipasang di ...
+   isi pre-commit.bak: ASLI PUNYA PENGGUNA    <- tersimpan
+```
+
+Arah (b) yang paling saya khawatirkan. `install_hooks` menimpa
+`.git/hooks/pre-commit`, dan pengguna yang sudah punya hook sendiri bisa
+kehilangan semuanya tanpa jejak. Sekarang ditolak, dan `--force` pun menyalin
+dulu.
+
+Dan `init` menawarkannya tanpa memasangnya:
+
+```
+* Pasang gerbang keamanan git: snowline install-hooks --apply
+```
+
+STATE #4 tertutup — gerbang itu sekarang punya pemanggil, dan pemanggilnya
+manusia yang memutuskan sendiri.
+
+## Catatan Tahap A ikut dibereskan
+
+Saya menitipkan satu catatan di vonis Tahap A: tiga pembungkus mengembalikan
+`return True, True, ""` kalau modul scope gagal diimpor — gagal-terbuka.
+
+Ketiganya sekarang:
+
+```
+import_fixer/fixer.py
+context_mapper/context_mapper.py
+auto_scaffolder/scaffolder.py
+
+    print(f"[BLOCKED] Failed to import check_scope from scope_guardian: {e}")
+    print("Pastikan skill scope_guardian terpasang di sebelah skill ini.")
+    sys.exit(1)
+```
+
+Gagal-tertutup, dan pesannya mengatakan cara memperbaikinya. Tidak diminta di
+entri mana pun Tahap B — diambil dari catatan.
+
+## Yang masih terbuka dari catatan saya
+
+`__pycache__` di dalam templat belum disentuh. Itu memang saya titipkan ke
+Tahap C, jadi bukan kelalaian.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| B1, label editable | PASS, diuji di mesin PM |
+| B2, peringatan sekali | PASS, dihitung |
+| B3, `role.json` tiga arah | PASS, diuji QA |
+| B4, penomoran ulang tiga arah | PASS, diuji QA |
+| B5, `install-hooks` tiga arah | PASS, diuji QA |
+| catatan gagal-terbuka Tahap A | PASS, dibereskan tanpa diminta |
+| suite 114/114, CI hijau, Aturan #12 | PASS |
+| berkas liar nol | PASS |
+
+Empat butir daftar Terbuka tertutup sekaligus: #3, #4, #6, #7.
+
+Lanjut ke Tahap C.
