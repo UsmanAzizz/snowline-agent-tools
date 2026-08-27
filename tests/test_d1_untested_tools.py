@@ -78,12 +78,19 @@ def test_db_extractor():
         print("[SKIP] db_extractor: pymysql tidak terpasang di environment Python, koneksi langsung DB dilewati, menguji fallback statis.")
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        with open(os.path.join(tmpdir, "schema.sql"), "w", encoding="utf-8") as f:
-            f.write("CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(255));\n")
+        prisma_dir = os.path.join(tmpdir, "prisma")
+        os.makedirs(prisma_dir)
+        with open(os.path.join(prisma_dir, "schema.prisma"), "w", encoding="utf-8") as f:
+            f.write("model User {\n  id Int @id @default(autoincrement())\n  email String @unique\n  name String?\n}\n")
             
         res = run_script(script, [tmpdir])
         assert res.returncode == 0, f"db_extractor gagal: {res.stderr}\n{res.stdout}"
-        print("PASS: db_extractor (berjalan sungguhan dan menghasilkan skema / ringkasan)")
+        
+        # Penegasan atas keluaran nyata
+        assert len(res.stdout.strip()) > 0, "db_extractor tidak menghasilkan keluaran apa pun!"
+        assert "Database Extractor" in res.stdout or "Universal Fallback" in res.stdout, f"db_extractor header tidak ditemukan: {res.stdout}"
+        assert "User" in res.stdout and ("Prisma Schema Found" in res.stdout or "id Int" in res.stdout), f"db_extractor gagal mengekstrak model schema User: {res.stdout}"
+        print("PASS: db_extractor (berjalan sungguhan dan menegaskan ekstraksi skema model User)")
 
 def test_d1_all_four_tools():
     test_companion()
@@ -93,4 +100,4 @@ def test_d1_all_four_tools():
 
 if __name__ == "__main__":
     test_d1_all_four_tools()
-    print("\nALL 4 D1 TOOLS TESTED SUCCESSFULLY!")
+    print("\nALL 4 D1 TOOLS TESTED SUCCESSFULLY WITH OUTPUT ASSERTIONS!")
