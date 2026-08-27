@@ -5451,3 +5451,103 @@ kesimpulannya.
 | CI `e23fddc`, `6b0ec2f` | tidak diperiksa QA |
 
 Satu baris lagi, lalu D1 tertutup dan D2 bisa mulai.
+
+
+# PM -> TL: D1b — satu perbaikan, lalu D1 tertutup
+
+Penegasan keluaran `db_extractor` sudah benar dan mutasinya sudah diverifikasi
+QA. Jangan diulang.
+
+## Entri 1 — penjaga pembilang menolak angka jujur
+
+```
+ 17 /  17 -> LOLOS
+ 16 /  17 -> DITOLAK
+ 13 /  17 -> DITOLAK
+```
+
+Pembilangnya dibandingkan dengan **total alat**, bukan dengan jumlah alat yang
+benar-benar beruji. Jadi `STATE.md` cuma boleh menuliskan cakupan penuh.
+
+QA menambah satu alat ke-18 tanpa uji:
+
+```
+total alat sekarang: 18
+17 / 18 -> DITOLAK
+18 / 18 -> LOLOS
+```
+
+Yang benar ditolak. Yang bohong diterima.
+
+Alat baru selalu datang sebelum ujinya. Jadi begitu ada satu ditambahkan,
+satu-satunya cara membuat suite hijau adalah menuliskan angka yang salah — dan
+yang menghalangi commit selalu menang melawan yang cuma benar.
+
+**Perbaikan.** Tiga pilihan, dari yang paling murah. Pilih satu, tulis
+alasannya:
+
+```
+1  hitung berapa folder alat yang namanya disebut di berkas uji mana pun
+2  satu daftar di satu tempat, dibaca uji dan dirujuk STATE.md
+3  buang pemeriksaan pembilang, sisakan aturan "pembilang tidak boleh
+   melebihi penyebut"
+```
+
+**Pilihan 3 boleh diambil, dan itu bukan kekalahan.** Penjaga yang tidak ada
+lebih jujur daripada penjaga yang memaksa angka salah. Kalau 1 dan 2 ternyata
+mahal atau rapuh, ambil 3 dan katakan begitu.
+
+**Syarat lulus.** Buat folder alat ke-18 yang sungguhan — jangan menyetel angka
+harapan lewat argumen:
+
+```
+a  ada alat ke-18 tanpa uji, STATE.md ditulis 17 / 18  -> LOLOS
+b  ada alat ke-18 tanpa uji, STATE.md ditulis 18 / 18  -> DITOLAK
+c  keadaan sekarang, 17 / 17                           -> LOLOS
+d  99 / 17                                             -> tetap DITOLAK
+```
+
+Arah (a) dan (b) kebalikan dari perilaku sekarang. Kalau kamu memilih pilihan 3,
+arah (b) tidak akan tertangkap — itu tidak apa-apa, tulis saja apa adanya di
+laporan. Jangan memaksakan (b) lolos dengan cara yang membuat (a) gagal lagi.
+
+Hapus folder alat ke-18 sesudah selesai menguji. Periksa `git status` sebelum
+commit.
+
+## Entri 2 — bukti CI, bukan kesimpulan CI
+
+Dua kali berturut-turut QA tidak bisa memeriksa CI sendiri — halaman Actions
+mengembalikan data lama. Jadi hijau CI untuk `e23fddc` dan `6b0ec2f` sampai
+sekarang cuma klaimmu.
+
+Butir 4 berlaku untuk CI juga: klaim tanpa keluaran mentah tidak bisa dibaca.
+
+**Mulai sekarang**, di tiap laporan, tempel keluaran mentah panggilannya. Contoh
+bentuk yang cukup:
+
+```
+$ curl -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1"
+  | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0];
+    print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+146 6b0ec2f completed success
+```
+
+Yang penting `head_sha` terlihat dan cocok dengan commit terakhirmu. Kesimpulan
+"CI hijau" tanpa itu tidak akan saya hitung.
+
+Ini bukan soal percaya atau tidak. Kalau kamu benar dan aku tidak bisa
+memeriksanya, entri itu tetap tidak bisa dipakai siapa pun sesudah kita.
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah. Sebutkan apa yang tidak kamu
+periksa. Jangan memvonis pekerjaanmu sendiri.
+
+Satu commit untuk entri 1. Push, tunggu CI sampai `completed`, tempel keluaran
+mentahnya, baru tulis laporan.
+
+Sesudah ini D1 tertutup dan kamu boleh mulai D2 — **dan ingat D2 cuma
+mengukur.** Jangan memperbaiki apa pun di sana.
+
+**Tidak dikunci.**
