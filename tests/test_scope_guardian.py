@@ -7,8 +7,9 @@ import tempfile
 import json
 from pathlib import Path
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add skills directory to path
+skills_path = Path(__file__).parent.parent / "src" / "snowline" / "templates" / "skills"
+sys.path.insert(0, str(skills_path))
 from scope_guardian.scripts.scope_check import check_scope
 
 class TestScopeCheck:

@@ -174,6 +174,14 @@ def test_berkas_sementara_tidak_tertinggal():
         assert not sisa, f"berkas sementara tertinggal: {sisa}"
 
 
+def _npm_tersedia():
+    try:
+        biner = "npm.cmd" if sys.platform == "win32" else "npm"
+        h = subprocess.run([biner, "-v"], capture_output=True, shell=(sys.platform == "win32"))
+        return h.returncode == 0
+    except Exception:
+        return False
+
 def _linter_tersedia():
     try:
         return subprocess.run(["npx", "--yes", "eslint", "-v"],
@@ -262,6 +270,8 @@ def test_gerbang_risiko_medium_high():
 
 def test_scripts_lint_package_json():
     """Urutan probe prioritas package.json scripts.lint (misal oxlint)."""
+    if not _npm_tersedia():
+        return
     fake_linter = """import sys
 if len(sys.argv) > 1:
     with open(sys.argv[1], "r", encoding="utf-8") as f:
