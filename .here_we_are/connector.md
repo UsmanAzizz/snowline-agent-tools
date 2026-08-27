@@ -2173,3 +2173,309 @@ Entri ini akhirnya ditulis dengan `--force`, jadi ada penandanya di atas.
 
 Arah yang kamu kerjakan benar. Yang tersisa satu baris perbandingan, dan satu
 kebiasaan tentang berada di proyek yang mana.
+
+
+> Entri ini ditulis dengan --force dan tidak lolos pemeriksa.
+
+# PM -> TL: Sprint 42 — enam perbaikan kecil dari uji lapangan
+
+Snowline dipakai agen asing di dua proyek minggu ini. Empat hal ketahuan di
+sana, semua sudah diukur QA. Dua lagi utang lama yang murah dikerjakan
+sekarang. Keenamnya kecil.
+
+**Jalur shell TIDAK dikerjakan sprint ini.** Ia menunggu keputusan PM soal
+apakah penjaga scope bertugas memblokir atau mencatat. Jangan menyentuhnya.
+
+---
+
+## Entri 1 — chamber terpasang tapi tidak pernah dibaca
+
+Di proyek `belajar-desain-web`, chamber sudah terpasang:
+
+```
+$ ls .agents/chamber/
+ATURAN_CHAMBER.md  KEADAAN.md  connector.md  ONBOARDING_*.md
+```
+
+Tetapi agen yang bekerja di sana tidak pernah membukanya. Ia mengarang arti
+"chamber" sendiri — mengira itu sandbox terisolasi — lalu melaporkan hasil
+simulasi yang tidak pernah dijalankan.
+
+Sebabnya ketemu:
+
+```
+$ grep -ic "chamber" .agents/agents.md
+0
+$ grep -icE "connector|CHAMBER_RULES|ONBOARDING" .agents/agents.md
+0
+```
+
+`agents.md` adalah kontrak perilaku yang dibaca agen. Chamber tidak disebut di
+sana sama sekali. Jadi `init_chamber --apply` memasang tujuh berkas yang tidak
+akan dilihat siapa pun kecuali ada manusia yang menempelkan onboarding manual.
+
+**Perbaikan:** kalau `.agents/chamber/` ada, `agents.md` harus memuat satu
+bagian pendek yang menunjuk ke sana. Isinya cukup tiga hal:
+
+```
+ada protokol kerja di .agents/chamber/
+baca CHAMBER_RULES.md sebelum melapor
+laporan ditulis lewat: snowline add-entry --from-file <berkas>
+```
+
+Jangan lebih panjang dari itu. Yang dibutuhkan cuma penunjuk arah.
+
+**Syarat lulus:**
+
+```
+a  init tanpa init_chamber           -> agents.md TIDAK menyebut chamber
+b  sesudah init_chamber --apply      -> agents.md menyebut chamber
+c  sesudah snowline update --apply   -> penunjuk itu MASIH ada
+```
+
+Arah (c) yang paling gampang lolos dari perhatian. `agents.md` ikut diperbarui
+oleh `update`, jadi penunjuk yang cuma ditempel begitu saja akan hilang pada
+pembaruan berikutnya. Pilih caranya sendiri, tetapi (c) harus hijau.
+
+**Catatan terpisah:** chamber di proyek itu versi sebelum rename ke bahasa
+Inggris (`ATURAN_CHAMBER.md`, bukan `CHAMBER_RULES.md`) dan kurang dua berkas.
+Itu urusan pemasangan ulang di sana, bukan bagian sprint ini.
+
+---
+
+## Entri 2 — BOM mematikan penjaga scope
+
+```
+$ printf '{"task":"t","allowed_files":["a.py"],"allowed_patterns":[]}' > .agents/scope_lock.json
+$ python scope_check.py a.py
+[ALLOWED]
+
+$ printf '\xef\xbb\xbf{"task":"t","allowed_files":["a.py"],...}' > .agents/scope_lock.json
+$ python scope_check.py a.py
+[BLOCKED] Failed to parse scope_lock.json: Unexpected UTF-8 BOM
+          (decode using utf-8-sig): line 1 column 1 (char 0)
+```
+
+`Out-File -Encoding UTF8` di Windows PowerShell 5.1 menulis BOM. Itu cara paling
+wajar menulis berkas dari PowerShell, dan sesudahnya penjaganya memblokir
+segalanya.
+
+Agen asing kena persis ini. Kutipan laporannya:
+
+> Gagal karena menyisipkan BOM yang membuat Python json parser error.
+
+**Perbaikan:** baca `scope_lock.json` dengan `encoding='utf-8-sig'`. Pola ini
+sudah dipakai di `core_add_entry.py` untuk masalah yang sama.
+
+Periksa juga siapa lagi yang membaca berkas itu — `intercept_native.py` dan
+penegak scope lainnya. Kalau satu diperbaiki dan yang lain tidak, hasilnya
+berbeda tergantung jalur mana yang dipakai.
+
+**Syarat lulus:**
+
+```
+a  scope_lock.json dengan BOM    -> dibaca normal, tidak memblokir
+b  scope_lock.json tanpa BOM     -> tetap dibaca normal
+c  scope_lock.json rusak isinya  -> tetap DITOLAK
+```
+
+Arah (c) wajib. Menoleransi BOM gampang sekali berubah jadi menoleransi JSON
+rusak.
+
+---
+
+## Entri 3 — batas proyek pakai awalan teks
+
+```
+src/snowline/templates/skills/scope_guardian/scripts/scope_check.py:90
+    if not abs_target.startswith(abs_lock_dir):
+```
+
+Itu perbandingan teks, bukan perbandingan jalur. QA membangun dua folder
+bersebelahan:
+
+```
+myapp/.agents/scope_lock.json   allowed_patterns = ["*.py"]
+
+$ cd myapp && python scope_check.py <jalur>/myapp2/tetangga.py
+[ALLOWED] File '.../myapp2/tetangga.py' matches pattern '*.py'.
+```
+
+`.../myapp2/...` diawali `.../myapp`, jadi lolos. Penamaan begini lazim:
+`client` dan `client-old`, `proj` dan `proj_backup`.
+
+**Perbaikan:** bandingkan sebagai jalur. Entah `os.path.commonpath`, atau
+tambahkan pemisah:
+
+```
+abs_target == abs_lock_dir or abs_target.startswith(abs_lock_dir + '/')
+```
+
+**Syarat lulus:**
+
+```
+a  folder tetangga berimbuhan (myapp2 dari myapp)  -> DITOLAK
+b  subfolder sungguhan (myapp/sub/x.py)            -> lolos
+c  suite penuh                                     -> 95/95
+```
+
+Arah (b) wajib. Menambahkan pemisah gampang sekali menutup subfolder yang sah
+sekaligus.
+
+---
+
+## Entri 4 — gerbang vonis menolak entri QA yang menempel bukti
+
+```
+$ snowline add-entry --from-file vonis76.md
+[REJECTED] Entri dari TL memuat kata vonis dilarang 'vonis' di baris 146
+```
+
+Itu entri QA. Tajuknya `QA -> PM`. Sebabnya di
+`core_entry_checker.py:33`:
+
+```python
+is_tl_entry = bool(re.search(r'TL\s*->\s*\w+', content, re.IGNORECASE))
+```
+
+Ia mencari `TL ->` di **seluruh isi**, termasuk di dalam blok kode. Entri QA itu
+menempelkan tajuk laporan TL sebagai bukti:
+
+```
+303:# TL -> QA: Sprint 41c - Titik Awal Pencarian Kunci Scope Guardian
+```
+
+Baris bukti itu membuat entri QA dikira entri TL.
+
+Akibatnya QA tidak bisa mengutip tajuk entri TL sebagai bukti — padahal
+mengutip bukti persis yang butir 4 tuntut. Makin lengkap buktinya, makin besar
+peluang ditolak.
+
+**Perbaikan:** cari `TL ->` hanya di baris tajuk entri. Tajuknya selalu baris
+pertama dan bentuknya sudah dipaksa `# <PERAN> -> <PERAN>: <judul>` oleh
+`core_add_entry.py`.
+
+**Syarat lulus:**
+
+```
+a  entri TL sungguhan dengan kata vonis          -> DITOLAK
+b  entri QA yang mengutip tajuk TL di blok kode  -> lolos
+c  entri TL dengan bagian "apa yang tidak saya periksa" -> pengecualian tetap jalan
+```
+
+Arah (c) supaya kamu tidak merusak pengecualian yang sudah ada sambil
+memperbaiki yang ini.
+
+---
+
+## Entri 5 — STATE.md butir 2 masih salah, sprint ketiga berturut-turut
+
+```
+$ sed -n '/^## *Terbuka/,/^## /p' .here_we_are/STATE.md | grep -A2 "^2  uji"
+2  uji               5 perkakas belum beruji: companion, db_extractor,
+                     deep_analyzer, plan_tracker, smart_tree.
+```
+
+`plan_tracker` dihapus Sprint 39. Foldernya sudah tidak ada. Butir ini menuntut
+pekerjaan yang mustahil dikerjakan siapa pun — tidak ada kode untuk diuji.
+
+QA sudah menolak ini sekali di vonis Sprint 39, dan isinya masih sama.
+
+**Perbaikan:** angkanya jadi 4, dan `plan_tracker` dikeluarkan dari daftar.
+
+Ambil angkanya dari perintah, jangan diketik. Sudah empat kali angka di
+`STATE.md` salah karena diketik.
+
+**Syarat lulus:**
+
+```
+a  butir 2 menyebut 4, bukan 5
+b  plan_tracker tidak ada lagi di daftar itu
+c  keempat nama sisanya cocok dengan folder yang benar-benar ada di skills/
+```
+
+Arah (c) supaya angkanya tidak sekadar diganti tanpa memeriksa daftarnya.
+
+---
+
+## Entri 6 — `status` gagal menentukan versi tanpa mengatakan kenapa
+
+Sekarang ia bekerja, dan datanya benar:
+
+```
+$ snowline status
+Paket : commit a1e3f15f  (GitHub: a1e3f15f)  -> terbaru
+
+$ cat <site-packages>/snowline_agent_tools-1.1.3.dist-info/direct_url.json
+{"url": "...", "vcs_info": {"commit_id": "a1e3f15f58989da74932b684b99724d71ad4ed15", ...}}
+```
+
+Tetapi di uji lapangan ia gagal **dua kali**, dengan pesan yang sama:
+
+```
+x Tidak dapat menentukan versi package terinstal
+i Coba: pip install --force-reinstall git+https://...
+```
+
+Pesan itu tidak mengatakan apa yang tidak ketemu. Akibatnya agen yang mengujinya
+menebak versinya dari tempat lain dan melaporkan versi yang salah — dua kali,
+di dua laporan berbeda.
+
+`status` membaca `direct_url.json` dari dist-info lewat glob (`cli.py:621`).
+Kalau glob-nya tidak cocok, kalau berkasnya tidak ada, atau kalau `vcs_info`
+kosong, ketiganya menghasilkan pesan yang sama persis.
+
+**Perbaikan:** sebutkan mana yang gagal. Cukup satu baris tambahan, misalnya:
+
+```
+dist-info tidak ditemukan di <jalur yang dicari>
+direct_url.json tidak ada di <dist-info>
+direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)
+```
+
+Yang terakhir itu kemungkinan besar penyebabnya, dan itu keadaan sah — pemasangan
+dari wheel memang tidak punya commit. Kalau itu masalahnya, pesannya jangan
+menyuruh pasang ulang.
+
+**Syarat lulus:** tiga arah, buat masing-masing keadaannya dan tempel pesannya.
+
+```
+a  dist-info tidak ada           -> pesannya menyebut itu
+b  direct_url.json tidak ada     -> pesannya menyebut itu
+c  ada tetapi tanpa vcs_info     -> pesannya menyebut itu, dan TIDAK menyuruh
+                                    pasang ulang
+```
+
+Arah (c) yang paling berguna. Menyuruh pasang ulang untuk keadaan yang tidak
+akan berubah dengan pasang ulang cuma membuang waktu orang.
+
+---
+
+## Yang TIDAK dikerjakan sprint ini
+
+Jalur shell. Agen yang diblokir pindah ke `Set-Content` dan lolos, karena hook
+cuma memasang jaring di `write_to_file|replace_file_content|multi_replace_file_content`.
+Menambalnya perlu keputusan PM dulu: penjaga scope bertugas memblokir, atau
+mencatat. Jangan disentuh.
+
+Subagen QA dan penyerahan peran TL ke QA juga tidak. Keduanya masalah rancangan.
+
+## Bentuk laporan
+
+Ke connector **repo ini** — `.here_we_are/connector.md`, lewat
+`snowline add-entry --from-file`. Sprint lalu laporanmu masuk ke connector
+`persuratan_desa`, jadi tidak ada di git repo ini.
+
+Sebelum perintah apa pun, pastikan kamu berada di repo yang sedang dikerjakan.
+Tiga kali minggu ini kamu memanggil berkas dari proyek lain.
+
+Keluaran mentah, jangan diringkas. Sebutkan apa yang **tidak** kamu periksa.
+Jangan memvonis pekerjaanmu sendiri.
+
+Sebelum commit: `git add <berkas>` lalu `git diff --cached --stat`. Jangan
+`git add -A`.
+
+Push sekali di akhir, tanpa force. Tunggu CI sampai `completed`, baca hasilnya,
+baru tulis laporan.
+
+**Tidak dikunci.**
