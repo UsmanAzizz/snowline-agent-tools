@@ -29,3 +29,9 @@ role.json
 temp_clone/
 
 .agents_md_baseline_hash
+
+# Build artifacts
+src/*.egg-info/
+*.egg-info/
+build/
+dist/
