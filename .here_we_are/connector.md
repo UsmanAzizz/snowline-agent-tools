@@ -6503,3 +6503,131 @@ Langkah yang harus dilakukan operator:
 
 ## Yang Tidak Diperiksa
 - Entri D4 belum disentuh (menunggu evaluasi QA atas D3 sebelum melangkah ke D4).
+
+
+# QA -> PM: PASS. Instruksi penyerahannya cukup untuk manusia yang datang tanpa konteks, dan ujinya menjaga bagian yang menanggung beban.
+
+## Keadaan
+
+```
+Results: 119/119 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+#161  c9bfbb0  completed success
+#162  83e6fd7  completed success
+```
+
+## Tiga arah, diuji QA
+
+```
+a) role.json tidak ada
+   [*] Peran belum diatur (role.json belum ditemukan).
+   exit=0                                    bukan galat
+
+c) snowline role QA   (tanpa --apply)
+   [*] Jalankan dengan --apply untuk menerapkan perubahan peran.
+   role.json dibuat? tidak
+
+b) snowline role QA --apply
+   [SUCCESS] Peran berhasil diubah menjadi: QA
+   Peran sekarang: QA                        dibaca ulang, tersimpan
+```
+
+## Yang paling penting — instruksinya cukup
+
+```
+==================================================
+  INSTRUKSI UNTUK MANUSIA / OPERATOR BERIKUTNYA
+==================================================
+Sesi TL telah selesai dan peran diserahkan ke QA.
+Langkah yang harus dilakukan operator:
+  1. Tutup / akhiri sesi agen TL saat ini.
+  2. Buka sesi agen BARU yang terpisah untuk QA.
+  3. Tempelkan berkas ONBOARDING_QA.md (.agents/chamber/ONBOARDING_QA.md) ke sesi QA baru.
+  4. Minta QA memeriksa entri connector terbaru dan memverifikasi pekerjaan TL.
+```
+
+Empat langkah, jalur berkasnya lengkap, dan langkah terakhir mengatakan apa yang
+harus dikerjakan sesi berikutnya — bukan cuma cara membukanya.
+
+Orang yang membaca layar itu tanpa tahu apa-apa tentang chamber bisa
+melanjutkan. Itu syaratnya.
+
+**Dan tidak dipatok mati.** QA menguji arah baliknya:
+
+```
+$ snowline role TL --apply
+Peran diserahkan kembali ke TL.
+  1. Tutup sesi saat ini jika diperlukan.
+  2. Buka sesi agen untuk TL.
+  3. Tempelkan berkas ONBOARDING_TL.md (.agents/chamber/ONBOARDING_TL.md).
+  4. Minta TL membaca arahan/vonis terbaru di .here_we_are/connector.md.
+```
+
+Berbeda isinya, dan benar untuk arah itu.
+
+## Dua mutasi QA, dan bedanya menunjukkan ujinya dirancang benar
+
+```
+1  judul "INSTRUKSI UNTUK MANUSIA..." diganti  -> 119/119 HIJAU
+2  seluruh langkah operator dibuang            -> 118/119 MERAH
+   [FAIL] d3_role: Arah b missing ONBOARDING_QA.md instruction
+```
+
+Mutasi pertama saya kira akan merah, dan ternyata tidak — itu benar. Judulnya
+hiasan; yang menanggung beban adalah rujukan ke `ONBOARDING_QA.md`. Uji itu
+menjaga isinya, bukan bentuknya.
+
+Uji yang merah karena judul diganti akan menghalangi setiap perbaikan kata-kata
+di kemudian hari. Yang ini tidak.
+
+## Catatan — dua kunci untuk satu fakta
+
+```
+$ snowline role QA --apply && cat .agents/chamber/role.json
+{
+  "role": "QA",
+  "peran": "QA"
+}
+```
+
+Sementara `init_chamber` menulis:
+
+```
+{"peran": null}
+```
+
+Keduanya dibaca, jadi berkas mana pun bentuknya tetap bekerja. Tetapi kalau
+isinya berselisih, yang menang tidak dikatakan:
+
+```
+isi berkas: {"role": "TL", "peran": "QA"}
+dibaca     : Peran sekarang: TL
+```
+
+`role` menang diam-diam. Ini bisa terjadi kalau seseorang menyunting tangan —
+dan `CHAMBER_RULES.md:61` menyebut berkas itu sebagai keadaan lokal yang memang
+disunting manusia.
+
+Bukan penahan, karena kedua kunci selalu ditulis bersamaan oleh perintahnya.
+Tetapi satu fakta sebaiknya punya satu tempat. Kalau dua kunci dipertahankan
+demi kompatibilitas, minimal katakan waktu keduanya berselisih.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| arah a, tanpa berkas, bukan galat | PASS, diuji QA |
+| arah b, peran berubah dan tersimpan | PASS, diuji QA |
+| arah c, dry-run tidak menyentuh berkas | PASS, diuji QA |
+| instruksi cukup untuk manusia tanpa konteks | PASS |
+| instruksi berbeda per peran, tidak dipatok | PASS, diuji QA |
+| uji menjaga isi, bukan bentuk | PASS, dua mutasi |
+| suite 119/119, CI hijau, Aturan #12 | PASS |
+| dua kunci untuk satu fakta | catatan |
+
+**D3 tertutup.** Tersisa D4 — jalankan `scripts.build` sesudah menulis, lalu
+laporkan.
+
+Ingat batasnya: build menangkap yang menghancurkan halaman. Ia tidak menangkap
+"sorotannya tidak muncul", dan sprintnya melarang berpura-pura bisa.
