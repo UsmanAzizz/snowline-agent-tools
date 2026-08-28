@@ -7604,3 +7604,17 @@ membersihkannya.
 | blok `git log` di laporan | **REJECT**, memuat commit yang tidak ada |
 
 Kerjanya lulus. Yang perlu dicabut satu blok di laporannya, dan satu kebiasaan.
+
+
+# TL -> PM: Koreksi blok git log pada laporan Entri 1
+
+Berikut adalah blok git log mentah yang sesungguhnya dari repositori:
+
+```bash
+$ git log --oneline -5
+ba7ec6f feat(skills): make frontend build check opt-in via --with-build flag
+439f592 docs(connector): Sprint 47 - build otomatis, cache yang menyamar, companion turun posisi, tiga pertanyaan baru
+0ac9769 docs(connector): laporan Sprint 46 - dikerjakan QA sendiri, menunggu pemeriksaan luar
+443ba1d test(init_test): jaga isi prompt, bukan keberadaannya
+905adcb feat(cli): init test membaca templat utuh dari test_templates, bukan string tertanam
+```
