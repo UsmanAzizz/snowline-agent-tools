@@ -8704,3 +8704,160 @@ selamat dari `update`, `uninstall`, dan pasang ulang.
 Sekarang PM bisa menjalankan uji putaran kedua di `cbt_master` dengan sesi baru.
 Laporan putaran pertama ada di `TEST_REPORT_run1.md` di akar — layak dipindahkan
 ke `.agents/test_history/` supaya sejajar dengan yang berikutnya.
+
+
+# QA -> PM: saya yang mengerjakan ini, jadi laporan bukan penilaian. 27 berkas bawaan yang salah ditandai usang sekarang nol.
+
+Gemini sedang mengerjakan hal lain dan PM meminta saya mengerjakannya sendiri.
+Butir 2 berlaku: entri ini menunggu pemeriksaan orang lain.
+
+## Yang ditemukan di lapangan
+
+`snowline status` di `cbt_master` sesudah pasang ulang:
+
+```
+i Available: 0 new, 0 modified, 27 obsolete
+  * [USANG] companion_usage.jsonl
+  * [USANG] decision_history.json
+  * [USANG] session_cache.json
+  * [USANG] hooks\.history\0ba8eb8b-...json
+  ...
+i ... and 17 more obsolete files
+```
+
+Dihitung QA:
+
+```
+hooks/.history/   : 24 berkas   ditulis loop_detector.py
+runtime           :  3 berkas   companion_usage, decision_history, session_cache
+total             : 27
+```
+
+Dua puluh tujuh dari dua puluh tujuh ditulis snowline sendiri. Tidak satu pun
+berkas pengguna.
+
+## Sebabnya dua daftar yang tidak sepakat
+
+`.agents/.gitignore` yang ditulis `init` sudah tahu:
+
+```
+session_cache.json
+decision_history.json
+companion_usage.jsonl
+```
+
+Pemeriksa usang punya daftar terpisah, dan tidak memuatnya:
+
+```
+cli.py:370  if rel in PROTECTED or rel.startswith("chamber") or ... : continue
+cli.py:725  (salinan kedua, sama persis)
+```
+
+`hooks/.history/` tidak ada di dua-duanya.
+
+Ini yang saya catat waktu masih satu berkas: label yang selalu memuat berkas
+palsu mengajari orang mengabaikan label itu. Sekarang dua puluh tujuh.
+
+## Yang saya kerjakan
+
+Satu daftar, dipakai keduanya:
+
+```python
+RUNTIME_STATE_FILES = [write_log, scope_lock, task_lock, session_cache,
+                       decision_history, companion_usage, mode_ringan,
+                       memory.json, chamber/role.json, role.json,
+                       .agents_md_baseline_hash]
+RUNTIME_STATE_DIRS  = [hooks/.history, test_history, __pycache__]
+
+def is_runtime_state(rel) -> bool
+def build_agents_gitignore() -> str
+```
+
+`.gitignore` dibangun dari daftar itu, dan kedua titik pemeriksa usang memanggil
+`is_runtime_state()`.
+
+## Hasilnya
+
+Proyek bersih, lalu saya buat berkas persis seperti keadaan `cbt_master`:
+
+```
+sebelum : 27 ditandai usang
+sesudah : 1  ditandai usang   -> skills\berkas_asing.md
+```
+
+Yang tersisa satu itu memang berkas asing yang saya buat sendiri sebagai umpan.
+
+`.agents/.gitignore` sekarang:
+
+```
+# Snowline Agent Tools - keadaan lokal, jangan di-commit
+write_log.jsonl
+scope_lock.json
+task_lock.json
+session_cache.json
+decision_history.json
+companion_usage.jsonl
+mode_ringan.json
+memory.json
+chamber/role.json
+role.json
+.agents_md_baseline_hash
+hooks/.history/
+test_history/
+*.pyc
+__pycache__/
+```
+
+## Penjaganya, dan dua mutasi
+
+`tests/test_runtime_state.py`, tiga arah:
+
+```
+1  tiap butir daftar muncul di .gitignore
+2  tiap butir tidak ditandai usang waktu berkasnya ada
+3  berkas asing TETAP ditandai usang
+```
+
+Arah 3 yang paling penting. Tanpa itu, "nol usang" bisa dicapai dengan
+mematikan seluruh fiturnya.
+
+```
+mutasi: buang session_cache.json dari daftar
+  Results: 123/124 passed, 1 failed
+
+mutasi: is_runtime_state selalu True
+  [FAIL] runtime_state_sepakat: 'skills/berkas_asing.md' salah dianggap
+         keadaan lokal. Pengecualiannya kelebaran.
+  [FAIL] runtime_state_tidak_usang: berkas asing seharusnya tetap ditandai
+         usang, tetapi tidak.
+  Results: 122/124 passed, 2 failed
+```
+
+## Keadaan
+
+```
+Results: 124/124 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+CI #192  6fd8be8  completed success
+```
+
+Dua commit terpisah, satu per bagian.
+
+## Yang tidak saya periksa
+
+- Hasilnya di `cbt_master` sendiri. PM perlu memasang ulang paketnya dulu, lalu
+  `snowline status` di sana akan menunjukkan apakah 27 itu benar-benar hilang di
+  proyek nyata, bukan cuma di proyek buatan saya.
+- Apakah ada berkas keadaan lokal lain yang belum masuk daftar. Saya cuma
+  memasukkan yang terlihat di `cbt_master` dan yang saya tahu ditulis snowline.
+- Pekerjaan saya sendiri, oleh siapa pun selain saya.
+
+## Yang perlu diperiksa orang lain
+
+```
+a  pasang ulang, jalankan snowline status di cbt_master -> berapa yang usang
+b  buang satu butir dari RUNTIME_STATE_FILES -> suite harus MERAH
+c  buat berkas asing di .agents/skills/ -> harus TETAP ditandai usang
+```
+
+Arah (a) yang belum bisa saya lakukan sendiri.
