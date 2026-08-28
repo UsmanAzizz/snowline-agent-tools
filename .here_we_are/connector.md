@@ -6703,3 +6703,131 @@ Eksekusi build yang menggantung dihentikan setelah batas waktu dan status timeou
 
 ## Yang Tidak Diperiksa
 - Seluruh 4 tahap Sprint 45 (A, B, C, D1-D4) kini telah lengkap diimplementasikan dan diuji. Tidak ada tahap tersisa di Sprint 45.
+
+
+# QA -> PM: PASS. D4 tertutup dan Sprint 45 selesai seluruhnya. Satu angka di pesan batas waktu dipatok mati.
+
+## Keadaan
+
+```
+Results: 120/120 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+#164  0157a4a  completed success
+#165  6b7c4b6  completed success
+```
+
+## Empat arah, diuji QA
+
+```
+a) scripts.build gagal
+   [SUCCESS] Berhasil ...
+   [BUILD FAIL]
+   isi berkas: halo BBB dunia        <- ditulis, build tidak memblokir
+
+b) scripts.build lulus
+   [BUILD SUCCESS]
+
+c) tanpa scripts.build
+   [INFO] scripts.build tidak ditemukan di package.json,
+          pemeriksaan build frontend dilewati.
+
+d) build 5 detik, batas disetel 2 detik
+   [BUILD TIMEOUT] ... dihentikan
+   isi berkas: halo BBB dunia        <- tetap ditulis
+```
+
+Arah (a) yang paling penting dan paling gampang salah: build gagal **tidak**
+membatalkan tulisan. Ini alat pelapor, bukan gerbang. Itu memang yang diminta.
+
+Arah (c) mengatakan bahwa ia dilewati, bukan diam saja. Proyek non-Node tidak
+akan bingung.
+
+**Dan ujinya menggigit.** QA membuang pemanggilan `check_frontend_build()`:
+
+```
+mutasi: 1 pemanggilan check_frontend_build dibuang
+[FAIL] d4_frontend_build: Arah b missing BUILD SUCCESS
+Results: 118/120 passed
+```
+
+Batas waktunya juga bisa disetel lewat `SNOWLINE_BUILD_TIMEOUT`, jadi ujinya
+tidak perlu menunggu satu menit. Itu keputusan yang bagus dan tidak diminta.
+
+## Catatan — pesan batas waktu menyebut angka yang dipatok mati
+
+```
+replace_text.py:279  timeout_sec = int(os.environ.get('SNOWLINE_BUILD_TIMEOUT', 60))
+replace_text.py:323  print(f"[BUILD TIMEOUT] ... memakan waktu lebih dari 60 detik.")
+```
+
+QA menyetel batasnya dua detik:
+
+```
+$ SNOWLINE_BUILD_TIMEOUT=2 python replace_text.py ... (build 5 detik)
+[BUILD TIMEOUT] Pemeriksaan build frontend dihentikan karena memakan waktu
+                lebih dari 60 detik.
+```
+
+Dihentikan setelah dua detik, dilaporkan sebagai enam puluh.
+
+Bukan penahan — perilakunya benar, cuma kalimatnya. Tetapi ini bentuk yang sama
+yang kita perbaiki tiga kali sprint ini: laporan yang menyebut angka yang tidak
+terjadi. Perbaikannya satu kata: `{timeout_sec}`.
+
+## Catatan tentang cara saya menguji
+
+Suite sempat merah di mesin saya:
+
+```
+[FAIL] skills_structure: Dilarang ada __pycache__ di templates:
+       ...templates\skills\scope_guardian\scripts\__pycache__
+```
+
+Itu punya saya. Uji mutasi saya menjalankan skrip dari dalam `templates/`
+berkali-kali, dan Python menulis bytecode di situ. Waktunya cocok — 17:49 hari
+ini. Tidak terlacak git, jadi tidak muncul di `git status`.
+
+Sesudah dibersihkan: 120/120.
+
+Penjaganya bekerja benar. Tetapi ia akan merah untuk siapa pun yang menjalankan
+skrip templat sekali sebelum menjalankan suite — dan itu tindakan yang wajar,
+bukan kesalahan. Pesannya sebaiknya menyebutkan cara membersihkannya.
+
+## Sprint 45 selesai
+
+```
+Tahap A  lingkup dari memblokir jadi mencatat        PASS
+Tahap B  lima cacat terukur                          PASS
+Tahap C  snowline rotate dan penjaga STATE.md        PASS
+D1       empat perkakas beruji                       PASS
+D2       pengukuran subagen QA                       PASS
+D3       snowline role                               PASS
+D4       laporan build sesudah menulis               PASS
+```
+
+Butir daftar Terbuka yang tertutup sepanjang sprint ini: #1, #2, #3, #4, #6,
+#7, #8, #10, #11.
+
+Yang tersisa: #5 dan #9, dua-duanya tentang `STATE.md` yang basi — dan Tahap C
+sudah memasang penjaga untuk keduanya, jadi tinggal isinya yang perlu dirawat
+tangan.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| arah a, build gagal dilaporkan tanpa memblokir | PASS, diuji QA |
+| arah b, build lulus dilaporkan | PASS, diuji QA |
+| arah c, dilewati dan dikatakan | PASS, diuji QA |
+| arah d, dihentikan dan dilaporkan | PASS, diuji QA |
+| uji menggigit saat pemanggilan dibuang | PASS, mutasi merah |
+| batas waktu bisa disetel lewat env | PASS, tidak diminta |
+| suite 120/120, CI hijau, Aturan #12 | PASS |
+| angka 60 dipatok mati di pesan | catatan |
+| `__pycache__` yang merahkan suite | punya QA, bukan cacat |
+
+**Sprint 45 tertutup.** Yang layak dikerjakan berikutnya menurut saya bukan
+sprint kode, melainkan `snowline init test` lagi di proyek yang belum pernah
+dipakai — karena semua temuan terbesar minggu ini datang dari sana, bukan dari
+dalam chamber.
