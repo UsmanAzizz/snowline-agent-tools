@@ -6408,3 +6408,98 @@ sumber, dan itu memang yang benar. Syaratnya yang salah, bukan pekerjaannya.
 Yang paling penting di sana bukan berkasnya berubah, melainkan baris yang
 tercetak sesudahnya. Sesi yang menyerahkan peran akan mati; yang tersisa untuk
 manusia berikutnya cuma tulisan itu.
+
+
+# TL -> PM: Sprint 45 Tahap D (Entri D3) - penyerahan peran TL ke QA lewat snowline role
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 119/119 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+c9bfbb0 feat(cli): add snowline role command to manage chamber role with human handover instructions
+cc29b50 docs(connector): keputusan D2b - D2 tertutup, dan satu syarat lulus QA dicabut
+98c82ca docs(connector): report Sprint 45 Tahap D Entri D2b completion
+2dc7812 docs(chamber): add guidance on when subagent invocation is worthwhile in QA_SUBAGENT_PROMPT.md
+1af3a5e docs(connector): add raw direct execution output correction for D2 check 3
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+161 c9bfbb0 completed success
+```
+
+## Hasil Verifikasi per Arah (Syarat Lulus D3)
+
+### Arah a — role.json belum ada
+```bash
+$ python -m snowline.cli role
+[*] Peran belum diatur (role.json belum ditemukan).
+```
+Keluar dengan returncode 0 tanpa galat.
+
+### Arah c — Ganti peran tanpa --apply (Dry-run)
+```bash
+$ python -m snowline.cli role QA
+[*] [DRY-RUN] Peran akan diubah menjadi: QA
+[*] Target berkas: .agents/chamber/role.json
+[*] Jalankan dengan --apply untuk menerapkan perubahan peran.
+```
+Berkas `.agents/chamber/role.json` tidak dibuat atau diubah.
+
+### Arah b — Ganti peran dengan --apply & Cetak Instruksi Manusia
+```bash
+$ python -m snowline.cli role QA --apply
+[SUCCESS] Peran berhasil diubah menjadi: QA
+
+==================================================
+  INSTRUKSI UNTUK MANUSIA / OPERATOR BERIKUTNYA
+==================================================
+Sesi TL telah selesai dan peran diserahkan ke QA.
+Langkah yang harus dilakukan operator:
+  1. Tutup / akhiri sesi agen TL saat ini.
+  2. Buka sesi agen BARU yang terpisah untuk QA.
+  3. Tempelkan berkas ONBOARDING_QA.md (.agents/chamber/ONBOARDING_QA.md) ke sesi QA baru.
+  4. Minta QA memeriksa entri connector terbaru dan memverifikasi pekerjaan TL.
+```
+Isi berkas `.agents/chamber/role.json` terverifikasi berubah menjadi `{"role": "QA", "peran": "QA"}`.
+
+### Pengujian Pembacaan & Penyerahan Kembali ke TL
+```bash
+$ python -m snowline.cli role
+Peran sekarang: QA
+
+$ python -m snowline.cli role TL --apply
+[SUCCESS] Peran berhasil diubah menjadi: TL
+
+==================================================
+  INSTRUKSI UNTUK MANUSIA / OPERATOR BERIKUTNYA
+==================================================
+Peran diserahkan kembali ke TL.
+Langkah yang harus dilakukan operator:
+  1. Tutup sesi saat ini jika diperlukan.
+  2. Buka sesi agen untuk TL.
+  3. Tempelkan berkas ONBOARDING_TL.md (.agents/chamber/ONBOARDING_TL.md).
+  4. Minta TL membaca arahan terbaru di .here_we_are/connector.md.
+```
+
+## Pengujian Mutasi
+- `core_role.py` dimutasi (dibungkam `def role_command(*args): return None`) -> pengujian `tests/test_d3_role.py` terbukti MERAH (`AssertionError`).
+- Dipulihkan -> 119/119 uji hijau.
+
+## Yang Tidak Diperiksa
+- Entri D4 belum disentuh (menunggu evaluasi QA atas D3 sebelum melangkah ke D4).
