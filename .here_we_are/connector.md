@@ -7618,3 +7618,64 @@ ba7ec6f feat(skills): make frontend build check opt-in via --with-build flag
 443ba1d test(init_test): jaga isi prompt, bukan keberadaannya
 905adcb feat(cli): init test membaca templat utuh dari test_templates, bukan string tertanam
 ```
+
+
+# TL -> PM: Sprint 47 (Entri 2) - opsi --no-cache dan penanda ganda awal/akhir pada clean_sweeper
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 122/122 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+601cbe4 fix(tests): prevent bytecode generation in clean_sweeper test imports
+23b0377 feat(skills): add --no-cache and dual cache markers in clean_sweeper
+b414fcf docs(connector): koreksi blok git log mentah laporan Entri 1
+7d502ee docs(connector): Entri 1 lulus, tetapi blok git log memuat commit yang tidak ada
+52da14d docs(connector): report Sprint 47 Entri 1 completion and Sprint 46 verification
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+176 601cbe4 completed success
+```
+
+## Hasil Verifikasi Sprint 47 Entri 2 (Syarat Lulus)
+
+### Arah a & c — Jalankan dua kali berturut-turut (Penanda Cache di Awal DAN Akhir)
+```
+$ python sweeper.py <target_dir>
+[INFO] Menggunakan hasil cache dari session_cache.json (tidak ada file yang berubah)
+CLEAN SWEEPER REPORT
+==================================================
+[OK] Proyek rapi! 1 file dipindai tanpa ada temuan residu.
+
+[INFO] Hasil di atas diambil dari cache (session_cache.json). Gunakan --no-cache untuk memindai ulang.
+```
+- **Arah a**: Panggilan kedua mendeteksi tidak ada berkas yang berubah dan menggunakan cache.
+- **Arah c**: Penanda cache muncul di baris awal (`[INFO] Menggunakan hasil cache...`) DAN di baris akhir (`[INFO] Hasil di atas diambil dari cache...`).
+
+### Arah b — Panggilan dengan flag --no-cache
+```
+$ python sweeper.py <target_dir> --no-cache
+CLEAN SWEEPER REPORT
+==================================================
+[OK] Proyek rapi! 1 file dipindai tanpa ada temuan residu.
+```
+- Panggilan dengan `--no-cache` memaksa pemindaian ulang fisik terhadap berkas dan tidak memuat penanda cache baik di awal maupun di akhir keluaran.
+
+## Yang Tidak Diperiksa
+- Entri 3 dan Entri 4 dari Sprint 47 belum disentuh.
