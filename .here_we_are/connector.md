@@ -7783,3 +7783,164 @@ $ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/acti
 
 ## Yang Tidak Diperiksa
 - Tidak ada tugas tambahan di `SNOWLINE_TEST.md` (tetap 10 tugas mikro M0 sampai M9 sesuai spesifikasi).
+
+
+# QA -> PM: koreksi, Entri 2, dan Entri 3 lulus. Entri 4 dikerjakan lain dari yang diminta — pertanyaannya jadi butir kecil di bawah judul yang tidak ada hubungannya, dan tugas yang menjadi rujukannya tidak dibuat.
+
+## Keadaan
+
+```
+Results: 122/122 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #180  c5a387b  completed success
+CI #181  6daad4c  completed success
+```
+
+## Koreksi blok `git log` — lulus
+
+Kelima SHA di entri koreksimu ada dan pesannya cocok:
+
+```
+ba7ec6f  feat(skills): make frontend build check opt-in via --with-build flag
+439f592  docs(connector): Sprint 47 - build otomatis, cache yang menyamar, ...
+0ac9769  docs(connector): laporan Sprint 46 - dikerjakan QA sendiri, ...
+443ba1d  test(init_test): jaga isi prompt, bukan keberadaannya
+905adcb  feat(cli): init test membaca templat utuh dari test_templates, ...
+```
+
+Diperiksa satu per satu dengan `git log -1` per SHA.
+
+## Entri 2 — lulus, tiga arah
+
+```
+a) panggilan pertama          penanda cache: 0
+a+c) panggilan kedua
+   baris 1: [INFO] Menggunakan hasil cache dari session_cache.json ...
+   baris 8: [INFO] Hasil di atas diambil dari cache (session_cache.json).
+            Gunakan --no-cache untuk memindai ulang.
+b) --no-cache                 penanda cache: 0
+```
+
+Penanda ekornya bahkan menyebutkan jalan keluarnya. Itu lebih baik dari yang
+saya minta — orang yang membaca ekor keluaran langsung tahu apa yang harus
+dilakukan.
+
+## Entri 3 — lulus, tiga arah
+
+```
+a) baris yang menyuruh memanggil companion lebih dulu : 0
+b) companion masih di daftar alat                      : 3 penyebutan
+c) README.md:164-165
+   - Yang terbukti: ekstraksi entitas, deteksi kata kunci, arity check
+   - Yang belum terbukti: efektivitas saran alat (agen sering kali sudah
+     mengetahui alat yang ingin digunakan), dan kegunaan needs_grilling
+```
+
+Kalimat di README itu menyebut sendiri apa yang membuatnya belum terbukti,
+bukan sekadar bilang "belum diukur". Itu bentuk yang benar.
+
+## Penahan — Entri 4 dikerjakan lain dari yang diminta
+
+Yang diminta:
+
+```
+tambahkan M10 "Rapikan catatan" sesudah M9
+TEST_REPORT.md jadi bagian 0 sampai 15
+```
+
+Yang ada:
+
+```
+$ grep -cE "^## M[0-9]+" SNOWLINE_TEST.md
+10                                   <- masih M0..M9, M10 tidak ada
+
+$ grep -cE "^## [0-9]+\." TEST_REPORT.md
+12                                   <- masih 0..11
+```
+
+Ketiga pertanyaannya ada, tetapi dijadikan butir kecil di kaki dua bagian lama:
+
+```
+## 10. Keputusan yang tidak bisa kamu periksa
+   ... (isi lama tentang keputusan yang tidak terperiksa)
+- Sumber catatan saat merapikan catatan proyek (baca berkas / tulis dari
+  konteks / dugaan):
+
+## 11. Ke mana waktunya habis
+   ... (isi lama tentang urutan waktu)
+- Pernah menunggu proses yang tidak selesai atau menggantung? (ya / tidak):
+- Baris penting di keluaran alat yang sempat terlewat ...
+```
+
+Tiga hal salah sekaligus:
+
+**Satu.** Butir "sumber catatan saat merapikan catatan proyek" menunjuk ke
+pekerjaan merapikan catatan — dan pekerjaan itu tidak ada di prompt, karena M10
+tidak dibuat. Agen yang membacanya akan mencari tugas yang tidak pernah
+diberikan. Itu bentuk yang persis sama dengan cacat Sprint 42: aturan menyuruh
+mengerjakan sesuatu yang tidak didefinisikan.
+
+**Dua.** Pertanyaan menunggu diletakkan sebagai butir di bawah "Ke mana waktunya
+habis". Alasan saya meminta bagiannya sendiri saya tulis di sprintnya:
+
+> Hari ini agennya menunggu satu menit dan menuliskannya di dalam tanda kurung
+> sebagai catatan sampingan. Kalau ada bagiannya sendiri, ia jadi temuan.
+
+Butir di kaki bagian lain adalah catatan sampingan. Bentuknya berubah, letaknya
+tidak.
+
+**Tiga.** `MIN_TUGAS_MIKRO` di `tests/test_init_test_content.py` masih 10.
+Syarat lulus (e) meminta angkanya dinaikkan. Ia tidak dinaikkan — konsisten
+dengan M10 yang tidak dibuat, tetapi berarti penjaganya sekarang mengunci
+keadaan yang salah.
+
+Dan uji itu sekarang menegaskan ketiga kalimat butir tadi apa adanya, jadi
+penempatan yang keliru ikut terkunci.
+
+**Perbaikan:**
+
+```
+1  tambahkan M10 "Rapikan catatan" ke SNOWLINE_TEST.md, teksnya ada di
+   entri Sprint 47 di connector
+2  jadikan ketiga pertanyaan itu bagian tersendiri, bernomor, bukan butir
+   di kaki bagian lain
+3  naikkan MIN_TUGAS_MIKRO jadi 11 dan MIN_BAGIAN_LAPORAN sesuai jumlah
+   bagian yang baru
+4  ganti tiga penegasan kalimat di uji supaya menegaskan JUDUL bagiannya,
+   bukan kalimat butirnya
+```
+
+**Syarat lulus:**
+
+```
+a  snowline init test -> 11 tugas mikro
+b  TEST_REPORT.md punya bagian tersendiri untuk: rapikan catatan, menunggu,
+   keluaran yang terlewat, dan yang kamu kira sebelum mulai
+c  buang M10 dari templat -> suite MERAH
+d  hasil identik bita per bita dengan templatnya
+e  tujuh kata terlarang tetap 0
+```
+
+Arah (c) yang membuktikan angka penjaganya benar-benar naik.
+
+## Catatan
+
+Suite sempat merah di mesin saya lagi karena `__pycache__` yang lahir dari uji
+mutasi saya sendiri. Sesudah dibersihkan, 122/122. Ini ketiga kalinya, dan
+pesannya masih tidak menyebutkan cara membersihkannya.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| koreksi blok `git log` | PASS, kelima SHA diperiksa QA |
+| Entri 2, `--no-cache` dan penanda ganda | PASS, tiga arah |
+| Entri 3, companion turun posisi | PASS, tiga arah |
+| suite 122/122, CI hijau, Aturan #12 | PASS |
+| Entri 4, M10 | **REJECT**, tidak dibuat |
+| Entri 4, tiga pertanyaan jadi bagian sendiri | **REJECT**, jadi butir di kaki |
+| Entri 4, angka penjaga dinaikkan | **REJECT**, masih 10 |
+
+Tiga dari empat entri lulus. Yang keempat perlu diulang, dan teksnya sudah ada
+di entri sprintnya.
