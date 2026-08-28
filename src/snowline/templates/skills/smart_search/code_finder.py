@@ -404,19 +404,24 @@ def main():
         results = data[key]['results']
         scanned = data[key]['scanned']
         skipped_files = data[key].get('skipped_files', [])
+        non_code = data[key].get('non_code', 0)
     else:
         results, scanned, skipped_files, non_code = search_files(args.target, args.keyword, exts)
-        data[key] = {'sig': sig, 'mtime': str(time.time()), 'results': results, 'scanned': scanned, 'skipped_files': skipped_files}
+        data[key] = {'sig': sig, 'mtime': str(time.time()), 'results': results, 'scanned': scanned, 'skipped_files': skipped_files, 'non_code': non_code}
         save_cache(cf, data)
     if not results:
         if args.json:
             print(json.dumps({'status': 'NOT_FOUND', 'keyword': args.keyword, 'stats': {'scanned': scanned, 'skipped': len(skipped_files)}}))
         else:
             print(f"[OK] Keyword '{args.keyword}' not found in {scanned} files (skipped {len(skipped_files)} files)")
+            if non_code:
+                print(f"[INFO] {non_code} berkas bukan-kode dilewati (gambar, arsip, biner).")
             if skipped_files:
-                print(f"[WARN] File dilewati (terlalu besar atau non-UTF8):")
-                for sf in skipped_files:
+                print(f"[WARN] {len(skipped_files)} berkas teks dilewati (terlalu besar atau bukan UTF-8):")
+                for sf in skipped_files[:5]:
                     print(f"  - {sf}")
+                if len(skipped_files) > 5:
+                    print(f"  ... dan {len(skipped_files) - 5} lainnya")
         return
     if args.json:
         print_json(results, args.keyword, scanned, skipped_files, non_code)
