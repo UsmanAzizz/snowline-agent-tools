@@ -9425,3 +9425,69 @@ Push, tunggu CI sampai `completed`, tempel keluaran mentah panggilan API-nya,
 baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Laporan Sprint 49 (Entri 1) - pengarsipan companion dan pencabutan gerbang intent
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 122/122 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+42c1fb1 fix(tests): add -B flag in test_rejections to prevent bytecode generation
+8ddfb08 feat(archive): archive companion, remove intent gate from quality_gate, update tool counts to 16
+43ecd9d docs(connector): Sprint 49 - arsipkan companion, empat temuan kecil, rilis v1.2.0
+bdf1421 docs(connector): jalur cache smart_search jatuh di jalan kedua, uji saya tidak menyentuhnya
+c6138c4 test(smart_search): jalankan dua kali supaya jalur cache ikut diuji
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+200 42c1fb1 completed success
+199 8ddfb08 completed success
+```
+
+## Hasil Verifikasi Sprint 49 Entri 1 (Syarat Lulus)
+
+### Arah a — Keempat perintah tulis sekarang berstatus allow
+- Perintah tulis berikut diuji terhadap `quality_gate.py` dan seluruhnya menghasilkan `decision: "allow"`:
+  - `python .agents/skills/smart_replace/replace_text.py src/ 'old' 'new' --apply`
+  - `python .agents/skills/smart_replace/replace_text.py src/ 'old' 'new' --apply-validated`
+  - `python .agents/skills/auto_scaffolder/scaffolder.py react UserCard --apply`
+  - `python .agents/skills/import_fixer/fixer.py src/App.jsx './utils' --apply`
+
+### Arah b — Perintah baca-saja tetap allow
+- Perintah baca (`smart_search`, `selective_reader`, `deep_analyzer`) tetap menghasilkan `decision: "allow"`.
+
+### Arah c — Gerbang CRITICAL saat commit tetap aktif menolak
+- Pengujian commit saat Project Guardian mendeteksi isu CRITICAL tetap menghasilkan penolakan: `decision: "deny"`.
+
+### Arah d — Pemeriksaan arity tetap aktif menolak argumen kurang
+- Argumen posisi yang kurang pada `import_fixer` dan `auto_scaffolder` maupun tipe scaffold tidak valid tetap ditolak oleh pemeriksaan arity (`decision: "deny"`).
+
+### Arah e — Pemasangan init --apply tidak lagi memasang companion
+- Pengujian `snowline init --apply` di direktori baru membuktikan tidak ada folder `.agents/skills/companion/` maupun berkas `companion_cli.py` yang terpasang.
+
+### Arah f — archive/companion/ tersimpan utuh di akar repo
+- Seluruh modul (`core_intent.py`, `core_memory.py`, `core_context.py`, `core_grilling.py`, `companion_cli.py`, `SKILL.md`) dipindahkan ke `archive/companion/`.
+- Berkas `archive/README.md` telah ditambahkan dengan penjelasan konteks pengarsipan dan catatan teknis.
+
+### Arah g — Angka alat dan suite pengujian
+- Jumlah alat diperbarui menjadi 16 di `README.md` dan `16 / 16` di `STATE.md`.
+- Seluruh test suite (122/122) dan Aturan #12 terverifikasi hijau.
+
+Sesuai instruksi PM, eksekusi BERHENTI di sini untuk menunggu evaluasi QA sebelum lanjut ke Entri 2.
