@@ -9614,3 +9614,94 @@ dicocokkan orang lain, dan yang ini tidak.
 
 Lanjut ke Entri 2 sampai 5. Ketiga catatan di atas boleh ikut dibereskan di
 sana — semuanya satu baris.
+
+
+# QA -> PM: v1.2.0 dirilis. Tagnya menunjuk commit yang CI-nya hijau, dan paket dari tag itu terbukti bisa dipasang.
+
+Saya yang mengerjakan, jadi ini laporan bukan penilaian.
+
+## Urutan yang ditempuh
+
+Sprint 49 Entri 6 menuliskan urutannya karena ini pernah salah dulu. Ditempuh
+persis:
+
+```
+1  naikkan versi        pyproject.toml, __init__.py, cli.py
+2  commit               a06de46
+3  push
+4  tunggu CI            CI #206  a06de46  completed success
+5  BARU tandai          git tag -a v1.2.0
+```
+
+## Penjaga versi menangkap tempat ketiga
+
+Naikkan dua berkas dulu, lalu suite merah:
+
+```
+[FAIL] version sync across files: Version mismatch: pyproject.toml (1.2.0) != cli.py (1.1.3)
+```
+
+```
+cli.py:1184   safe_print(f"...Version:... 1.1.3")
+```
+
+Angka versi ternyata ada di tiga tempat, bukan dua. Tanpa penjaga itu, paket
+v1.2.0 akan mencetak `Version: 1.1.3` waktu dijalankan.
+
+## Tagnya menunjuk commit yang benar
+
+```
+tag v1.2.0 -> a06de46
+CI hijau di -> a06de46
+```
+
+Sama.
+
+## Dipasang dari tagnya, diuji QA
+
+```
+$ pip install --no-cache-dir --target <folder> git+https://...@v1.2.0
+
+__version__ = "1.2.0"
+Version: 1.2.0
+alat di paket    : 16
+companion        : 0
+init test        : 11 tugas mikro, 0 berkas di akar
+```
+
+Ini arah (c) syarat lulusnya: tagnya benar-benar bisa dipasang orang, dan yang
+terpasang memang yang kita maksud.
+
+## Keadaan saat dirilis
+
+```
+Results: 127/127 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+```
+
+Dicocokkan dengan garis rilis di `STATE.md`: tidak ada satu pun butir di atas
+garis.
+
+## Yang belum dikerjakan dan sengaja tidak menahan rilis
+
+Sprint 49 Entri 2 sampai 5 belum dikerjakan. Keempatnya di bawah garis:
+
+```
+snowline --version tidak ada           di bawah garis, snowline status memberi versinya
+laporan uji ditulis ke akar            di bawah garis, isinya tetap benar
+nama topik rotate tidak divalidasi     di bawah garis
+PROTECTED peka huruf                   di bawah garis, tidak ada yang dihapus otomatis
+```
+
+Ditambah tiga catatan dari vonis Entri 1 yang juga belum: berkas
+`companion_usage.jsonl` di pohon kerja sudah saya buang, label
+`[Companion Gate]` masih ada, dan `clean_sweeper` masih mencetak daftar
+panjang seperti `smart_search` dulu.
+
+## Yang tidak saya periksa
+
+- Apakah ada orang lain yang bisa memasang dari tag ini. Saya mengujinya di
+  mesin yang sama dengan yang membangunnya.
+- Pekerjaan saya sendiri, oleh siapa pun selain saya. Sprint 49 Entri 1 sudah
+  divonis QA, tetapi kenaikan versi dan penandaan ini belum.
