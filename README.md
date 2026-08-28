@@ -154,15 +154,15 @@ This file is the actual behavior contract read by the AI agent — not just docu
 
 ## Companion
 
-A lightweight intent analyzer that reads user instructions and suggests which tool to use, without making the final decision itself (the calling AI agent decides).
+A lightweight intent analyzer that reads user instructions, extracts entities, and evaluates ambiguity (`needs_grilling`).
 
 ```bash
 python .agents/skills/companion_cli.py "cari fungsi handleSubmit"
 ```
 
-Returns structured data: detected keywords, entities (e.g. function names in camelCase/PascalCase), confidence level, and a suggested tool with its command template.
-
-**Verified working with:** Claude Code (reliably auto-invoked per `.agents/agents.md` instructions) and Gemini/Antigravity (works when instructions are present in `agents.md`, though tool-call approval behavior varies by platform/IDE settings and is outside this project's control).
+**Status pembuktian:**
+- **Yang terbukti**: Ekstraksi entitas (nama fungsi/berkas), deteksi kata kunci, dan penegakan arity check pada pre-hook `quality_gate.py` bekerja akurat.
+- **Yang belum terbukti / belum diukur**: Efektivitas saran pemilihan alat terhadap keputusan agen di lapangan (agen sering kali sudah mengetahui alat yang ingin digunakan), serta kegunaan praktis penanda `needs_grilling` saat agen berhadapan dengan instruksi ambigu di sesi nyata.
 
 ## Tools (17)
 

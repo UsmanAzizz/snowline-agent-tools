@@ -31,32 +31,7 @@ under pressure.
 
 ================================================================
 
-## RULE 1 — CALL COMPANION WHEN THE CHOICE IS YOURS
-
-    python .agents/skills/companion_cli.py "<instruction>"
-
-Companion suggests which tool fits an instruction. It is useful exactly when
-you still have to choose. When the choice is already made, it adds a step and
-tells you nothing you did not already know.
-
-CALL COMPANION when ANY of these is true:
-1. The operation writes — `--apply`, creating, deleting, or moving files.
-2. The instruction names neither a file nor a tool, so you must pick one.
-3. The task touches more than 3 files (see RULE 10 — task lock).
-
-DO NOT call companion when:
-1. The instruction already names the tool or the file, and the operation is
-   read-only (e.g. "read src/form.js", "search for handleSubmit").
-2. Greetings, pleasantries, or conversational questions.
-3. Ecosystem checks at session start (separate process).
-
-If uncertain, ask one question: **is a tool still to be chosen?**
-If yes, call companion. If no, act.
-
-NOTE — this rule governs companion as an ADVISOR only. Companion also runs
-inside `hooks/quality_gate.py` as a gate (arity check, and `--apply` with low
-confidence). That gate is not optional and is not affected by this rule: it
-runs on its own, without a step from you.
+## RULE 1 — PRE-DEFINE VARIABLES FIRST
 
 Before creating a new function: define all variables to be used first
 (to avoid ReferenceError or uninitialized variables).
@@ -115,6 +90,7 @@ These tools do NOT run until the user explicitly approves.
 
 These analytical and read-only tools run DIRECTLY without approval:
 
+    companion / companion_cli.py         (intent & ambiguity analysis)
     deep_analyzer / impact_analyzer     (project analysis)
     smart_search                         (code search)
     selective_reader                     (file reading)
@@ -156,6 +132,7 @@ Tool usage priority:
 7. DEBUG CRASH: crash_decoder/decoder.py <file>
 8. CREATE FILES: auto_scaffolder/scaffolder.py <type> <name>
 9. FIX IMPORTS: import_fixer/fixer.py <file> <import_string>
+10. INTENT ANALYSIS: companion/companion_cli.py "<instruction>"
 
 ================================================================
 
