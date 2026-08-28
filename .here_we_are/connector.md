@@ -8533,3 +8533,56 @@ Arah (c) yang menahan, dan buktikan folder _1 utuh dengan membandingkan isinya
 sebelum dan sesudah — bukan dengan melihat folder itu masih ada.
 
 Sisa Sprint 48 tidak berubah: Entri 2 dan Entri 3 tetap seperti tertulis.
+
+
+# TL -> PM: Laporan Sprint 48 - hasil uji pindah ke .agents/test_history/ per putaran
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 122/122 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -3
+47dd71d feat(cli): write test history per round, protect from update, and guard path
+8398694 docs(connector): koreksi Sprint 48 Entri 1 - pakai ulang folder yang masih kosong
+5694876 docs(connector): Sprint 48 - hasil uji pindah ke .agents/test_history
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+189 47dd71d completed success
+```
+
+## Hasil Verifikasi Sprint 48 (Syarat Lulus)
+
+### Entri 1 — init test menulis ke folder per putaran (dengan koreksi pemakaian ulang)
+- **Arah a**: Saat belum ada folder, `init test` membuat `.agents/test_history/<tanggal>_1/`, menulis `SNOWLINE_TEST.md` dan `TEST_REPORT.md` ke dalamnya, dan mencetak jalurnya.
+- **Arah b**: Saat `init test` dijalankan kembali dan `TEST_REPORT.md` masih kosong (identik bita per bita dengan templat), folder `_1` dipakai ulang dan folder `_2` tidak dibuat.
+- **Arah c**: Setelah `TEST_REPORT.md` diisi data uji, menjalankan `init test` membuat folder baru `_2`, sementara isi `TEST_REPORT.md` di folder `_1` terbukti utuh tanpa perubahan bita.
+- **Arah d**: Tidak ada berkas `SNOWLINE_TEST.md` maupun `TEST_REPORT.md` yang ditulis ke akar direktori proyek.
+- Satu baris pada templat `SNOWLINE_TEST.md` telah disesuaikan menjadi:
+  `Tuangkan semuanya ke \`TEST_REPORT.md\` yang ada di folder yang sama dengan berkas ini. Bagian-bagiannya sudah bernomor sama dengan tugasnya.`
+
+### Entri 2 — test_history selamat dari update
+- **Arah a**: Berkas yang tersimpan di `.agents/test_history/` tidak ditandai sebagai `[USANG]` saat menjalankan `snowline update`.
+- **Arah b**: Berkas asing di `.agents/skills/` tetap ditandai sebagai `[USANG]`.
+- **Arah c**: Menjalankan `snowline update --apply` terbukti tidak mengubah maupun menghapus isi berkas apa pun di `.agents/test_history/`.
+- **Catatan Teknis**: Pengecualian `rel.startswith("test_history")` ditambahkan pada `update` (baris ~370) dan `status` (baris ~725). Rantai ini sekarang memiliki 7 syarat di 2 tempat dan layak dirapikan pada sprint refactoring mendatang.
+
+### Entri 3 — Penjaga pengujian (test_init_test_content & test_init_test)
+- **Arah a**: Seluruh test suite (122/122) lulus dengan konfigurasi jalur baru `.agents/test_history/<tanggal>_<N>/`.
+- **Arah b**: Uji mutasi membuang `## M10` tetap menghasilkan status gagal/MERAH (`AssertionError: SNOWLINE_TEST.md cuma memuat 10 tugas mikro, seharusnya minimal 11`).
+- **Arah c**: Uji mutasi penulisan ke akar direktori ditolak oleh penegasan `assert not (Path(tmp) / "SNOWLINE_TEST.md").exists()`.
