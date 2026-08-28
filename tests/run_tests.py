@@ -259,6 +259,7 @@ def main():
     print("Testing kebisingan smart_search...")
     runner.run("smart_search_biner", test_smart_search_noise.test_biner_tidak_membanjiri_keluaran)
     runner.run("smart_search_teks_besar", test_smart_search_noise.test_berkas_teks_terlalu_besar_tetap_disebut)
+    runner.run("smart_search_cache", test_smart_search_noise.test_jalur_cache_tidak_jatuh)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()

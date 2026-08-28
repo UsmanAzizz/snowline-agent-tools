@@ -113,7 +113,36 @@ def test_berkas_teks_terlalu_besar_tetap_disebut():
         print("PASS: 7 berkas teks dilewati -> 5 contoh + 'dan 2 lainnya'")
 
 
+def test_jalur_cache_tidak_jatuh():
+    """Jalan kedua memakai cache. Jalur itu punya penugasan variabel sendiri.
+
+    Bug 28-08-2026: perbaikan kebisingan menambah penghitung `non_code`, tetapi
+    cabang cache tidak pernah mengisinya. Jalan pertama lolos, jalan kedua
+    jatuh dengan UnboundLocalError. Uji lama memakai folder baru tiap kali,
+    jadi selalu cache miss dan tidak pernah menyentuh cabang itu.
+    """
+    SCRATCH.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(dir=SCRATCH) as tmp:
+        src = _proyek_dengan_aset(tmp, jumlah_gambar=30)
+
+        pertama = _jalankan(src, "token")
+        kedua = _jalankan(src, "token")
+
+        for label, keluaran in (("jalan pertama", pertama), ("jalan kedua", kedua)):
+            assert "Error" not in keluaran and "error:" not in keluaran.lower(), (
+                label + " menghasilkan galat:" + NL + keluaran[-500:]
+            )
+            assert "30 berkas bukan-kode dilewati" in keluaran, (
+                label + " tidak melaporkan jumlah berkas bukan-kode:" + NL
+                + keluaran[-400:]
+            )
+            assert "app.js" in keluaran, label + " kehilangan hasil pencarian"
+
+        print("PASS: jalur cache miss dan cache hit sama-sama utuh")
+
+
 if __name__ == "__main__":
     test_biner_tidak_membanjiri_keluaran()
     test_berkas_teks_terlalu_besar_tetap_disebut()
+    test_jalur_cache_tidak_jatuh()
     print(NL + "SMART SEARCH NOISE OK!")
