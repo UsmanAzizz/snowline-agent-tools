@@ -1181,7 +1181,7 @@ def main():
         status()
     else:
         print_header("Snowline Agent Tools")
-        safe_print(f"{Colors.BOLD}Version:{Colors.RESET} 1.1.3")
+        safe_print(f"{Colors.BOLD}Version:{Colors.RESET} 1.2.0")
         safe_print("")
         safe_print(f"{Colors.BOLD}Commands:{Colors.RESET}")
         print_list_item("init --apply  - Install skills to .agents folder")
