@@ -216,6 +216,7 @@ def main():
     import test_d1_untested_tools
     import test_d3_role
     import test_d4_frontend_build
+    import test_init_test_content
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -245,6 +246,9 @@ def main():
     runner.run("d1_untested_tools", test_d1_untested_tools.test_d1_all_four_tools)
     runner.run("d3_role", test_d3_role.test_d3_role_directions)
     runner.run("d4_frontend_build", test_d4_frontend_build.test_d4_frontend_build_directions)
+
+    print("Testing isi prompt init test...")
+    runner.run("init_test_content", test_init_test_content.test_init_test_content)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
