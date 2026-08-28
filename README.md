@@ -164,7 +164,7 @@ python .agents/skills/companion_cli.py "cari fungsi handleSubmit"
 - **Yang terbukti**: Ekstraksi entitas (nama fungsi/berkas), deteksi kata kunci, dan penegakan arity check pada pre-hook `quality_gate.py` bekerja akurat.
 - **Yang belum terbukti / belum diukur**: Efektivitas saran pemilihan alat terhadap keputusan agen di lapangan (agen sering kali sudah mengetahui alat yang ingin digunakan), serta kegunaan praktis penanda `needs_grilling` saat agen berhadapan dengan instruksi ambigu di sesi nyata.
 
-## Tools (17)
+## Tools (16)
 
 <table>
 <thead>
@@ -196,11 +196,11 @@ python .agents/skills/companion_cli.py "cari fungsi handleSubmit"
 <tr><td><code>context_mapper</code></td><td>Generates dependency map into <code>.agents/knowledge/</code></td><td>Yes (<code>--apply</code>)</td></tr>
 <tr><td><code>native_checker_gen</code></td><td>Scaffolds a unit test or a standalone validator script</td><td>Yes (<code>--apply</code>)</td></tr>
 <tr><td><code>plan_tracker</code></td><td>Tracks multi-step plan progress</td><td>No</td></tr>
-<tr><td colspan="3"><strong>🔧 Engines (called by the tools above, not directly)</strong></td></tr>
-<tr><td><code>companion</code></td><td>Intent analyzer behind <code>companion_cli.py</code></td><td>No</td></tr>
 <tr><td><code>tree_gen</code></td><td>Tree-rendering engine behind <code>smart_tree</code></td><td>No</td></tr>
 </tbody>
 </table>
+
+*Catatan: Modul `companion` telah diarsipkan ke `archive/companion/`. Pengukuran di tiga proyek menunjukkan parsing entitasnya berfungsi baik, namun perannya sebagai gerbang pra-eksekusi menambah latensi tanpa peningkatan akurasi pemilihan alat yang signifikan. Kodenya diarsipkan di `archive/` untuk riset mandiri.*
 
 Coverage is uneven and tracked openly: five of the nineteen have no test that
 runs them and asserts their output — `companion`, `db_extractor`,

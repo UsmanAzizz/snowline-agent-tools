@@ -24,11 +24,11 @@ Jangan pernah memvalidasi perubahan pada suatu tool **HANYA** dengan tool itu se
 - Memperbaiki bug di `smart_search` → jangan cuma jalankan `smart_search` lagi untuk "membuktikan" perbaikannya benar
 - Gunakan verifikasi independen: baca kode secara langsung (`view_file`), atau jalankan Python/perintah dasar yang tidak bergantung pada tool yang sedang diperbaiki
 
-### 2. Curigai Bug di Companion/Orchestrator
+### 2. Curigai Bug di Orchestrator / Dispatcher
 
-Kalau menemukan bug di companion/orchestrator (`companion_core.py`, `executor.py`, dll) yang bertugas **MEMANGGIL tool lain**:
+Kalau menemukan bug di orchestrator/dispatcher (`executor.py`, dll) yang bertugas **MEMANGGIL tool lain**:
 
-- Curigai juga apakah bug yang sama membuat **SEMUA laporan sebelumnya dari companion itu tidak bisa dipercaya**
+- Curigai juga apakah bug yang sama membuat **SEMUA laporan sebelumnya dari orchestrator itu tidak bisa dipercaya**
 - Jangan asumsikan "cuma bug ini doang" — audit ulang klaim-klaim sebelumnya yang bergantung pada komponen yang baru ditemukan rusak
 
 ### 3. Live-Test di Lingkungan Bersih

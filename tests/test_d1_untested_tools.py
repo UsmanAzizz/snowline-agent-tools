@@ -21,14 +21,6 @@ def run_script(script_path, args, cwd=None):
     cmd = [sys.executable, '-B', str(script_path)] + args
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
 
-def test_companion():
-    script = SKILLS / "companion" / "companion_cli.py"
-    assert script.exists(), f"Berkas {script} tidak ditemukan"
-    
-    res = run_script(script, ["analyze", "tolong buatkan fitur login"])
-    assert res.returncode == 0, f"companion gagal: {res.stderr}"
-    assert "COMPANION" in res.stdout or "ANALYSIS" in res.stdout or "Intent" in res.stdout, f"companion unexpected output: {res.stdout}"
-    print("PASS: companion (analisis intent berjalan sungguhan dan menghasilkan keluaran)")
 
 def test_smart_tree():
     script = SKILLS / "smart_tree" / "scripts" / "tree_viewer.py"
@@ -93,11 +85,10 @@ def test_db_extractor():
         print("PASS: db_extractor (berjalan sungguhan dan menegaskan ekstraksi skema model User)")
 
 def test_d1_all_four_tools():
-    test_companion()
     test_smart_tree()
     test_deep_analyzer()
     test_db_extractor()
 
 if __name__ == "__main__":
     test_d1_all_four_tools()
-    print("\nALL 4 D1 TOOLS TESTED SUCCESSFULLY WITH OUTPUT ASSERTIONS!")
+    print("\nALL 3 D1 TOOLS TESTED SUCCESSFULLY WITH OUTPUT ASSERTIONS!")

@@ -153,12 +153,7 @@ def setup_path():
         except Exception as e:
             print(f"[!] Gagal mengatur PATH: {e}")
 
-# 5. Auto-add companion.py to PYTHONPATH for all projects
-_companion_script = Path(__file__).parent / "templates" / "companion.py"
-if _companion_script.exists():
-    _companion_dir = str(_companion_script.parent)
-    if _companion_dir not in sys.path:
-        sys.path.insert(0, _companion_dir)
+
 
 # 6. Read PATH from registry for current session
 if sys.platform == 'win32':

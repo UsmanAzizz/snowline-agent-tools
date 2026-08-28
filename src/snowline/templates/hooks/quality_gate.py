@@ -138,14 +138,13 @@ def clean_target_cwd(workspace_paths):
 
 def validate_companion_intent(script_name: str, config: dict, args_list: list, cmd_str: str, target_cwd: str):
     """
-    Transparently run Companion intent analysis and argument checks.
+    Run tool argument completeness and arity checks.
     Returns (is_valid: bool, error_reason: str).
     """
     tool_name = config["tool_name"]
     
     # Filter out flags like --apply, --regex, --whole-word to count positional args
     positional_args = [a for a in args_list if not a.startswith("--")]
-    has_apply = "--apply" in args_list or "--apply" in cmd_str
 
     # 1. Parameter Completeness Check
     if len(positional_args) < config["min_args"]:
@@ -170,29 +169,6 @@ def validate_companion_intent(script_name: str, config: dict, args_list: list, c
             old_str = positional_args[1]
             if len(old_str.strip()) == 0:
                 return False, "[Companion Gate] Target string pencarian (old_text) tidak boleh kosong."
-
-    # 2. Dynamic Companion Intent Validation
-    companion_dir = os.path.join(target_cwd, ".agents", "skills", "companion")
-    skills_dir = os.path.join(target_cwd, ".agents", "skills")
-    
-    if os.path.exists(companion_dir) and skills_dir not in sys.path:
-        sys.path.insert(0, skills_dir)
-
-    try:
-        from companion.core_intent import analyze_intent
-        
-        # Analyze the arguments / command context
-        analysis = analyze_intent(" ".join(positional_args))
-        
-        # If intent indicates high ambiguity or mismatch during destructive apply
-        if has_apply and analysis.confidence_level in ("LOW", "NONE"):
-            note = analysis.clarification_note if analysis.clarification_note else "Tidak ada keyword instruksi jelas yang dikenali."
-            return False, (
-                f"[Companion Gate] Intent terdeteksi ambigu ({note}). "
-                f"Gunakan mode dry-run (tanpa flag --apply) terlebih dahulu untuk preview perubahan."
-            )
-    except Exception as e:
-        return False, f"[Companion Gate] Gagal memvalidasi intent via Companion (Exception: {str(e)}). Eksekusi ditolak secara otomatis (Fail-Closed)."
 
     return True, ""
 
