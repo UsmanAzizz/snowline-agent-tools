@@ -9075,3 +9075,353 @@ membuktikan sesuatu tidak rusak.
 - Cabang cache di alat lain. `clean_sweeper` juga memakai `session_cache.json`,
   dan pola yang sama bisa ada di sana. Belum saya lihat.
 - Pekerjaan saya sendiri, oleh siapa pun selain saya.
+
+
+# PM -> TL: Sprint 49 — arsipkan companion, empat temuan kecil, lalu rilis v1.2.0
+
+Tiga uji lapangan di tiga proyek berbeda sudah selesai. Sprint ini menutup apa
+yang ditemukannya, lalu menandai rilis.
+
+**Kerjakan berurutan. Entri 1 paling besar dan paling mudah merusak — kerjakan
+dulu, lalu berhenti dan tunggu vonis QA sebelum lanjut.**
+
+---
+
+# Keputusan yang mendasari Entri 1
+
+Companion punya dua bagian dengan nasib berbeda.
+
+**Saran alatnya diabaikan.** Tiga agen, tiga proyek, pertanyaan yang sama:
+
+```
+cbt_master run 1  : "Sudah tahu alat mana sebelum memanggilnya? ya"
+cbt_master run 2  : "ya"
+DAFA              : "ya"
+```
+
+DAFA sudah memakai `agents.md` yang tidak lagi menyuruh memanggil companion
+lebih dulu, dan agennya tetap menjawab begitu. Sebabnya kelihatan di bagian 1
+laporannya: ia belajar dari daftar alat di `agents.md`. Daftar itu membuat
+companion mubazir.
+
+**Gerbang intent-nya menolak semua perintah tulis.** Diukur QA:
+
+```
+ganti teks biasa      deny
+apply-validated       deny
+scaffold komponen     deny
+perbaiki impor        deny
+cari (tanpa apply)    allow
+```
+
+Empat dari empat. Sebabnya di kodenya sendiri:
+
+```python
+quality_gate.py:185
+analysis = analyze_intent(" ".join(positional_args))
+```
+
+`analyze_intent` dibuat untuk kalimat manusia. Yang diberikan ke situ baris
+perintah — jalur berkas dan bendera. Ia tidak akan pernah menemukan kata kunci,
+jadi confidence selalu NONE, jadi `--apply` selalu ditolak.
+
+Itu cacat rancangan, bukan setelan.
+
+**Dan ia gagal-tertutup.** Kalau modulnya hilang:
+
+```
+{"decision": "deny", "reason": "[Companion Gate] Gagal memvalidasi intent via
+ Companion (Exception: No module named 'companion'). Ditolak otomatis
+ (Fail-Closed)."}
+```
+
+Jadi memindahkan foldernya begitu saja membuat **setiap** perintah ditolak.
+
+**Keputusan PM: arsipkan companion, cabut gerbang intent sekalian.** Kodenya
+disimpan utuh di repo, bukan dibuang — gagasan menandai permintaan kabur itu
+bagus, tempat pasangnya yang salah.
+
+---
+
+# Entri 1 — arsipkan companion
+
+## Yang dipindahkan
+
+```
+src/snowline/templates/skills/companion/     -> archive/companion/
+src/snowline/templates/skills/companion_cli.py -> archive/companion_cli.py
+```
+
+`archive/` di akar repo, **di luar** `src/snowline/`, supaya tidak ikut
+dipaketkan. Tambahkan `archive/README.md` satu paragraf: apa ini, kenapa
+diarsipkan, dan apa yang perlu dipikirkan kalau mau dihidupkan lagi.
+
+## Yang dicabut
+
+```
+quality_gate.py       seluruh bagian "2. Dynamic Companion Intent Validation"
+                      (sekitar baris 174-193), berikut blok try/except-nya
+
+cli.py:307            'companion_cli.py' dari ALWAYS_UPDATE
+
+__init__.py:156-158   penambahan templates/companion.py ke PYTHONPATH.
+                      Jalur itu sudah tidak ada sejak lama — kode mati.
+
+AGENTS_TEMPLATE.md    tiga penyebutan companion
+skills/rules/bootstrapping_safety.md   penyebutan companion
+```
+
+**Jangan sentuh bagian lain `quality_gate.py`.** Pemeriksaan arity, gerbang
+CRITICAL saat commit, dan pencatatan tulisan lewat shell tetap.
+
+## Angka yang ikut berubah
+
+```
+README.md    "## Tools (17)"  ->  16, dan tabelnya
+STATE.md     "17 / 17"        ->  16 / 16
+```
+
+Ambil angkanya dari perintah, jangan diketik. Sudah empat kali salah karena
+diketik.
+
+Tambahkan di README, di bawah tabel alat, satu paragraf: companion diarsipkan,
+alasannya diukur di tiga proyek, dan kodenya ada di `archive/`.
+
+## Uji yang ikut berubah
+
+```
+tests/test_d1_untested_tools.py   buang bagian companion
+tests/test_c2_state_validation.py  angkanya ikut turun sendiri (dihitung)
+tests/test_rejections.py           periksa, mungkin merujuk companion
+tests/test_context_mapper.py       periksa
+tests/run_tests.py                 pendaftarannya
+```
+
+## Syarat lulus
+
+```
+a  keempat perintah tulis yang tadi ditolak -> sekarang allow
+   (replace --apply, replace --apply-validated, scaffolder --apply,
+    import_fixer --apply)
+b  perintah baca-saja                       -> tetap allow
+c  gerbang CRITICAL saat commit             -> masih menolak kalau ada CRITICAL
+d  pemeriksaan arity                        -> masih menolak argumen kurang
+e  init --apply di proyek baru              -> tidak ada folder companion
+f  archive/companion/ ada di repo, isinya utuh
+g  suite hijau, Aturan #12 hijau
+```
+
+Arah (c) dan (d) yang menahan. Mencabut satu bagian hook gampang sekali ikut
+mematikan yang lain, dan keduanya penjaga yang masih berguna.
+
+**Berhenti di sini. Tunggu vonis QA sebelum lanjut ke Entri 2.**
+
+---
+
+# Entri 2 — `snowline --version`
+
+Tiga agen menanyakannya, tiga-tiganya mentok:
+
+```
+$ snowline --version
+snowline: error: unrecognized arguments: --version
+
+$ python -m snowline --version
+No module named snowline.__main__; 'snowline' is a package and cannot be
+directly executed
+```
+
+Dua jalan buntu untuk pertanyaan paling dasar tentang sebuah paket.
+
+**Perbaikan:** tambahkan `--version`, dan `src/snowline/__main__.py` supaya
+`python -m snowline` bekerja.
+
+Tampilkan versi paket **dan** commit-nya kalau ketahuan, karena versi paket
+tidak berubah antar commit:
+
+```
+snowline 1.2.0 (commit a1b2c3d)
+```
+
+Kalau commitnya tidak ketahuan, sebutkan versinya saja — jangan diam.
+
+**Syarat lulus:**
+
+```
+a  snowline --version              -> mencetak versi, keluar 0
+b  python -m snowline --version    -> sama
+c  python -m snowline.cli --version -> sama
+d  versi yang dicetak = versi di pyproject.toml
+```
+
+Arah (d) diperiksa dengan membacanya dari berkas, bukan dengan mengetik angka
+di ujinya.
+
+---
+
+# Entri 3 — laporan uji ditulis ke akar
+
+Tiga laporan, tiga kali ditulis ke akar proyek, padahal
+`.agents/test_history/<tanggal>_1/` sudah dibuat dan promptnya berbunyi:
+
+```
+Tuangkan semuanya ke `TEST_REPORT.md` yang ada di folder yang sama dengan
+berkas ini.
+```
+
+**Sebabnya "berkas ini" tidak punya rujukan.** Manusia menempelkan *isi*
+promptnya ke sesi agen. Agen tidak pernah melihat berkasnya, jadi tidak tahu
+folder mana yang dimaksud.
+
+**Perbaikan:** `init test` menyisipkan jalur mutlaknya ke dalam
+`SNOWLINE_TEST.md` yang dihasilkan. Taruh penanda di templatnya:
+
+```
+Tuangkan semuanya ke berkas ini:
+{JALUR_LAPORAN}
+```
+
+dan `init_test` menggantinya dengan jalur mutlak sebenarnya waktu menyalin.
+
+**Ini mengubah perbandingan bita per bita di
+`tests/test_init_test_content.py`.** Hasilnya tidak lagi identik dengan
+templatnya — satu baris berbeda, dan memang seharusnya berbeda.
+
+Sesuaikan ujinya: bandingkan semua baris **kecuali** yang memuat penanda itu,
+lalu tegaskan terpisah bahwa baris tersebut memuat jalur mutlak yang benar.
+Jangan membuang perbandingannya — itu yang menangkap prompt tertanam separuh
+dulu.
+
+**Syarat lulus:**
+
+```
+a  SNOWLINE_TEST.md hasil -> memuat jalur mutlak ke TEST_REPORT.md
+b  tidak ada penanda {JALUR_LAPORAN} tersisa di hasil
+c  baris lainnya tetap identik bita per bita dengan templat
+d  buang satu tugas mikro dari templat -> suite tetap MERAH
+```
+
+Arah (d) memastikan penjaga lamanya tidak ikut lumpuh.
+
+---
+
+# Entri 4 — nama topik `rotate` tidak divalidasi
+
+Dari laporan lapangan:
+
+```
+Penentuan nama topik rotasi `pengujian_m7` — tidak ada skema penamaan baku
+yang divalidasi oleh sistem, sehingga tidak dapat diperiksa apakah penamaan
+topik tersebut sesuai konvensi.
+```
+
+`close-entry` sudah memvalidasinya:
+
+```
+Batal: Nama topik tidak boleh memuat spasi. Gunakan huruf kecil dan
+tanda-hubung (misal: nama-topik).
+```
+
+`rotate` tidak. Dua perintah yang menulis ke folder `history/` yang sama,
+dengan aturan berbeda.
+
+**Perbaikan:** pakai validasi yang sama untuk keduanya. Satu fungsi, dua
+pemanggil — jangan disalin.
+
+**Syarat lulus:**
+
+```
+a  rotate "nama dengan spasi"  -> ditolak, pesannya sama dengan close-entry
+b  rotate nama-sah             -> jalan
+c  close-entry masih menolak yang sama
+```
+
+---
+
+# Entri 5 — perbandingan `PROTECTED` peka huruf
+
+Di proyek DAFA:
+
+```
+* [USANG] project_context.md
+```
+
+Daftar lindung menulis `PROJECT_CONTEXT.md` huruf besar. Berkasnya huruf kecil.
+Perbandingannya `rel in PROTECTED` — peka huruf. Di Windows itu berkas yang
+sama.
+
+Tidak merugikan sekarang karena tidak ada yang dihapus otomatis, tetapi berkas
+yang seharusnya dilindungi akan terus muncul di daftar usang.
+
+**Perbaikan:** bandingkan tanpa peka huruf, untuk `PROTECTED` dan
+`is_runtime_state`.
+
+**Syarat lulus:**
+
+```
+a  project_context.md huruf kecil  -> TIDAK ditandai usang
+b  PROJECT_CONTEXT.md huruf besar  -> TIDAK ditandai usang
+c  berkas asing di skills/         -> TETAP ditandai usang
+```
+
+---
+
+# Entri 6 — rilis v1.2.0
+
+Baru sesudah Entri 1 sampai 5 lulus vonis QA dan CI hijau.
+
+```
+pyproject.toml            1.1.3 -> 1.2.0
+src/snowline/__init__.py  __version__ ikut
+```
+
+`tests/test_version_sync.py` sudah menjaga keduanya sinkron — jalankan untuk
+memastikan.
+
+**Kenapa minor, bukan patch:** rilis ini mengubah perilaku inti. Lingkup
+berhenti memblokir dan mulai mencatat; companion keluar dari daftar alat;
+lima perintah baru (`rotate`, `audit`, `role`, `install-hooks`, `add-entry`);
+hasil uji pindah ke `.agents/test_history/`.
+
+**Urutan penandaan — ini pernah salah dulu:**
+
+```
+1  commit perubahan versinya
+2  push
+3  tunggu CI sampai completed dan success
+4  BARU tandai: git tag v1.2.0 && git push origin v1.2.0
+```
+
+Menandai sebelum CI hijau berarti tagnya menunjuk commit yang belum tentu
+benar, dan tag yang sudah dipush sulit ditarik.
+
+**Syarat lulus:**
+
+```
+a  git tag menunjukkan v1.2.0
+b  tagnya menunjuk commit yang CI-nya success — tempel head_sha keduanya
+c  pip install dari tag itu di folder terisolasi -> snowline --version
+   mencetak 1.2.0
+```
+
+Arah (c) yang membuktikan tagnya benar-benar bisa dipasang orang.
+
+---
+
+## Bentuk laporan
+
+Satu laporan per entri untuk Entri 1. Entri 2 sampai 5 boleh satu laporan.
+Entri 6 laporan sendiri.
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah, jangan diringkas.
+
+Blok `git log` cuma ditulis kalau kamu benar-benar menjalankannya.
+
+Satu commit per entri. Sebelum tiap commit: `git add <berkas>` lalu
+`git diff --cached --stat`, dan baca hasilnya.
+
+Push, tunggu CI sampai `completed`, tempel keluaran mentah panggilan API-nya,
+baru tulis laporan.
+
+**Tidak dikunci.**
