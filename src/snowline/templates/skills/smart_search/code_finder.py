@@ -16,6 +16,20 @@ if sys.stdout.encoding != 'utf-8':
 
 MAX_FILE_SIZE = 500 * 1024
 MAX_AGE_DAYS = 7
+# Jenis berkas yang bukan kode. Dilewati sebelum dibuka, bukan sesudah gagal
+# dibaca. Di proyek dengan folder unggahan, ini bedanya 21 detik dan 1144 baris
+# keluaran melawan pencarian yang selesai seketika.
+NON_CODE_EXTS = {
+    '.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.bmp', '.tiff', '.avif',
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+    '.zip', '.gz', '.tar', '.rar', '.7z', '.bz2', '.xz',
+    '.mp3', '.mp4', '.avi', '.mov', '.mkv', '.wav', '.ogg', '.webm',
+    '.woff', '.woff2', '.ttf', '.otf', '.eot',
+    '.exe', '.dll', '.so', '.dylib', '.bin', '.pyc', '.class', '.jar',
+    '.db', '.sqlite', '.sqlite3', '.mdb', '.lock',
+    '.psd', '.ai', '.sketch', '.fig', '.blend',
+}
+
 DEFAULT_EXCLUDES = {'node_modules', '.git', 'vendor', 'build', 'dist', '.idea', '.vscode', '.history', '.backup_replace', '.agents', '.dart_tool', '.gradle', '.pub-cache', 'Pods'}
 
 JS_PATTERNS = [
@@ -188,10 +202,14 @@ def search_files(directory, keyword, extensions):
     results = []
     scanned = 0
     skipped_files = []
+    non_code = 0
     for root, dirs, files in os.walk(directory):
         dirs[:] = [d for d in dirs if d not in DEFAULT_EXCLUDES]
         for fname in files:
             if extensions and not any(fname.endswith(ext) for ext in extensions):
+                continue
+            if os.path.splitext(fname)[1].lower() in NON_CODE_EXTS:
+                non_code += 1
                 continue
             fpath = os.path.join(root, fname)
             if os.path.getsize(fpath) > MAX_FILE_SIZE:
@@ -253,7 +271,7 @@ def search_files(directory, keyword, extensions):
                 if cur:
                     blocks.append(cur)
                 results.append({'file': fpath, 'blocks': blocks, 'lines': lines})
-    return results, scanned, skipped_files
+    return results, scanned, skipped_files, non_code
 
 def get_project_root(start_path):
     curr = os.path.abspath(start_path)
@@ -326,7 +344,7 @@ def get_dir_sig(directory, exts):
         pass
     return hashlib.md5("".join(sorted(parts)).encode()).hexdigest()
 
-def print_human(results, kw, scanned, skipped_files):
+def print_human(results, kw, scanned, skipped_files, non_code=0):
     total = 0
     for r in results:
         rel = os.path.relpath(r['file'], os.getcwd())
@@ -342,12 +360,16 @@ def print_human(results, kw, scanned, skipped_files):
             print("-" * 30)
     print("\n" + "=" * 60)
     print(f"[OK] Selesai: {total} kecocokan di {len(results)} file (dari {scanned} dipindai, {len(skipped_files)} dilewati)")
+    if non_code:
+        print(f"[INFO] {non_code} berkas bukan-kode dilewati (gambar, arsip, biner).")
     if skipped_files:
-        print(f"[WARN] File dilewati (terlalu besar atau non-UTF8):")
-        for sf in skipped_files:
+        print(f"[WARN] {len(skipped_files)} berkas teks dilewati (terlalu besar atau bukan UTF-8):")
+        for sf in skipped_files[:5]:
             print(f"  - {sf}")
+        if len(skipped_files) > 5:
+            print(f"  ... dan {len(skipped_files) - 5} lainnya")
 
-def print_json(results, kw, scanned, skipped_files):
+def print_json(results, kw, scanned, skipped_files, non_code=0):
     out = {'status': 'FOUND' if results else 'NOT_FOUND', 'keyword': kw, 'stats': {'total': sum(len(b['matches']) for r in results for b in r['blocks']), 'files': len(results), 'scanned': scanned, 'skipped': len(skipped_files)}, 'results': []}
     for r in results:
         rel = os.path.relpath(r['file'], os.getcwd())
@@ -383,7 +405,7 @@ def main():
         scanned = data[key]['scanned']
         skipped_files = data[key].get('skipped_files', [])
     else:
-        results, scanned, skipped_files = search_files(args.target, args.keyword, exts)
+        results, scanned, skipped_files, non_code = search_files(args.target, args.keyword, exts)
         data[key] = {'sig': sig, 'mtime': str(time.time()), 'results': results, 'scanned': scanned, 'skipped_files': skipped_files}
         save_cache(cf, data)
     if not results:
@@ -397,11 +419,11 @@ def main():
                     print(f"  - {sf}")
         return
     if args.json:
-        print_json(results, args.keyword, scanned, skipped_files)
+        print_json(results, args.keyword, scanned, skipped_files, non_code)
     else:
         print(f"SEARCH: '{args.keyword}'")
         print("=" * 60)
-        print_human(results, args.keyword, scanned, skipped_files)
+        print_human(results, args.keyword, scanned, skipped_files, non_code)
 
 if __name__ == "__main__":
     try:
