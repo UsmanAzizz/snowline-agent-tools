@@ -26,6 +26,37 @@ undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
                 mengikat lewat kode     4 gerbang  lihat RULE 0 di AGENTS.md
 ```
 
+## Garis rilis
+
+Daftar Terbuka tidak akan pernah kosong. Rilis terjadi waktu tidak ada lagi
+yang di atas garis — bukan waktu daftarnya habis.
+
+**Menahan rilis:**
+
+```
+1  suite merah, atau CI merah di commit terakhir
+2  Aturan #12 merah
+3  perintah yang tidak jalan sama sekali        (contoh: rotate tanpa dispatch)
+4  perintah yang melapor berhasil padahal tidak (contoh: nol kecocokan -> SUCCESS)
+5  penjaga yang menolak pekerjaan wajar         (contoh: gerbang intent menolak
+                                                 4 dari 4 perintah tulis)
+6  kehilangan atau menimpa pekerjaan pengguna
+```
+
+**Tidak menahan rilis:**
+
+```
+pesan yang salah label atau kosong sesudah titik dua
+keluaran yang berisik tetapi benar
+berkas nyasar di pohon kerja
+alat yang belum pernah dipakai siapa pun di lapangan
+temuan uji lapangan yang tidak masuk keenam di atas
+```
+
+Uji lapangan akan selalu menemukan sesuatu. Itu tanda ujinya bekerja, bukan
+tanda proyeknya belum siap. Yang perlu diperiksa cuma: apakah temuannya masuk
+daftar pertama.
+
 ## Empat yang mengikat
 
 | | menolak apa | di mana | uji |
