@@ -1,30 +1,13 @@
-"""Menjaga isi prompt `snowline init test`, bukan sekadar keberadaannya.
-
-Sprint 42 pernah menanam prompt ini separuh: kerangkanya ada, seluruh tugas
-mikronya hilang. Uji lama tetap hijau karena ia cuma memeriksa berkasnya
-terbentuk dan memuat beberapa kata kunci.
-
-Uji ini memeriksa dua hal yang berbeda:
-
-1. Hasil `init test` sama bita per bita dengan templat yang dipaketkan.
-   Menangkap init_test yang menyimpang dari templatnya.
-
-2. Templat itu sendiri masih memuat isinya.
-   Menangkap templat yang dikosongkan — kasus yang tidak akan ketahuan oleh
-   perbandingan (1), karena kalau templatnya dikosongkan, hasilnya ikut kosong
-   dan keduanya tetap sama.
-"""
 import os
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from datetime import datetime
 
 REPO = Path(__file__).resolve().parent.parent
 TEMPLATES = REPO / "src" / "snowline" / "test_templates"
 
-# Diambil dari rancangan yang disepakati. Angka boleh naik kalau tugasnya
-# ditambah; kalau turun, ada yang hilang.
 MIN_TUGAS_MIKRO = 11
 MIN_BAGIAN_LAPORAN = 16
 MIN_BARIS_PROMPT = 150
@@ -100,7 +83,7 @@ def test_init_test_content():
     print(f"PASS: templat berisi ({n_tugas} tugas mikro, "
           f"{n_bagian} bagian laporan, {n_baris_prompt}/{n_baris_laporan} baris)")
 
-    # --- Bagian 1: hasil init test identik dengan templatnya ---
+    # --- Bagian 1: hasil init test masuk ke .agents/test_history/ dan identik bita per bita ---
     with tempfile.TemporaryDirectory() as tmp:
         env = dict(os.environ)
         env["PYTHONPATH"] = str(REPO / "src") + os.pathsep + env.get("PYTHONPATH", "")
@@ -110,10 +93,21 @@ def test_init_test_content():
         )
         assert hasil.returncode == 0, f"init test gagal: {hasil.stderr}"
 
+        # 1. Pastikan TIDAK ADA berkas uji ditulis ke akar proyek
+        root_test = Path(tmp) / "SNOWLINE_TEST.md"
+        root_report = Path(tmp) / "TEST_REPORT.md"
+        assert not root_test.exists(), "SNOWLINE_TEST.md ditulis di akar proyek! Seharusnya di .agents/test_history/"
+        assert not root_report.exists(), "TEST_REPORT.md ditulis di akar proyek! Seharusnya di .agents/test_history/"
+
+        # 2. Cari folder di .agents/test_history/
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        history_dir = Path(tmp) / ".agents" / "test_history" / f"{today_str}_1"
+        assert history_dir.exists(), f"Folder riwayat uji tidak ditemukan: {history_dir}"
+
         for nama, sumber in (("SNOWLINE_TEST.md", src_prompt),
                              ("TEST_REPORT.md", src_laporan)):
-            keluaran = Path(tmp) / nama
-            assert keluaran.exists(), f"{nama} tidak terbentuk"
+            keluaran = history_dir / nama
+            assert keluaran.exists(), f"{nama} tidak terbentuk di {history_dir}"
             a = keluaran.read_bytes()
             b = sumber.read_bytes()
             if a != b:
@@ -131,7 +125,7 @@ def test_init_test_content():
                     f"{sumber} ({len(baris_a)} vs {len(baris_b)} baris). {beda}"
                 )
 
-        print("PASS: hasil init test identik bita per bita dengan templatnya")
+        print("PASS: hasil init test masuk ke .agents/test_history/ dan identik bita per bita dengan templatnya")
 
 
 if __name__ == "__main__":

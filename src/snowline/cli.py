@@ -367,7 +367,7 @@ def update(apply=False):
     for f in target.rglob("*"):
         if not f.is_file() or f.name.endswith(".pyc"): continue
         rel = str(f.relative_to(target))
-        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md" or rel == ".agents_md_baseline_hash": continue
+        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel.startswith("test_history") or rel == "agents.md" or rel == ".agents_md_baseline_hash": continue
         if not (templates / rel).exists():
             obsolete_files.append((f, rel))
 
@@ -722,7 +722,7 @@ def status():
     for f in target.rglob("*"):
         if not f.is_file() or f.name.endswith(".pyc"): continue
         rel = str(f.relative_to(target))
-        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md" or rel == ".agents_md_baseline_hash": continue
+        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel.startswith("test_history") or rel == "agents.md" or rel == ".agents_md_baseline_hash": continue
         if not (templates / rel).exists():
             obsolete_files.append((f, rel))
 
@@ -921,14 +921,8 @@ def show_path():
 
 def init_test(force=False):
     import os
-    test_report_path = "TEST_REPORT.md"
-    snowline_test_path = "SNOWLINE_TEST.md"
-
-    if os.path.exists(test_report_path) and not force:
-        with open(test_report_path, "r", encoding="utf-8") as f:
-            if len(f.read().strip()) > 0:
-                print(f"[BLOCKED] {test_report_path} sudah ada isinya. Gunakan --force untuk menimpa.")
-                return
+    import re
+    from datetime import datetime
 
     templates = Path(__file__).parent / "test_templates"
     src_test = templates / "SNOWLINE_TEST.md"
@@ -940,16 +934,61 @@ def init_test(force=False):
             print("Pemasangan snowline tampaknya tidak lengkap.")
             return
 
-    # Salin bita per bita supaya hasilnya identik dengan templatnya.
-    # Membaca sebagai teks akan menormalkan CRLF jadi LF dan membuat
-    # perbandingan bita gagal.
+    history_root = Path.cwd() / ".agents" / "test_history"
+    history_root.mkdir(parents=True, exist_ok=True)
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    pattern = re.compile(rf"^{re.escape(today_str)}_(\d+)$")
+    existing_nums = []
+    for entry in history_root.iterdir():
+        if entry.is_dir():
+            m = pattern.match(entry.name)
+            if m:
+                existing_nums.append((int(m.group(1)), entry))
+
+    reused = False
+    if existing_nums:
+        existing_nums.sort(key=lambda x: x[0])
+        latest_num, latest_dir = existing_nums[-1]
+        latest_report = latest_dir / "TEST_REPORT.md"
+
+        is_empty = False
+        if not latest_report.exists():
+            is_empty = True
+        else:
+            try:
+                if latest_report.read_bytes() == src_report.read_bytes():
+                    is_empty = True
+            except Exception:
+                pass
+
+        if is_empty:
+            target_dir = latest_dir
+            reused = True
+        else:
+            target_dir = history_root / f"{today_str}_{latest_num + 1}"
+    else:
+        target_dir = history_root / f"{today_str}_1"
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    snowline_test_path = target_dir / "SNOWLINE_TEST.md"
+    test_report_path = target_dir / "TEST_REPORT.md"
+
     with open(snowline_test_path, "wb") as f:
         f.write(src_test.read_bytes())
 
     with open(test_report_path, "wb") as f:
         f.write(src_report.read_bytes())
 
-    print("[SUCCESS] SNOWLINE_TEST.md dan TEST_REPORT.md telah disiapkan.")
+    try:
+        rel_dir = target_dir.relative_to(Path.cwd()).as_posix()
+    except Exception:
+        rel_dir = str(target_dir)
+
+    if reused:
+        print(f"[SUCCESS] Folder {rel_dir}/ dipakai ulang\n          (laporannya belum terisi).")
+    else:
+        print(f"[SUCCESS] Uji baru disiapkan di {rel_dir}/\n          Tempel isi SNOWLINE_TEST.md di folder itu ke sesi agen.")
 
 def main():
     parser = argparse.ArgumentParser(

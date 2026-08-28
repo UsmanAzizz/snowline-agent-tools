@@ -391,8 +391,8 @@ def main():
 
     import test_init_test
     runner.run("init_test creates_files", test_init_test.test_init_test_creates_files)
-    runner.run("init_test rejects_overwrite", test_init_test.test_init_test_rejects_overwrite)
-    runner.run("init_test force_overwrite", test_init_test.test_init_test_force_overwrite)
+    runner.run("init_test reuses_empty_folder", test_init_test.test_init_test_reuses_empty_folder)
+    runner.run("init_test creates_new_folder_when_filled", test_init_test.test_init_test_creates_new_folder_when_filled)
 
     success = runner.summary()
 
