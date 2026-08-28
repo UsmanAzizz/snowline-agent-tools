@@ -215,6 +215,7 @@ def main():
     import test_c2_state_validation
     import test_d1_untested_tools
     import test_d3_role
+    import test_d4_frontend_build
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -243,6 +244,7 @@ def main():
     print("Testing D1 untested tools (companion, smart_tree, deep_analyzer, db_extractor)...")
     runner.run("d1_untested_tools", test_d1_untested_tools.test_d1_all_four_tools)
     runner.run("d3_role", test_d3_role.test_d3_role_directions)
+    runner.run("d4_frontend_build", test_d4_frontend_build.test_d4_frontend_build_directions)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()

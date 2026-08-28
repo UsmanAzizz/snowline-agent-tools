@@ -270,6 +270,60 @@ def validate_syntax(filepath, content):
             
     return True, "[WARN] Tipe file tidak dikenali untuk validasi syntax, pengecekan dilewati."
 
+def check_frontend_build(timeout_sec=None):
+    """
+    Memeriksa hasil build frontend jika proyek mendefinisikan scripts.build di package.json.
+    Melaporkan hasil build (bukan memblokir penulisan berkas).
+    """
+    if timeout_sec is None:
+        timeout_sec = int(os.environ.get('SNOWLINE_BUILD_TIMEOUT', 60))
+
+    pkg_path = os.path.join(os.getcwd(), 'package.json')
+    if not os.path.exists(pkg_path):
+        print("[INFO] package.json tidak ditemukan, pemeriksaan build frontend dilewati.")
+        return
+
+    try:
+        with open(pkg_path, 'r', encoding='utf-8') as f:
+            pkg_data = json.load(f)
+    except Exception:
+        print("[INFO] package.json tidak dapat dibaca, pemeriksaan build frontend dilewati.")
+        return
+
+    scripts = pkg_data.get('scripts')
+    if not isinstance(scripts, dict) or 'build' not in scripts:
+        print("[INFO] scripts.build tidak ditemukan di package.json, pemeriksaan build frontend dilewati.")
+        return
+
+    npm_bin = 'npm.cmd' if sys.platform == 'win32' else 'npm'
+    if not shutil.which(npm_bin) and not shutil.which('npm'):
+        npm_bin = 'npm'
+
+    print("[INFO] Menjalankan pemeriksaan build frontend (npm run build)...")
+    cmd = [npm_bin, 'run', 'build']
+    try:
+        res = subprocess.run(
+            cmd,
+            shell=(sys.platform == 'win32'),
+            capture_output=True,
+            text=True,
+            timeout=timeout_sec,
+            stdin=subprocess.DEVNULL,
+            encoding='utf-8',
+            errors='replace'
+        )
+        if res.returncode == 0:
+            print("[BUILD SUCCESS] Pemeriksaan build frontend berhasil (npm run build lulus).")
+        else:
+            print("[BUILD FAIL] Pemeriksaan build frontend gagal (npm run build mengembalikan error).")
+            detail = (res.stderr.strip() or res.stdout.strip())
+            if detail:
+                print(f"Detail keluaran build:\n{detail[:400]}")
+    except subprocess.TimeoutExpired:
+        print(f"[BUILD TIMEOUT] Pemeriksaan build frontend dihentikan karena memakan waktu lebih dari 60 detik.")
+    except Exception as e:
+        print(f"[BUILD ERROR] Gagal menjalankan pemeriksaan build: {e}")
+
 def get_args():
     parser = argparse.ArgumentParser(description="Smart Replace (Pure Python Edition)")
     parser.add_argument("target_dir", help="Target directory or file (absolute path)")
@@ -612,6 +666,7 @@ def main():
             pass
 
     print(f"\n[SUCCESS] Berhasil memodifikasi {len(pending_writes)} file. Backup tersimpan di {backup_dir}")
+    check_frontend_build()
 
 if __name__ == '__main__':
     try:
