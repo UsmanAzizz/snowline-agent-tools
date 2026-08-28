@@ -6831,3 +6831,135 @@ tangan.
 sprint kode, melainkan `snowline init test` lagi di proyek yang belum pernah
 dipakai — karena semua temuan terbesar minggu ini datang dari sana, bukan dari
 dalam chamber.
+
+
+# PM -> TL: Sprint 46 — prompt uji tertanam separuh, dan syarat lulus QA yang meloloskannya
+
+## Apa yang terjadi
+
+`snowline init test` menghasilkan prompt yang menyuruh mengerjakan M1 sampai M9,
+lalu tidak pernah menyebut M1 sampai M9 itu apa.
+
+```
+$ snowline init test
+$ grep -cE "^## M[0-9]" SNOWLINE_TEST.md
+0
+
+$ wc -l SNOWLINE_TEST.md TEST_REPORT.md
+  24 SNOWLINE_TEST.md
+  33 TEST_REPORT.md
+```
+
+Berkas sumbernya:
+
+```
+SNOWLINE_TEST.md  172 baris, 10 tugas mikro
+TEST_REPORT.md    171 baris, 26 butir isian
+```
+
+Yang tertanam cuma kerangkanya: judul, tujuh aturan, dan sepuluh tajuk bagian
+kosong di laporan. Seluruh isi tugasnya hilang.
+
+Aturan 6 di berkas yang dihasilkan berbunyi:
+
+```
+6. **Kerjakan berurutan.** M1 sampai M9, jangan dilompati.
+```
+
+Agen yang membacanya akan mencari M1 dan tidak menemukannya.
+
+## Kenapa ini lolos
+
+Syarat lulus yang saya tulis di Sprint 42 Entri 4 memeriksa empat hal:
+
+```
+a  dua berkas terbentuk
+b  butir 7 ada di SNOWLINE_TEST.md
+c  TEST_REPORT.md punya bagian 0 sampai 11
+d  tujuh kata terlarang tidak muncul
+```
+
+Keempatnya lulus, dan keempatnya lulus juga untuk berkas yang isinya dibuang.
+Tidak satu pun memeriksa apakah tugasnya ikut tertanam.
+
+Ini kelalaian saya, bukan kelalaianmu. Kamu memenuhi yang tertulis.
+
+## Entri 1 — tanam ulang, dari berkas yang sekarang ada di repo
+
+Supaya tidak hilang lagi di perjalanan, sumbernya sudah saya taruh di repo:
+
+```
+.here_we_are/bahan_init_test/SNOWLINE_TEST.md    172 baris
+.here_we_are/bahan_init_test/TEST_REPORT.md      171 baris
+```
+
+Tanam isi kedua berkas itu ke `init_test()` di `cli.py`, **apa adanya**. Jangan
+merapikan, jangan menyingkat, jangan menyusun ulang. Butir 7 sudah ada di
+dalamnya, jadi tidak ada tambahan apa pun kali ini.
+
+**Syarat lulus.** Kali ini yang diperiksa isinya, bukan kerangkanya:
+
+```
+a  snowline init test  ->  SNOWLINE_TEST.md sama persis dengan
+   .here_we_are/bahan_init_test/SNOWLINE_TEST.md
+   dibuktikan dengan pembandingan bita, tempel hasilnya
+
+b  hal yang sama untuk TEST_REPORT.md
+
+c  jumlah tajuk "## M" di berkas hasil = 10
+
+d  tujuh kata terlarang tetap 0:
+   council mtime tempfile winreg scope_lock add-entry role.json
+
+e  TEST_REPORT.md yang sudah ada isinya tetap tidak tertimpa tanpa --force
+```
+
+Arah (a) dan (b) yang menahan. Kalau `cmp` bilang beda, jangan lanjut — cari
+bedanya di mana dulu.
+
+## Entri 2 — penjaga supaya ini tidak terulang
+
+Uji yang membandingkan hasil `init test` dengan berkas sumber di
+`.here_we_are/bahan_init_test/`.
+
+Bukan mencocokkan kata kunci. **Bandingkan seluruh isinya.**
+
+**Syarat lulus:**
+
+```
+a  keadaan normal                         -> HIJAU
+b  hapus satu tugas mikro dari berkas
+   sumber, jangan sentuh cli.py           -> MERAH
+c  pesan gagalnya menyebut berkas mana
+   dan bagian mana yang berbeda           -> bukan cuma "tidak sama"
+```
+
+Arah (b) membuktikan penjaganya membandingkan isi, bukan sekadar keberadaan
+berkas. Pulihkan berkas sumbernya sesudah menguji, dan periksa `git status`.
+
+Arah (c) penting karena selisih 340 baris tanpa petunjuk letaknya tidak
+menolong siapa pun.
+
+## Catatan untuk kita berdua
+
+Tiga kali sprint ini ada uji hijau untuk hal yang tidak jalan: `smoke_cli`
+yang menguji site-packages, `rotate` yang tidak tersambung, dan sekarang prompt
+yang tertanam separuh.
+
+Polanya sama tiap kali: yang diperiksa keberadaan, bukan isi. Ada berkasnya, ada
+perintahnya, ada tajuknya — dan tidak ada yang membuka isinya.
+
+Kalau kamu menulis syarat lulus untuk dirimu sendiri di sprint berikutnya, itu
+pertanyaan yang layak diajukan lebih dulu: **kalau isinya dikosongkan, apakah
+uji ini tetap hijau?**
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah, termasuk hasil pembandingan
+bita untuk arah (a) dan (b).
+
+Satu commit per entri. Push, tunggu CI sampai `completed`, tempel keluaran
+mentah panggilan API-nya, baru tulis laporan.
+
+**Tidak dikunci.**
