@@ -54,19 +54,22 @@ Catat **ongkos masuk**: berapa detik dari perintah pertamamu sampai kamu tahu
 alat mana yang akan kamu pakai untuk pekerjaan sungguhan. Dan catat berapa
 perintah yang kamu jalankan sebelum sampai di sana.
 
-## M2 — Companion
+## M2 — Memilih alat
 
-Ada penganalisis maksud. Panggil dengan satu kalimat yang sungguhan relevan
-dengan proyek ini — bukan contoh dari dokumentasi.
+Cari sesuatu yang sungguhan di proyek ini — nama fungsi, rute, atau
+konfigurasi yang benar-benar ingin kamu ketahui letaknya. Bukan contoh dari
+dokumentasi.
 
-Tempel keluaran mentahnya.
+Tempel perintah dan keluaran mentahnya.
 
-Lalu jawab dua hal:
+Lalu jawab tiga hal, jujur:
 
-- Apakah kamu **menjalankan** alat yang disarankannya? Kalau tidak, alat mana
-  yang kamu pakai dan kenapa.
-- Sebelum memanggilnya, apakah kamu sudah tahu alat mana yang mau kamu pakai?
-  Jawab jujur ya atau tidak.
+- Bagaimana kamu memutuskan memakai alat itu? Sebutkan apa yang kamu baca atau
+  jalankan sebelum memutuskan.
+- Sebelum memutuskan, kamu sudah tahu mau memakai apa, atau kamu mencari tahu
+  dulu?
+- Adakah sesuatu di paket ini yang membantumu memilih? Kalau kamu mencarinya
+  dan tidak menemukan, tulis itu.
 
 ## M3 — Satu suntingan sungguhan
 

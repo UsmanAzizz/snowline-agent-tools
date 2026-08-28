@@ -20,7 +20,7 @@ Laporan ini bukan penilaian. Jangan menulis apakah snowline bagus atau tidak.
 - Jumlah perintah sebelum sampai di sana:
 - Dari mana kamu tahu apa yang bisa dilakukan paket ini:
 
-## 2. Companion
+## 2. Memilih alat
 
 Perintah dan keluaran mentah:
 
@@ -28,9 +28,11 @@ Perintah dan keluaran mentah:
 
 ```
 
-- Alat yang disarankan:
-- Alat yang benar-benar kamu jalankan:
-- Sudah tahu alat mana yang mau dipakai sebelum memanggilnya? (ya / tidak):
+- Alat yang kamu pakai:
+- Bagaimana kamu memutuskannya (apa yang kamu baca atau jalankan dulu):
+- Sudah tahu sebelum memutuskan, atau mencari tahu dulu?
+- Ada yang membantumu memilih? Kalau mencari dan tidak menemukan, tulis apa
+  yang kamu cari:
 
 ## 3. Satu suntingan sungguhan
 
