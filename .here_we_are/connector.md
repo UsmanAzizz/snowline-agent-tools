@@ -7944,3 +7944,184 @@ pesannya masih tidak menyebutkan cara membersihkannya.
 
 Tiga dari empat entri lulus. Yang keempat perlu diulang, dan teksnya sudah ada
 di entri sprintnya.
+
+
+# PM -> TL: Sprint 47b — Entri 4 diulang, dengan bentuk yang tidak bisa disalahartikan
+
+Koreksi blok `git log`, Entri 2, dan Entri 3 sudah lulus verifikasi QA. Jangan
+diulang.
+
+Yang tersisa Entri 4. Kali ini teksnya saya tulis penuh di sini, supaya tidak
+ada yang perlu ditafsirkan.
+
+## Kenapa yang kemarin ditolak
+
+Ketiga pertanyaannya ada, tetapi jadi butir di kaki bagian lama:
+
+```
+## 10. Keputusan yang tidak bisa kamu periksa
+   ...isi lama...
+- Sumber catatan saat merapikan catatan proyek (...)
+
+## 11. Ke mana waktunya habis
+   ...isi lama...
+- Pernah menunggu proses yang tidak selesai atau menggantung?
+```
+
+Dua akibatnya:
+
+```
+butir "merapikan catatan proyek" menunjuk ke tugas yang tidak ada,
+  karena M10 tidak dibuat
+
+pertanyaan menunggu jadi catatan sampingan — persis keadaan yang
+  bagian ini dibuat untuk menghindarinya
+```
+
+Butir di kaki bagian lain **adalah** catatan sampingan. Bentuknya berubah,
+letaknya tidak.
+
+---
+
+## Langkah 1 — tambahkan M10 ke `SNOWLINE_TEST.md`
+
+Sisipkan sesudah `## M9`, sebelum garis `---` penutup. Salin apa adanya:
+
+```markdown
+## M10 — Rapikan catatan
+
+Connector di proyek ini sekarang punya beberapa entri.
+
+Rapikan: pindahkan yang sudah selesai ke arsip, dan pastikan tidak ada baris
+yang hilang di perjalanan.
+
+Yang dilaporkan: perintah apa yang kamu pakai, dan **dari mana kamu tahu
+perintah itu ada**. Kalau kamu tidak menemukan cara yang disediakan lalu
+mengarang caranya sendiri, tulis itu — termasuk apa yang kamu karang.
+```
+
+Dan di bagian **Aturan** butir 6, ubah `M1 sampai M9` jadi `M1 sampai M10`.
+
+## Langkah 2 — susun ulang bagian penutup `TEST_REPORT.md`
+
+Bagian 0 sampai 9 **tidak disentuh sama sekali**.
+
+Buang bagian 10 dan 11 yang sekarang, ganti dengan enam bagian berikut. Salin
+apa adanya:
+
+```markdown
+## 10. Rapikan catatan
+
+Perintah yang kamu pakai:
+
+```text
+
+```
+
+- Dari mana kamu tahu perintah itu ada:
+- Kalau kamu mengarang caranya sendiri, apa yang kamu karang:
+
+## 11. Menunggu
+
+Adakah perintah yang membuatmu menunggu lebih lama dari yang kamu kira?
+
+Sebutkan perintahnya, berapa lama, dan apa yang kamu lakukan sambil menunggu.
+Kalau kamu sempat membatalkannya, tulis itu.
+
+Kalau tidak ada, tulis: tidak ada.
+
+## 12. Keluaran yang tidak kamu baca sampai habis
+
+Sepanjang tugas ini, adakah keluaran yang kamu terima tetapi tidak kamu baca
+seluruhnya? Sebutkan yang mana, dan bagian mana yang kamu lewati.
+
+Jawaban "tidak ada" boleh, tetapi pikirkan dulu keluaran terpanjang yang kamu
+terima hari ini.
+
+## 13. Yang kamu kira sebelum mulai
+
+Sebelum perintah pertamamu, apa yang kamu kira paket ini akan lakukan?
+
+Apa yang ternyata berbeda?
+
+## 14. Keputusan yang tidak bisa kamu periksa
+
+Selama tugas ini, adakah keputusan yang kamu ambil tanpa cara memastikan
+keputusan itu benar? Bukan yang salah — yang tidak bisa diperiksa.
+
+Satu baris per keputusan, dan sebutkan apa yang akan membuktikannya salah
+seandainya ada.
+
+Kalau tidak ada, tulis: tidak ada.
+
+## 15. Ke mana waktunya habis
+
+Urutkan dari yang paling lama. Bukan perkiraan kasar — kalau kamu tidak
+mencatat waktunya, tulis "tidak dicatat".
+```
+
+Perhatikan: isi bagian 14 dan 15 adalah isi bagian 10 dan 11 yang lama, pindah
+tanpa diubah. Yang benar-benar baru cuma 10, 11, 12, dan 13.
+
+Sesudah ini `TEST_REPORT.md` punya enam belas bagian: 0 sampai 15.
+
+## Langkah 3 — naikkan angka penjaganya
+
+Di `tests/test_init_test_content.py`:
+
+```
+MIN_TUGAS_MIKRO      10 -> 11
+MIN_BAGIAN_LAPORAN   12 -> 16
+```
+
+Dan ganti tiga penegasan kalimat yang sekarang:
+
+```python
+assert "Sumber catatan saat merapikan catatan proyek" in isi_laporan, ...
+assert "Pernah menunggu proses yang tidak selesai atau menggantung" in isi_laporan, ...
+assert "Baris penting di keluaran alat yang sempat terlewat" in isi_laporan, ...
+```
+
+jadi penegasan atas **judul bagiannya**, bukan kalimat di dalamnya:
+
+```python
+for judul in ("## 10. Rapikan catatan",
+              "## 11. Menunggu",
+              "## 12. Keluaran yang tidak kamu baca sampai habis",
+              "## 13. Yang kamu kira sebelum mulai"):
+    assert judul in isi_laporan, f"TEST_REPORT.md kehilangan bagian: {judul}"
+```
+
+Alasannya: kalimat di dalam bagian akan disunting suatu hari, dan uji yang
+mengunci kalimat akan merah untuk perbaikan kata-kata yang sah. Judul bagian
+lebih stabil, dan itu yang benar-benar menanggung beban.
+
+## Syarat lulus
+
+```
+a  snowline init test -> SNOWLINE_TEST.md punya 11 tugas mikro (M0..M10)
+b  TEST_REPORT.md punya bagian 0 sampai 15, enam belas bagian
+c  keempat judul baru ada, masing-masing sebagai bagian tersendiri —
+   bukan butir di kaki bagian lain
+d  buang M10 dari templat -> suite MERAH, pesannya menyebut angkanya
+e  hasil init test identik bita per bita dengan templatnya
+f  tujuh kata terlarang tetap 0:
+   council mtime tempfile winreg scope_lock add-entry role.json
+```
+
+Arah (d) yang membuktikan angka penjaganya benar-benar naik. Pulihkan
+templatnya sesudah menguji, lalu periksa `git status`.
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah, jangan diringkas.
+
+**Blok `git log` diperlakukan seperti keluaran perintah lain.** Kalau kamu
+tidak sedang menjalankannya, jangan menuliskannya. Laporan tanpa blok itu tetap
+sah.
+
+Satu commit. Push, tunggu CI sampai `completed`, tempel keluaran mentah
+panggilan API-nya, baru tulis laporan.
+
+**Tidak dikunci.**
