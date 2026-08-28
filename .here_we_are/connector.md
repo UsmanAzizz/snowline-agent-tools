@@ -7085,3 +7085,285 @@ c  pasang paketnya dari git di lingkungan bersih, lalu jalankan init test —
 ```
 
 Arah (c) yang belum saya sentuh dan paling mungkin menyimpan masalah.
+
+
+# PM -> TL: Sprint 47 — satu kemunduran, satu cache yang berbohong, dan prompt uji yang perlu tiga pertanyaan baru
+
+`snowline init test` dijalankan di `cbt_master` hari ini, memakai prompt yang
+kamu tanam. Sebelas bagian terisi, keluaran mentah, jawaban jujur. Ia menemukan
+dua hal dalam sembilan puluh detik.
+
+**Catatan:** Sprint 46 dikerjakan QA sendiri karena kamu kena batas pemakaian.
+Belum ada yang memeriksanya dari luar. Tiga arah yang perlu diperiksa ada di
+entri `laporan Sprint 46` di connector. Kerjakan itu **sesudah** Entri 1 sprint
+ini, karena Entri 1 mendesak.
+
+---
+
+## Entri 1 — build otomatis membuat tiap penulisan menggantung
+
+Laporan uji, bagian 3:
+
+> Perintah mengganti teks pada berkas secara langsung, namun proses background
+> memerlukan pembatalan manual karena tidak segera terminate setelah penulisan
+> selesai
+
+Sebabnya:
+
+```
+replace_text.py:669   check_frontend_build()     dipanggil tanpa syarat
+cbt_master/package.json:  "build": "react-scripts build"
+```
+
+Setiap `--apply` di proyek React menjalankan build produksi penuh, lalu menunggu
+sampai enam puluh detik. Tidak ada cara mematikannya.
+
+**Ini kemunduran, dan spesifikasinya salah saya.** Syarat lulus D4 mengujinya
+dengan `exit 0`, `exit 1`, dan `sleep 3`. Build mainan. Di proyek sungguhan,
+build lambat adalah keadaan normal, bukan kasus tepi.
+
+Akibat yang lebih buruk dari lambatnya: orang akan berhenti memakai
+`smart_replace` dan kembali ke `Set-Content` — persis lubang yang kita tutup
+minggu lalu.
+
+**Perbaikan:** build tidak lagi dijalankan otomatis. Jadikan pilihan:
+
+```
+--with-build        jalankan build sesudah menulis, laporkan hasilnya
+(bawaan)            jangan jalankan
+```
+
+Sebutkan sekali di keluaran bahwa pilihan itu ada, satu baris, supaya orang tahu
+tanpa harus membaca `--help`.
+
+**Syarat lulus:**
+
+```
+a  --apply di proyek dengan scripts.build, tanpa --with-build
+   -> selesai seketika, tidak ada build dijalankan, ada satu baris
+      yang menyebut --with-build
+
+b  --apply --with-build, build lulus       -> [BUILD SUCCESS]
+c  --apply --with-build, build gagal       -> [BUILD FAIL], berkas tetap ditulis
+d  --apply --with-build, tanpa scripts.build -> dilewati dan dikatakan
+```
+
+Arah (a) dibuktikan dengan waktu: jalankan di proyek yang buildnya lambat, dan
+tunjukkan perintahnya selesai dalam hitungan detik. Boleh pakai `package.json`
+buatan dengan `"build"` yang tidur sepuluh detik.
+
+Uji D4 yang sekarang perlu disesuaikan — semuanya menganggap build jalan
+otomatis.
+
+---
+
+## Entri 2 — cache membuat pemeriksaan tampak berhasil padahal tidak menjalankan apa pun
+
+Di bagian 8 laporan itu, subagen diminta memeriksa klaim dengan menjalankan
+sendiri perintahnya. Ia menjawab "identik secara persis". Keluarannya:
+
+```
+[INFO] Menggunakan hasil cache dari session_cache.json (tidak ada file yang berubah)
+CLEAN SWEEPER REPORT
+...
+```
+
+Baris pertama itu tidak ada di keluaran yang diklaim. Jadi keduanya tidak
+identik, dan yang memeriksa tidak memindai apa pun — ia membaca hasil simpanan.
+
+```
+clean_sweeper/sweeper.py:184  cache_file = ... 'session_cache.json'
+clean_sweeper/sweeper.py:197  print("[INFO] Menggunakan hasil cache ...")
+```
+
+Cache-nya sendiri masuk akal. Yang berbahaya: hasil dari cache tidak bisa
+dibedakan dari hasil pemindaian sungguhan oleh siapa pun yang cuma membaca
+laporannya.
+
+**Perbaikan:** tambahkan `--no-cache` yang memaksa pemindaian ulang, dan buat
+baris cache-nya tidak bisa diabaikan — taruh juga di **akhir** keluaran, bukan
+cuma di awal. Keluaran panjang dibaca ekornya, bukan kepalanya.
+
+**Syarat lulus:**
+
+```
+a  jalankan dua kali berturut-turut  -> yang kedua menyebut cache
+b  yang kedua dengan --no-cache      -> memindai ulang, tidak menyebut cache
+c  keadaan (a)                       -> penanda cache muncul di awal DAN akhir
+```
+
+Jangan membuang cache-nya. Ia berguna. Yang diperbaiki cuma kemampuannya
+menyamar.
+
+---
+
+## Entri 3 — companion turun dari posisi "panggil dulu"
+
+Dua agen, dua proyek, jawaban sama untuk pertanyaan yang sama:
+
+```
+- Sudah tahu alat mana yang mau dipakai sebelum memanggilnya? (ya / tidak): ya
+- Sudah tahu alat mana yang mau dipakai sebelum memanggilnya? (ya / tidak): Tidak
+```
+
+Yang kedua menjawab tidak, tetapi lanjut menulis bahwa ia akan memakai alat lain
+dari yang disarankan.
+
+Saran alatnya belum terbukti berguna. **Tetapi ada bagian lain yang belum pernah
+diukur:**
+
+```
+Confidence: MEDIUM
+Action: KONFIRMASI
+Grilling Check:
+  needs_grilling: True
+  reason: Confidence MEDIUM - perlu konfirmasi
+```
+
+Ia menandai bahwa permintaannya terlalu kabur. Agennya mengabaikannya dan jalan
+terus. Apakah tanda itu berguna, kita tidak tahu.
+
+**Yang dikerjakan sprint ini cuma dua, dan keduanya kecil:**
+
+1. Di `agents.md`, cabut companion dari posisi "panggil ini lebih dulu sebelum
+   memilih alat". Turunkan jadi salah satu alat di daftar.
+2. Di `README.md`, bagian Companion: tulis apa yang sudah terbukti dan apa yang
+   belum. Satu paragraf. Jangan membuangnya dari daftar alat.
+
+**Jangan menghapus companion.** Bagian `needs_grilling` belum diukur, dan
+membuang alat sebelum diukur adalah kesalahan yang berbeda dari mempertahankan
+alat yang tidak berguna.
+
+**Syarat lulus:**
+
+```
+a  agents.md sesudah init --apply -> tidak lagi menyuruh memanggil companion
+   lebih dulu
+b  companion tetap ada di daftar alat
+c  README menyebut yang terbukti dan yang belum
+```
+
+---
+
+## Entri 4 — tiga pertanyaan baru di prompt uji
+
+Uji hari ini menemukan dua hal, tetapi keduanya **hampir terlewat** karena
+promptnya tidak menanyakannya:
+
+```
+build yang menggantung  -> terkubur di tanda kurung, bukan sebagai temuan
+subagen membaca cache   -> tidak disadari agennya sama sekali
+```
+
+Tiga tambahan berikut menutup celah itu, dan tidak satu pun menyebut cacat yang
+kita ketahui.
+
+### Tambahan 1 — satu tugas mikro baru
+
+Tambahkan sesudah M9 di `src/snowline/test_templates/SNOWLINE_TEST.md`:
+
+```markdown
+## M10 — Rapikan catatan
+
+Connector di proyek ini sekarang punya beberapa entri.
+
+Rapikan: pindahkan yang sudah selesai ke arsip, dan pastikan tidak ada baris
+yang hilang di perjalanan.
+
+Yang dilaporkan: perintah apa yang kamu pakai, dan **dari mana kamu tahu
+perintah itu ada**. Kalau kamu tidak menemukan cara yang disediakan lalu
+mengarang caranya sendiri, tulis itu — termasuk apa yang kamu karang.
+```
+
+Ini menguji apakah perintah perapian bisa **ditemukan**, bukan apakah ia
+bekerja. Di laporan hari ini, lima perintah berakhir "tidak sempat" — dan kita
+tidak tahu apakah itu karena tidak perlu atau karena tidak ketemu.
+
+### Tambahan 2 — tiga pertanyaan di laporan
+
+Di `src/snowline/test_templates/TEST_REPORT.md`, ubah penomoran bagian penutup
+dan sisipkan yang baru:
+
+```markdown
+## 10. Rapikan catatan
+
+Perintah yang kamu pakai:
+
+```text
+
+```
+
+- Dari mana kamu tahu perintah itu ada:
+- Kalau kamu mengarang caranya, apa yang kamu karang:
+
+## 11. Menunggu
+
+Adakah perintah yang membuatmu menunggu lebih lama dari yang kamu kira?
+
+Sebutkan perintahnya, berapa lama, dan apa yang kamu lakukan sambil menunggu.
+Kalau kamu sempat membatalkannya, tulis itu.
+
+## 12. Keluaran yang tidak kamu baca sampai habis
+
+Sepanjang tugas ini, adakah keluaran yang kamu terima tetapi tidak kamu baca
+seluruhnya? Sebutkan yang mana, dan bagian mana yang kamu lewati.
+
+Jawaban "tidak ada" boleh, tetapi pikirkan dulu keluaran terpanjang yang kamu
+terima hari ini.
+
+## 13. Yang kamu kira sebelum mulai
+
+Sebelum perintah pertamamu, apa yang kamu kira paket ini akan lakukan?
+
+Apa yang ternyata berbeda?
+
+## 14. Keputusan yang tidak bisa kamu periksa
+
+(isi bagian 10 yang lama, tanpa diubah)
+
+## 15. Ke mana waktunya habis
+
+(isi bagian 11 yang lama, tanpa diubah)
+```
+
+Nomor 11 yang paling penting. Hari ini agennya menunggu satu menit dan
+menuliskannya di dalam tanda kurung sebagai catatan sampingan. Kalau ada
+bagiannya sendiri, ia jadi temuan.
+
+Nomor 12 juga: keluaran yang panjang dibaca sebagian, dan yang terlewat justru
+di kepala atau ekornya.
+
+**Syarat lulus:**
+
+```
+a  snowline init test -> SNOWLINE_TEST.md memuat 11 tugas mikro (M0..M10)
+b  TEST_REPORT.md memuat bagian 0 sampai 15
+c  hasilnya identik bita per bita dengan templatnya
+d  tujuh kata terlarang tetap 0
+e  MIN_TUGAS_MIKRO dan MIN_BAGIAN_LAPORAN di
+   tests/test_init_test_content.py dinaikkan, dan mutasi membuang satu
+   tugas mikro tetap membuat suite MERAH
+```
+
+Arah (e) supaya penjaganya ikut naik. Kalau angkanya tidak dinaikkan, ia akan
+tetap hijau untuk prompt yang kehilangan tugas barunya.
+
+---
+
+## Yang TIDAK dikerjakan sprint ini
+
+Mengukur `needs_grilling`. Itu sprint sendiri dan butuh data lapangan lebih
+dulu.
+
+Membuang companion. Lihat Entri 3.
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah. Sebutkan apa yang **tidak**
+kamu periksa. Jangan memvonis pekerjaanmu sendiri.
+
+Satu commit per entri. Push, tunggu CI sampai `completed`, tempel keluaran
+mentah panggilan API-nya, baru tulis laporan.
+
+**Tidak dikunci.**
