@@ -125,7 +125,7 @@ def sweep(target):
 
     return residue_files, todo_count, comment_blocks, scanned_files, skipped_files
 
-def print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files):
+def print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=False):
     print("CLEAN SWEEPER REPORT")
     print("=" * 50)
 
@@ -156,7 +156,10 @@ def print_human(residue_files, todo_count, comment_blocks, scanned_files, skippe
         print("\n💡 PROMPT:")
         print('"Periksa temuan [FAIL] dan hapus file residu HANYA jika Anda yakin file tersebut tidak diperlukan lagi. Ingat bahwa pindaian ini hanya sebagian, file yang dilewati tidak termasuk di sini. Untuk [WARN], periksa apakah komentar/tag bisa dihapus."')
 
-def print_json(residue_files, todo_count, comment_blocks, scanned_files, skipped_files):
+    if from_cache:
+        print("\n[INFO] Hasil di atas diambil dari cache (session_cache.json). Gunakan --no-cache untuk memindai ulang.")
+
+def print_json(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=False):
     result = {
         'status': 'CLEAN' if len(residue_files) == 0 and todo_count == 0 and len(comment_blocks) == 0 else 'NEEDS_CLEANUP',
         'stats': {
@@ -178,6 +181,7 @@ def main():
     parser = argparse.ArgumentParser(description="Clean Sweeper - Project Health Scanner")
     parser.add_argument("target", help="Target directory to scan")
     parser.add_argument("--json", action="store_true", help="Output as JSON (machine-readable)")
+    parser.add_argument("--no-cache", action="store_true", help="Paksa pemindaian ulang tanpa membaca cache")
     args = parser.parse_args()
 
     target = os.path.abspath(args.target)
@@ -193,7 +197,9 @@ def main():
         except: pass
 
     clean_cache(cache_data)
-    if cache_key in cache_data and cache_data[cache_key].get('signature') == dir_sig:
+    from_cache = False
+    if not args.no_cache and cache_key in cache_data and cache_data[cache_key].get('signature') == dir_sig:
+        from_cache = True
         print("[INFO] Menggunakan hasil cache dari session_cache.json (tidak ada file yang berubah)")
         cached = cache_data[cache_key]
         residue_files = cached['residue_files']
@@ -218,9 +224,9 @@ def main():
         except: pass
 
     if args.json:
-        print_json(residue_files, todo_count, comment_blocks, scanned_files, skipped_files)
+        print_json(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=from_cache)
     else:
-        print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files)
+        print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=from_cache)
 
 if __name__ == "__main__":
     main()
