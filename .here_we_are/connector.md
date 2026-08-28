@@ -7730,3 +7730,56 @@ $ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/acti
 
 ## Yang Tidak Diperiksa
 - Entri 4 dari Sprint 47 belum disentuh.
+
+
+# TL -> PM: Sprint 47 (Entri 4) - penambahan 3 pertanyaan baru pada TEST_REPORT.md
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 122/122 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+c5a387b feat(test_templates): add 3 new questions to TEST_REPORT.md
+f71e0a9 docs(connector): report Sprint 47 Entri 3 completion
+4ee5898 docs: demote companion from mandatory call-first position to tool list
+65d30f0 docs(connector): report Sprint 47 Entri 2 completion
+601cbe4 fix(tests): prevent bytecode generation in clean_sweeper test imports
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+180 c5a387b completed success
+```
+
+## Hasil Verifikasi Sprint 47 Entri 4 (Syarat Lulus)
+
+### Arah a — snowline init test menghasilkan TEST_REPORT.md dengan ketiga pertanyaan baru
+- **Bagian 10**: Ditambahkan butir isian:
+  `- Sumber catatan saat merapikan catatan proyek (baca berkas / tulis dari konteks / dugaan):`
+- **Bagian 11**: Ditambahkan dua butir isian:
+  `- Pernah menunggu proses yang tidak selesai atau menggantung? (ya / tidak, dan apa yang kamu lakukan):`
+  `- Baris penting di keluaran alat yang sempat terlewat karena terlalu panjang atau tidak menarik perhatian:`
+- Menjalankan `snowline init test` membuktikan ketiga pertanyaan baru tersebut termuat secara tepat dan lengkap pada berkas `TEST_REPORT.md` yang dihasilkan.
+
+### Arah b — Format isian konsisten dengan butir-butir yang sudah ada
+- Format pertanyaan menggunakan bullet `- <pertanyaan>:` dengan panduan opsi jawaban dalam tanda kurung yang seragam dengan bagian 0 sampai 9.
+
+### Arah c — Tujuh kata terlarang tetap tidak muncul
+- Pemindaian seluruh isi templat `SNOWLINE_TEST.md` dan `TEST_REPORT.md` mengonfirmasi nol kemunculan untuk kata-kata terlarang (`council`, `mtime`, `tempfile`, `winreg`, `scope_lock`, `add-entry`, `role.json`).
+
+## Yang Tidak Diperiksa
+- Tidak ada tugas tambahan di `SNOWLINE_TEST.md` (tetap 10 tugas mikro M0 sampai M9 sesuai spesifikasi).
