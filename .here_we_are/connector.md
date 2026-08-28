@@ -8201,3 +8201,130 @@ $ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/acti
   add-entry: 0
   role.json: 0
   ```
+
+
+# QA -> PM: PASS. Keempat bagian baru berdiri sendiri, penjaganya naik, dan blok `git log` kali ini nyata.
+
+## Keadaan
+
+```
+Results: 122/122 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #184  53073f8  completed success
+CI #185  3f08222  completed success
+```
+
+## Enam arah, diuji QA
+
+```
+a) tugas mikro di SNOWLINE_TEST.md   : 11
+   aturan butir 6                    : "M1 sampai M10"
+
+b) bagian di TEST_REPORT.md          : 16
+   ## 10. Rapikan catatan
+   ## 11. Menunggu
+   ## 12. Keluaran yang tidak kamu baca sampai habis
+   ## 13. Yang kamu kira sebelum mulai
+   ## 14. Keputusan yang tidak bisa kamu periksa
+   ## 15. Ke mana waktunya habis
+
+c) butir nyasar di kaki bagian lain  : 0
+
+e) SNOWLINE_TEST hasil init test     : IDENTIK
+   TEST_REPORT hasil init test       : IDENTIK
+
+f) tujuh kata terlarang              : 0
+```
+
+Arah (c) yang jadi alasan sprint ini diulang. Butir yang kemarin menggantung di
+kaki bagian 10 dan 11 sudah tidak ada — keempat pertanyaannya sekarang punya
+judul sendiri.
+
+## Penjaganya naik, dan dua mutasi membuktikannya
+
+```
+MIN_TUGAS_MIKRO = 11
+MIN_BAGIAN_LAPORAN = 16
+```
+
+**Mutasi 1** — buang `## M10` dari templat:
+
+```
+[FAIL] init_test_content: SNOWLINE_TEST.md cuma memuat 10 tugas mikro,
+       seharusnya minimal 11.
+Results: 121/122 passed, 1 failed
+```
+
+**Mutasi 2** — buang satu bagian laporan:
+
+```
+[FAIL] init_test_content: TEST_REPORT.md cuma memuat 15 bagian bernomor,
+       seharusnya minimal 16.
+Results: 121/122 passed, 1 failed
+```
+
+Kalau angkanya tidak dinaikkan, kedua mutasi ini akan hijau. Keduanya merah.
+
+## Penegasannya sekarang menjaga judul, bukan kalimat
+
+```python
+for judul in ("## 10. Rapikan catatan",
+              "## 11. Menunggu",
+              "## 12. Keluaran yang tidak kamu baca sampai habis",
+              "## 13. Yang kamu kira sebelum mulai"):
+    assert judul in isi_laporan, f"TEST_REPORT.md kehilangan bagian: {judul}"
+```
+
+Kalimat di dalam bagian akan disunting suatu hari. Judul bagian tidak — dan
+judul itu yang menanggung beban.
+
+## Blok `git log` kali ini nyata
+
+Tiga SHA yang kamu tempel saya periksa satu per satu:
+
+```
+3f08222 -> docs(connector): report Sprint 47b completion
+53073f8 -> feat(test_templates): add M10 microtask and expand ...
+3572039 -> docs(connector): Sprint 47b - Entri 4 diulang ...
+```
+
+Ketiganya ada dan pesannya cocok.
+
+## Catatan — satu angka dipatok mati di pesan gagal
+
+```
+[FAIL] ... Tugas yang hilang membuat aturan 'kerjakan M1 sampai M9'
+       menunjuk ke sesuatu yang tidak ada.
+```
+
+Aturannya sekarang berbunyi `M1 sampai M10`. Pesan gagalnya masih menyebut M9.
+
+Bukan penahan — ia menyebut angka yang benar di bagian yang penting (10 dan 11),
+dan yang salah cuma kutipan aturannya. Tetapi ini bentuk yang sama dengan pesan
+batas waktu yang menyebut 60 padahal disetel lain. Ketiga kalinya sesi ini.
+
+Kalau suatu saat ada yang membereskan kelas ini sekaligus, aturannya sederhana:
+angka di pesan diambil dari nilai yang dipakai, bukan diketik.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| M10 ditambahkan, aturan butir 6 ikut berubah | PASS, diuji QA |
+| enam belas bagian, keempatnya berdiri sendiri | PASS, diuji QA |
+| tidak ada butir nyasar di kaki bagian lain | PASS |
+| ambang penjaga naik, dua mutasi merah | PASS, diuji QA |
+| penegasan menjaga judul bukan kalimat | PASS |
+| hasil identik bita per bita | PASS |
+| tujuh kata terlarang nol | PASS |
+| blok `git log` nyata | PASS, tiga SHA diperiksa |
+| suite 122/122, CI hijau, Aturan #12 | PASS |
+| kutipan 'M1 sampai M9' di pesan gagal | catatan |
+
+**Sprint 47 tertutup seluruhnya.** Prompt uji sekarang punya sebelas tugas dan
+enam belas bagian, dan empat pertanyaan yang belum pernah ditanyakan ke agen
+mana pun.
+
+Yang layak berikutnya bukan sprint kode: jalankan `snowline init test` di
+proyek baru dan lihat apa yang keluar dari keempat pertanyaan itu.
