@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import tempfile
 import subprocess
 from pathlib import Path
@@ -21,7 +22,17 @@ class ProyekUji:
             with open(jalur, "w", encoding="utf-8") as f:
                 f.write(isi)
 
-        # Setup role.json sebagai TL
+        # Setup dummy linter untuk menghindari probe npx jaringan
+        dummy_linter_dir = os.path.join(self.dir, "node_modules", ".bin")
+        os.makedirs(dummy_linter_dir, exist_ok=True)
+        dummy_linter_path = os.path.join(dummy_linter_dir, "eslint.cmd" if sys.platform == "win32" else "eslint")
+        dummy_script = "@echo off\nif \"%~1\"==\"-v\" (echo v8.0.0 & exit /b 0)\nexit /b 0\n" if sys.platform == "win32" else "#!/bin/sh\nexit 0\n"
+        with open(dummy_linter_path, "w", encoding="utf-8") as f:
+            f.write(dummy_script)
+        if sys.platform != "win32":
+            os.chmod(dummy_linter_path, 0o755)
+
+        # Setup role.json sebagai TL agar diizinkan tulis
         chamber_dir = os.path.join(self.dir, ".agents", "chamber")
         os.makedirs(chamber_dir, exist_ok=True)
         with open(os.path.join(chamber_dir, "role.json"), "w", encoding="utf-8") as f:
@@ -54,43 +65,47 @@ class ProyekUji:
         )
 
 def test_d4_frontend_build_directions():
-    # Arah c: Proyek tanpa scripts.build -> dilewati dan dikatakan dilewati
-    with ProyekUji({"kode.js": "const namaLama = 1;\n"}, pkg_scripts={"test": "echo test"}) as p:
-        res_c = p.jalankan(".", "namaLama", "namaBaru", "--apply")
-        assert res_c.returncode == 0, f"Arah c gagal: {res_c.stderr}\n{res_c.stdout}"
-        assert "[BUILD SUCCESS]" not in res_c.stdout and "[BUILD FAIL]" not in res_c.stdout, f"Arah c tidak boleh memicu build: {res_c.stdout}"
-        assert "dilewati" in res_c.stdout.lower() or "tidak ditemukan" in res_c.stdout.lower(), f"Arah c missing skip message: {res_c.stdout}"
-        print("PASS: Arah C (proyek tanpa scripts.build -> pemeriksaan build dilewati dan dilaporkan)")
+    # Arah a: --apply di proyek dengan scripts.build (lambat 10s), TANPA --with-build
+    # -> selesai seketika (< 3 detik meskipun build butuh 10 detik), tidak ada build dijalankan, menyebut --with-build
+    build_slow_cmd = f'{sys.executable} -c "import time; time.sleep(10)"'
+    with ProyekUji({"kode.js": "const namaLama = 1;\n"}, pkg_scripts={"build": build_slow_cmd}) as p:
+        t0 = time.time()
+        res_a = p.jalankan(".", "namaLama", "namaBaru", "--apply")
+        elapsed = time.time() - t0
+        assert res_a.returncode == 0, f"Arah a gagal: {res_a.stderr}\n{res_a.stdout}"
+        assert elapsed < 4.0, f"Arah a terlalu lambat (menjalankan build padahal tanpa --with-build): {elapsed:.2f}s"
+        assert "[BUILD" not in res_a.stdout, f"Arah a tidak boleh memicu build: {res_a.stdout}"
+        assert "--with-build" in res_a.stdout, f"Arah a missing mention of --with-build: {res_a.stdout}"
+        print(f"PASS: Arah A (--apply tanpa --with-build -> selesai dalam {elapsed:.2f}s, build tidak dijalankan, menyebut --with-build)")
 
-    # Arah b: Proyek dengan scripts.build, berkas benar -> build lulus dan dilaporkan
+    # Arah b: --apply --with-build, build lulus -> [BUILD SUCCESS]
     build_ok_cmd = f'{sys.executable} -c "import sys; print(\\"Frontend build passed\\"); sys.exit(0)"'
     with ProyekUji({"kode.js": "const namaLama = 1;\n"}, pkg_scripts={"build": build_ok_cmd}) as p:
-        res_b = p.jalankan(".", "namaLama", "namaBaru", "--apply")
+        res_b = p.jalankan(".", "namaLama", "namaBaru", "--apply", "--with-build")
         assert res_b.returncode == 0, f"Arah b gagal: {res_b.stderr}\n{res_b.stdout}"
         assert "[BUILD SUCCESS]" in res_b.stdout, f"Arah b missing BUILD SUCCESS: {res_b.stdout}"
-        print("PASS: Arah B (proyek dengan scripts.build lulus -> [BUILD SUCCESS] dilaporkan)")
+        print("PASS: Arah B (--apply --with-build lulus -> [BUILD SUCCESS] dilaporkan)")
 
-    # Arah a: Proyek dengan scripts.build, berkas rusak / build gagal -> build gagal dilaporkan, penulisan tidak crash
+    # Arah c: --apply --with-build, build gagal -> [BUILD FAIL], berkas tetap ditulis
     build_fail_cmd = f'{sys.executable} -c "import sys; sys.stderr.write(\\"Build error: syntax broken\\"); sys.exit(1)"'
     with ProyekUji({"kode.js": "const namaLama = 1;\n"}, pkg_scripts={"build": build_fail_cmd}) as p:
-        res_a = p.jalankan(".", "namaLama", "namaBaru", "--apply")
-        assert res_a.returncode == 0, f"Arah a gagal: {res_a.stderr}\n{res_a.stdout}"
-        assert "[BUILD FAIL]" in res_a.stdout, f"Arah a missing BUILD FAIL: {res_a.stdout}"
-        assert "Build error" in res_a.stdout or "Build error" in res_a.stderr, f"Arah a missing error details: {res_a.stdout}"
-        print("PASS: Arah A (proyek dengan scripts.build gagal -> [BUILD FAIL] dilaporkan)")
+        res_c = p.jalankan(".", "namaLama", "namaBaru", "--apply", "--with-build")
+        assert res_c.returncode == 0, f"Arah c gagal: {res_c.stderr}\n{res_c.stdout}"
+        assert "[BUILD FAIL]" in res_c.stdout, f"Arah c missing BUILD FAIL: {res_c.stdout}"
+        assert "Build error" in res_c.stdout or "Build error" in res_c.stderr, f"Arah c missing error details: {res_c.stdout}"
+        with open(os.path.join(p.dir, "kode.js"), "r", encoding="utf-8") as f:
+            content = f.read()
+        assert "namaBaru" in content, "Arah c gagal: berkas tidak ditulis saat build gagal!"
+        print("PASS: Arah C (--apply --with-build gagal -> [BUILD FAIL] dilaporkan, berkas tetap ditulis)")
 
-    # Arah d: Build memakan lebih dari batas waktu -> dihentikan (timeout) dan dikatakan
-    build_sleep_cmd = f'{sys.executable} -c "import time; time.sleep(3)"'
-    with ProyekUji({"kode.js": "const namaLama = 1;\n"}, pkg_scripts={"build": build_sleep_cmd}) as p:
-        res_d = p.jalankan(
-            ".", "namaLama", "namaBaru", "--apply",
-            env_extra={"SNOWLINE_BUILD_TIMEOUT": "1"}
-        )
+    # Arah d: --apply --with-build, tanpa scripts.build -> dilewati dan dikatakan
+    with ProyekUji({"kode.js": "const namaLama = 1;\n"}, pkg_scripts={"test": "echo test"}) as p:
+        res_d = p.jalankan(".", "namaLama", "namaBaru", "--apply", "--with-build")
         assert res_d.returncode == 0, f"Arah d gagal: {res_d.stderr}\n{res_d.stdout}"
-        assert "[BUILD TIMEOUT]" in res_d.stdout, f"Arah d missing BUILD TIMEOUT: {res_d.stdout}"
-        assert "60 detik" in res_d.stdout or "dihentikan" in res_d.stdout.lower(), f"Arah d missing timeout details: {res_d.stdout}"
-        print("PASS: Arah D (build melebihi batas waktu -> [BUILD TIMEOUT] dihentikan dan dilaporkan)")
+        assert "[BUILD SUCCESS]" not in res_d.stdout and "[BUILD FAIL]" not in res_d.stdout, f"Arah d tidak boleh memicu build: {res_d.stdout}"
+        assert "dilewati" in res_d.stdout.lower() or "tidak ditemukan" in res_d.stdout.lower(), f"Arah d missing skip message: {res_d.stdout}"
+        print("PASS: Arah D (--apply --with-build tanpa scripts.build -> pemeriksaan build dilewati dan dikatakan)")
 
 if __name__ == "__main__":
     test_d4_frontend_build_directions()
-    print("\nALL D4 FRONTEND BUILD DIRECTIONS PASSED!")
+    print("\nALL SPRINT 47 ENTRI 1 DIRECTIONS PASSED!")

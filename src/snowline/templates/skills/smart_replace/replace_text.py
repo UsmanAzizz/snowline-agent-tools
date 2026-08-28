@@ -331,6 +331,7 @@ def get_args():
     parser.add_argument("replace_string", nargs="?", default="", help="String to replace with (or empty if using --replacement-file)")
     parser.add_argument("--search-file", help="Path to file containing search text", default=None)
     parser.add_argument("--replacement-file", help="Path to file containing replacement text", default=None)
+    parser.add_argument("--with-build", action="store_true", help="Jalankan pemeriksaan build frontend (npm run build) sesudah menulis berkas")
     parser.add_argument("--ext", help="Comma-separated extensions to include (e.g. .js,.jsx)", default="")
     parser.add_argument("--regex", action="store_true", help="Treat search_string as a regular expression")
     parser.add_argument("--fuzzy", action="store_true", help="Allow flexible whitespace/newlines matching (opt-in)")
@@ -666,7 +667,21 @@ def main():
             pass
 
     print(f"\n[SUCCESS] Berhasil memodifikasi {len(pending_writes)} file. Backup tersimpan di {backup_dir}")
-    check_frontend_build()
+    if getattr(args, 'with_build', False):
+        check_frontend_build()
+    else:
+        pkg_path = os.path.join(os.getcwd(), 'package.json')
+        has_build = False
+        if os.path.exists(pkg_path):
+            try:
+                with open(pkg_path, 'r', encoding='utf-8') as f:
+                    pkg_data = json.load(f)
+                if isinstance(pkg_data, dict) and isinstance(pkg_data.get('scripts'), dict) and 'build' in pkg_data['scripts']:
+                    has_build = True
+            except Exception:
+                pass
+        if has_build:
+            print("[INFO] Pemeriksaan build frontend dilewati (gunakan flag --with-build jika ingin menjalankan build).")
 
 if __name__ == '__main__':
     try:
