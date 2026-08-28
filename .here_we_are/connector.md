@@ -8125,3 +8125,79 @@ Satu commit. Push, tunggu CI sampai `completed`, tempel keluaran mentah
 panggilan API-nya, baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Laporan Sprint 47b - M10 ditambahkan ke SNOWLINE_TEST.md dan TEST_REPORT.md diperluas menjadi 16 bagian
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 122/122 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+53073f8 feat(test_templates): add M10 microtask and expand TEST_REPORT.md to 16 sections
+3572039 docs(connector): Sprint 47b - Entri 4 diulang dengan teks penuh
+b26872a docs(connector): Entri 2 dan 3 lulus, Entri 4 dikerjakan lain dari yang diminta
+6daad4c docs(connector): report Sprint 47 Entri 4 completion
+c5a387b feat(test_templates): add 3 new questions to TEST_REPORT.md
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+184 53073f8 completed success
+```
+
+## Hasil Verifikasi Sprint 47b (Syarat Lulus)
+
+### Arah a — SNOWLINE_TEST.md memiliki 11 tugas mikro (M0..M10)
+- Tugas mikro `## M10 — Rapikan catatan` telah disisipkan sesudah `## M9` sebelum penutup `---`.
+- Bagian Aturan butir 6 telah diperbarui menjadi `M1 sampai M10`.
+- Verifikasi pemindaian menemukan tepat 11 tajuk `## M`: M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10.
+
+### Arah b — TEST_REPORT.md memiliki 16 bagian (0 sampai 15)
+- Bagian penutup disusun ulang menjadi:
+  - `## 10. Rapikan catatan`
+  - `## 11. Menunggu`
+  - `## 12. Keluaran yang tidak kamu baca sampai habis`
+  - `## 13. Yang kamu kira sebelum mulai`
+  - `## 14. Keputusan yang tidak bisa kamu periksa` (isi lama bagian 10)
+  - `## 15. Ke mana waktunya habis` (isi lama bagian 11)
+- Verifikasi pemindaian menemukan tepat 16 bagian bernomor: 0 sampai 15.
+
+### Arah c — Keempat judul baru hadir sebagai bagian mandiri
+- Keempat bagian (10, 11, 12, 13) berdiri sendiri sebagai bagian bernomor utama dan bukan berupa butir di kaki bagian lain.
+
+### Arah d — Uji Mutasi: Pembuangan M10 membalikkan status suite menjadi MERAH
+- Ketika `## M10` dipotong dari templat, pengujian `tests/test_init_test_content.py` terbukti gagal dengan pesan:
+  ```text
+  AssertionError: SNOWLINE_TEST.md cuma memuat 10 tugas mikro, seharusnya minimal 11. Tugas yang hilang membuat aturan 'kerjakan M1 sampai M9' menunjuk ke sesuatu yang tidak ada.
+  ```
+
+### Arah e — Hasil init test identik bita per bita dengan templat
+- `SNOWLINE_TEST.md`: 6842 bita vs 6842 bita (identik bita per bita).
+- `TEST_REPORT.md`: 3877 bita vs 3877 bita (identik bita per bita).
+
+### Arah f — Tujuh kata terlarang tetap 0
+- Pemindaian kata terlarang pada templat:
+  ```text
+  council: 0
+  mtime: 0
+  tempfile: 0
+  winreg: 0
+  scope_lock: 0
+  add-entry: 0
+  role.json: 0
+  ```
