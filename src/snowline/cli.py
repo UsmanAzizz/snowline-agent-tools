@@ -930,72 +930,24 @@ def init_test(force=False):
                 print(f"[BLOCKED] {test_report_path} sudah ada isinya. Gunakan --force untuk menimpa.")
                 return
 
-    snowline_test_content = """# Panduan Pengujian Snowline
+    templates = Path(__file__).parent / "test_templates"
+    src_test = templates / "SNOWLINE_TEST.md"
+    src_report = templates / "TEST_REPORT.md"
 
-Kamu diminta memakai paket alat agen ini untuk mengerjakan pekerjaan sungguhan
-di proyek tempat kamu berada sekarang, lalu melaporkan apa yang terjadi.
+    for f in (src_test, src_report):
+        if not f.exists():
+            print(f"[BLOCKED] Templat tidak ditemukan: {f}")
+            print("Pemasangan snowline tampaknya tidak lengkap.")
+            return
 
-Ini bukan tinjauan dan bukan penilaian. Jangan menulis apakah snowline bagus,
-berguna, atau menjanjikan. Tulis apa yang kamu jalankan dan apa yang keluar.
+    # Salin bita per bita supaya hasilnya identik dengan templatnya.
+    # Membaca sebagai teks akan menormalkan CRLF jadi LF dan membuat
+    # perbandingan bita gagal.
+    with open(snowline_test_path, "wb") as f:
+        f.write(src_test.read_bytes())
 
-## Aturan
-
-1. **Dilarang memperbaiki.** Jangan menambal kode, mengubah konfigurasi, atau
-   mengakali perintah supaya jalan. Kalau macet, catat macetnya lalu lanjut ke
-   tugas berikutnya.
-2. **Dilarang meringkas keluaran.** Tempel mentah. Tidak boleh ada
-   "*(dan 46 berkas lainnya)*" atau "*keluarannya panjang*". Kalau memang
-   panjang, tempel 15 baris pertama dan 5 baris terakhir, dan katakan berapa
-   baris yang dipotong.
-3. **Tidak ada klaim tanpa keluaran.** Kalimat "berhasil", "jalan", atau
-   "sesuai harapan" hanya boleh muncul tepat di bawah keluaran yang
-   menunjukkannya.
-4. **Dilarang membaca sumber snowline.** Jangan membuka repositori snowline-agent-tools, jangan membaca site-packages/snowline/. Kamu menguji dari luar. Kalau tebakan pertamamu salah, cara kedua salah, dan petunjuk layarnya tidak membantu — itu temuan. Kalau jawabannya tidak ada di --help atau docstring biasa, dan kamu baru bisa menemukannya setelah membaca file Python sumbernya, itu juga temuan: alatnya butuh dokumentasi yang lebih baik.
-5. **Catat tebakan.** Kalau kamu mencari sesuatu dan tidak ada, atau kamu harus menebak maksud argumennya, catat tebakan itu.
-6. **Kerjakan berurutan.** M1 sampai M9, jangan dilompati. Kalau satu hal gagal keras sampai kamu tidak bisa jalan sama sekali, baru tinggalkan.
-7. **Pakai alat dari proyek ini saja.** Semua skrip yang kamu jalankan harus berasal dari `.agents/` proyek tempat kamu sekarang. Jangan memanggil skrip dari proyek lain di mesin ini, walaupun jalurnya kamu tahu.
-"""
-
-    test_report_content = """# Laporan Pengujian Snowline
-
-Laporan ini bukan penilaian. Jangan menulis apakah snowline bagus atau tidak.
-
-## 0. Lingkungan
-
-- OS: 
-- Python: 
-- Terpasang di sistem / dari sumber: 
-- Versi persis: 
-- Perintah yang membuktikan versinya:
-
-## 1. Masuk tanpa dituntun
-
-## 2. Companion
-
-## 3. Satu suntingan sungguhan
-
-## 4. Batas tulis
-
-## 5. Chamber: pasang dan baca
-
-## 6. Chamber: gerbang entri, dua arah
-
-## 7. Satu agen, dua sesi
-
-## 8. Subagen QA
-
-## 9. Alat yang tidak kamu sentuh
-
-## 10. Keputusan yang tidak bisa kamu periksa
-
-## 11. Ke mana waktunya habis
-"""
-
-    with open(snowline_test_path, "w", encoding="utf-8", newline="") as f:
-        f.write(snowline_test_content)
-    
-    with open(test_report_path, "w", encoding="utf-8", newline="") as f:
-        f.write(test_report_content)
+    with open(test_report_path, "wb") as f:
+        f.write(src_report.read_bytes())
 
     print("[SUCCESS] SNOWLINE_TEST.md dan TEST_REPORT.md telah disiapkan.")
 
