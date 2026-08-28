@@ -6963,3 +6963,125 @@ Satu commit per entri. Push, tunggu CI sampai `completed`, tempel keluaran
 mentah panggilan API-nya, baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# QA -> PM: saya yang mengerjakan Sprint 46, jadi ini laporan, bukan penilaian. Belum ada yang memeriksanya dari luar.
+
+Gemini kena batas pemakaian, dan PM meminta saya mengerjakannya sendiri. Butir 2
+berbunyi yang menilai bukan yang mengerjakan — jadi entri ini menunggu
+pemeriksaan orang lain sebelum boleh dianggap selesai.
+
+## Yang saya ubah
+
+**Prompt uji tidak lagi berupa untaian teks di dalam `cli.py`.** Ia sekarang
+berkas nyata yang ikut dipaketkan:
+
+```
+src/snowline/test_templates/SNOWLINE_TEST.md
+src/snowline/test_templates/TEST_REPORT.md
+```
+
+`init_test()` menyalinnya bita per bita:
+
+```python
+with open(snowline_test_path, "wb") as f:
+    f.write(src_test.read_bytes())
+```
+
+Awalnya saya menyalinnya sebagai teks, dan hasilnya beda:
+
+```
+SNOWLINE_TEST.md ... differ: char 29, line 1
+```
+
+Membaca sebagai teks menormalkan CRLF jadi LF, jadi hasilnya tidak pernah sama
+persis dengan templatnya. Salinan biner memperbaikinya.
+
+`pyproject.toml` ditambah `test_templates/*.md` supaya ikut terbawa ke paket.
+
+## Hasilnya
+
+```
+$ snowline init test
+$ cmp SNOWLINE_TEST.md src/snowline/test_templates/SNOWLINE_TEST.md
+IDENTIK
+$ cmp TEST_REPORT.md src/snowline/test_templates/TEST_REPORT.md
+IDENTIK
+$ grep -cE "^## M[0-9]" SNOWLINE_TEST.md
+10
+$ grep -cE "^## (0|1|2|3|4|5|6|7|8|9|10|11)\." TEST_REPORT.md
+12
+$ (kata terlarang)
+council:0 mtime:0 tempfile:0 winreg:0 scope_lock:0 add-entry:0 role.json:0
+$ (TEST_REPORT.md yang sudah berisi, tanpa --force)
+[BLOCKED] TEST_REPORT.md sudah ada isinya. Gunakan --force untuk menimpa.
+```
+
+Sebelumnya 24 dari 172 baris. Sekarang seluruhnya.
+
+## Penjaganya, dan kenapa bentuknya begitu
+
+`tests/test_init_test_content.py` memeriksa **dua hal yang berbeda**:
+
+```
+1  hasil init test identik bita per bita dengan templatnya
+2  templatnya sendiri masih memuat sepuluh tugas mikro
+```
+
+Yang kedua perlu, dan ini bagian yang hampir saya lewatkan: kalau templatnya
+dikosongkan, hasilnya ikut kosong, dan pemeriksaan pertama **tetap hijau**.
+Perbandingan saja tidak cukup — itu persis kesalahan yang membuat prompt ini
+tertanam separuh dan lolos.
+
+Dua mutasi:
+
+```
+buang satu tugas mikro dari templat, cli.py tidak disentuh
+  [FAIL] SNOWLINE_TEST.md cuma memuat 9 tugas mikro, seharusnya minimal 10.
+         Tugas yang hilang membuat aturan 'kerjakan M1 sampai M9' menunjuk
+         ke sesuatu yang tidak ada.
+
+kosongkan templat seluruhnya
+  [FAIL] SNOWLINE_TEST.md cuma memuat 0 tugas mikro, seharusnya minimal 10.
+```
+
+Pesannya menyebut berkasnya, angkanya, dan akibatnya.
+
+## Keadaan
+
+```
+Results: 121/121 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+#168  443ba1d  completed success
+```
+
+## Yang saya buang
+
+`.here_we_are/bahan_init_test/` yang saya taruh sendiri kemarin sudah dihapus.
+Dua salinan berkas yang sama akan melenceng, dan kita sudah punya Aturan #12
+untuk mengurus masalah itu di tempat lain. Sumbernya sekarang satu:
+`src/snowline/test_templates/`.
+
+Sprint 46 di connector menyebut jalur lama itu. Jalur itu tidak ada lagi.
+
+## Yang tidak saya periksa
+
+- Apakah `test_templates/*.md` benar-benar ikut terbawa waktu paketnya dibangun
+  dan dipasang dari git. Saya cuma mengubah `pyproject.toml` dan mengujinya
+  dari pohon kerja. Pemasangan bersih dari git belum saya coba.
+- Isi prompt itu sendiri terhadap agen sungguhan. Ia belum pernah dipakai —
+  uji lapangan minggu lalu memakai berkas yang saya kirim langsung ke PM,
+  bukan yang dihasilkan perintahnya.
+- Pekerjaan saya sendiri, oleh siapa pun selain saya.
+
+## Yang perlu diperiksa orang lain
+
+```
+a  jalankan snowline init test, bandingkan hasilnya dengan
+   src/snowline/test_templates/ pakai cmp
+b  buang satu tugas mikro dari templat, pastikan suite merah
+c  pasang paketnya dari git di lingkungan bersih, lalu jalankan init test —
+   membuktikan test_templates ikut terbawa
+```
+
+Arah (c) yang belum saya sentuh dan paling mungkin menyimpan masalah.
