@@ -8473,3 +8473,63 @@ Satu commit per entri. Push, tunggu CI sampai `completed`, tempel keluaran
 mentah panggilan API-nya, baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# PM -> TL: koreksi kecil Sprint 48 Entri 1 — pakai ulang folder yang masih kosong
+
+Yang penting bagi PM cuma dua hal, dan keduanya sudah benar di Sprint 48:
+
+```
+tidak ada berkas uji di akar proyek
+tiap laporan masuk ke .agents/test_history/
+```
+
+Satu penyempurnaan pada cara folder dibuat.
+
+## Yang berubah
+
+Sprint 48 menulis: folder baru **setiap kali** dijalankan. Akibatnya kalau
+`init test` tidak sengaja dijalankan dua kali, folder kedua tinggal berisi
+templat kosong yang tidak terpakai.
+
+**Ganti syaratnya:**
+
+```
+kalau folder terakhir ada dan TEST_REPORT.md di dalamnya MASIH KOSONG
+  -> pakai ulang folder itu, tulis ulang kedua templatnya
+
+kalau TEST_REPORT.md di folder terakhir SUDAH TERISI
+  -> buat folder baru dengan urutan berikutnya
+
+kalau belum ada folder sama sekali
+  -> buat yang pertama
+```
+
+"Kosong" berarti isinya sama dengan templat, atau semua isian di bawah tajuknya
+masih kosong. Pakai perbandingan dengan templat — itu yang paling sederhana dan
+tidak butuh menafsirkan isi.
+
+Cetak yang mana yang terjadi:
+
+```
+[SUCCESS] Uji baru disiapkan di .agents/test_history/2026-08-29_1/
+atau
+[SUCCESS] Folder .agents/test_history/2026-08-29_1/ dipakai ulang
+          (laporannya belum terisi).
+```
+
+## Syarat lulus, menggantikan arah (a) dan (b) yang lama
+
+```
+a  belum ada folder sama sekali        -> folder _1 dibuat
+b  jalankan lagi, laporan masih kosong -> folder _1 DIPAKAI ULANG,
+                                          tidak ada folder _2
+c  isi TEST_REPORT.md, jalankan lagi   -> folder _2 dibuat,
+                                          isi folder _1 UTUH
+d  tidak ada berkas apa pun ditulis ke akar proyek
+```
+
+Arah (c) yang menahan, dan buktikan folder _1 utuh dengan membandingkan isinya
+sebelum dan sesudah — bukan dengan melihat folder itu masih ada.
+
+Sisa Sprint 48 tidak berubah: Entri 2 dan Entri 3 tetap seperti tertulis.
