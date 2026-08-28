@@ -8586,3 +8586,121 @@ $ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/acti
 - **Arah a**: Seluruh test suite (122/122) lulus dengan konfigurasi jalur baru `.agents/test_history/<tanggal>_<N>/`.
 - **Arah b**: Uji mutasi membuang `## M10` tetap menghasilkan status gagal/MERAH (`AssertionError: SNOWLINE_TEST.md cuma memuat 10 tugas mikro, seharusnya minimal 11`).
 - **Arah c**: Uji mutasi penulisan ke akar direktori ditolak oleh penegasan `assert not (Path(tmp) / "SNOWLINE_TEST.md").exists()`.
+
+
+# QA -> PM: PASS. Riwayat uji tidak bisa tertimpa, tidak bisa ditandai usang, dan tidak bisa kembali ke akar tanpa membuat suite merah.
+
+## Keadaan
+
+```
+Results: 122/122 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #189  47dd71d  completed success
+CI #190  5bd42fb  completed success
+```
+
+## Entri 1 — empat arah, diuji QA
+
+```
+a) belum ada folder
+   [SUCCESS] Uji baru disiapkan di .agents/test_history/2026-08-28_1/
+             Tempel isi SNOWLINE_TEST.md di folder itu ke sesi agen.
+   berkas di akar: 0
+
+b) jalankan lagi, laporan masih kosong
+   [SUCCESS] Folder .agents/test_history/2026-08-28_1/ dipakai ulang
+             (laporannya belum terisi).
+   folder: 2026-08-28_1/          <- tetap satu, tidak ada _2
+
+c) laporan diisi, jalankan lagi
+   [SUCCESS] Uji baru disiapkan di .agents/test_history/2026-08-28_2/
+   folder: 2026-08-28_1/ 2026-08-28_2/
+   isi folder _1 utuh? YA         <- md5 sebelum dan sesudah sama
+   jawaban lama masih ada: 1
+
+d) berkas di akar, ketiga kalinya: 0
+```
+
+Arah (c) yang menahan sprint ini, dan saya buktikan dengan md5, bukan dengan
+melihat foldernya masih ada. Jawaban yang saya tulis ke laporan putaran pertama
+masih di tempatnya.
+
+Kedua pesan keluarannya juga membedakan dengan jelas mana yang baru dan mana
+yang dipakai ulang. Orang yang membacanya tahu apa yang terjadi tanpa memeriksa
+foldernya.
+
+## Entri 2 — tiga arah
+
+```
+a) berkas di test_history disebut [USANG]   : 0
+b) berkas asing di skills/ disebut [USANG]  : 1
+c) sesudah update --apply
+   isi TEST_REPORT.md utuh                  : YA
+   folder masih ada                         : 1
+```
+
+Arah (b) membuktikan pengecualiannya tidak kelebaran.
+
+## Entri 3 — dua mutasi
+
+```
+buang ## M10 dari templat
+  [FAIL] cuma memuat 10 tugas mikro, seharusnya minimal 11
+
+arahkan init test menulis ke akar lagi (3 rujukan diubah)
+  [FAIL] init_test_content: Folder riwayat uji tidak ditemukan:
+         ...\.agents\test_history\2026-08-28_1
+  [FAIL] init_test creates_files: History dir not created
+  [FAIL] init_test reuses_empty_folder:
+```
+
+Mutasi kedua ditangkap tiga uji sekaligus. Itu arah yang saya minta supaya
+jalurnya tidak bisa diam-diam kembali ke akar suatu hari.
+
+## Catatan 1 — satu commit untuk tiga entri
+
+```
+47dd71d  feat(cli): write test history per round, protect from update, and guard path
+```
+
+Sprintnya meminta satu commit per entri. Ketiganya masuk satu commit.
+
+Namanya kali ini menyebut ketiga bagiannya, jadi tidak menyesatkan seperti
+`sync local test_hook_arah6` dulu. Tetapi kalau salah satu perlu dicabut,
+tetap tidak ada cara mencabutnya sendirian.
+
+Bukan penahan. Saya sebut karena ini permintaan yang sama untuk keempat kalinya.
+
+## Catatan 2 — pesan gagal kosong, keempat kalinya
+
+```
+[FAIL] init_test reuses_empty_folder:
+```
+
+Berakhir dengan titik dua kosong. Di CI, kegagalan itu tidak mengatakan apa yang
+salah.
+
+Ini keempat kalinya saya mencatat bentuk yang sama. Kalau ada yang membereskan
+kelas ini, satu putaran menyisir seluruh suite lebih murah daripada
+memperbaikinya satu per satu tiap kali ketemu.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| Entri 1, empat arah | PASS, diuji QA |
+| arah (c), folder lama utuh | PASS, md5 dibandingkan |
+| Entri 2, tiga arah | PASS, diuji QA |
+| Entri 3, mutasi M10 | PASS, MERAH |
+| Entri 3, mutasi jalur ke akar | PASS, MERAH di tiga uji |
+| suite 122/122, CI hijau, Aturan #12 | PASS |
+| satu commit untuk tiga entri | catatan, keempat kalinya |
+| pesan gagal kosong | catatan, keempat kalinya |
+
+**Sprint 48 tertutup.** Berkas uji sekarang tinggal di `.agents/test_history/`,
+selamat dari `update`, `uninstall`, dan pasang ulang.
+
+Sekarang PM bisa menjalankan uji putaran kedua di `cbt_master` dengan sesi baru.
+Laporan putaran pertama ada di `TEST_REPORT_run1.md` di akar — layak dipindahkan
+ke `.agents/test_history/` supaya sejajar dengan yang berikutnya.
