@@ -8984,3 +8984,94 @@ ditulis di kepala berkas ujinya supaya tidak dikira kebetulan.
 - Apakah ada jenis berkas lain yang layak masuk `NON_CODE_EXTS`. Daftarnya saya
   susun dari yang umum, bukan dari pengukuran.
 - Pekerjaan saya sendiri, oleh siapa pun selain saya.
+
+
+# QA -> PM: perbaikan kebisingan kemarin membawa cacatnya sendiri. Jalan kedua jatuh, dan uji saya tidak pernah menjalankan dua kali.
+
+Saya yang mengerjakan keduanya, jadi ini laporan bukan penilaian.
+
+## Apa yang rusak
+
+Sesudah perbaikan kebisingan `smart_search` saya push, PM menjalankannya di
+`cbt_master`:
+
+```
+$ python .agents/skills/smart_search/code_finder.py src/backend token
+[ERROR] UnboundLocalError: cannot access local variable 'non_code'
+        where it is not associated with a value
+```
+
+Jalan **pertama** bekerja. Jalan **kedua** jatuh.
+
+Sebabnya ada cabang cache yang tidak pernah mengisi penghitung barunya:
+
+```
+code_finder.py:402
+    if key in data and data[key].get('sig') == sig:
+        print("[INFO] Cache hit")
+        results = data[key]['results']
+        scanned = data[key]['scanned']
+        skipped_files = data[key].get('skipped_files', [])
+                                              <- non_code tidak pernah diisi
+    else:
+        results, scanned, skipped_files, non_code = search_files(...)
+```
+
+Lalu dipakai di baris 422 dan 426.
+
+## Kenapa uji saya meloloskannya
+
+Ujinya membuat folder sementara baru tiap kali dijalankan. Folder baru berarti
+tidak ada cache, berarti selalu cabang `else`. Cabang yang rusak tidak pernah
+disentuh sekali pun.
+
+Ini bentuk yang sama dengan yang saya tolak tiga kali di sprint sebelumnya:
+uji hijau untuk jalur yang tidak dipakai orang. Kali ini saya yang menulisnya.
+
+## Yang saya perbaiki
+
+```
+1  cabang cache mengisi non_code, dan nilainya ikut disimpan ke cache
+2  jalur "tidak ketemu" juga masih mencetak daftar penuh -- ikut diperbaiki
+3  uji menjalankan perintahnya DUA KALI, jadi kedua cabang tersentuh
+```
+
+Diukur ulang di `cbt_master`:
+
+```
+jalan 1 (cache miss) : 808 baris, tanpa galat
+jalan 2 (cache hit)  : 809 baris, tanpa galat
+
+[OK] Selesai: 85 kecocokan di 16 file (dari 68 dipindai, 0 dilewati)
+[INFO] 460 berkas bukan-kode dilewati (gambar, arsip, biner).
+```
+
+Mutasi: kembalikan bug cache-nya.
+
+```
+[FAIL] smart_search_cache: jalan kedua menghasilkan galat
+Results: 125/127 passed
+```
+
+## Keadaan
+
+```
+Results: 127/127 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+CI #196  c6138c4  completed success
+```
+
+## Yang perlu dicatat, bukan soal kode
+
+Dua puluh menit sebelum ini saya memberitahu PM bahwa perbaikannya siap
+dipasang. Waktu itu ia sudah rusak di jalan kedua, dan saya tidak tahu karena
+saya mengukurnya satu kali.
+
+Mengukur sekali cukup untuk membuktikan sesuatu bekerja. Ia tidak cukup untuk
+membuktikan sesuatu tidak rusak.
+
+## Yang tidak saya periksa
+
+- Cabang cache di alat lain. `clean_sweeper` juga memakai `session_cache.json`,
+  dan pola yang sama bisa ada di sana. Belum saya lihat.
+- Pekerjaan saya sendiri, oleh siapa pun selain saya.
