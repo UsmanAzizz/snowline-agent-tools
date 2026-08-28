@@ -8861,3 +8861,126 @@ c  buat berkas asing di .agents/skills/ -> harus TETAP ditandai usang
 ```
 
 Arah (a) yang belum bisa saya lakukan sendiri.
+
+
+# QA -> PM: saya yang mengerjakan, jadi laporan bukan penilaian. Pencarian di proyek nyata turun dari 1268 baris jadi 808.
+
+Uji lapangan kedua di `cbt_master` menemukan ini lewat pertanyaan bagian 12,
+yang baru ditambahkan kemarin:
+
+```text
+.agents/test_history/2026-08-28_1/../TEST_REPORT.md, bagian 12:
+
+- Keluaran `python .agents/skills/smart_search/code_finder.py src/backend token`
+  terpotong (1144 baris) karena menampilkan ratusan nama file gambar di dalam
+  folder `src/backend/uploads/`. Bagian daftar file gambar dilewati, fokus
+  dibaca pada bagian awal yang memuat rute dan kode logika token.
+```
+
+## Sebabnya
+
+```
+src/backend/uploads/  : 447 berkas  (312 png, 121 jpeg, 8 docx, 5 pdf)
+
+code_finder.py:19
+DEFAULT_EXCLUDES = {'node_modules', '.git', 'vendor', 'build', 'dist', ...}
+```
+
+Daftar abaikannya cuma nama folder. Tidak ada saringan jenis berkas.
+
+Jadi tiap gambar dibuka, gagal dibaca sebagai UTF-8 atau kelewat besar, masuk
+`skipped_files`, lalu dicetak satu per baris:
+
+```
+code_finder.py:345
+    if skipped_files:
+        print(f"[WARN] File dilewati (terlalu besar atau non-UTF8):")
+        for sf in skipped_files:
+            print(f"  - {sf}")
+```
+
+## Yang saya kerjakan
+
+Dua hal, dan yang kedua sama pentingnya:
+
+```
+1  berkas bukan-kode dilewati SEBELUM dibuka  (NON_CODE_EXTS)
+2  jumlahnya dilaporkan, daftarnya tidak
+```
+
+Berkas teks yang benar-benar gagal dibaca tetap disebut — lima contoh lalu
+"dan N lainnya". Berkas teks yang tidak terbaca itu informasi; empat ratus
+nama gambar bukan.
+
+## Diukur di proyek nyata
+
+Perintah yang sama, `src/backend token` di `cbt_master`:
+
+```
+sebelum : 1268 baris
+sesudah :  808 baris
+
+[OK] Selesai: 85 kecocokan di 16 file (dari 68 dipindai, 0 dilewati)
+[INFO] 460 berkas bukan-kode dilewati (gambar, arsip, biner).
+```
+
+Empat ratus enam puluh baris hilang, jadi satu baris hitungan.
+
+**Catatan soal waktu:** laporan lapangan menyebut 21 detik. Diukur QA,
+skripnya sendiri selesai di bawah satu detik untuk kedua versi. Dua puluh
+satu detik itu kemungkinan besar ongkos pemanggilan alat di sisi agen, bukan
+skripnya. Saya sebut supaya tidak ada yang mengejar perbaikan kecepatan yang
+tidak perlu.
+
+## Penjaganya, dan dua mutasi
+
+`tests/test_smart_search_noise.py`, dua arah:
+
+```
+1  120 gambar -> nol nama muncul, tetapi "120 berkas bukan-kode dilewati" ada
+2  7 berkas teks kelewat besar -> 5 contoh + "dan 2 lainnya"
+```
+
+```
+mutasi: kembalikan pencetakan daftar penuh
+  [FAIL] smart_search_teks_besar: Daftar berkas dilewati tidak dipotong: 7 baris.
+
+mutasi: buang lompatan berkas biner
+  [FAIL] smart_search_biner: 5 nama berkas gambar muncul di keluaran.
+  [FAIL] smart_search_teks_besar: jumlahnya tidak dilaporkan.
+```
+
+Arah kedua ada supaya perbaikan ini tidak bisa berubah jadi "diam saja". Kalau
+seseorang membuang laporan jumlahnya, ujinya merah.
+
+## Keadaan
+
+```
+Results: 126/126 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+CI #194  4620fb4  completed success
+```
+
+Dua commit terpisah. Ketiga salinan Aturan #12 disamakan.
+
+## Cacat lain yang muncul waktu menguji, di luar lingkup
+
+```
+[ERROR] ValueError: path is on mount 'C:', start on mount 'D:'
+```
+
+`code_finder.py` memakai `os.path.relpath` dan jatuh kalau target dan direktori
+kerja berbeda drive. Muncul waktu uji saya membuat folder sementara di `C:`
+sementara repo di `D:`.
+
+Tidak saya perbaiki — di luar lingkup, dan pemakaian nyata selalu satu drive.
+Ujinya sekarang membuat folder sementara di drive yang sama, dan alasannya
+ditulis di kepala berkas ujinya supaya tidak dikira kebetulan.
+
+## Yang tidak saya periksa
+
+- Hasilnya sesudah PM memasang ulang paketnya. Saya menguji dari pohon kerja
+  dan dari salinan `.agents/` di `cbt_master`, bukan dari paket terpasang.
+- Apakah ada jenis berkas lain yang layak masuk `NON_CODE_EXTS`. Daftarnya saya
+  susun dari yang umum, bukan dari pengukuran.
+- Pekerjaan saya sendiri, oleh siapa pun selain saya.
