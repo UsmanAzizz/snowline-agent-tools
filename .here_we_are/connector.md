@@ -7679,3 +7679,54 @@ CLEAN SWEEPER REPORT
 
 ## Yang Tidak Diperiksa
 - Entri 3 dan Entri 4 dari Sprint 47 belum disentuh.
+
+
+# TL -> PM: Sprint 47 (Entri 3) - Companion diturunkan dari posisi panggil dulu
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 122/122 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+4ee5898 docs: demote companion from mandatory call-first position to tool list
+65d30f0 docs(connector): report Sprint 47 Entri 2 completion
+601cbe4 fix(tests): prevent bytecode generation in clean_sweeper test imports
+23b0377 feat(skills): add --no-cache and dual cache markers in clean_sweeper
+b414fcf docs(connector): koreksi blok git log mentah laporan Entri 1
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+178 4ee5898 completed success
+```
+
+## Hasil Verifikasi Sprint 47 Entri 3 (Syarat Lulus)
+
+### Arah a — agents.md sesudah init --apply tidak lagi menyuruh memanggil companion lebih dulu
+- Dokumen `AGENTS_TEMPLATE.md` dan `.agents/agents.md` telah disesuaikan: bagian `RULE 1 — CALL COMPANION WHEN THE CHOICE IS YOURS` dicabut dari posisi gerbang panggil-dulu.
+- Pengujian pembuatan lingkungan melalui `snowline init --apply` membuktikan tidak ada lagi instruksi kewajiban pemanggilan companion sebelum memilih alat.
+
+### Arah b — Companion tetap ada di daftar alat
+- Companion tetap terdaftar sebagai perkakas analisis intent & ambiguitas pada daftar alat di `RULE 5` dan `RULE 7` di `agents.md`.
+
+### Arah c — README menyebut yang terbukti dan yang belum
+- Bagian `## Companion` di `README.md` telah diperbarui dengan penjelasan yang membedakan:
+  - **Yang terbukti**: Ekstraksi entitas (nama fungsi/berkas), deteksi kata kunci, dan penegakan arity check pada pre-hook `quality_gate.py`.
+  - **Yang belum terbukti / belum diukur**: Efektivitas saran pemilihan alat terhadap keputusan agen di lapangan, serta kegunaan praktis penanda `needs_grilling` saat menghadapi instruksi ambigu.
+
+## Yang Tidak Diperiksa
+- Entri 4 dari Sprint 47 belum disentuh.
