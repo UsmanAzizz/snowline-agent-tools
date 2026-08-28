@@ -83,6 +83,11 @@ def test_init_test_content():
         f"{MIN_BARIS_LAPORAN}. Isinya kemungkinan terpotong."
     )
 
+    # Verifikasi 3 pertanyaan baru Sprint 47 Entri 4
+    assert "Sumber catatan saat merapikan catatan proyek" in isi_laporan, "TEST_REPORT.md missing question 1 (sumber catatan)"
+    assert "Pernah menunggu proses yang tidak selesai atau menggantung" in isi_laporan, "TEST_REPORT.md missing question 2 (menunggu)"
+    assert "Baris penting di keluaran alat yang sempat terlewat" in isi_laporan, "TEST_REPORT.md missing question 3 (keluaran terlewat)"
+
     for kata in KATA_TERLARANG:
         gabungan = (isi_prompt + isi_laporan).lower()
         assert kata.lower() not in gabungan, (

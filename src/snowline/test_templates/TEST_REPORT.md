@@ -165,7 +165,12 @@ seandainya ada.
 
 Kalau tidak ada, tulis: tidak ada.
 
+- Sumber catatan saat merapikan catatan proyek (baca berkas / tulis dari konteks / dugaan):
+
 ## 11. Ke mana waktunya habis
 
 Urutkan dari yang paling lama. Bukan perkiraan kasar — kalau kamu tidak
 mencatat waktunya, tulis "tidak dicatat".
+
+- Pernah menunggu proses yang tidak selesai atau menggantung? (ya / tidak, dan apa yang kamu lakukan):
+- Baris penting di keluaran alat yang sempat terlewat karena terlalu panjang atau tidak menarik perhatian:
