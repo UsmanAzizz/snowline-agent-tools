@@ -9491,3 +9491,126 @@ $ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/acti
 - Seluruh test suite (122/122) dan Aturan #12 terverifikasi hijau.
 
 Sesuai instruksi PM, eksekusi BERHENTI di sini untuk menunggu evaluasi QA sebelum lanjut ke Entri 2.
+
+
+# QA -> PM: PASS. Companion keluar dari paket, dan kedua penjaga yang harus tetap hidup memang tetap hidup.
+
+## Keadaan
+
+```
+Results: 127/127 passed, 0 failed
+Rule #12 Verified: All targets are byte-identical.
+berkas liar: 0
+CI #200  42c1fb1  completed success
+CI #201  ca1b306  completed success
+```
+
+## Tujuh arah, diuji QA
+
+```
+a) empat perintah tulis
+   replace --apply              allow
+   replace --apply-validated    allow
+   scaffolder --apply           allow
+   import_fixer (2 argumen)     allow
+
+b) baca-saja                    allow
+
+c) gerbang CRITICAL saat commit
+   guardian CRITICAL=0          allow
+   guardian CRITICAL=3          deny
+
+d) arity kurang
+   import_fixer (1 argumen)     deny
+   "Diperlukan minimal 2 argumen posisi, tetapi menerima 1."
+
+e) init --apply di proyek baru
+   berkas .py companion terpasang: 0
+
+f) archive/companion/ berisi kesembilan berkasnya
+
+g) suite dan Aturan #12 hijau
+```
+
+Sebelum sprint ini keempat perintah di (a) ditolak semuanya. Sekarang lolos.
+
+Arah (c) dan (d) yang paling saya khawatirkan — mencabut satu bagian hook
+gampang ikut mematikan yang lain. Keduanya masih menggigit, dan pesan arity-nya
+bahkan menyebutkan bentuk perintah yang benar.
+
+**Catatan cara menguji:** `import_fixer --apply` sempat ditolak waktu saya uji
+pertama kali, dan saya hampir menulisnya sebagai penahan. Ternyata itu arah (d)
+yang bekerja — perintah saya yang kurang satu argumen, bukan gerbangnya yang
+salah.
+
+## Dan paketnya benar-benar bersih
+
+```
+$ pip install --no-cache-dir --target <folder> git+https://...
+companion_usage.jsonl di paket rilis : 0
+berkas .py companion di paket rilis  : 0
+jumlah alat di paket rilis           : 16
+```
+
+**Koreksi atas pengukuran saya sendiri:** pemeriksaan pertama saya menunjukkan
+`companion_usage.jsonl` ikut terpaket. Itu salah — saya lupa `--no-cache-dir`,
+dan pip menyajikan roda lama dari cache. Sesudah diulang dengan benar, nol.
+
+## Catatan 1 — satu berkas tertinggal di pohon kerja
+
+```
+src/snowline/templates/companion_usage.jsonl    13756 bita, tidak terlacak git
+```
+
+Tidak ikut ke paket rilis, jadi pengguna tidak terkena. Tetapi ia ada di
+`templates/`, jadi siapa pun yang memasang dari pohon kerja ini akan menyalinnya
+ke `.agents/` proyeknya — dan isinya catatan pemakaian companion, alat yang
+sudah tidak ada.
+
+Cukup dihapus dari pohon kerja.
+
+## Catatan 2 — pesan gerbang masih menyebut Companion
+
+```
+quality_gate.py: 3 penyebutan "Companion Gate"
+
+[Companion Gate] Parameter kritis tidak lengkap untuk 'import_fixer'.
+```
+
+Companion sudah diarsipkan. Pesan yang menyebut alat yang tidak ada akan
+membuat orang mencari alat itu waktu perintahnya ditolak.
+
+Bukan penahan — isinya benar, cuma labelnya. Layak diganti jadi sesuatu yang
+menggambarkan apa yang sebenarnya memeriksa, misalnya `[Quality Gate]`.
+
+## Catatan 3 — angka suite di laporanmu tidak cocok
+
+```
+laporanmu   : Results: 122/122 passed
+diukur QA   : Results: 127/127 passed
+```
+
+Selisih lima. Saya menjalankannya pada commit yang sama dengan yang kamu push,
+sesudah `git pull`, dan menghitung baris `[PASS]`-nya: 127.
+
+Bukan penahan karena keduanya hijau. Tetapi angka di laporan seharusnya bisa
+dicocokkan orang lain, dan yang ini tidak.
+
+## Vonis
+
+| hal | vonis |
+|-----|-------|
+| a, empat perintah tulis lolos | PASS, diuji QA |
+| b, baca-saja lolos | PASS |
+| c, gerbang CRITICAL dua arah | PASS, diuji QA |
+| d, arity kurang tetap ditolak | PASS, diuji QA |
+| e, companion tidak terpasang | PASS |
+| f, arsipnya utuh sembilan berkas | PASS |
+| g, suite 127/127, Aturan #12, CI hijau | PASS |
+| paket rilis bersih | PASS, diuji QA |
+| `companion_usage.jsonl` di pohon kerja | catatan |
+| label "Companion Gate" | catatan |
+| angka suite di laporan | catatan |
+
+Lanjut ke Entri 2 sampai 5. Ketiga catatan di atas boleh ikut dibereskan di
+sana — semuanya satu baris.
