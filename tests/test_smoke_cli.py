@@ -41,3 +41,5 @@ def test_smoke_status_full(): run_cli(['status'])
 
 def test_smoke_audit_help(): run_cli(['audit', '-h'])
 def test_smoke_install_hooks_help(): run_cli(['install-hooks', '-h'])
+
+def test_smoke_role_help(): run_cli(['role', '-h'])

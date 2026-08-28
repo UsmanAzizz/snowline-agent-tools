@@ -1043,6 +1043,10 @@ def main():
     p_audit.add_argument("--sejak", help="Filter catatan sejak tanggal/waktu tertentu")
     p_audit.add_argument("--hanya-luar-lingkup", action="store_true", help="Hanya tampilkan berkas di luar lingkup")
 
+    p_role = subparsers.add_parser("role", help="Tampilkan atau ubah peran di .agents/chamber/role.json")
+    p_role.add_argument("nama_peran", nargs="?", help="Nama peran baru (misal: QA, TL, PM)")
+    p_role.add_argument("--apply", action="store_true", help="Terapkan perubahan peran secara permanen")
+
     p_ih = subparsers.add_parser("install-hooks", help="Pasang Project Guardian pre-commit hook")
     p_ih.add_argument("--apply", action="store_true", help="Terapkan pemasangan hook")
     p_ih.add_argument("--force", action="store_true", help="Timpa hook pre-commit yang sudah ada (simpan cadangan .bak)")
@@ -1099,6 +1103,14 @@ def main():
         except Exception as e:
             safe_print(f"{Colors.RED}Gagal menutup entri: {e}{Colors.RESET}")
             sys.exit(1)
+    elif args.command == "role":
+        try:
+            from snowline.core_role import role_command
+        except ImportError:
+            sys.path.insert(0, os.path.dirname(__file__))
+            from core_role import role_command
+        role_command(args.nama_peran, apply=args.apply)
+
     elif args.command == "rotate":
         try:
             from snowline.core_rotate import rotate_command
