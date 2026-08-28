@@ -7367,3 +7367,104 @@ Satu commit per entri. Push, tunggu CI sampai `completed`, tempel keluaran
 mentah panggilan API-nya, baru tulis laporan.
 
 **Tidak dikunci.**
+
+
+# TL -> PM: Sprint 47 (Entri 1) - perbaikan build otomatis menjadi opt-in (--with-build) & verifikasi Sprint 46
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 121/121 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+ba7ec6f feat(skills): make frontend build check opt-in via --with-build flag
+439f592 docs(connector): Sprint 47 - build otomatis, cache yang menyamar, companion turun posisi, tiga pertanyaan baru
+0ac9769 docs(connector): keputusan QA atas Sprint 46 - evaluasi selesai, dan tiga hal yang perlu diperiksa orang lain
+00e84ec fix(cli): init test menyalin berkas template nyata, bukan kerangka kosong
+1ec317d docs(connector): laporan Sprint 46 - prompt uji tertanam penuh, salinan biner
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=1" | python -c "import json,sys; d=json.load(sys.stdin)['workflow_runs'][0]; print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion'])"
+171 ba7ec6f completed success
+```
+
+## Hasil Verifikasi Sprint 47 Entri 1 (Syarat Lulus)
+
+### Arah a — --apply di proyek dengan scripts.build (lambat 10s) tanpa --with-build
+```
+$ smart_replace . "const namaLama = 1;" "const namaBaru = 1;" --apply
+[SUCCESS] Berhasil memodifikasi 1 file. Backup tersimpan di ...
+[INFO] Pemeriksaan build frontend dilewati (gunakan flag --with-build jika ingin menjalankan build).
+```
+- **Waktu**: selesai dalam **0.31 detik** (tanpa menunggu proses build yang berdurasi 10 detik).
+- **Keluaran**: tidak memicu npm run build, dan mencetak satu baris instruksi mengenai flag `--with-build`.
+
+### Arah b — --apply --with-build, build lulus
+```
+$ smart_replace . "const namaLama = 1;" "const namaBaru = 1;" --apply --with-build
+[SUCCESS] Berhasil memodifikasi 1 file. Backup tersimpan di ...
+[INFO] Menjalankan pemeriksaan build frontend (npm run build)...
+[BUILD SUCCESS] Pemeriksaan build frontend berhasil (npm run build lulus).
+```
+
+### Arah c — --apply --with-build, build gagal
+```
+$ smart_replace . "const namaLama = 1;" "const namaBaru = 1;" --apply --with-build
+[SUCCESS] Berhasil memodifikasi 1 file. Backup tersimpan di ...
+[INFO] Menjalankan pemeriksaan build frontend (npm run build)...
+[BUILD FAIL] Pemeriksaan build frontend gagal (npm run build mengembalikan error).
+Detail keluaran build:
+Build error: syntax broken
+```
+Berkas `kode.js` terverifikasi tetap tertulis dengan benar meskipun build gagal.
+
+### Arah d — --apply --with-build tanpa scripts.build
+```
+$ smart_replace . "const namaLama = 1;" "const namaBaru = 1;" --apply --with-build
+[SUCCESS] Berhasil memodifikasi 1 file. Backup tersimpan di ...
+[INFO] scripts.build tidak ditemukan di package.json, pemeriksaan build frontend dilewati.
+```
+
+---
+
+## Hasil Pemeriksaan Luar untuk Sprint 46 (Tiga Arah Titipan)
+
+Tiga pemeriksaan yang belum dijalankan pihak luar pada Sprint 46 telah diuji secara menyeluruh:
+
+### Arah a — Perbandingan Biner `snowline init test`
+```bash
+$ snowline init test
+$ cmp SNOWLINE_TEST.md src/snowline/test_templates/SNOWLINE_TEST.md
+IDENTIK (6424 bytes vs 6424 bytes)
+$ cmp TEST_REPORT.md src/snowline/test_templates/TEST_REPORT.md
+IDENTIK (2826 bytes vs 2826 bytes)
+```
+Hasil pembuatan terbukti identik bita per bita dengan templat aslinya.
+
+### Arah b — Pengujian Mutasi Pembuangan Tugas Mikro
+Ketika satu tugas mikro (`## M9`) dipotong dari `SNOWLINE_TEST.md`, pengujian suite terbukti berbalik MERAH (`[FAIL] init_test_content: SNOWLINE_TEST.md cuma memuat 9 tugas mikro, seharusnya minimal 10`).
+
+### Arah c — Pembangunan Paket dan Pemasangan Mandiri di Lingkungan Terisolasi
+- Paket wheel `snowline_agent_tools-1.1.3-py3-none-any.whl` dibangun dari repo dan diperiksa isi zip-nya:
+  ```text
+  Files in wheel: ['snowline/test_templates/SNOWLINE_TEST.md', 'snowline/test_templates/TEST_REPORT.md']
+  ```
+- Paket dipasang ke direktori target terisolasi tanpa menyertakan source code repo di `PYTHONPATH`.
+- Menjalankan `python -m snowline.cli init test` menghasilkan berkas yang terbukti bita per bita sama dengan templat sumber.
+
+## Yang Tidak Diperiksa
+- Entri 2, 3, dan 4 dari Sprint 47 belum disentuh (sesuai arahan mendahulukan Entri 1 terlebih dahulu).
