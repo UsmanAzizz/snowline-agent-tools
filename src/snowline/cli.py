@@ -18,6 +18,53 @@ if sys.platform == 'win32':
 # Hash Functions for agents.md baseline tracking
 # ============================================================
 
+# Keadaan lokal: berkas dan folder yang ditulis snowline sendiri waktu bekerja,
+# bukan bagian dari templat. Satu daftar dipakai dua tempat -- .gitignore yang
+# ditulis `init`, dan pemeriksa berkas usang di `update` dan `status`.
+#
+# Sebelum ini keduanya punya daftar sendiri-sendiri dan berbeda pendapat:
+# .gitignore tahu session_cache.json itu keadaan lokal, pemeriksa usang tidak.
+# Akibatnya 27 berkas bawaan snowline dilaporkan [USANG] di proyek nyata, dan
+# label itu jadi kebisingan yang orang belajar abaikan.
+RUNTIME_STATE_FILES = [
+    "write_log.jsonl",
+    "scope_lock.json",
+    "task_lock.json",
+    "session_cache.json",
+    "decision_history.json",
+    "companion_usage.jsonl",
+    "mode_ringan.json",
+    "memory.json",
+    "chamber/role.json",
+    "role.json",
+    ".agents_md_baseline_hash",
+]
+
+# Folder yang seluruh isinya keadaan lokal.
+RUNTIME_STATE_DIRS = [
+    "hooks/.history",
+    "test_history",
+    "__pycache__",
+]
+
+
+def is_runtime_state(rel: str) -> bool:
+    """Apakah jalur relatif di dalam .agents/ ini keadaan lokal, bukan templat."""
+    norm = rel.replace(chr(92), "/")
+    if norm in RUNTIME_STATE_FILES:
+        return True
+    return any(norm == d or norm.startswith(d + "/") for d in RUNTIME_STATE_DIRS)
+
+
+def build_agents_gitignore() -> str:
+    """Isi .agents/.gitignore, dibangun dari daftar yang sama."""
+    baris = ["# Snowline Agent Tools - keadaan lokal, jangan di-commit"]
+    baris += RUNTIME_STATE_FILES
+    baris += [d + "/" for d in RUNTIME_STATE_DIRS if d != "__pycache__"]
+    baris += ["*.pyc", "__pycache__/"]
+    return chr(10).join(baris) + chr(10)
+
+
 def save_agents_md_hash(file_path: Path):
     """Save SHA256 hash of agents.md to baseline file."""
     baseline_file = file_path.parent / ".agents_md_baseline_hash"
@@ -169,15 +216,7 @@ def init(dry=True, force=False):
     # Root files (PROJECT_CONTEXT.md is NOT created - it's the historical one from git)
     agents_template = templates / "AGENTS_TEMPLATE.md"
     root_files = {
-        ".gitignore": """write_log.jsonl
-scope_lock.json
-session_cache.json
-mode_ringan.json
-chamber/role.json
-role.json
-*.pyc
-__pycache__/
-""",
+        ".gitignore": build_agents_gitignore(),
         "agents.md": agents_template.read_text(encoding="utf-8") if agents_template.exists() else "# Agents Configuration\n",
         "memory.json": """{
   "version": "1.0",
@@ -367,7 +406,7 @@ def update(apply=False):
     for f in target.rglob("*"):
         if not f.is_file() or f.name.endswith(".pyc"): continue
         rel = str(f.relative_to(target))
-        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel.startswith("test_history") or rel == "agents.md" or rel == ".agents_md_baseline_hash": continue
+        if rel in PROTECTED or is_runtime_state(rel) or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md": continue
         if not (templates / rel).exists():
             obsolete_files.append((f, rel))
 
@@ -722,7 +761,7 @@ def status():
     for f in target.rglob("*"):
         if not f.is_file() or f.name.endswith(".pyc"): continue
         rel = str(f.relative_to(target))
-        if rel in PROTECTED or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel.startswith("test_history") or rel == "agents.md" or rel == ".agents_md_baseline_hash": continue
+        if rel in PROTECTED or is_runtime_state(rel) or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md": continue
         if not (templates / rel).exists():
             obsolete_files.append((f, rel))
 
