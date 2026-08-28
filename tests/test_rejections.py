@@ -13,7 +13,7 @@ def test_project_guardian_rejection():
     # Test 1: Clean directory should PASS
     with tempfile.TemporaryDirectory() as tmpdir:
         script = SKILLS / "project_guardian" / "guardian.py"
-        result_pass = subprocess.run([sys.executable, str(script), "--json"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
+        result_pass = subprocess.run([sys.executable, '-B', str(script), "--json"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
         assert '"status": "PASS"' in result_pass.stdout, "Guardian did not accept a clean directory"
         
         # Test 2: Dirty directory should FAIL
@@ -21,7 +21,7 @@ def test_project_guardian_rejection():
         with open(dummy_file, 'w') as f:
             f.write("const password = 'my_super_secret_password';\n")
         
-        result_fail = subprocess.run([sys.executable, str(script), "--json"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
+        result_fail = subprocess.run([sys.executable, '-B', str(script), "--json"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
         assert '"status": "FAIL"' in result_fail.stdout, "Guardian did not reject exposed secret"
         assert 'CRITICAL' in result_fail.stdout, "Guardian did not flag secret as CRITICAL"
 
@@ -30,13 +30,13 @@ def test_quality_gate_rejection():
     script = HOOKS / "quality_gate.py"
     with tempfile.TemporaryDirectory() as tmpdir:
         input_data = '{"toolName": "run_command", "toolCall": {"CommandLine": "python .agents/skills/import_fixer/fixer.py dummy_file"}, "workspacePaths": ["' + tmpdir.replace('\\', '\\\\') + '"]}'
-        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data)
+        result = subprocess.run([sys.executable, '-B', str(script)], capture_output=True, text=True, input=input_data)
         assert '"decision": "deny"' in result.stdout, "Quality gate did not reject"
         assert "Parameter kritis tidak lengkap" in result.stdout, "Quality gate rejected for the wrong reason (not arity check)"
 
         # Arity check should accept with required args
         input_data_accept = '{"toolName": "run_command", "toolCall": {"CommandLine": "python .agents/skills/import_fixer/fixer.py dummy_file dummy_import --apply"}, "workspacePaths": ["' + tmpdir.replace('\\', '\\\\') + '"]}'
-        result_accept = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data_accept)
+        result_accept = subprocess.run([sys.executable, '-B', str(script)], capture_output=True, text=True, input=input_data_accept)
         assert '"decision": "allow"' in result_accept.stdout, "Quality gate did not accept complete parameters"
 
 def test_loop_detector_rejection():
@@ -49,7 +49,7 @@ def test_loop_detector_rejection():
     with tempfile.TemporaryDirectory() as tmpdir:
         payload = '{"toolName": "dummy_tool", "toolCall": {"hash": "dummy_hash"}, "workspacePaths": ["/tmp"]}'
         for _ in range(2):
-            res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=payload)
+            res = subprocess.run([sys.executable, '-B', str(script)], capture_output=True, text=True, input=payload)
             if '"decision": "allow"' not in res.stdout:
                 print("LOOP DETECTOR FAILED:")
                 print("STDOUT:", res.stdout)
@@ -57,7 +57,7 @@ def test_loop_detector_rejection():
             assert '"decision": "allow"' in res.stdout
         
         # 3rd should be rejected
-        res = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=payload)
+        res = subprocess.run([sys.executable, '-B', str(script)], capture_output=True, text=True, input=payload)
         assert '"decision": "deny"' in res.stdout, "Loop detector did not reject 3rd loop"
 
 def test_rollback_enforcer_rejection():
@@ -80,7 +80,7 @@ def test_rollback_enforcer_rejection():
         subprocess.run(["git", "add", "dummy.txt"], cwd=tmpdir, capture_output=True)
         
         input_data = '{"terminationReason": "success", "workspacePaths": ["' + tmpdir.replace('\\', '\\\\') + '"]}'
-        result = subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data)
+        result = subprocess.run([sys.executable, '-B', str(script)], capture_output=True, text=True, input=input_data)
         
         # Verify no stash was created
         stash_res = subprocess.run(["git", "stash", "list"], cwd=tmpdir, capture_output=True, text=True)
@@ -88,7 +88,7 @@ def test_rollback_enforcer_rejection():
 
         # Now test error reason
         input_data_err = '{"terminationReason": "error", "workspacePaths": ["' + tmpdir.replace('\\', '\\\\') + '"]}'
-        subprocess.run([sys.executable, str(script)], capture_output=True, text=True, input=input_data_err)
+        subprocess.run([sys.executable, '-B', str(script)], capture_output=True, text=True, input=input_data_err)
         stash_res_err = subprocess.run(["git", "stash", "list"], cwd=tmpdir, capture_output=True, text=True)
         assert stash_res_err.stdout.strip() != "", "Rollback enforcer did NOT stash on error!"
 
@@ -103,13 +103,13 @@ def test_auto_scaffolder_rejection():
             f.write('{"task_id": "1", "task_description": "test", "allowed_files": ["MyButton.jsx"], "allowed_patterns": []}')
 
         # Test 1: Reject without --apply (dry-run)
-        result_reject = subprocess.run([sys.executable, str(script), "react", "MyButton", tmpdir], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
+        result_reject = subprocess.run([sys.executable, '-B', str(script), "react", "MyButton", tmpdir], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
         assert result_reject.returncode == 0
         assert "tanpa flag --apply" in result_reject.stdout or "run again with --apply" in result_reject.stdout or "tambahan flag --apply" in result_reject.stdout, "Scaffolder did not output dry-run warning"
         assert not os.path.exists(os.path.join(tmpdir, "MyButton.jsx")), "Scaffolder wrote file without --apply"
 
         # Test 2: Accept with --apply
-        result_accept = subprocess.run([sys.executable, str(script), "react", "MyButton", tmpdir, "--apply"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
+        result_accept = subprocess.run([sys.executable, '-B', str(script), "react", "MyButton", tmpdir, "--apply"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
         assert result_accept.returncode == 0
         assert os.path.exists(os.path.join(tmpdir, "MyButton.jsx")), "Scaffolder did not write file with --apply"
 
@@ -133,13 +133,13 @@ def test_import_fixer_rejection():
             f.write(original_content)
         
         # Test 1: Reject without --apply (dry-run)
-        result_reject = subprocess.run([sys.executable, str(script), dummy_file, "../foo"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
+        result_reject = subprocess.run([sys.executable, '-B', str(script), dummy_file, "../foo"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
         assert "tambahan flag --apply" in result_reject.stdout or "DRY RUN" in result_reject.stdout, "Import fixer did not output dry-run warning"
         with open(dummy_file, 'r') as f:
             assert f.read() == original_content, "Import fixer modified file without --apply"
 
         # Test 2: Accept with --apply
-        result_accept = subprocess.run([sys.executable, str(script), dummy_file, "../foo", "--apply"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
+        result_accept = subprocess.run([sys.executable, '-B', str(script), dummy_file, "../foo", "--apply"], cwd=tmpdir, capture_output=True, text=True, encoding='utf-8')
         with open(dummy_file, 'r') as f:
             assert f.read() != original_content, "Import fixer did not modify file with --apply"
 
