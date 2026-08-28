@@ -26,7 +26,7 @@ berguna, atau menjanjikan. Tulis apa yang kamu jalankan dan apa yang keluar.
 5. **Catat tebakan.** Setiap kali kamu harus menerka cara memakai sesuatu
    karena tidak ada yang memberitahumu, tulis terkaanmu dan dari mana kamu
    menerkanya.
-6. **Kerjakan berurutan.** M1 sampai M9, jangan dilompati. Kalau satu tugas
+6. **Kerjakan berurutan.** M1 sampai M10, jangan dilompati. Kalau satu tugas
    tidak bisa dikerjakan, tulis kenapa di tempatnya, lalu lanjut.
 7. **Pakai alat dari proyek ini saja.** Semua skrip yang kamu jalankan harus
    berasal dari `.agents/` proyek tempat kamu sekarang. Jangan memanggil
@@ -164,9 +164,20 @@ alasan: tidak relevan, tidak ketemu, tidak paham, atau tidak sempat.
 
 Empat alasan itu berbeda dan yang membedakannya penting.
 
+## M10 — Rapikan catatan
+
+Connector di proyek ini sekarang punya beberapa entri.
+
+Rapikan: pindahkan yang sudah selesai ke arsip, dan pastikan tidak ada baris
+yang hilang di perjalanan.
+
+Yang dilaporkan: perintah apa yang kamu pakai, dan **dari mana kamu tahu
+perintah itu ada**. Kalau kamu tidak menemukan cara yang disediakan lalu
+mengarang caranya sendiri, tulis itu — termasuk apa yang kamu karang.
+
 ---
 
 ## Sesudah semua tugas
 
-Dua pertanyaan terakhir ada di bagian 10 dan 11 `TEST_REPORT.md`. Jawab
+Pertanyaan penutup ada di bagian 10 sampai 15 `TEST_REPORT.md`. Jawab
 sesudah kamu selesai, bukan sambil jalan.

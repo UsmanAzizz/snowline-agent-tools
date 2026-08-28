@@ -155,7 +155,41 @@ Yang dikembalikannya, utuh:
 Satu baris per alat, dengan salah satu dari: tidak relevan / tidak ketemu /
 tidak paham / tidak sempat.
 
-## 10. Keputusan yang tidak bisa kamu periksa
+## 10. Rapikan catatan
+
+Perintah yang kamu pakai:
+
+```text
+
+```
+
+- Dari mana kamu tahu perintah itu ada:
+- Kalau kamu mengarang caranya sendiri, apa yang kamu karang:
+
+## 11. Menunggu
+
+Adakah perintah yang membuatmu menunggu lebih lama dari yang kamu kira?
+
+Sebutkan perintahnya, berapa lama, dan apa yang kamu lakukan sambil menunggu.
+Kalau kamu sempat membatalkannya, tulis itu.
+
+Kalau tidak ada, tulis: tidak ada.
+
+## 12. Keluaran yang tidak kamu baca sampai habis
+
+Sepanjang tugas ini, adakah keluaran yang kamu terima tetapi tidak kamu baca
+seluruhnya? Sebutkan yang mana, dan bagian mana yang kamu lewati.
+
+Jawaban "tidak ada" boleh, tetapi pikirkan dulu keluaran terpanjang yang kamu
+terima hari ini.
+
+## 13. Yang kamu kira sebelum mulai
+
+Sebelum perintah pertamamu, apa yang kamu kira paket ini akan lakukan?
+
+Apa yang ternyata berbeda?
+
+## 14. Keputusan yang tidak bisa kamu periksa
 
 Selama tugas ini, adakah keputusan yang kamu ambil tanpa cara memastikan
 keputusan itu benar? Bukan yang salah — yang tidak bisa diperiksa.
@@ -165,12 +199,7 @@ seandainya ada.
 
 Kalau tidak ada, tulis: tidak ada.
 
-- Sumber catatan saat merapikan catatan proyek (baca berkas / tulis dari konteks / dugaan):
-
-## 11. Ke mana waktunya habis
+## 15. Ke mana waktunya habis
 
 Urutkan dari yang paling lama. Bukan perkiraan kasar — kalau kamu tidak
 mencatat waktunya, tulis "tidak dicatat".
-
-- Pernah menunggu proses yang tidak selesai atau menggantung? (ya / tidak, dan apa yang kamu lakukan):
-- Baris penting di keluaran alat yang sempat terlewat karena terlalu panjang atau tidak menarik perhatian:
