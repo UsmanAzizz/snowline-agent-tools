@@ -218,6 +218,7 @@ def main():
     import test_d4_frontend_build
     import test_init_test_content
     import test_runtime_state
+    import test_smart_search_noise
     print("Testing write_log (Entry A2)...")
     runner.run("write_log directions", test_write_log.test_write_log_directions)
     print("Testing shell tracking (Entry A3)...")
@@ -254,6 +255,10 @@ def main():
     print("Testing daftar keadaan lokal...")
     runner.run("runtime_state_sepakat", test_runtime_state.test_runtime_state_sepakat)
     runner.run("runtime_state_tidak_usang", test_runtime_state.test_keadaan_lokal_tidak_ditandai_usang)
+
+    print("Testing kebisingan smart_search...")
+    runner.run("smart_search_biner", test_smart_search_noise.test_biner_tidak_membanjiri_keluaran)
+    runner.run("smart_search_teks_besar", test_smart_search_noise.test_berkas_teks_terlalu_besar_tetap_disebut)
 
     print("Testing scope_guardian...")
     sg = test_scope_guardian.TestScopeCheck()
