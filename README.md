@@ -8,33 +8,44 @@ Lightweight Python tools that stop an AI agent from quietly breaking your projec
 
 ## The Mission
 
-**Make the destructive paths refuse, instead of asking politely.**
+**Put the guard inside the tool, not in front of it.**
 
 An agent that is told not to do something can still do it. An agent that is
-*refused* cannot. Snowline puts a gate on every path that can damage a project,
-so a mistake gets stopped rather than logged after the fact.
+*refused* cannot — as long as the refusal is somewhere it cannot walk around.
+Snowline learned that distinction the hard way, and the table below reflects
+it.
 
-Six paths, gated and installed by default:
+Five paths refuse, installed by default:
 
 | what is refused | by what |
 |---|---|
 | writing any file without an explicit flag | `--apply`, in all five write tools |
-| writing outside the current task's file list | `scope_lock.json`, fail-closed |
+| writing into a different project | path is anchored to the project root |
 | a command with missing arguments | arity check, `hooks/quality_gate.py` |
 | a replacement that breaks syntax | validation cancels the write |
 | a Medium/High-risk change waved through | requires `--apply-validated` |
 | an agent looping on the same failing call | loop detector, stops after 3 |
+
+**One path records instead of refusing, and that is deliberate.** Writing
+outside the current task's file list used to be blocked by `scope_lock.json`.
+Field testing showed the block was routed around every time — a blocked agent
+switched to shell commands, which have no dry-run, no backup, and no syntax
+check. So the guard now warns and appends to `.agents/write_log.jsonl`, and
+`snowline audit` reads it back.
+
+A guard standing in front of a tool gets bypassed. A guard inside the tool does
+not. That is why the five above are inside the write path and this one is not.
 
 **One gate ships but is not installed automatically.** `project_guardian` can
 refuse a commit that contains a readable secret, but `snowline init` does not
 wire it into git. Install it yourself:
 
 ```bash
-python -m snowline.install_hooks <project_dir> <path_to_guardian.py>
+snowline install-hooks --apply
 ```
 
-Note that this **overwrites** `.git/hooks/pre-commit`. If you already have one,
-merge it by hand.
+It refuses if `.git/hooks/pre-commit` already exists. `--force` overwrites, and
+copies the old hook to `pre-commit.bak` first.
 
 Everything else in this repo is convention, and each rule file says which it is —
 see `RULE 0` in the generated `agents.md`.
@@ -42,7 +53,10 @@ see `RULE 0` in the generated `agents.md`.
 ## Core Principles
 
 1. **Portable** — Pure Python, no external dependencies (except `db_extractor`, which requires `pymysql` for database schema extraction)
-2. **Refuses rather than warns** — a rule that only prints a warning is documented as advice, not enforcement
+2. **Says which is which** — a rule that refuses and a rule that only warns are
+   both useful, but they are never presented as the same thing. Each rule file
+   carries its own label, and this README says plainly which paths refuse and
+   which one records
 3. **Safe** — Dry-run modes by default for any operation that writes, modifies, or deletes files. Explicit `--apply` flag required to execute.
 4. **Proven by running** — every fix ships with a test that was shown to fail before the fix (see [Development](docs/DEVELOPMENT.md))
 
@@ -109,6 +123,44 @@ python -m snowline.cli init --apply --force  # overwrite existing skills
 ```
 Use `--force` to restore all skills from templates, overwriting any local modifications.
 
+### Audit — what was written, and where
+
+```bash
+snowline audit                      # summary of .agents/write_log.jsonl
+snowline audit --hanya-luar-lingkup # only writes outside the task's file list
+```
+
+Every write through a snowline tool is appended to `.agents/write_log.jsonl`,
+with whether it fell inside the current task's scope. Shell writes are detected
+best-effort and logged too — that detection cannot be complete, and the code
+says so where it lives.
+
+### Chamber commands
+
+```bash
+snowline add-entry --from-file <file>   # write an entry to the connector
+snowline check-entry <file>             # check one before writing it
+snowline close-entry <topic>            # move a finished entry to history/
+snowline rotate <topic> --apply         # archive old entries, line-count verified
+snowline role QA --apply                # hand the role over, print what the
+                                        # next human must do
+```
+
+`add-entry` runs the same check `check-entry` does, and refuses to write an
+entry that claims something is finished without a command and its raw output.
+`--force` writes it anyway and stamps a line into the connector saying so.
+
+### Testing snowline itself in your project
+
+```bash
+snowline init test
+```
+
+Writes a test brief and an empty report into
+`.agents/test_history/<date>_<n>/`. Paste the brief into a fresh agent session,
+let it fill the report, and read what comes back. The brief deliberately names
+no known defect — an agent told what to look for finds what it was told.
+
 ## Chamber (optional)
 
 A working protocol for running two agents against each other, installed
@@ -131,12 +183,14 @@ reviewing its own work.
 Two ways to satisfy that:
 
 - **Two sessions**, relayed by a human PM. Works on any harness.
-- **One agent, sequential sessions.** TL works, writes its report, sets
-  `role.json` to `QA` as its last act, and ends. The next session wakes with no
-  memory of the first and only the chamber to go on. Tested on Claude Code:
-  the second session reproduced the first's verdict and found four defects the
-  full-context reviewer had missed. It needs a harness whose fresh sessions
-  start genuinely cold.
+- **One agent, sequential sessions.** TL works, writes its report, runs
+  `snowline role QA --apply` as its last act, and ends. That command prints the
+  steps the human must take next — which session to close, which onboarding to
+  paste, what to ask for. The next session wakes with no memory of the first
+  and only the chamber to go on. Tested on Claude Code: the second session
+  reproduced the first's verdict and found four defects the full-context
+  reviewer had missed. It needs a harness whose fresh sessions start genuinely
+  cold.
 
 Re-running is refused unless `--force`, so `connector.md` and `STATE.md` are
 never wiped by accident.
@@ -145,24 +199,32 @@ never wiped by accident.
 
 After installation, `.agents/agents.md` is created in your project root. This file instructs the AI agent (Gemini, Claude Code, etc.) working in your project to:
 
-1. Call `companion_cli.py` first to analyze user intent before picking a tool
-2. Use read-only tools (search, analyze) without asking for confirmation
-3. Require explicit approval before running write tools with `--apply`
-4. Report transparently when a tool execution fails and is self-recovered, instead of hiding the troubleshooting process
+1. Use read-only tools (search, analyze) without asking for confirmation
+2. Require explicit approval before running write tools with `--apply`
+3. Report transparently when a tool execution fails and is self-recovered, instead of hiding the troubleshooting process
 
 This file is the actual behavior contract read by the AI agent — not just documentation.
 
-## Companion
+## Companion — archived
 
-A lightweight intent analyzer that reads user instructions, extracts entities, and evaluates ambiguity (`needs_grilling`).
+Companion was an intent analyzer: it read an instruction, extracted entities,
+and suggested which tool to use. It is no longer installed. The code is kept in
+`archive/companion/`.
 
-```bash
-python .agents/skills/companion_cli.py "cari fungsi handleSubmit"
-```
+Three agents in three projects were asked the same question after using
+snowline for real work: *before you called it, did you already know which tool
+you wanted?* All three answered yes. One of them was working from an
+`agents.md` that no longer mentioned companion — it had simply read the tool
+list and decided.
 
-**Status pembuktian:**
-- **Yang terbukti**: Ekstraksi entitas (nama fungsi/berkas), deteksi kata kunci, dan penegakan arity check pada pre-hook `quality_gate.py` bekerja akurat.
-- **Yang belum terbukti / belum diukur**: Efektivitas saran pemilihan alat terhadap keputusan agen di lapangan (agen sering kali sudah mengetahui alat yang ingin digunakan), serta kegunaan praktis penanda `needs_grilling` saat agen berhadapan dengan instruksi ambigu di sesi nyata.
+Its second role was a gate: it blocked `--apply` when it judged the intent
+ambiguous. Measured, it blocked four out of four ordinary write commands,
+because it was being fed a command line (`replace_text.py src/app.js foo bar
+--apply`) by a function written to read sentences. It could never find a
+keyword, so confidence was always NONE.
+
+The idea worth keeping is `needs_grilling` — flagging a request that is too
+vague to act on. That idea was not wrong; the place it was wired in was.
 
 ## Tools (16)
 
@@ -195,17 +257,16 @@ python .agents/skills/companion_cli.py "cari fungsi handleSubmit"
 <tr><td><code>auto_scaffolder</code></td><td>Generates boilerplate files (component/route templates)</td><td>Yes (<code>--apply</code>)</td></tr>
 <tr><td><code>context_mapper</code></td><td>Generates dependency map into <code>.agents/knowledge/</code></td><td>Yes (<code>--apply</code>)</td></tr>
 <tr><td><code>native_checker_gen</code></td><td>Scaffolds a unit test or a standalone validator script</td><td>Yes (<code>--apply</code>)</td></tr>
-<tr><td><code>plan_tracker</code></td><td>Tracks multi-step plan progress</td><td>No</td></tr>
-<tr><td><code>tree_gen</code></td><td>Tree-rendering engine behind <code>smart_tree</code></td><td>No</td></tr>
 </tbody>
 </table>
 
-*Catatan: Modul `companion` telah diarsipkan ke `archive/companion/`. Pengukuran di tiga proyek menunjukkan parsing entitasnya berfungsi baik, namun perannya sebagai gerbang pra-eksekusi menambah latensi tanpa peningkatan akurasi pemilihan alat yang signifikan. Kodenya diarsipkan di `archive/` untuk riset mandiri.*
+All sixteen have a test that runs them and asserts their output. "Tested" here
+means exactly that — a test that executes the tool and checks what it printed,
+not one that merely imports it or checks the exit code. Each one was verified
+by breaking it on purpose and confirming the test went red.
 
-Coverage is uneven and tracked openly: five of the nineteen have no test that
-runs them and asserts their output — `companion`, `db_extractor`,
-`deep_analyzer`, `plan_tracker`, `smart_tree`. They are listed as open items in
-the project's own state file rather than left unsaid.
+`tree_gen` ships alongside them but is not counted: it is the rendering engine
+behind `smart_tree`, not a tool you call.
 
 ## Usage Examples
 
@@ -236,7 +297,7 @@ Working on snowline itself — tests, Rule #12, CI, releasing: see
 [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
 ```bash
-python tests/run_tests.py     # 56 tests, ~55 seconds
+python tests/run_tests.py     # 127 tests, ~147 seconds
 ```
 
 ## Compatibility
