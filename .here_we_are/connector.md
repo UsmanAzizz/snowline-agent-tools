@@ -8328,3 +8328,148 @@ mana pun.
 
 Yang layak berikutnya bukan sprint kode: jalankan `snowline init test` di
 proyek baru dan lihat apa yang keluar dari keempat pertanyaan itu.
+
+
+# PM -> TL: Sprint 48 — hasil uji pindah ke `.agents/test_history/`, satu folder per putaran
+
+PM memutuskan: berkas uji tidak lagi ditaruh di akar proyek. Semuanya masuk
+`.agents/test_history/`, dan tidak boleh hilang waktu paketnya dipasang ulang.
+
+Alasannya sederhana. `SNOWLINE_TEST.md` dan `TEST_REPORT.md` di akar itu sampah
+di mata pemilik proyek, dan laporan putaran sebelumnya gampang tertimpa atau
+terhapus. Laporan uji adalah catatan — nilainya justru muncul waktu dibandingkan
+antar putaran.
+
+## Yang sudah aman dengan sendirinya
+
+```
+cli.py:514   uninstall cuma menyentuh root / "skills"
+```
+
+Apa pun di luar `.agents/skills/` selamat dari `uninstall` dan `reinstall`.
+Jadi yang perlu diurus cuma `update`.
+
+---
+
+## Entri 1 — `init test` menulis ke folder per putaran
+
+Ganti tujuannya:
+
+```
+sebelum   ./SNOWLINE_TEST.md
+          ./TEST_REPORT.md
+
+sesudah   .agents/test_history/<tanggal>_<urutan>/SNOWLINE_TEST.md
+          .agents/test_history/<tanggal>_<urutan>/TEST_REPORT.md
+```
+
+Contoh: `.agents/test_history/2026-08-29_1/`. Urutannya naik kalau di tanggal
+yang sama sudah ada.
+
+**Tidak ada penimpaan, pernah.** Tiap kali dijalankan, folder baru. Itu berarti
+gerbang "sudah ada isinya, gunakan `--force`" tidak lagi diperlukan — buang
+saja, beserta `--force`-nya.
+
+Cetak jalur folder barunya dengan jelas, karena manusia yang menempelkan prompt
+perlu tahu ke mana laporannya ditulis:
+
+```
+[SUCCESS] Uji baru disiapkan di .agents/test_history/2026-08-29_1/
+          Tempel isi SNOWLINE_TEST.md di folder itu ke sesi agen.
+```
+
+**Ubah satu baris di templat `SNOWLINE_TEST.md`.** Yang sekarang berbunyi:
+
+```
+Tuangkan semuanya ke `TEST_REPORT.md`. Bagian-bagiannya sudah bernomor sama
+dengan tugasnya.
+```
+
+jadi:
+
+```
+Tuangkan semuanya ke `TEST_REPORT.md` yang ada di folder yang sama dengan
+berkas ini. Bagian-bagiannya sudah bernomor sama dengan tugasnya.
+```
+
+Jangan mengubah kalimat lain di templat itu.
+
+**Syarat lulus:**
+
+```
+a  init test di proyek bersih -> folder <tanggal>_1 dibuat, dua berkas di
+   dalamnya, jalurnya tercetak
+b  init test lagi hari yang sama -> folder <tanggal>_2, folder _1 UTUH
+   (buktikan dengan membandingkan isi _1 sebelum dan sesudah)
+c  tidak ada berkas apa pun yang ditulis ke akar proyek
+d  hasilnya identik bita per bita dengan templatnya
+```
+
+Arah (b) yang menahan. Itu seluruh alasan perubahan ini.
+
+## Entri 2 — `test_history` selamat dari `update`
+
+```
+cli.py:370  if rel in PROTECTED or rel.startswith("chamber") or ... : continue
+cli.py:725  (baris yang sama, salinan kedua)
+```
+
+Tanpa tambahan, `update` akan menandai tiap berkas di `test_history` sebagai
+`[USANG]` — puluhan baris kebisingan tiap kali dijalankan, dan makin banyak tiap
+putaran uji.
+
+**Perbaikan:** tambahkan `test_history` ke rantai pengecualian itu, di **kedua**
+tempat.
+
+**Syarat lulus:**
+
+```
+a  ada berkas di .agents/test_history/ -> update TIDAK menyebutnya [USANG]
+b  berkas mengada-ada di .agents/skills/ -> masih disebut [USANG]
+c  update --apply -> isi test_history tidak berubah sedikit pun
+```
+
+Arah (b) supaya pengecualiannya tidak kelebaran.
+
+**Catatan:** rantai `rel.startswith(...)` itu sekarang punya enam syarat dan ada
+dua salinan. Jangan disatukan sprint ini — cukup tambahkan, dan sebutkan di
+laporanmu bahwa ia layak dirapikan nanti.
+
+## Entri 3 — penjaganya ikut
+
+`tests/test_init_test_content.py` sekarang menjalankan `init test` lalu
+membandingkan `SNOWLINE_TEST.md` di direktori kerja. Jalurnya berubah, jadi
+ujinya ikut berubah.
+
+**Syarat lulus:**
+
+```
+a  suite hijau dengan jalur baru
+b  buang M10 dari templat -> tetap MERAH
+c  buat init test menulis ke akar lagi -> uji MERAH
+```
+
+Arah (c) yang baru. Tanpa itu, tidak ada yang menahan kalau jalurnya kembali ke
+akar suatu hari.
+
+---
+
+## Yang TIDAK dikerjakan
+
+Jangan memindahkan laporan uji yang sudah ada. `TEST_REPORT_run1.md` di
+`cbt_master` dipindahkan tangan oleh PM kalau ia mau.
+
+Jangan menambahkan `test_history` ke `.agents/.gitignore`. Laporan uji adalah
+catatan yang layak masuk repo pemilik proyek — biar dia yang memutuskan.
+
+## Bentuk laporan
+
+Ke `.here_we_are/connector.md` di repo ini, lewat
+`snowline add-entry --from-file`. Keluaran mentah, jangan diringkas.
+
+Blok `git log` cuma ditulis kalau kamu benar-benar menjalankannya.
+
+Satu commit per entri. Push, tunggu CI sampai `completed`, tempel keluaran
+mentah panggilan API-nya, baru tulis laporan.
+
+**Tidak dikunci.**
