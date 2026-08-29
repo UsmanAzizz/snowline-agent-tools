@@ -10072,3 +10072,90 @@ ALL CLOSE-ENTRY DIRECTIONS TESTED!
 ## Yang Tidak Saya Periksa
 - Perilaku sistem berkas read-only OS di level permission NTFS kernel saat proses append arsip berlangsung (diuji lewat mock kegagalan mkdir).
 - Penanganan karakter wildcard shell khusus selain spasi dan prefix terdaftar.
+
+
+# TL -> PM: Laporan Sprint 50 (Entri 5) - unifikasi PROTECTED dan perbandingan tidak peka huruf
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 128/128 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+05b993a fix(cli): unify PROTECTED definition and make comparison case-insensitive
+7b93320 docs(connector): report Sprint 50 Entri 4 completion
+1baf859 fix(tests): sync test runner names with test_close_entry and test_c1_rotate
+7a8366e feat(chamber): unify topic validation for close-entry and rotate with byte preservation
+4df51ce docs(connector): Sprint 50 - Entri 2-5, dan close-entry topik kosong naik ke atas garis
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+212 05b993a completed success
+211 7b93320 completed success
+```
+
+## Hasil Pengujian Entri 5 (Update & Status)
+
+Pengujian dijalankan pada direktori sandbox:
+
+```bash
+$ python tests/test_runtime_state.py
+[OK] daftar keadaan lokal sepakat dengan .gitignore
+[OK] 14 butir keadaan lokal tidak ditandai usang, berkas asing tetap ditandai
+[OK] project_context.md (3 variasi huruf) TIDAK usang, catatan_saya.md TETAP usang di update & status
+
+ALL RUNTIME STATE & PROTECTED TESTS TESTED!
+```
+
+- Ketiga variasi huruf (`project_context.md`, `PROJECT_CONTEXT.md`, dan `Project_Context.md`) tidak lagi ditandai sebagai USANG baik di `snowline update` maupun `snowline status`.
+- Berkas asing (`catatan_saya.md`) tetap ditandai sebagai USANG di kedua perintah.
+- Kedua blok `PROTECTED` di dalam fungsi `update()` dan `status()` disatukan ke konstanta tingkat modul `PROTECTED_FILES` dan fungsi `is_protected(rel)`.
+
+## Rasional Perbandingan Tidak Peka Huruf
+1. `is_protected(rel)`: Di Windows atau pada editor yang menormalkan kapitalisasi (misal `project_context.md` vs `PROJECT_CONTEXT.md`), keduanya merujuk pada berkas yang sama dan tidak boleh disarankan untuk dihapus pengguna.
+2. `rel_lower.startswith(...)` (`chamber`, `knowledge`, `rules`) dan `rel_lower == 'agents.md'`: Menjaga folder dan aturan lokal agar tidak ditandai usang jika pengguna/agen menamai dengan huruf kapital seperti `Rules/` atau `Knowledge/`.
+
+## Bukti Mutasi (Perbandingan Dibuat Peka Huruf)
+
+Saat `is_protected(rel)` diubah kembali menjadi peka huruf:
+
+```bash
+$ python tests/test_runtime_state.py
+[OK] daftar keadaan lokal sepakat dengan .gitignore
+[OK] 14 butir keadaan lokal tidak ditandai usang, berkas asing tetap ditandai
+Traceback (most recent call last):
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_runtime_state.py", line 162, in <module>
+    test_protected_case_insensitive_and_obsolete_preservation()
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_runtime_state.py", line 126, in test_protected_case_insensitive_and_obsolete_preservation
+    assert not any(var_name in line or "project_context" in line.lower() for line in usang_update), (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Kegagalan di update: project_context.md salah ditandai USANG!
+```
+
+Saat dikembalikan ke perbandingan tidak peka huruf:
+
+```bash
+$ python tests/test_runtime_state.py
+[OK] daftar keadaan lokal sepakat dengan .gitignore
+[OK] 14 butir keadaan lokal tidak ditandai usang, berkas asing tetap ditandai
+[OK] project_context.md (3 variasi huruf) TIDAK usang, catatan_saya.md TETAP usang di update & status
+
+ALL RUNTIME STATE & PROTECTED TESTS TESTED!
+```
+
+## Yang Tidak Saya Periksa
+- Sistem berkas peka huruf (case-sensitive ext4/Linux) dengan dua berkas fisik berbeda bernama `project_context.md` dan `PROJECT_CONTEXT.md` di folder yang sama (keduanya akan dianggap berkas terlindungi yang sah).
