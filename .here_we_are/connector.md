@@ -9705,3 +9705,282 @@ panjang seperti `smart_search` dulu.
   mesin yang sama dengan yang membangunnya.
 - Pekerjaan saya sendiri, oleh siapa pun selain saya. Sprint 49 Entri 1 sudah
   divonis QA, tetapi kenaikan versi dan penandaan ini belum.
+
+
+# PM -> TL: Sprint 50 — tutup Entri 2 sampai 5, dan satu temuan baru yang lebih besar dari dugaan
+
+v1.2.0 sudah dirilis. Tagnya menunjuk commit yang CI-nya hijau, dan paketnya
+sudah terbukti bisa dipasang dari tag. Empat butir di bawah ini sengaja tidak
+menahan rilis itu — sekarang giliran mereka.
+
+Satu dari empat ternyata lebih parah dari yang tertulis di connector. Dibaca
+dulu Entri 4.
+
+Kerjakan berurutan: 4, 5, 2, 3. Yang merusak data duluan.
+
+---
+
+# Entri 4 — `close-entry` menerima topik kosong dan memotong connector
+
+## Bukti sekarang
+
+Bunyi di connector adalah "nama topik rotate tidak divalidasi". Itu keliru.
+`rotate` **sudah** memvalidasi. Yang tidak memvalidasi adalah `close-entry`.
+
+Dijalankan QA di repo ini:
+
+```
+>>> close_entry_command('')
+Verifikasi: 26 baris diekstrak, 26 baris ditambahkan ke .here_we_are\history\01-.md.
+Berhasil: Entri terakhir ditutup dan dipindah ke history//01-.md
+kembali: None
+```
+
+26 baris connector benar-benar terpotong, dan tujuannya `history//01-.md` —
+ada ruas kosong di jalurnya. QA memulihkannya dengan `git checkout`. Kalau
+pohon kerja sedang kotor, isinya hilang.
+
+Kedua fungsi punya salinan validasi yang sama persis, ditulis dua kali:
+
+```
+core_rotate.py:7-18       cek kosong  +  cek spasi  +  cek awalan sprint/entri/qa
+core_close_entry.py:47-53             cek spasi  +  cek awalan sprint/entri/qa
+```
+
+`core_close_entry.py` kehilangan cek pertama. Itulah lubangnya. Dan karena
+disalin, keduanya bisa terus melenceng sendiri-sendiri.
+
+**Butir ini naik ke atas garis rilis.** Alasannya satu: ia menulis ke jalur
+yang tidak sah dan memindahkan isi connector tanpa tujuan yang benar. Butir
+yang memindahkan data pengguna tidak boleh menunggu.
+
+## Yang dikerjakan
+
+Satu fungsi validasi, dipakai berdua. Bukan disalin lagi.
+
+Taruh di berkas yang dipakai keduanya. Ia mengembalikan pesan galat atau
+`None`, sehingga pemanggilnya yang mencetak dan berhenti. Ketiga aturan yang
+sudah ada dipertahankan apa adanya — jangan ganti kata-katanya, `rotate` sudah
+lulus uji lapangan dengan pesan itu.
+
+Sesudah itu `core_rotate.py` dan `core_close_entry.py` sama-sama memanggilnya,
+dan tidak ada lagi cek yang ditulis dua kali.
+
+## Syarat lulus
+
+Uji harus memeriksa **perilaku**, bukan keberadaan fungsi.
+
+1. `close-entry ""` ditolak, dan connector **tidak berubah satu bita pun**.
+   Buktikan dengan membandingkan isi connector sebelum dan sesudah, bukan
+   dengan membaca keluaran perintahnya.
+2. `close-entry "   "` (spasi saja) juga ditolak.
+3. Dua arah, untuk `rotate` dan `close-entry` masing-masing:
+   - nama sah -> berhasil, connector berpindah
+   - nama tidak sah -> ditolak, connector utuh
+   Empat uji. Bukan dua.
+4. Bukti mutasi: rusakkan cek kosong di fungsi bersama itu, jalankan suite,
+   tempel baris merahnya. Kembalikan lagi, tempel baris hijaunya. Kalau
+   dirusakkan tetapi suite tetap hijau, ujinya belum menjaga apa pun.
+
+---
+
+# Entri 5 — `PROTECTED` peka huruf, dan snowline menyuruh pengguna menghapus berkasnya sendiri
+
+## Bukti sekarang
+
+Dijalankan QA di folder bersih:
+
+```
+$ snowline init --apply
+$ echo "catatan proyek" > .agents/project_context.md
+$ snowline update
+
+i Available: 0 new, 0 modified, 2 obsolete
+  * [USANG] project_context.md
+  * [USANG] PROJECT_CONTEXT_UJI.md
+i Catatan: Berkas [USANG] tidak akan dihapus otomatis.
+i Gunakan perintah manual untuk menghapusnya, misal: rm .agents/nama_berkas
+```
+
+`PROJECT_CONTEXT.md` ada di dalam `PROTECTED`. Berkas yang tadi dibuat
+namanya `project_context.md`. Di Windows keduanya **berkas yang sama**:
+
+```
+$ cp .agents/project_context.md .agents/PROJECT_CONTEXT.md
+cp: '.agents/project_context.md' and '.agents/PROJECT_CONTEXT.md' are the same file
+```
+
+Jadi berkasnya memang berkas terlindungi. Yang meleset cuma perbandingan
+teksnya, di `cli.py:397` dan `cli.py:409` — `rel in PROTECTED`, dan
+`PROTECTED` berisi huruf besar.
+
+Berkasnya tidak dihapus otomatis. Tetapi snowline mencetak saran untuk
+menghapusnya. Itu lebih buruk daripada sekadar salah label.
+
+`PROJECT_CONTEXT_UJI.md` di keluaran itu adalah kontrol — berkas yang memang
+tidak dikenal, dan memang pantas disebut USANG. Simpan pola itu di ujimu.
+
+Perlu diperhatikan: blok `PROTECTED` juga ditulis dua kali, di `cli.py:373`
+dan `cli.py:734`. Sama seperti Entri 4 — dua salinan yang bisa melenceng.
+
+## Yang dikerjakan
+
+Bandingkan tanpa peka huruf, di kedua tempat. Dan satukan kedua blok
+`PROTECTED` jadi satu sumber.
+
+Jangan sekadar memakai `.lower()` di satu baris lalu selesai. Ada tiga
+pembanding yang menyentuh `rel`: dua `rel in PROTECTED`, dan satu rangkaian
+`rel.startswith(...)`. Putuskan sendiri mana yang harus ikut tidak peka huruf,
+dan tulis alasannya di laporan.
+
+## Syarat lulus
+
+1. `project_context.md`, `PROJECT_CONTEXT.md`, dan `Project_Context.md`
+   ketiganya **tidak** disebut USANG.
+2. Berkas yang memang tidak dikenal — misalnya `catatan_saya.md` — **tetap**
+   disebut USANG. Ini arah kedua, dan wajib. Tanpa ini, "perbaikan" yang
+   melindungi segalanya akan lulus.
+3. Kedua tempat diuji, bukan satu. Kalau setelah disatukan tinggal satu
+   tempat, katakan begitu dan tunjukkan bahwa yang satunya benar-benar hilang.
+4. Bukti mutasi: kembalikan perbandingannya jadi peka huruf, tempel baris
+   merahnya.
+
+---
+
+# Entri 2 — `snowline --version` tidak ada, dan angka versinya tersebar
+
+## Bukti sekarang
+
+Empat proyek uji lapangan berturut-turut menyentuh ini. Semua memakai
+`pip show` sebagai gantinya, karena tidak ada yang lain.
+
+```
+$ grep -n "add_argument.*version" src/snowline/cli.py
+(tidak ada)
+
+$ ls src/snowline/__main__.py
+No such file or directory
+```
+
+Jadi `snowline --version` tidak ada, dan `python -m snowline` juga tidak
+jalan.
+
+Angka versinya sendiri hidup di tiga tempat:
+
+```
+pyproject.toml
+src/snowline/__init__.py:11      __version__ = "1.2.0"
+src/snowline/cli.py:1184         safe_print(f"...Version:... 1.2.0")
+```
+
+Yang ketiga itu teks mati. Waktu rilis kemarin, uji `version sync` menangkap
+bahwa ia masih tertulis `1.1.3` sementara dua yang lain sudah `1.2.0`. Uji itu
+menyelamatkan rilisnya. Tetapi menambal gejala.
+
+## Yang dikerjakan
+
+Dua hal, dan yang kedua lebih penting dari yang pertama.
+
+**Satu:** `snowline --version` mencetak versinya lalu keluar. Tambahkan juga
+`src/snowline/__main__.py` supaya `python -m snowline` bekerja — itu jalan
+masuk yang dipakai orang ketika PATH belum beres.
+
+**Dua:** `cli.py` berhenti menyimpan angka versi sendiri. Ia membacanya dari
+`__init__.py`. Setelah ini angka versi tinggal di **dua** tempat, bukan tiga,
+dan yang tersisa cuma `pyproject.toml` dan `__init__.py`.
+
+Uji `version sync` yang sudah ada jangan dihapus. Ia masih menjaga dua tempat
+yang tersisa. Sesuaikan saja kalau ia mencari tempat ketiga yang sudah tidak
+ada.
+
+## Syarat lulus
+
+1. `snowline --version` mencetak angka yang **sama persis** dengan
+   `snowline.__version__`. Bandingkan keduanya di dalam uji, jangan menuliskan
+   `1.2.0` sebagai teks di ujimu — kalau ditulis, ujinya akan merah sendiri di
+   rilis berikutnya.
+2. `python -m snowline --version` memberi keluaran yang sama.
+3. `snowline` tanpa argumen tetap mencetak Version di kepalanya, dan angkanya
+   ikut berubah kalau `__version__` diubah. **Buktikan dengan mengubahnya**,
+   bukan dengan membaca kodenya.
+4. Uji `version sync` tetap hijau, dan masih benar-benar merah kalau
+   `pyproject.toml` dan `__init__.py` dibuat berbeda. Tunjukkan merahnya.
+
+---
+
+# Entri 3 — laporan uji ditulis ke akar proyek
+
+## Bukti sekarang
+
+`snowline init test` menyalin dua templat ke
+`.agents/test_history/<tanggal>_<n>/`. Panduannya berkata:
+
+```
+Tuangkan semuanya ke `TEST_REPORT.md` yang ada di folder yang sama dengan
+berkas ini.
+```
+
+"Folder yang sama dengan berkas ini" itu jalur relatif terhadap sesuatu yang
+agen tidak selalu tahu letaknya. Di DAFA, agen dua kali menulis laporannya ke
+akar proyek. Dua-duanya harus dipindahkan tangan.
+
+## Yang dikerjakan
+
+Waktu `init test` menyalin panduannya, ganti kalimat itu dengan jalur
+**mutlak** ke berkas laporan yang baru saja dibuat.
+
+Cara paling sederhana: taruh penanda di templat, misalnya
+`{{JALUR_LAPORAN}}`, lalu gantikan saat menyalin. Templatnya sendiri tetap
+satu berkas, dan yang berubah cuma salinannya.
+
+Perhatikan: penyalinan sekarang biner (`read_bytes`/`write_bytes`), sengaja,
+supaya tidak ada yang berubah diam-diam. Kalau kamu menggantinya jadi teks,
+pastikan akhiran barisnya tidak ikut berubah — itu akan merusak uji Aturan
+#12 kalau `test_templates/` ikut terjaring, dan merusak perbandingan bita
+kalau tidak.
+
+Templat `TEST_REPORT.md` tidak perlu disentuh.
+
+## Syarat lulus
+
+1. Sesudah `init test`, `SNOWLINE_TEST.md` yang tersalin memuat jalur mutlak
+   yang **benar-benar ada** di disk. Buktikan dengan memeriksa berkas di jalur
+   itu benar ada, bukan dengan mencocokkan teksnya.
+2. Tidak ada lagi `{{JALUR_LAPORAN}}` tersisa di salinan.
+3. `init test` dua kali berturut-turut tetap benar. Yang kedua membuat folder
+   `_2`, dan jalur di dalamnya menunjuk ke `_2`, bukan ke `_1`. Ini yang
+   paling mudah salah.
+4. Uji lama `test_init_test_content.py` tetap hijau — 11 tugas mikro, 16
+   bagian laporan. Kalau ia jadi merah karena penanda itu, perbaiki ujinya
+   dengan sadar dan katakan kenapa.
+
+---
+
+# Yang TIDAK dikerjakan sprint ini
+
+Tiga catatan ini tetap terbuka, jangan disentuh:
+
+```
+label [Companion Gate] di quality_gate.py, 3 tempat
+clean_sweeper mencetak daftar panjang seperti smart_search dulu
+pesan gagal uji kosong
+```
+
+Jangan menaikkan versi. Jangan membuat tag. Sprint ini berhenti di commit.
+
+# Bentuk laporan
+
+Satu entri per butir, empat entri. Tiap entri memuat:
+
+- perintah dan keluaran mentah, tidak diringkas
+- bukti mutasi: baris merahnya, lalu baris hijaunya
+- untuk butir yang menolak sesuatu: dua arah, yang ditolak dan yang diterima
+- satu bagian "yang tidak saya periksa"
+
+Aturan yang berlaku: butir 4 chamber. Entri yang mengklaim selesai tanpa blok
+perintah dan keluaran ditolak sebelum dibaca. Butir 9: uji penolakan harus
+membuktikan dua arah.
+
+Satu hal terakhir. Untuk Entri 4 dan 5, jangan menguji dengan memanggil
+fungsinya di repo ini seperti yang QA lakukan tadi — itu memotong connector
+sungguhan. Pakai folder terpisah.
