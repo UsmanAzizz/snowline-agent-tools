@@ -1,35 +1,81 @@
 import os
-from pathlib import Path
+import sys
+import subprocess
 import re
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "src"))
+
+import snowline
+
+
+def _jalankan(args, env_extra=None):
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(REPO / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    if env_extra:
+        env.update(env_extra)
+    return subprocess.run(
+        [sys.executable, "-B", "-m", "snowline.cli"] + args,
+        capture_output=True, text=True, env=env, timeout=30,
+    )
+
+
+def _jalankan_module_main(args):
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(REPO / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    return subprocess.run(
+        [sys.executable, "-B", "-m", "snowline"] + args,
+        capture_output=True, text=True, env=env, timeout=30,
+    )
+
 
 def test_version_sync():
-    root = Path(__file__).parent.parent
-    
-    # Extract from pyproject.toml
+    root = REPO
+
+    # 1. Extract from pyproject.toml
     pyproject_path = root / 'pyproject.toml'
     pyproject_content = pyproject_path.read_text(encoding='utf-8')
     pyproject_version_match = re.search(r'version\s*=\s*"([^"]+)"', pyproject_content)
     assert pyproject_version_match, "Could not find version in pyproject.toml"
     pyproject_version = pyproject_version_match.group(1)
-    
-    # Extract from src/snowline/__init__.py
+
+    # 2. Extract from src/snowline/__init__.py
     init_path = root / 'src' / 'snowline' / '__init__.py'
     init_content = init_path.read_text(encoding='utf-8')
     init_version_match = re.search(r'__version__\s*=\s*"([^"]+)"', init_content)
     assert init_version_match, "Could not find __version__ in __init__.py"
     init_version = init_version_match.group(1)
-    
-    # Extract from src/snowline/cli.py
-    cli_path = root / 'src' / 'snowline' / 'cli.py'
-    cli_content = cli_path.read_text(encoding='utf-8')
-    cli_version_match = re.search(r'Version:\{Colors\.RESET\}\s*([^"]+)"', cli_content)
-    assert cli_version_match, "Could not find Version: in cli.py"
-    cli_version = cli_version_match.group(1)
-    
-    assert pyproject_version == init_version, f"Version mismatch: pyproject.toml ({pyproject_version}) != __init__.py ({init_version})"
-    assert pyproject_version == cli_version, f"Version mismatch: pyproject.toml ({pyproject_version}) != cli.py ({cli_version})"
-    
-    print(f"[PASS] All versions synced at {pyproject_version}")
+
+    assert pyproject_version == init_version, (
+        f"Version mismatch: pyproject.toml ({pyproject_version}) != __init__.py ({init_version})"
+    )
+
+    # 3. Verify snowline --version matches snowline.__version__ dynamically
+    res_ver = _jalankan(["--version"])
+    assert res_ver.returncode == 0, f"--version failed: {res_ver.stderr}"
+    assert snowline.__version__ in res_ver.stdout, (
+        f"snowline --version output '{res_ver.stdout.strip()}' does not match snowline.__version__ '{snowline.__version__}'"
+    )
+
+    # 4. Verify python -m snowline --version (via __main__.py) gives identical output
+    res_mod = _jalankan_module_main(["--version"])
+    assert res_mod.returncode == 0, f"python -m snowline --version failed: {res_mod.stderr}"
+    assert res_mod.stdout.strip() == res_ver.stdout.strip(), (
+        f"Mismatch: 'python -m snowline --version' ({res_mod.stdout.strip()}) != 'snowline --version' ({res_ver.stdout.strip()})"
+    )
+
+    # 5. Verify header in default snowline call matches snowline.__version__ dynamically (ignoring ANSI)
+    res_help = _jalankan([])
+    cleaned_help = re.sub(r'\x1b\[[0-9;]*m', '', res_help.stdout)
+    assert f"Version: {snowline.__version__}" in cleaned_help, (
+        f"Default header does not contain 'Version: {snowline.__version__}'!\nCleaned output:\n{cleaned_help}"
+    )
+
+    print(f"[PASS] All versions synced at {init_version}, --version and __main__.py verified dynamically.")
+
 
 if __name__ == '__main__':
     test_version_sync()

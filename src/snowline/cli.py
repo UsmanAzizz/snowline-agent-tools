@@ -64,6 +64,18 @@ def is_protected(rel: str) -> bool:
     norm_lower = rel.replace("\\", "/").strip("/").lower()
     return norm_lower in {f.lower() for f in PROTECTED_FILES}
 
+def get_snowline_version() -> str:
+    """Baca versi dinamis dari __init__.__version__."""
+    try:
+        from snowline import __version__
+        return __version__
+    except Exception:
+        try:
+            import snowline
+            return getattr(snowline, "__version__", "1.2.0")
+        except Exception:
+            return "1.2.0"
+
 def is_runtime_state(rel: str) -> bool:
     """Apakah jalur relatif di dalam .agents/ ini keadaan lokal, bukan templat."""
     norm = rel.replace(chr(92), "/")
@@ -1034,6 +1046,7 @@ def main():
         prog="snowline",
         description="Snowline Agent Tools - Portable tools for AI coding assistants"
     )
+    parser.add_argument("--version", "-v", action="version", version=get_snowline_version(), help="Show program's version number and exit")
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     p_init = subparsers.add_parser("init", help="Initialize .agents folder with skills")
@@ -1181,7 +1194,7 @@ def main():
         status()
     else:
         print_header("Snowline Agent Tools")
-        safe_print(f"{Colors.BOLD}Version:{Colors.RESET} 1.2.0")
+        safe_print(f"{Colors.BOLD}Version:{Colors.RESET} {get_snowline_version()}")
         safe_print("")
         safe_print(f"{Colors.BOLD}Commands:{Colors.RESET}")
         print_list_item("init --apply  - Install skills to .agents folder")
