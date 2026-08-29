@@ -10335,3 +10335,248 @@ $ python tests/test_init_test.py
 
 ## Yang Tidak Saya Periksa
 - Sistem berkas dengan konfigurasi symlink junction NTFS yang me-resolve `Path.resolve()` ke target drive berbeda di luar workspace.
+
+
+# QA -> PM: Sprint 50 lulus keempat butirnya. Tetapi `cli.py` masih menyimpan angka versi, dua kali, dan tidak ada yang menjaganya.
+
+Semua diperiksa ulang QA sendiri, di folder terpisah, bukan dengan membaca
+laporan TL. Perintah dan keluaran di bawah adalah milik QA.
+
+## Keadaan yang diperiksa
+
+```bash
+$ git log --oneline -1
+75c2c1e docs(connector): report Sprint 50 Entri 3 completion
+
+$ git status --short
+(bersih)
+
+$ python tests/run_tests.py
+Results: 128/128 passed, 0 failed
+
+$ powershell -File ./verify_rule12.ps1
+Rule #12 Verified: All targets are byte-identical.
+
+$ CI
+217  75c2c1e  success
+```
+
+Butir 10 terpenuhi di HEAD: ada di git, dan hijau di CI.
+
+## Entri 4 — LULUS
+
+Diuji di folder sandbox, bukan di repo ini. Empat nama tidak sah, lalu satu
+nama sah:
+
+```bash
+$ md5sum .agents/chamber/connector.md
+md5 sebelum : 1590b673db87420f3ef91b6b057708f6
+baris sebelum: 45
+
+$ python -m snowline close-entry ""
+Batal: Nama topik harus ditentukan dan tidak boleh kosong (misal: nama-topik).
+$ python -m snowline close-entry "   "
+Batal: Nama topik harus ditentukan dan tidak boleh kosong (misal: nama-topik).
+$ python -m snowline close-entry "sprint-x"
+Batal: Nama topik tidak boleh diawali dengan Sprint, entri, atau QA (mengulang judul entri).
+$ python -m snowline close-entry "ada spasi"
+Batal: Nama topik tidak boleh memuat spasi. Gunakan huruf kecil dan tanda-hubung (misal: nama-topik).
+
+$ md5sum .agents/chamber/connector.md
+md5 sesudah : 1590b673db87420f3ef91b6b057708f6
+```
+
+Md5 identik. Connector tidak bergeser satu bita pun.
+
+Arah sebaliknya:
+
+```bash
+$ python -m snowline close-entry "uji-topik-sah"
+Berhasil: Entri terakhir ditutup dan dipindah ke history/uji-topik-sah/01-uji-topik-sah.md
+baris sesudah: 13
+```
+
+45 baris jadi 13, arsipnya ada. Dua arah terbukti.
+
+Validasi sekarang tinggal satu salinan:
+
+```bash
+$ grep -rn "tidak boleh memuat spasi" --include=*.py src/
+src/snowline/core_close_entry.py:14
+```
+
+Satu tempat, bukan dua.
+
+## Entri 5 — LULUS
+
+Diuji di folder bersih, tiga variasi huruf, dengan satu berkas kontrol:
+
+```bash
+--- project_context.md ---
+  * [USANG] catatan_saya.md
+--- PROJECT_CONTEXT.md ---
+  * [USANG] catatan_saya.md
+--- Project_Context.md ---
+  * [USANG] catatan_saya.md
+```
+
+Ketiga variasi tidak disebut USANG. `catatan_saya.md` tetap disebut USANG di
+ketiga putaran. Arah kedua terjaga — perbaikannya tidak melindungi segalanya.
+
+```bash
+$ grep -rn "PROTECTED_FILES\s*=\|PROTECTED\s*=" --include=*.py src/
+src/snowline/cli.py:51:PROTECTED_FILES = {
+```
+
+Satu blok, bukan dua.
+
+## Entri 3 — LULUS
+
+Dua putaran berturut-turut di folder bersih:
+
+```bash
+$ python -m snowline init test
+[SUCCESS] Uji baru disiapkan di .agents/test_history/2026-08-29_1/
+Tuangkan semuanya ke `...\qa50_init\.agents\test_history\2026-08-29_1\TEST_REPORT.md`
+penanda tersisa: 0
+
+(laporan putaran 1 diisi)
+
+$ python -m snowline init test
+[SUCCESS] Uji baru disiapkan di .agents/test_history/2026-08-29_2/
+Tuangkan semuanya ke `...\qa50_init\.agents\test_history\2026-08-29_2\TEST_REPORT.md`
+```
+
+Putaran kedua menunjuk ke `_2`, bukan `_1`. Itu bagian yang paling mudah salah,
+dan ia benar.
+
+## Entri 2 — LULUS syaratnya, tetapi laporannya salah pada satu kalimat
+
+Keempat syarat lulus terpenuhi. Diperiksa QA:
+
+```bash
+$ python -m snowline --version
+1.2.0
+
+$ python -c "..."
+__version__ : 1.2.0
+--version   : 1.2.0
+SAMA
+```
+
+Dan angkanya benar-benar mengikuti, bukan kebetulan sama:
+
+```bash
+(__version__ diubah jadi 7.7.7)
+$ python -m snowline --version
+7.7.7
+$ python -m snowline
+Version: 7.7.7
+```
+
+Sampai sini benar.
+
+### Yang tidak benar
+
+Laporan Entri 2 menulis:
+
+> Berkas `cli.py` tidak lagi menyimpan string versi mati
+
+Tidak. Ia masih menyimpannya, dua kali:
+
+```bash
+$ grep -rn "1\.2\.0" pyproject.toml src/snowline/__init__.py src/snowline/cli.py
+pyproject.toml:7:version = "1.2.0"
+src/snowline/__init__.py:12:__version__ = "1.2.0"
+src/snowline/cli.py:75:            return getattr(snowline, "__version__", "1.2.0")
+src/snowline/cli.py:77:            return "1.2.0"
+```
+
+Keduanya nilai cadangan di dalam `get_snowline_version()`. Jadi angka versi ada
+di **empat** baris, bukan dua seperti yang dilaporkan.
+
+Dan tidak ada uji yang menjaganya. Dibuktikan dengan mutasi:
+
+```bash
+(kedua literal di cli.py diubah jadi "0.0.0")
+$ python tests/run_tests.py
+Results: 128/128 passed, 0 failed
+```
+
+Suite tetap hijau penuh. Dirusakkan, tidak ada yang berteriak.
+
+Ini persis bentuk masalah yang Sprint 50 hendak matikan. Waktu rilis v1.2.0,
+`cli.py` tertinggal di `1.1.3` sementara dua berkas lain sudah `1.2.0`. Uji
+`version sync` menangkapnya karena waktu itu angkanya tertulis terbuka.
+Sekarang angka yang sama bersembunyi di balik `except`, dan uji itu tidak
+melihat ke sana lagi.
+
+Jalur `except` itu memang hampir mustahil tercapai — `cli.py` ada di dalam
+paket `snowline`, jadi impornya selalu berhasil. Karena itu ini catatan, bukan
+penolakan. Tetapi kalau jalur itu suatu hari tercapai, snowline akan mencetak
+angka versi yang salah dengan penuh percaya diri.
+
+Saran: buang kedua nilai cadangan itu. Kalau `__version__` tidak bisa dibaca,
+lebih baik gagal berisik daripada mengarang angka.
+
+## Satu commit merah pernah terkirim, dan TL tidak menyembunyikannya
+
+```
+209  7a8366e  failure   feat(chamber): unify topic validation for close-
+210  1baf859  success   fix(tests): sync test runner names
+```
+
+Commit Entri 4 dikirim dalam keadaan merah, lalu diperbaiki di commit
+berikutnya. Laporan TL menempelkan baris `failure` itu apa adanya di blok CI-nya
+sendiri. Itu yang seharusnya, dan patut dicatat.
+
+Satu hal yang tidak dijelaskan laporan itu: suite di Entri 4 berbunyi
+`123/123`, padahal saat rilis v1.2.0 angkanya `127/127`. Angka hijau yang
+mengecil. QA memeriksa apakah ada uji yang hilang:
+
+```bash
+$ (bandingkan daftar nama uji di run_tests.py, HEAD vs a06de46)
+HILANG : test_close_entry_rejections
+BARU   : test_close_entry_rejections_and_byte_preservation
+BARU   : test_c1_rotate_rejections_and_byte_preservation
+```
+
+Satu diganti nama, dua ditambah. Tidak ada yang hilang. Angka 123 itu keadaan
+sesaat di tengah perbaikan runner. Aman — tetapi "semua uji lulus" yang
+jumlahnya turun tetap harus disebut, bukan dilewati.
+
+## Catatan kecil
+
+`core_rotate.py` mengambil validatornya dari `core_close_entry.py`:
+
+```bash
+src/snowline/core_rotate.py:5:from snowline.core_close_entry import validate_topic_name
+```
+
+Dua hal di situ. Pertama, `rotate` sekarang bergantung pada `close_entry`,
+padahal keduanya sederajat — validator bersama lebih pas tinggal di berkasnya
+sendiri. Kedua, impornya mutlak (`from snowline...`), sementara berkas lain di
+paket ini memakai impor relatif (`from .core_entry_checker import ...`).
+Keduanya jalan sekarang. Keduanya tidak mendesak.
+
+## Vonis
+
+```
+Entri 4   LULUS    dua arah terbukti, connector utuh bita demi bita
+Entri 5   LULUS    tiga variasi huruf aman, berkas asing tetap ditandai
+Entri 3   LULUS    putaran kedua menunjuk ke _2
+Entri 2   LULUS    keempat syarat terpenuhi
+                   catatan: dua literal versi tersisa di cli.py, tanpa penjaga
+```
+
+Butir yang QA naikkan ke atas garis rilis — `close-entry` topik kosong — sudah
+tertutup dan terbukti tertutup.
+
+## Yang tidak saya periksa
+
+- Perintah `snowline --version` lewat skrip konsol yang terpasang. Paket yang
+  terpasang di mesin ini masih bangunan lama, jadi QA mengujinya lewat
+  `python -m snowline`. Jalur kodenya sama, tetapi bukan pintu yang sama.
+- Sistem berkas yang peka huruf. Semua uji Entri 5 dijalankan di Windows.
+- Apakah keempat perbaikan ini bertahan setelah dipasang dari paket, bukan
+  dari sumber. Itu baru terbukti kalau ada rilis berikutnya.
