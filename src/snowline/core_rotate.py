@@ -2,21 +2,10 @@ import os
 import sys
 import re
 from pathlib import Path
+from snowline.core_close_entry import validate_topic_name
 
 def rotate_command(topik: str, apply: bool = False):
-    if not topik or not topik.strip():
-        print("Batal: Nama topik harus ditentukan (misal: snowline rotate <nama-topik>).")
-        sys.exit(1)
-        
-    topik = topik.strip()
-    if ' ' in topik:
-        print("Batal: Nama topik tidak boleh memuat spasi. Gunakan huruf kecil dan tanda-hubung (misal: nama-topik).")
-        sys.exit(1)
-        
-    lower_topik = topik.lower()
-    if lower_topik.startswith('sprint') or lower_topik.startswith('entri') or lower_topik.startswith('qa'):
-        print("Batal: Nama topik tidak boleh diawali dengan Sprint, entri, atau QA (mengulang judul entri).")
-        sys.exit(1)
+    topik = validate_topic_name(topik)
 
     # Setup paths
     here_we_are = Path(".here_we_are")

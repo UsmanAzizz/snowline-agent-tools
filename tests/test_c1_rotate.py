@@ -6,10 +6,11 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 
-def run_snowline_rotate(args, cwd):
+def run_snowline_rotate(args: list, cwd: str):
     env = dict(os.environ)
-    env['PYTHONPATH'] = str(REPO / 'src') + os.pathsep + env.get('PYTHONPATH', '')
-    cmd = [sys.executable, "-m", "snowline.cli", "rotate"] + args
+    env["PYTHONPATH"] = str(REPO / "src")
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    cmd = [sys.executable, "-B", "-m", "snowline.cli", "rotate"] + args
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8", env=env)
 
 def test_c1_rotate_directions():
@@ -52,8 +53,38 @@ def test_c1_rotate_directions():
         assert lines_conn + lines_arch == orig_lines, f"Arah A gagal: {lines_conn} + {lines_arch} != {orig_lines}"
         print("PASS: Arah A (rotasi normal lewat CLI subprocess: lines_conn + lines_arch == orig_lines)")
 
+def test_c1_rotate_rejections_and_byte_preservation():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        chamber = os.path.join(tmpdir, ".here_we_are")
+        os.makedirs(chamber)
+        conn = os.path.join(chamber, "connector.md")
+        
+        orig_bytes = b"# PM -> TL: Entri 1\nBaris 1\n---\n# TL -> PM: Entri 2\nBaris 3\n"
+        with open(conn, "wb") as f:
+            f.write(orig_bytes)
+            
+        invalid_topics = [
+            "",
+            "   ",
+            "nama berspasi",
+            "Sprint-50",
+            "entri-01",
+            "QA-Check",
+        ]
+        
+        for bad_topik in invalid_topics:
+            res = run_snowline_rotate([bad_topik, "--apply"], cwd=tmpdir)
+            assert res.returncode != 0, f"rotate should reject '{bad_topik}', got returncode 0"
+            assert "Batal:" in res.stdout or "Batal:" in res.stderr
+            
+            with open(conn, "rb") as f:
+                curr_bytes = f.read()
+            assert curr_bytes == orig_bytes, f"rotate changed connector bytes on rejected topic '{bad_topik}'!"
+            
+        print("PASS: rotate arah nama tidak sah (empty, spaces, bad prefix) -> ditolak, connector utuh bita demi bita")
+
 def test_c1_rotate_failure_intact():
-    # Arah b: arsip gagal ditulis (misal direktori target tidak bisa ditulis / corrupt) -> connector UTUH
+    # Arah b: arsip gagal ditulis -> connector UTUH
     with tempfile.TemporaryDirectory() as tmpdir:
         chamber = os.path.join(tmpdir, ".here_we_are")
         os.makedirs(chamber)
@@ -78,5 +109,6 @@ def test_c1_rotate_failure_intact():
 
 if __name__ == "__main__":
     test_c1_rotate_directions()
+    test_c1_rotate_rejections_and_byte_preservation()
     test_c1_rotate_failure_intact()
     print("\nALL ENTRI C1 DIRECTIONS PASSED VIA SUBPROCESS CLI!")
