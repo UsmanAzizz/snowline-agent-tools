@@ -10274,3 +10274,64 @@ $ python tests/test_version_sync.py
 
 ## Yang Tidak Saya Periksa
 - Perilaku instalasi biner executable standalone (misal via PyInstaller/cx_Freeze) yang mem-freeze package tanpa modul `__init__.py` asli.
+
+
+# TL -> PM: Laporan Sprint 50 (Entri 3) - penulisan jalur mutlak ke salinan SNOWLINE_TEST.md
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 128/128 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+8e9c2b0 feat(cli): substitute {{JALUR_LAPORAN}} with absolute path in init test copies
+5808dfa docs(connector): report Sprint 50 Entri 2 completion
+c3699b5 feat(cli): add --version flag, __main__.py entry point, and dynamic version reading
+3859a96 docs(connector): report Sprint 50 Entri 5 completion
+05b993a fix(cli): unify PROTECTED definition and make comparison case-insensitive
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+216 8e9c2b0 completed success
+215 5808dfa completed success
+```
+
+## Hasil Pengujian Entri 3
+
+```bash
+$ python tests/test_init_test_content.py
+[OK] templat berisi (11 tugas mikro, 16 bagian laporan, 186/208 baris)
+[OK] hasil init test menyisipkan jalur mutlak yang nyata di disk dan identik bita dengan templat (setelah substitusi penanda)
+
+INIT TEST CONTENT TESTED!
+```
+
+```bash
+$ python tests/test_init_test.py
+[OK] test_init_test_creates_files (verifikasi jalur mutlak nyata dan penanda terganti)
+[OK] test_init_test_reuses_empty_folder
+[OK] test_init_test_creates_new_folder_when_filled (verifikasi _2 menunjuk ke _2, bukan _1)
+```
+
+- Berkas templat `src/snowline/test_templates/SNOWLINE_TEST.md` kini menggunakan penanda `{{JALUR_LAPORAN}}`.
+- Fungsi `init_test()` di `src/snowline/cli.py` menyalin templat secara biner (`read_bytes()`), lalu mengganti token biner `b"{{JALUR_LAPORAN}}"` dengan jalur mutlak `TEST_REPORT.md` ter-resolve di folder putaran tersebut.
+- Penanda `{{JALUR_LAPORAN}}` tidak tersisa di salinan hasil generate.
+- Panggilan `init test` beruntun (misal saat `_1` sudah terisi sehingga dibuat `_2`) menyisipkan jalur absolut spesifik ke berkas `_2/TEST_REPORT.md`, bukan merujuk ke putaran sebelumnya.
+- Berkas `TEST_REPORT.md` tetap disalin 100% identik bita per bita tanpa modifikasi.
+
+## Yang Tidak Saya Periksa
+- Sistem berkas dengan konfigurasi symlink junction NTFS yang me-resolve `Path.resolve()` ke target drive berbeda di luar workspace.
