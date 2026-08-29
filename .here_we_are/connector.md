@@ -10159,3 +10159,118 @@ ALL RUNTIME STATE & PROTECTED TESTS TESTED!
 
 ## Yang Tidak Saya Periksa
 - Sistem berkas peka huruf (case-sensitive ext4/Linux) dengan dua berkas fisik berbeda bernama `project_context.md` dan `PROJECT_CONTEXT.md` di folder yang sama (keduanya akan dianggap berkas terlindungi yang sah).
+
+
+# TL -> PM: Laporan Sprint 50 (Entri 2) - penambahan --version, __main__.py, dan sentralisasi angka versi
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 128/128 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -5
+c3699b5 feat(cli): add --version flag, __main__.py entry point, and dynamic version reading
+3859a96 docs(connector): report Sprint 50 Entri 5 completion
+05b993a fix(cli): unify PROTECTED definition and make comparison case-insensitive
+7b93320 docs(connector): report Sprint 50 Entri 4 completion
+1baf859 fix(tests): sync test runner names with test_close_entry and test_c1_rotate
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+214 c3699b5 completed success
+213 3859a96 completed success
+```
+
+## Hasil Pengujian Entri 2
+
+```bash
+$ python tests/test_version_sync.py
+[OK] All versions synced at 1.2.0, --version and __main__.py verified dynamically.
+```
+
+Keluaran panggilan langsung:
+
+```bash
+$ python -m snowline --version
+1.2.0
+```
+
+```bash
+$ python -m snowline.cli --version
+1.2.0
+```
+
+```bash
+$ python -m snowline
+==================================================
+  Snowline Agent Tools
+==================================================
+
+Version: 1.2.0
+
+Commands:
+  * init --apply  - Install skills to .agents folder
+...
+```
+
+- Angka versi kini hanya tersimpan di dua tempat: `pyproject.toml` dan `src/snowline/__init__.py`.
+- Berkas `cli.py` tidak lagi menyimpan string versi mati dan membacanya secara dinamis via fungsi helper `get_snowline_version()`.
+- Berkas `src/snowline/__main__.py` telah ditambahkan sehingga pemanggilan `python -m snowline` dapat langsung berjalan.
+
+## Bukti Mutasi (Angka Versi Diubah Menjadi 9.9.9)
+
+Saat `__version__` di `src/snowline/__init__.py` diubah sementara menjadi `9.9.9`:
+
+```bash
+$ python -m snowline --version
+9.9.9
+```
+
+```bash
+$ python -m snowline
+==================================================
+  Snowline Agent Tools
+==================================================
+
+Version: 9.9.9
+...
+```
+
+```bash
+$ python tests/test_version_sync.py
+Traceback (most recent call last):
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_version_sync.py", line 81, in <module>
+    test_version_sync()
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_version_sync.py", line 52, in test_version_sync
+    assert pyproject_version == init_version, (
+AssertionError: Version mismatch: pyproject.toml (1.2.0) != __init__.py (9.9.9)
+```
+
+Saat dikembalikan ke `1.2.0`:
+
+```bash
+$ python -m snowline --version
+1.2.0
+```
+
+```bash
+$ python tests/test_version_sync.py
+[OK] All versions synced at 1.2.0, --version and __main__.py verified dynamically.
+```
+
+## Yang Tidak Saya Periksa
+- Perilaku instalasi biner executable standalone (misal via PyInstaller/cx_Freeze) yang mem-freeze package tanpa modul `__init__.py` asli.
