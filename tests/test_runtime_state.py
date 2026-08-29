@@ -1,19 +1,3 @@
-"""Menjaga agar .gitignore dan pemeriksa berkas usang tidak berbeda pendapat.
-
-Dulu keduanya punya daftar sendiri-sendiri. `.gitignore` tahu
-`session_cache.json` itu keadaan lokal; pemeriksa usang tidak. Akibatnya di
-proyek nyata 27 berkas bawaan snowline dilaporkan [USANG] — semuanya salah,
-dan label itu jadi kebisingan yang orang belajar abaikan.
-
-Sekarang keduanya dibangun dari satu daftar. Uji ini memeriksa tiga hal:
-
-1. Tiap butir di daftar itu benar-benar muncul di `.gitignore` yang ditulis.
-2. Tiap butir itu tidak ditandai [USANG] waktu berkasnya ada.
-3. Berkas yang memang asing TETAP ditandai [USANG].
-
-Nomor 3 yang menjaga supaya pengecualiannya tidak kelebaran. Tanpa itu,
-"tidak ada yang usang" bisa dicapai dengan mematikan seluruh fiturnya.
-"""
 import os
 import subprocess
 import sys
@@ -26,6 +10,8 @@ sys.path.insert(0, str(REPO / "src"))
 from snowline.cli import (  # noqa: E402
     RUNTIME_STATE_FILES,
     RUNTIME_STATE_DIRS,
+    PROTECTED_FILES,
+    is_protected,
     build_agents_gitignore,
     is_runtime_state,
 )
@@ -34,8 +20,9 @@ from snowline.cli import (  # noqa: E402
 def _jalankan(args, cwd):
     env = dict(os.environ)
     env["PYTHONPATH"] = str(REPO / "src") + os.pathsep + env.get("PYTHONPATH", "")
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     return subprocess.run(
-        [sys.executable, "-m", "snowline.cli"] + args,
+        [sys.executable, "-B", "-m", "snowline.cli"] + args,
         cwd=cwd, capture_output=True, text=True, env=env, timeout=120,
     )
 
@@ -116,7 +103,61 @@ def test_keadaan_lokal_tidak_ditandai_usang():
               + " butir keadaan lokal tidak ditandai usang, berkas asing tetap ditandai")
 
 
+def test_protected_case_insensitive_and_obsolete_preservation():
+    """Sprint 50 Entri 5: PROTECTED tidak peka huruf di update dan status."""
+    with tempfile.TemporaryDirectory() as tmp:
+        res_init = _jalankan(["init", "--apply"], tmp)
+        assert res_init.returncode == 0, f"init gagal: {res_init.stderr}"
+        
+        agents = Path(tmp) / ".agents"
+        
+        # 1. Buat 3 variasi huruf berkas terlindungi
+        # Di Windows berkas dengan nama beda huruf adalah sama di disk,
+        # jadi kita uji satu per satu untuk memastikan perbandingan string tidak peka huruf.
+        variations = ["project_context.md", "PROJECT_CONTEXT.md", "Project_Context.md"]
+        for var_name in variations:
+            f = agents / var_name
+            f.write_text("catatan konteks proyek", encoding="utf-8")
+            
+            # Uji di snowline update
+            res_update = _jalankan(["update"], tmp)
+            assert res_update.returncode == 0
+            usang_update = [b for b in res_update.stdout.splitlines() if "[USANG]" in b and "Catatan" not in b]
+            assert not any(var_name in line or "project_context" in line.lower() for line in usang_update), (
+                f"Kegagalan di update: {var_name} salah ditandai USANG!\nKeluaran:\n{res_update.stdout}"
+            )
+            
+            # Uji di snowline status
+            res_status = _jalankan(["status"], tmp)
+            assert res_status.returncode == 0
+            usang_status = [b for b in res_status.stdout.splitlines() if "[USANG]" in b and "Catatan" not in b]
+            assert not any(var_name in line or "project_context" in line.lower() for line in usang_status), (
+                f"Kegagalan di status: {var_name} salah ditandai USANG!\nKeluaran:\n{res_status.stdout}"
+            )
+            
+            f.unlink()
+
+        # 2. Arah kontrol: Berkas asing (tidak terlindungi) TETAP ditandai USANG
+        berkas_asing = agents / "catatan_saya.md"
+        berkas_asing.write_text("catatan pribadi", encoding="utf-8")
+        
+        res_update_asing = _jalankan(["update"], tmp)
+        usang_up = [b for b in res_update_asing.stdout.splitlines() if "[USANG]" in b and "Catatan" not in b]
+        assert any("catatan_saya.md" in line for line in usang_up), (
+            f"catatan_saya.md harus tetap ditandai USANG di update!\nKeluaran:\n{res_update_asing.stdout}"
+        )
+        
+        res_status_asing = _jalankan(["status"], tmp)
+        usang_st = [b for b in res_status_asing.stdout.splitlines() if "[USANG]" in b and "Catatan" not in b]
+        assert any("catatan_saya.md" in line for line in usang_st), (
+            f"catatan_saya.md harus tetap ditandai USANG di status!\nKeluaran:\n{res_status_asing.stdout}"
+        )
+        
+        print("PASS: project_context.md (3 variasi huruf) TIDAK usang, catatan_saya.md TETAP usang di update & status")
+
+
 if __name__ == "__main__":
     test_runtime_state_sepakat()
     test_keadaan_lokal_tidak_ditandai_usang()
-    print(chr(10) + "RUNTIME STATE OK!")
+    test_protected_case_insensitive_and_obsolete_preservation()
+    print("\nALL RUNTIME STATE & PROTECTED TESTS PASSED!")

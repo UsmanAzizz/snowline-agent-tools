@@ -48,6 +48,22 @@ RUNTIME_STATE_DIRS = [
 ]
 
 
+PROTECTED_FILES = {
+    "memory.json",
+    "PROJECT_CONTEXT.md",
+    "PROJECT_NOTES.md",
+    "CURRENT_STATE.md",
+    "scope_lock.json",
+    "write_log.jsonl",
+    "mode_ringan.json",
+    ".gitignore",
+}
+
+def is_protected(rel: str) -> bool:
+    """Apakah berkas ini terlindungi (perbandingan tidak peka huruf)."""
+    norm_lower = rel.replace("\\", "/").strip("/").lower()
+    return norm_lower in {f.lower() for f in PROTECTED_FILES}
+
 def is_runtime_state(rel: str) -> bool:
     """Apakah jalur relatif di dalam .agents/ ini keadaan lokal, bukan templat."""
     norm = rel.replace(chr(92), "/")
@@ -369,19 +385,6 @@ def update(apply=False):
         if not filecmp.cmp(agents_template, agents_dest, shallow=False):
             agents_md_modified = True
 
-    # Protected files (will NOT be auto-updated)
-    PROTECTED = {
-        "memory.json",
-        "PROJECT_CONTEXT.md",
-        "PROJECT_NOTES.md",
-        "CURRENT_STATE.md",
-        "scope_lock.json",
-        "write_log.jsonl",
-        "mode_ringan.json",
-        ".gitignore",
-        # NOTE: agents.md NOT protected - follows timestamp logic like other files
-    }
-
     skill_files = [
         f for f in templates.rglob("*")
         if f.is_file()
@@ -394,7 +397,7 @@ def update(apply=False):
 
     for f in skill_files:
         rel = str(f.relative_to(templates))
-        if rel in PROTECTED:
+        if is_protected(rel):
             continue
         dest = target / rel
         if not dest.exists():
@@ -406,7 +409,9 @@ def update(apply=False):
     for f in target.rglob("*"):
         if not f.is_file() or f.name.endswith(".pyc"): continue
         rel = str(f.relative_to(target))
-        if rel in PROTECTED or is_runtime_state(rel) or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md": continue
+        rel_norm = rel.replace("\\", "/")
+        rel_lower = rel_norm.lower()
+        if is_protected(rel) or is_runtime_state(rel) or rel_lower.startswith("chamber") or rel_lower.startswith("knowledge") or rel_lower.startswith("rules") or rel_lower == "agents.md": continue
         if not (templates / rel).exists():
             obsolete_files.append((f, rel))
 
@@ -731,13 +736,6 @@ def status():
         templates = Path(__file__).parent / "templates"
         agents_template = templates / "AGENTS_TEMPLATE.md"
         agents_dest = target.parent / "agents.md"
-        PROTECTED = {
-            "memory.json", "PROJECT_CONTEXT.md", "PROJECT_NOTES.md",
-            "CURRENT_STATE.md", "scope_lock.json",
-        "write_log.jsonl",
-        "mode_ringan.json",
-        ".gitignore",
-        }
         skill_files = [
             f for f in templates.rglob("*")
             if f.is_file()
@@ -749,7 +747,7 @@ def status():
                 agents_md_modified = True
         for f in skill_files:
             rel = str(f.relative_to(templates))
-            if rel in PROTECTED:
+            if is_protected(rel):
                 continue
             dest = target / rel
             if not dest.exists():
@@ -761,13 +759,15 @@ def status():
     for f in target.rglob("*"):
         if not f.is_file() or f.name.endswith(".pyc"): continue
         rel = str(f.relative_to(target))
-        if rel in PROTECTED or is_runtime_state(rel) or rel.startswith("chamber") or rel.startswith("knowledge") or rel.startswith("rules") or rel == "agents.md": continue
+        rel_norm = rel.replace("\\", "/")
+        rel_lower = rel_norm.lower()
+        if is_protected(rel) or is_runtime_state(rel) or rel_lower.startswith("chamber") or rel_lower.startswith("knowledge") or rel_lower.startswith("rules") or rel_lower == "agents.md": continue
         if not (templates / rel).exists():
             obsolete_files.append((f, rel))
 
     total_current = len([f for f in target.rglob("*") if f.is_file()]) if target.exists() else 0
-    agents_sinkron = (new_files_count == 0 and modified_files_count == 0 and not agents_md_modified)
-    agents_tersedia = (new_files_count > 0 or modified_files_count > 0 or agents_md_modified)
+    agents_sinkron = (new_files_count == 0 and modified_files_count == 0 and not agents_md_modified and len(obsolete_files) == 0)
+    agents_tersedia = (new_files_count > 0 or modified_files_count > 0 or agents_md_modified or len(obsolete_files) > 0)
 
     # ---- Output ----
     print_header("Snowline Status")
