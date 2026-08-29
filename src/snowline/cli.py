@@ -1025,8 +1025,13 @@ def init_test(force=False):
     snowline_test_path = target_dir / "SNOWLINE_TEST.md"
     test_report_path = target_dir / "TEST_REPORT.md"
 
+    abs_report_path = str(test_report_path.resolve())
+    test_content = src_test.read_bytes()
+    if b"{{JALUR_LAPORAN}}" in test_content:
+        test_content = test_content.replace(b"{{JALUR_LAPORAN}}", abs_report_path.encode("utf-8"))
+
     with open(snowline_test_path, "wb") as f:
-        f.write(src_test.read_bytes())
+        f.write(test_content)
 
     with open(test_report_path, "wb") as f:
         f.write(src_report.read_bytes())

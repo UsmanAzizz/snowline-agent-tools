@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import re
 from pathlib import Path
 from datetime import datetime
 
@@ -83,12 +84,13 @@ def test_init_test_content():
     print(f"PASS: templat berisi ({n_tugas} tugas mikro, "
           f"{n_bagian} bagian laporan, {n_baris_prompt}/{n_baris_laporan} baris)")
 
-    # --- Bagian 1: hasil init test masuk ke .agents/test_history/ dan identik bita per bita ---
+    # --- Bagian 1: hasil init test masuk ke .agents/test_history/ dan jalur mutlak disisipkan ---
     with tempfile.TemporaryDirectory() as tmp:
         env = dict(os.environ)
         env["PYTHONPATH"] = str(REPO / "src") + os.pathsep + env.get("PYTHONPATH", "")
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
         hasil = subprocess.run(
-            [sys.executable, "-m", "snowline.cli", "init", "test"],
+            [sys.executable, "-B", "-m", "snowline.cli", "init", "test"],
             cwd=tmp, capture_output=True, text=True, env=env, timeout=60,
         )
         assert hasil.returncode == 0, f"init test gagal: {hasil.stderr}"
@@ -104,28 +106,30 @@ def test_init_test_content():
         history_dir = Path(tmp) / ".agents" / "test_history" / f"{today_str}_1"
         assert history_dir.exists(), f"Folder riwayat uji tidak ditemukan: {history_dir}"
 
-        for nama, sumber in (("SNOWLINE_TEST.md", src_prompt),
-                             ("TEST_REPORT.md", src_laporan)):
-            keluaran = history_dir / nama
-            assert keluaran.exists(), f"{nama} tidak terbentuk di {history_dir}"
-            a = keluaran.read_bytes()
-            b = sumber.read_bytes()
-            if a != b:
-                baris_a = a.decode("utf-8", "replace").split("\n")
-                baris_b = b.decode("utf-8", "replace").split("\n")
-                beda = "(panjangnya berbeda saja)"
-                for i in range(min(len(baris_a), len(baris_b))):
-                    if baris_a[i] != baris_b[i]:
-                        beda = (f"baris {i+1}:\n"
-                                f"  hasil  : {baris_a[i][:70]!r}\n"
-                                f"  templat: {baris_b[i][:70]!r}")
-                        break
-                raise AssertionError(
-                    f"{nama} hasil init test tidak sama dengan "
-                    f"{sumber} ({len(baris_a)} vs {len(baris_b)} baris). {beda}"
-                )
+        # 3. TEST_REPORT.md harus identik bita per bita dengan templatnya
+        copied_report = history_dir / "TEST_REPORT.md"
+        assert copied_report.exists()
+        assert copied_report.read_bytes() == src_laporan.read_bytes(), "TEST_REPORT.md tidak identik bita per bita dengan templat"
 
-        print("PASS: hasil init test masuk ke .agents/test_history/ dan identik bita per bita dengan templatnya")
+        # 4. SNOWLINE_TEST.md harus menyisipkan jalur mutlak nyata dan menghapus {{JALUR_LAPORAN}}
+        copied_test = history_dir / "SNOWLINE_TEST.md"
+        assert copied_test.exists()
+        test_bytes = copied_test.read_bytes()
+        assert b"{{JALUR_LAPORAN}}" not in test_bytes, "Penanda {{JALUR_LAPORAN}} masih tersisa di SNOWLINE_TEST.md!"
+        
+        expected_abs_path = str(copied_report.resolve())
+        expected_test_bytes = src_prompt.read_bytes().replace(b"{{JALUR_LAPORAN}}", expected_abs_path.encode("utf-8"))
+        assert test_bytes == expected_test_bytes, "SNOWLINE_TEST.md tidak cocok dengan substitusi jalur mutlak yang diharapkan"
+
+        # 5. Verifikasi jalur mutlak yang tercetak benar-benar ada di disk
+        test_text = copied_test.read_text(encoding="utf-8")
+        match = re.search(r"Tuangkan semuanya ke `([^`]+)`", test_text)
+        assert match, "Pola 'Tuangkan semuanya ke `...`' tidak ditemukan di SNOWLINE_TEST.md"
+        embedded_path = Path(match.group(1))
+        assert embedded_path.exists(), f"Jalur yang disisipkan ({embedded_path}) tidak benar-benar ada di disk!"
+        assert embedded_path.resolve() == copied_report.resolve(), f"Jalur yang disisipkan ({embedded_path}) tidak menunjuk ke {copied_report}"
+
+        print("PASS: hasil init test menyisipkan jalur mutlak yang nyata di disk dan identik bita dengan templat (setelah substitusi penanda)")
 
 
 if __name__ == "__main__":

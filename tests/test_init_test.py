@@ -1,10 +1,9 @@
 import os
+import shutil
 import tempfile
-import sys
+import re
 from pathlib import Path
 from datetime import datetime
-
-sys.path.insert(0, os.path.abspath('src'))
 from snowline.cli import init_test
 
 def test_init_test_creates_files():
@@ -16,16 +15,23 @@ def test_init_test_creates_files():
             today_str = datetime.now().strftime("%Y-%m-%d")
             history_dir = Path(".agents") / "test_history" / f"{today_str}_1"
             
-            if not history_dir.exists(): raise AssertionError("History dir not created")
-            if not (history_dir / "SNOWLINE_TEST.md").exists(): raise AssertionError("SNOWLINE_TEST.md not in history dir")
-            if not (history_dir / "TEST_REPORT.md").exists(): raise AssertionError("TEST_REPORT.md not in history dir")
+            test_file = history_dir / "SNOWLINE_TEST.md"
+            report_file = history_dir / "TEST_REPORT.md"
+            
+            if not test_file.exists(): raise AssertionError("SNOWLINE_TEST.md not in history dir")
+            if not report_file.exists(): raise AssertionError("TEST_REPORT.md not in history dir")
             if os.path.exists("SNOWLINE_TEST.md"): raise AssertionError("SNOWLINE_TEST.md in root")
             if os.path.exists("TEST_REPORT.md"): raise AssertionError("TEST_REPORT.md in root")
             
-            with open(history_dir / "SNOWLINE_TEST.md", "rb") as f:
+            with open(test_file, "rb") as f:
                 if f.read().startswith(b"\xef\xbb\xbf"): raise AssertionError("BOM in SNOWLINE_TEST.md")
-            with open(history_dir / "TEST_REPORT.md", "rb") as f:
+            with open(report_file, "rb") as f:
                 if f.read().startswith(b"\xef\xbb\xbf"): raise AssertionError("BOM in TEST_REPORT.md")
+                
+            # Verifikasi penanda sudah diganti dengan jalur mutlak nyata
+            content = test_file.read_text(encoding="utf-8")
+            assert "{{JALUR_LAPORAN}}" not in content, "{{JALUR_LAPORAN}} masih ada di SNOWLINE_TEST.md"
+            assert str(report_file.resolve()) in content, "Jalur mutlak TEST_REPORT.md tidak ada di SNOWLINE_TEST.md"
         finally:
             os.chdir(cwd)
 
@@ -58,16 +64,24 @@ def test_init_test_creates_new_folder_when_filled():
             
             init_test()
             
-            # Isi TEST_REPORT.md
+            # Isi TEST_REPORT.md di dir_1
             with open(dir_1 / "TEST_REPORT.md", "w", encoding="utf-8") as f:
                 f.write("# FILLED REPORT\n")
             content_before = (dir_1 / "TEST_REPORT.md").read_bytes()
             
-            # Jalankan lagi
+            # Jalankan lagi -> membuat dir_2
             init_test()
             if not dir_2.exists(): raise AssertionError("dir_2 should be created")
             
             content_after = (dir_1 / "TEST_REPORT.md").read_bytes()
             if content_before != content_after: raise AssertionError("dir_1 content modified")
+            
+            # Verifikasi SNOWLINE_TEST.md di dir_2 menunjuk ke dir_2, BUKAN dir_1
+            test_2_text = (dir_2 / "SNOWLINE_TEST.md").read_text(encoding="utf-8")
+            report_2_abs = str((dir_2 / "TEST_REPORT.md").resolve())
+            report_1_abs = str((dir_1 / "TEST_REPORT.md").resolve())
+            
+            assert report_2_abs in test_2_text, f"SNOWLINE_TEST.md di dir_2 harus memuat {report_2_abs}"
+            assert report_1_abs not in test_2_text, f"SNOWLINE_TEST.md di dir_2 tidak boleh memuat jalur dir_1 ({report_1_abs})"
         finally:
             os.chdir(cwd)

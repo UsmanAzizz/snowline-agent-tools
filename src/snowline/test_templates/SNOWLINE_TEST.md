@@ -32,8 +32,7 @@ berguna, atau menjanjikan. Tulis apa yang kamu jalankan dan apa yang keluar.
    berasal dari `.agents/` proyek tempat kamu sekarang. Jangan memanggil
    skrip dari proyek lain di mesin ini, walaupun jalurnya kamu tahu.
 
-Tuangkan semuanya ke `TEST_REPORT.md` yang ada di folder yang sama dengan
-berkas ini. Bagian-bagiannya sudah bernomor sama dengan tugasnya.
+Tuangkan semuanya ke `{{JALUR_LAPORAN}}`. Bagian-bagiannya sudah bernomor sama dengan tugasnya.
 
 ---
 
