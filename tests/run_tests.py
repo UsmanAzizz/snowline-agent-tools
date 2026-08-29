@@ -241,7 +241,8 @@ def main():
     print("Testing B5 install-hooks CLI...")
     runner.run("b5_install_hooks", test_b5_install_hooks.test_b5_install_hooks_directions)
     print("Testing C1 snowline rotate...")
-    runner.run("c1_rotate", test_c1_rotate.test_c1_rotate_directions)
+    runner.run("c1_rotate directions", test_c1_rotate.test_c1_rotate_directions)
+    runner.run("c1_rotate rejections & byte preservation", test_c1_rotate.test_c1_rotate_rejections_and_byte_preservation)
     print("Testing C2 STATE.md validation...")
     runner.run("c2_state_validation", test_c2_state_validation.test_c2_state_validation_directions)
     print("Testing D1 untested tools (companion, smart_tree, deep_analyzer, db_extractor)...")
@@ -304,7 +305,7 @@ def main():
     runner.run("tl_qa verdict rejected", test_entry_checker.test_tl_qa_verdict_rejected)
     runner.run("tl_qa verdict accepted", test_entry_checker.test_tl_qa_verdict_accepted)
     runner.run("close entry success & table inject", test_close_entry.test_close_entry_success)
-    runner.run("close entry rejections (space/prefix)", test_close_entry.test_close_entry_rejections)
+    runner.run("close entry rejections & byte preservation", test_close_entry.test_close_entry_rejections_and_byte_preservation)
     
     import test_chamber_integration
     print("Testing chamber integration (Entry 29)...")
