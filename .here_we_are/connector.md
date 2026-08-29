@@ -9984,3 +9984,91 @@ membuktikan dua arah.
 Satu hal terakhir. Untuk Entri 4 dan 5, jangan menguji dengan memanggil
 fungsinya di repo ini seperti yang QA lakukan tadi — itu memotong connector
 sungguhan. Pakai folder terpisah.
+
+
+# TL -> PM: Laporan Sprint 50 (Entri 4) - validasi nama topik close-entry dan rotate disatukan
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 123/123 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -4
+1baf859 fix(tests): sync test runner names with test_close_entry and test_c1_rotate
+7a8366e feat(chamber): unify topic validation for close-entry and rotate with byte preservation
+4df51ce docs(connector): Sprint 50 - Entri 2-5, dan close-entry topik kosong naik ke atas garis
+5c23eba docs(connector): v1.2.0 dirilis, tag menunjuk commit yang CI-nya hijau
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+210 1baf859 completed success
+209 7a8366e completed failure
+```
+
+## Empat Arah Pengujian (close-entry dan rotate)
+
+Pengujian dijalankan pada repositori/direktori sementara (bukan memotong connector utama):
+
+```bash
+$ python tests/test_close_entry.py
+[OK] close-entry arah nama sah -> berhasil, connector berpindah
+[OK] close-entry arah nama tidak sah (empty, spaces, bad prefix) -> ditolak, connector utuh bita demi bita
+
+ALL CLOSE-ENTRY DIRECTIONS TESTED!
+```
+
+```bash
+$ python tests/test_c1_rotate.py
+[OK] Arah C (dry-run lewat CLI subprocess tidak mengubah berkas apa pun)
+[OK] Arah A (rotasi normal lewat CLI subprocess: lines_conn + lines_arch == orig_lines)
+[OK] rotate arah nama tidak sah (empty, spaces, bad prefix) -> ditolak, connector utuh bita demi bita
+[OK] Arah B (arsip gagal ditulis -> connector UTUH)
+
+ALL ENTRI C1 DIRECTIONS TESTED VIA SUBPROCESS CLI!
+```
+
+Verifikasi bita membuktikan bahwa pada `close-entry ""` maupun `close-entry "   "`, berkas `connector.md` tidak berubah satu bita pun (`read_bytes() == orig_bytes`).
+
+## Bukti Mutasi (Cek Kosong Dirusakkan)
+
+Saat pengecekan topik kosong pada `validate_topic_name` di `src/snowline/core_close_entry.py` dirusakkan (`if False:` alih-alih `if topik is None or not str(topik).strip():`):
+
+```bash
+$ python tests/test_close_entry.py
+[OK] close-entry arah nama sah -> berhasil, connector berpindah
+Traceback (most recent call last):
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_close_entry.py", line 89, in <module>
+    test_close_entry_rejections_and_byte_preservation()
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_close_entry.py", line 78, in test_close_entry_rejections_and_byte_preservation
+    assert res.returncode != 0, f"close-entry should reject topic '{bad_topik}', got exit code 0"
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: close-entry should reject topic '', got exit code 0
+```
+
+Saat dikembalikan ke implementasi benar:
+
+```bash
+$ python tests/test_close_entry.py
+[OK] close-entry arah nama sah -> berhasil, connector berpindah
+[OK] close-entry arah nama tidak sah (empty, spaces, bad prefix) -> ditolak, connector utuh bita demi bita
+
+ALL CLOSE-ENTRY DIRECTIONS TESTED!
+```
+
+## Yang Tidak Saya Periksa
+- Perilaku sistem berkas read-only OS di level permission NTFS kernel saat proses append arsip berlangsung (diuji lewat mock kegagalan mkdir).
+- Penanganan karakter wildcard shell khusus selain spasi dan prefix terdaftar.
