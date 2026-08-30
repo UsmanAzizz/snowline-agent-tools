@@ -11593,3 +11593,82 @@ $ python tests/test_version_sync.py
 
 ## Yang Tidak Saya Periksa
 - Kasus di mana modul `snowline` dimuat dari direktori arsip yang memiliki atribut `__version__` bukan string.
+
+
+# TL -> PM: Laporan Sprint 52 (Bagian E) - perbaikan format pesan kegagalan uji di test runner
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 132/132 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+Catatan jumlah uji: Total uji bertambah dari 131 menjadi **132** karena penambahan uji guard baru `runner error formatting` di `tests/test_runner_error_format.py`.
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -2
+b284ced fix(runner): extract filename, line number, and assert code from traceback on empty assertion messages
+4479c8b docs(connector): report Sprint 52 Bagian B completion
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+229 b284ced completed success
+228 4479c8b completed success
+```
+
+## Hasil Pengujian Format Pesan Kegagalan Uji
+
+```bash
+$ python tests/test_runner_error_format.py
+[OK] Uji assert tanpa pesan -> [FAIL] dummy assert no msg: test_runner_error_format.py:21 -> assert val == 99
+[OK] Uji assert dengan pesan -> [FAIL] dummy assert with msg: custom error message exactly preserved
+[OK] Uji exception tanpa pesan -> [ERROR] dummy error no msg: CustomEmptyError at test_runner_error_format.py:41 -> raise CustomEmptyError()
+[OK] Uji exception dengan pesan -> [ERROR] dummy error with msg: nilai tidak valid
+
+ALL RUNNER FORMATTING TESTS TESTED!
+```
+
+- **Assert Tanpa Pesan:** Bila `str(e)` kosong, runner secara otomatis mengekstrak frame traceback terakhir dan menampilkan nama berkas, nomor baris, serta baris kode sumber assert yang gagal (`test_runner_error_format.py:21 -> assert val == 99`).
+- **Assert Dengan Pesan (Arah Kedua):** Pesan eksplisit yang ditulis pembuat uji tetap dipertahankan persis tanpa ditimpa.
+- **Perlakuan Non-AssertionError ([ERROR]):** Galat tak terduga tanpa pesan juga diekstrak dari traceback sehingga nama Exception, berkas, nomor baris, dan baris pemicu tetap tercetak jelas.
+
+## Bukti Mutasi (Runner Dikembalikan ke Output {e} Polos)
+
+Saat runner dikembalikan ke `{e}` polos (`self.results.append(f"  [FAIL] {name}: {e}")`):
+
+```bash
+$ python tests/test_runner_error_format.py
+Traceback (most recent call last):
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_runner_error_format.py", line 60, in <module>
+    test_runner_error_formatting()
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_runner_error_format.py", line 26, in test_runner_error_formatting
+    assert "assert val == 99" in res0, f"Gagal memuat baris assert: {res0}"
+AssertionError: Gagal memuat baris assert:   [FAIL] dummy assert no msg: 
+```
+
+Saat runner menggunakan ekstraksi traceback untuk pesan kosong:
+
+```bash
+$ python tests/test_runner_error_format.py
+[OK] Uji assert tanpa pesan -> [FAIL] dummy assert no msg: test_runner_error_format.py:21 -> assert val == 99
+[OK] Uji assert dengan pesan -> [FAIL] dummy assert with msg: custom error message exactly preserved
+[OK] Uji exception tanpa pesan -> [ERROR] dummy error no msg: CustomEmptyError at test_runner_error_format.py:41 -> raise CustomEmptyError()
+[OK] Uji exception dengan pesan -> [ERROR] dummy error with msg: nilai tidak valid
+
+ALL RUNNER FORMATTING TESTS TESTED!
+```
+
+## Yang Tidak Saya Periksa
+- Kasus di mana berkas sumber uji telah dihapus dari disk sebelum traceback diekstrak (dalam skenario tersebut `frame.line` bernilai None dan format fallback menampilkan `fname:lineno`).
