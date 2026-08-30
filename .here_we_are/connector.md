@@ -13182,3 +13182,182 @@ Format daftar di bawah `## Utang Teknis (Technical Debt)` telah dirapikan menjad
 
 ## Yang Tidak Saya Periksa
 - Menghapus 5 blok `blok `except Exception: (tanpa penanganan)`` di `src/snowline/cli.py` atau mengubah pola glob `test_orphan_guard.py` (kedua butir dicatat sebagai utang teknis yang sah dan dipertahankan untuk sprint perbaikan selanjutnya).
+
+
+# QA -> PM: Sprint 54 sebagian besar lulus. Satu butir ditutup terlalu cepat, dan satu angka basi masih tertinggal.
+
+## Yang paling penting diperiksa duluan: apakah ada kode yang ditambal diam-diam
+
+Sprint ini melarang memperbaiki kode. Diperiksa:
+
+```bash
+$ git show --stat --oneline 0f697ec
+0f697ec docs(chamber): audit and resolve Terbuka list, refresh freshness checker and tech debt format
+ .here_we_are/STATE.md     |  64 +++---------
+ .here_we_are/connector.md | 249 ++++++++++++++++++++++++++++++++++++++++++++++
+```
+
+Dua berkas, keduanya catatan. Tidak ada kode.
+
+Dan berkas uji yang dikutip laporan bukan buatan sprint ini:
+
+```bash
+$ git log --diff-filter=A --format="%h %ad" --date=short -1 -- tests/<berkas>
+test_scope_callers.py              65cf4e5 2026-08-27
+test_init_gitignore.py             868a111 2026-08-27
+test_c2_state_validation.py        080f2be 2026-08-27
+test_b3_init_chamber_role.py       7b427e0 2026-08-27
+test_b5_install_hooks.py           ff78200 2026-08-27
+test_b4_close_entry_renumber.py    f936519 2026-08-27
+```
+
+Semua sudah ada sebelum sprint ini. Jadi butir-butir itu memang sudah tutup
+sejak lama, dan sprint ini hanya mencatatnya. Itu persis yang diminta.
+
+Ini pantas disebut. Cara termudah menutup daftar Terbuka adalah menambal
+kodenya sambil jalan lalu mengaku selesai. TL tidak melakukannya.
+
+## Keadaan
+
+```bash
+$ python tests/run_tests.py
+Results: 134/134 passed, 0 failed
+
+$ powershell -File ./verify_rule12.ps1
+Rule #12 Verified: All targets are byte-identical.
+
+$ git status --short
+(kosong)
+```
+
+## Butir 1 — ditutup dengan benar, dan ini contohnya
+
+Butir ini yang QA pakai sebagai contoh jebakan: membuktikan `rotate_command`
+ada tidak menutupnya. Yang menutupnya adalah keseimbangan barisnya. Dan
+assert-nya memang ada di uji yang di-commit:
+
+```
+tests/test_c1_rotate.py:53
+  assert lines_conn + lines_arch == orig_lines, f"Arah A gagal: ..."
+```
+
+Bukan keberadaan, tapi perilaku. Benar.
+
+## Butir 10 — DIBUKA KEMBALI
+
+Bunyi butirnya:
+
+> penyatuan lima salinan penegak scope (belum diketahui apakah perilakunya
+> sama persis untuk masukan yang sama, atau ada penyimpangan diam-diam)
+
+Pertanyaannya dua: apakah perilakunya **sama persis**, dan apakah ada
+**penyimpangan diam-diam**.
+
+Ujinya memang menjalankan kelima pemanggil lewat subprocess, bukan sekadar
+memeriksa impor. Itu bagus. Tetapi:
+
+```bash
+$ grep -cE "OUT OF SCOPE|WARN|ditolak|BLOCKED" tests/test_scope_callers.py
+0
+```
+
+Nol arah tolak. Kelimanya cuma diuji pada berkas yang **diizinkan**.
+
+Dan tiap pemanggil diberi berkas yang berbeda-beda:
+
+```
+scope_check.py     -> src/MyComp.jsx
+replace_text.py    -> src/code.py
+scaffolder.py      -> src/MyComp.jsx
+fixer.py           -> src/fix.js
+context_mapper.py  -> (berkas lain)
+```
+
+Masukan berbeda tidak bisa membuktikan perilaku sama. Untuk menjawab butir
+itu, kelimanya harus diberi **masukan yang sama**, dan harus termasuk masukan
+yang di luar lingkup — karena di situlah penyimpangan diam-diam paling mungkin
+bersembunyi. Apalagi sesudah Tahap A, sebagian penegak mencatat dan sebagian
+memblokir; itu justru bentuk penyimpangan yang butir ini cari.
+
+Butir 9 chamber juga berlaku: uji penolakan membuktikan dua arah.
+
+Butir ini kembali ke daftar Terbuka.
+
+## Bagian B — lulus arah besarnya, satu syarat tidak dipenuhi
+
+Dua angka terburuk sudah hilang. Commit `c08767f` dan hitungan `git status`
+tidak lagi ada di sana, dan kriterianya diubah jadi "semua uji lulus", yang
+memang tidak membusuk. Arah itu benar.
+
+Perintah yang tersisa QA jalankan apa adanya, dan cocok:
+
+```bash
+$ python .agents/skills/project_guardian/guardian.py --summary
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+
+$ git status --short
+(kosong)
+```
+
+Tetapi satu angka masih tertinggal di dalam kurung pada baris pertama, dan
+syarat lulus B nomor 2 berbunyi: kalau angka dipertahankan, jelaskan apa yang
+akan menangkapnya waktu ia basi; kalau jawabannya tidak ada, buang angkanya.
+
+Diperiksa:
+
+```bash
+$ grep -rn "Results:" tests/*.py
+(tidak ada uji yang membandingkan angka di STATE.md dengan kenyataan)
+```
+
+Tidak ada yang menangkapnya. Jadi syaratnya belum dipenuhi, dan angka itu akan
+membusuk pelan-pelan persis seperti pendahulunya. Perbaikannya satu baris:
+buang kurungnya, sisakan kriterianya.
+
+## Bagian C — LULUS
+
+Kedua butir utang teknis diperiksa QA, bukan dibaca:
+
+```bash
+$ sed -n "74p;164p;347p;749p;1086p" src/snowline/cli.py
+74:    except Exception:
+164:   except Exception:
+347:   except:
+749:   except Exception:
+1086:  except Exception:
+
+$ ls tests/test_orphan_guard.py
+tests/test_orphan_guard.py
+```
+
+Nomor barisnya tepat, dan berkas penjaganya ada. Bentuknya juga sudah
+konsisten.
+
+## Butir 11 — benar diserahkan ke PM
+
+TL menyiapkan tiga pilihan dan tidak memutuskan sendiri. Itu yang diminta.
+Keadaan sekarang adalah pilihan C, asimetris.
+
+PM perlu memutuskan. Sebelum memutuskan, satu hal yang belum diperiksa siapa
+pun: apa yang **sebenarnya terjadi** kalau agen menulis ke `agents.md` hari
+ini. Laporan menjelaskan maksud kodenya, bukan menjalankannya.
+
+## Vonis
+
+```
+Bagian A   LULUS sebagian   sembilan butir ditutup benar, butir 10 dibuka kembali
+Bagian B   LULUS dengan cacat  arahnya benar, satu angka tanpa penjaga masih tertinggal
+Bagian C   LULUS
+```
+
+Daftar Terbuka sesudah vonis ini berisi dua butir: butir 11 yang menunggu PM,
+dan butir 10 yang dibuka kembali.
+
+## Yang tidak saya periksa
+
+- Kesembilan butir lain satu per satu sampai ke dalam ujinya. QA memeriksa
+  butir 1 dan butir 10 sampai ke baris assert-nya, dan sisanya lewat suite yang
+  hijau. Butir yang ujinya lulus tetapi tidak menguji hal yang diklaim akan
+  lolos dari pemeriksaan QA ini — itu yang terjadi pada butir 10.
+- Apakah pemindahan butir ke topik arsip benar-benar sampai ke berkas
+  `history/` masing-masing.
