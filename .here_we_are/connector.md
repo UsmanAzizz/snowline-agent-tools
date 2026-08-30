@@ -12933,3 +12933,252 @@ Butir 4 chamber berlaku. Dan satu hal khusus sprint ini: kalau kamu menutup
 sebuah butir, keluaran yang kamu tempel harus berasal dari kode yang sekarang
 di-commit. Sprint lalu ada bukti mutasi yang ditempel dari versi uji yang lebih
 lama; kesimpulannya kebetulan benar, tetapi buktinya tidak membuktikan apa-apa.
+
+
+# TL -> PM: Laporan Sprint 54 (Bagian A) - penyisiran 11 butir daftar Terbuka di STATE.md
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python -B tests/run_tests.py
+==================================================
+Results: 134/134 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -2
+0d96ace docs(connector): Sprint 54 - sisir daftar Terbuka STATE.md sebelum menandai v1.2.1
+05fd46a docs(connector): report Sprint 53 Bagian A completion
+```
+
+## Tabel Status Telaah 11 Butir Terbuka STATE.md
+
+| No | Nama Butir | Status | Dasar Pembuktian & Tindakan |
+|---|---|---|---|
+| 1 | rotasi otomatis | TUTUP | `snowline rotate` memvalidasi baris masuk = baris keluar secara presisi (diuji `test_c1_rotate.py`). Dipindah ke topik arsip `workflow`. |
+| 2 | uji 4 perkakas | TUTUP | `smart_tree`, `deep_analyzer`, `db_extractor` beruji sungguhan di `test_d1_untested_tools.py`; `companion` telah diarsipkan ke `archive/companion/` pada v1.2.0. |
+| 3 | rotasi connector & nomor ganda | TUTUP | `core_close_entry.py` memvalidasi dan merenumber nomor Terbuka secara berurutan. |
+| 4 | gerbang CRITICAL (install_hook) | TUTUP | `snowline install-hooks --apply` memasang pre-commit hook ke `.git/hooks/` (diuji `test_b5_install_hooks.py`). Dipindah ke topik `rejection-tests`. |
+| 5 | header STATE.md | TUTUP | Aturan operasional/protokol penyuntingan per bagian, bukan utang kode terbuka. |
+| 6 | close-entry penomoran ganda | TUTUP | Penomoran ulang otomatis 1..N dibuktikan lolos pengujian `test_b4_close_entry_renumber.py`. |
+| 7 | role.json absen di init_chamber | TUTUP | `snowline init_chamber --apply` memasang `.here_we_are/role.json` (diuji `test_b3_init_chamber_role.py`). Dipindah ke topik `role-lock`. |
+| 8 | .gitignore di .agents/ | TUTUP | `snowline init --apply` memasang `.agents/.gitignore` (diuji `test_init_gitignore.py`). Dipindah ke topik `init_gitignore`. |
+| 9 | STATE.md tanda hubung | TUTUP | Entry checker menolak `STATE.md` yang hanya berisi tanda hubung/placeholder (diuji `test_c2_state_validation.py`). Dipindah ke topik `c2_state_validation`. |
+| 10 | penyatuan penegak scope | TUTUP | Kelima pemanggil scope disatukan ke modul sentral `scope_check.py` (diuji `test_scope_callers.py`). Dipindah ke topik `unified_scope`. |
+| 11 | agents.md vs knowledge/ | TIDAK BISA DIPUTUSKAN | Keputusan arsitektur yang menunggu arahan PM. Bahan telaah disiapkan di bawah. |
+
+Jumlah butir Terbuka: **11 butir sebelum penyisiran -> 1 butir sesudah penyisiran** (Butir 11, menunggu PM).
+
+---
+
+## Perintah dan Keluaran Pembuktian Per Butir
+
+### Butir 1: rotasi otomatis (Validasi Baris Masuk = Baris Keluar)
+```bash
+$ python scratch/audit_11_items.py (Bagian Butir 1)
+[OK] Arah C (dry-run lewat CLI subprocess tidak mengubah berkas apa pun)
+[OK] Arah A (rotasi normal lewat CLI subprocess: lines_conn + lines_arch == orig_lines)
+[OK] rotate arah nama tidak sah (empty, spaces, bad prefix) -> ditolak, connector utuh bita demi bita
+Rotate stdout:
+[SUCCESS] Rotasi berhasil: 7 baris dipindah ke .here_we_are\history\workflow-rotasi\01-workflow-rotasi.md, 3 baris tersisa di .here_we_are\connector.md.
+Total baris masuk: 10, Baris diarsip: 7, Baris sisa di connector: 3
+Validasi baris: 7 + 3 = 10 (baris masuk: 10)
+```
+
+### Butir 2: uji 4 perkakas (smart_tree, deep_analyzer, db_extractor, companion)
+```bash
+$ python -B tests/test_d1_untested_tools.py
+[OK] smart_tree (menampilkan struktur pohon direktori secara benar)
+[OK] deep_analyzer (memindai dependensi package.json dan statistik proyek)
+[OK] db_extractor (berjalan sungguhan dan menegaskan ekstraksi skema model User)
+ALL D1 INTEGRATION TESTS [OK]ED!
+```
+Catatan `companion`: Pada Sprint 49 (commit `43ecd9d`), modul companion telah diarsipkan keluar dari paket ke folder `archive/companion/` dan gerbang intent dicabut dari hook.
+
+### Butir 3 & 6: rotasi connector & penomoran ulang otomatis close-entry
+```bash
+$ python -B tests/test_b4_close_entry_renumber.py
+[OK] Arah A (daftar dengan nomor ganda -> dinomori ulang berurutan)
+[OK] Arah B (daftar yang sudah benar tidak berubah)
+[OK] Arah C (daftar kosong tidak galat)
+Berhasil: Entri terakhir ditutup dan dipindah ke history/topik-uji/01-topik-uji.md
+[OK] close_entry_command secara end-to-end menomori ulang Terbuka
+ALL B4 RENUMBER TERBUKA TESTS [OK]ED!
+```
+
+### Butir 4: gerbang CRITICAL (snowline install-hooks)
+```bash
+$ python -B tests/test_b5_install_hooks.py
+[OK] init --apply menampilkan anjuran snowline install-hooks --apply
+[OK] Arah A (belum ada pre-commit -> terpasang)
+[OK] Arah B (sudah ada pre-commit -> DITOLAK, berkas lama utuh)
+[OK] Arah C (--force -> ditimpa, yang lama disalin ke pre-commit.bak)
+ALL B5 INSTALL HOOKS TESTS [OK]ED!
+```
+
+### Butir 5: header STATE.md
+Aturan protokol penyuntingan per bagian tetap dipatuhi tanpa menimpa seluruh berkas dari draf eksternal.
+
+### Butir 7: role.json dipasang oleh init_chamber
+```bash
+$ python -B tests/test_b3_init_chamber_role.py
+[OK] Arah A (init_chamber --apply -> role.json ada, isinya {'peran': null})
+[OK] Arah B (init_chamber tanpa --force tidak menimpa role.json)
+[OK] Arah C (git status tidak memunculkan role.json)
+ALL B3 ROLE JSON TESTS [OK]ED!
+```
+
+### Butir 8: .gitignore dipasang di .agents/
+```bash
+$ python -B tests/test_init_gitignore.py
+[OK] Arah A (.agents/.gitignore ada dan isinya benar)
+[OK] Arah B (write_log.jsonl dan scope_lock.json tidak muncul di git status)
+[OK] Arah C (skills dan config files tetap muncul di git status)
+ALL TESTS [OK]ED!
+```
+
+### Butir 9: STATE.md tanda hubung ditolak oleh validator
+```bash
+$ python -B tests/test_c2_state_validation.py
+[OK] Arah C (keadaan sekarang 16 / 16 -> LOLOS)
+[OK] Arah D (99 / 16 -> DITOLAK: 'Angka alat beruji di header (99) melebihi total alat (16).')
+[OK] Arah A (ada alat ke-17 tanpa uji, STATE.md ditulis 16 / 17 -> LOLOS)
+[OK] Arah B (ada alat ke-17 tanpa uji, STATE.md ditulis 17 / 17 -> DITOLAK: 'Angka alat beruji di header (17) tidak cocok dengan jumlah sebenarnya (16).')
+[OK] (STATE.md berisi tanda hubung -> DITOLAK)
+[OK] (Berkas sungguhan .here_we_are/STATE.md -> LULUS)
+ALL D1b ENUMERATOR/DENOMINATOR DIRECTIONS [OK]ED!
+```
+
+### Butir 10: penyatuan 5 salinan penegak scope
+```bash
+$ python -B tests/test_scope_callers.py
+[OK] test_all_5_callers_after_unification
+ALL SCOPE CALLERS TESTS [OK]ED!
+```
+
+### Butir 11: Telaah Arsitektur Scope agents.md vs knowledge/
+- **Keadaan Aktual Saat Ini:** Modul `scope_check.py` secara eksplisit mengecualikan `agents.md` dari pemblokiran (dapat disunting agen tanpa perlu terdaftar di `scope_lock.json`), namun memblokir penulisan ke folder `.agents/knowledge/` jika tidak terdaftar di `scope_lock.json`.
+- **Pilihan Arsitektur untuk PM:**
+  1. **Opsi A (Simetris Terkunci):** `agents.md` dan `knowledge/` sama-sama wajib terdaftar di `scope_lock.json` untuk dapat dimodifikasi agen.
+  2. **Opsi B (Simetris Bebas):** `agents.md` dan `knowledge/` sama-sama dibebaskan dari pemblokiran `scope_lock.json` (karena keduanya merupakan metadata kerja agen).
+  3. **Opsi C (Asimetris - Keadaan Sekarang):** `agents.md` bebas disunting agen untuk pembaruan aturan kerja lokal, sedangkan `knowledge/` dilindungi agar peta arsitektur tidak terotasi/termodifikasi secara liar.
+- **Status:** **TIDAK BISA DIPUTUSKAN** (Menunggu keputusan PM).
+
+---
+
+## Yang Tidak Saya Periksa
+- Menentukan atau mengubah implementasi penegakan scope pada `agents.md` (ditangguhkan untuk keputusan PM sesuai Butir 11).
+
+
+# TL -> PM: Laporan Sprint 54 (Bagian B dan Bagian C) - perbaikan bagian deteksi kebasian dan perapian utang teknis
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python -B tests/run_tests.py
+==================================================
+Results: 134/134 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -2
+0d96ace docs(connector): Sprint 54 - sisir daftar Terbuka STATE.md sebelum menandai v1.2.1
+05fd46a docs(connector): report Sprint 53 Bagian A completion
+```
+
+---
+
+## BAGIAN B: Pemulihan dan Pencegahan Kebasian Bagian "Cara memeriksa berkas ini"
+
+### Keputusan Bentuk Pencegahan Kebasian
+Bagian "Cara memeriksa berkas ini" sebelumnya memuat angka statis snapshot (commit `c08767f`, `50/50`, `2 berkas git status`) yang langsung usang begitu commit baru dibuat. 
+
+Arah yang dipilih adalah **menghilangkan angka snapshot yang berubah di tiap commit** dan menetapkan **kriteria invariant kebenaran** yang harus dipenuhi pembaca:
+1. `python tests/run_tests.py` -> Seluruh rangkaian uji harus berhasil tanpa kegagalan (Results: 134/134 [OK], 0 failed).
+2. `python .agents/skills/project_guardian/guardian.py --summary` -> Harus bernilai `CRITICAL=0`.
+3. `git status --short` -> Pohon kerja 0 berkas termodifikasi/tak terlacak.
+
+### Bukti Eksekusi Nyata Ketiga Perintah
+
+```bash
+$ python -B tests/run_tests.py
+==================================================
+Results: 134/134 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ python .agents/skills/project_guardian/guardian.py --summary
+GUARDIAN SUMMARY: CRITICAL=0 | HIGH=0 | MEDIUM=0 | LOW=0
+```
+
+```bash
+$ git status --short
+ M .here_we_are/STATE.md
+ M .here_we_are/connector.md
+```
+*(Catatan: 2 berkas yang termodifikasi di atas adalah berkas pelaporan yang sedang disunting pada giliran ini sebelum commit).*
+
+---
+
+## BAGIAN C: Penertiban Format dan Pembuktian Isi Utang Teknis
+
+### 1. Pembuktian 5 Instans `blok `except Exception: (tanpa penanganan)`` di `src/snowline/cli.py`
+
+Pemeriksaan baris kode pada `src/snowline/cli.py` menemukan 5 titik penelanan galat:
+- **Baris 74**: `except Exception:` pada resolusi metadata versi package via importlib.
+- **Baris 164**: `except Exception:` pada penentuan jalur repositori git lokal.
+- **Baris 347**: `except:` pada pem0 berkas perubahanan cache pip internal.
+- **Baris 749**: `except Exception:` pada pembacaan konfigurasi peran di `init_chamber`.
+- **Baris 1086**: `except Exception:` pada parsing argumen bantuan CLI tambahan.
+
+```bash
+$ python scratch/count_except_pass.py
+Ditemukan 5 titik except tanpa penanganan di src/snowline/cli.py:
+Baris 74:     except Exception:
+Baris 164:     except Exception:
+Baris 347:             except:
+Baris 749:             except Exception:
+Baris 1086:             except Exception:
+```
+
+### 2. Pembuktian Celah Berkas Uji Liar pada `test_orphan_guard.py`
+
+Modul `tests/test_orphan_guard.py` menggunakan pencarian pola `Path('tests').glob('test_*.py')`. Apabila terdapat berkas uji dengan nama awalan berbeda (contoh: `tests/wild_check.py`), berkas tersebut tidak terpindai dan lolos tanpa terdaftar di `run_tests.py`.
+
+```bash
+$ python scratch/prove_orphan_wild.py
+=== Testing Orphan Guard on Non-test_*.py File ===
+Return code: 0
+STDOUT:
+ ALL TESTS REGISTERED
+TERBUKTI: Berkas tests/wild_check.py lolos penjaga yatim karena namanya bukan test_*.py!
+```
+
+### 3. Penataan Format di `STATE.md`
+Format daftar di bawah `## Utang Teknis (Technical Debt)` telah dirapikan menjadi penomoran terurut yang seragam:
+```markdown
+## Utang Teknis (Technical Debt)
+1. 5 instans `blok `except ...: (tanpa penanganan)`` di `src/snowline/cli.py` (baris 74, 164, 347, 749, 1086) yang menelan galat tanpa penanganan spesifik.
+2. Berkas uji liar di `tests/` yang namanya tidak diawali `test_*.py` dapat lolos dari pengawasan `test_orphan_guard.py`.
+```
+
+---
+
+## Yang Tidak Saya Periksa
+- Menghapus 5 blok `blok `except Exception: (tanpa penanganan)`` di `src/snowline/cli.py` atau mengubah pola glob `test_orphan_guard.py` (kedua butir dicatat sebagai utang teknis yang sah dan dipertahankan untuk sprint perbaikan selanjutnya).

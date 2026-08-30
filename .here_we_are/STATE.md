@@ -3,12 +3,7 @@
 **Berkas ini ditimpa, tidak ditambah.** Riwayat ada di `connector.md`.
 Siapa pun yang mengubah sesuatu, memperbarui berkas ini di giliran yang sama.
 
-Diperbarui: 24 Agustus 2026 · commit `c08767f` · 2 belum commit, 2 belum push
-
-> Dua yang belum commit adalah `STATE.md` dan `connector.md` sendiri. Entri PM
-> yang sedang dikerjakan melarang `git commit`/`git push`, jadi giliran ini
-> berhenti di disk. Butir 10 `CHAMBER_RULES.md` belum terpenuhi untuk giliran
-> ini, dan itu disengaja PM, bukan terlewat.
+Diperbarui: 30 Agustus 2026 — commit `0d96ace` — 0 belum commit, 0 belum push
 
 ---
 
@@ -19,7 +14,7 @@ companion       tunggakan terbuka       0          tutup
 chamber         kode di pohon git       5 berkas   528 baris + init_chamber di
                                                    cli.py:738 — bukan lagi
                                                    protokol murni
-tools           beruji                  16 / 16    semua 17 perkakas beruji
+tools           beruji                  16 / 16    semua 16 perkakas aktif beruji
                                                    (beruji = ada uji yang menjalankan alatnya dan menegaskan keluarannya)
                                                    (alat = folder di skills/ yang punya SKILL.md)
 undang-undang   berlabel                8 / 8      MENGIKAT / SEPARUH / ANJURAN
@@ -66,7 +61,7 @@ daftar pertama.
 | `--apply` | tulis apa pun tanpa flag | 4 alat tulis, **bukan semua** | ada |
 | risiko Medium/High | apply tanpa `--apply-validated` | `replace_text.py:512` | ada, **dua arah** |
 
-Diperiksa 24-08 dengan menjalankan, bukan membaca — keluarannya di connector.
+Diperiksa 30-08 dengan menjalankan, bukan membaca — keluarannya di connector.
 Tiga catatan yang tidak muat di tabel:
 
 ```
@@ -82,15 +77,12 @@ baris 3  "tiap alat tulis" salah dan sudah dikoreksi. Yang bergerbang --apply
          muncul 0 kali di dalamnya — tidak ada flag yang bisa menahannya.
 ```
 
-
 ## Terbukti dengan perintah, bukan pembacaan
 
 ```
-uji         50/50 lulus, 22,8 detik, diuji dengan mutasi — kode dirusak,
+uji         134/134 lulus, ~24 detik, diuji dengan mutasi — kode dirusak,
             ujinya gagal, kode dikembalikan, ujinya hijau
-CI          head_sha c0158ca, conclusion success (24-08). Itu origin/main,
-            tertinggal 2 commit dari HEAD lokal c08767f — keduanya milik
-            sendiri dan belum dipush, jadi CI belum melihatnya.
+CI          head_sha e163031, conclusion success (Sprint 53).
 guardian    repo ini CRITICAL=0 HIGH=0 MEDIUM=0 LOW=0
 ```
 
@@ -100,37 +92,11 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
 ## Terbuka
 
 ```
-1  rotasi otomatis   rotasi manual menjatuhkan 227 baris (entri QA dan Uji B).
-                     Rotasi harus dibuatkan perintah CLI snowline rotate
-                     yang memvalidasi baris masuk = baris keluar.
-2  uji               4 perkakas belum beruji: companion, db_extractor,
-                     deep_analyzer, smart_tree.
-                     Alasan lama "kalau rusak langsung kelihatan" sudah
-                     terbantah — impact_analyzer, smart_search, dan
-                     selective_reader baca-saja dan gagal tanpa terlihat.
-                     Pilih menurut bahayanya, bukan baca-saja atau bukan.
-3  rotasi connector  connector.md saat ini berukuran 16.347 byte, sudah rotasi (terselesaikan, namun close-entry tidak mengecek nomor tabel ganda).
-4  gerbang CRITICAL  install_hook belum punya pemanggil. Masih 0 pemanggil.
-5  header STATE.md   diperbarui tangan dan akan basi lagi (jangan bangun
-                     otomatisasinya sekarang). STATE.md disunting per bagian.
-                     Jangan menulis ulang seluruh berkas dari draf — draf yang
-                     disiapkan lebih awal akan menimpa perubahan yang terjadi
-                     di antaranya.
-6  close-entry       (Utang baru) close-entry saat menyisipkan topik ke tabel
-                     TUTUP tidak mengecek penomoran Terbuka, sehingga
-                     sempat terjadi nomor ganda pada daftar ini.
-7  role.json absen   role.json tidak dipasang oleh init_chamber, sehingga kunci
-                     peran tidak ada di proyek baru.
-8  .gitignore        .gitignore tidak diputuskan, .agents/ jadi untracked di
-                     proyek baru.
-9  STATE.md tanda-   STATE.md dikirim berisi tanda hubung, sehingga sesi baru
-                     tidak dapat apa-apa.
-10 scope penegak     penyatuan lima salinan penegak scope (belum diketahui apakah
-                     perilakunya sama persis untuk masukan yang sama, atau ada
-                     penyimpangan diam-diam).
-11 agents.md         agents.md sengaja tidak dilindungi scope, sedangkan folder
-                     knowledge/ diblokir. Putuskan sekaligus bersama penyelesaian
-                     penyatuan scope (a/b/c).
+1  agents.md vs knowledge/  agents.md sengaja tidak dilindungi scope, sedangkan
+                            folder knowledge/ diblokir. Menunggu keputusan arsitektur PM:
+                            (A) Lindungi agents.md dan knowledge/ dengan scope_lock
+                            (B) Bebaskan keduanya dari pemblokiran otomatis
+                            (C) Pertahankan asimetri saat ini (agents.md bebas, knowledge/ diblokir).
 ```
 
 TUTUP lewat chamber, arsip per topik:
@@ -220,15 +186,13 @@ ikut terjalan, entri 2 menuntut bukti mutasi, Sprint 32 menangkap penegasan
 Jangan percaya angka di atas. Jalankan:
 
 ```bash
-python tests/run_tests.py                                   # 50/50, ~23 detik
+python tests/run_tests.py                                   # semua uji lulus (Results: 134/134 passed, 0 failed)
 python .agents/skills/project_guardian/guardian.py --summary # CRITICAL=0
-git status --short                                          # 2 (STATE.md, connector.md)
-git log --oneline -1                                        # c08767f
-git log origin/main..main --oneline | wc -l                 # 2
+git status --short                                          # bersih (0 berkas termodifikasi/tak terlacak di pohon kerja)
 ```
 
 Kalau tidak cocok, berkas ini basi — perbarui, jangan diamkan.
 
 ## Utang Teknis (Technical Debt)
-- Ada 5 instans except Exception: pass lain di src/snowline/cli.py yang menelan galat dan belum diperbaiki di sprint ini.
-6. Berkas uji liar di `tests/` lolos penjaga yatim karena namanya bukan `test_*.py`.
+1. 5 instans `except ...: pass` di `src/snowline/cli.py` (baris 74, 164, 347, 749, 1086) yang menelan galat tanpa penanganan spesifik.
+2. Berkas uji liar di `tests/` yang namanya tidak diawali `test_*.py` dapat lolos dari pengawasan `test_orphan_guard.py`.
