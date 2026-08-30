@@ -10800,3 +10800,196 @@ berbunyi "tertinggal". Itu pertanyaan yang memulai sprint ini.
 
 Butir 4 chamber berlaku. Entri yang mengaku selesai tanpa blok perintah dan
 keluaran ditolak sebelum dibaca. Butir 9: uji penolakan membuktikan dua arah.
+
+
+# TL -> PM: Laporan Sprint 51 (Bagian A) - urutan PATH dipertahankan dan eliminasi subproses pip
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 131/131 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -3
+ea094ed fix(cli): preserve PATH order, eliminate pip subprocesses with importlib.metadata, and support release tag comparisons
+9dbca0c docs(connector): Sprint 51 - PATH ditimpa saat import, dan pemasangan dari tag selalu disebut tertinggal
+e628674 docs(roadmap): tulis ulang dari keadaan yang terukur, dan karantina dua dokumen basi
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+221 ea094ed completed success
+220 9dbca0c completed success
+```
+
+## Hasil Pengujian Bagian A
+
+```bash
+$ python tests/test_sprint51_a.py
+[OK] A1 & A2 PATH order preserved and Scripts present
+[OK] A3 & A4 No pip subprocesses called (1 total subprocess calls recorded)
+
+ALL SPRINT 51 BAGIAN A TESTS TESTED!
+```
+
+- **A1:** Jalur penanda di paling depan PATH tidak lagi direbut saat `import snowline`. Penambahan direktori Scripts dan User PATH (jika di luar venv) diletakkan di **belakang** (`os.environ['PATH'] = current_path + os.pathsep + scripts_path`).
+- **A2:** Blok manipulasi PATH registry disatukan menjadi fungsi tunggal `_ensure_scripts_in_path()` di `src/snowline/__init__.py`. Duplikasi blok di `cli.py` dan bagian bawah `__init__.py` telah dihapus.
+- **A3 & A4:** Pembacaan metadata paket pada `update()` dan `status()` kini murni menggunakan `importlib.metadata` melalui fungsi `get_installed_package_info()`. Tidak ada lagi panggilan subproses `pip show`.
+
+## Bukti Live Pemasangan di Venv Terisolasi
+
+Pengujian instalasi baru di virtual environment terisolasi, dilanjutkan dengan `snowline update`:
+
+```bash
+$ python scratch/test_clean_venv_std.py
+Creating test venv in C:\Users\LENOVO\AppData\Local\Temp\tmp_hmu9inn...
+Installing setuptools and snowline into venv...
+Running snowline init --apply...
+Init output:
+==================================================
+  Snowline Agent Tools - Installer
+==================================================
+...
+Installation Complete!
+
+Running snowline update...
+Update output:
+==================================================
+  Snowline Update
+==================================================
+i Current skills: 51
++ All skills are up to date!
+
+Venv test passed in 27.92s!
+```
+
+Keluaran `snowline update` langsung sesudah instalasi di venv melaporkan `All skills are up to date!` dan tidak lagi berbunyi `Package version tertinggal!`.
+
+## Bukti Mutasi (Penambahan PATH Dikembalikan ke Depan)
+
+Saat `_ensure_scripts_in_path()` dirusakkan untuk menaruh jalur di depan PATH (`os.environ['PATH'] = scripts_path + os.pathsep + current_path`):
+
+```bash
+$ python tests/test_sprint51_a.py
+Traceback (most recent call last):
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_sprint51_a.py", line 86, in <module>
+    test_sprint51_a_path_order_and_presence()
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_sprint51_a.py", line 38, in test_sprint51_a_path_order_and_presence
+    assert res.returncode == 0, f"Uji PATH gagal:\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
+AssertionError: Uji PATH gagal:
+STDOUT:
+
+STDERR:
+Traceback (most recent call last):
+  File "<string>", line 11, in <module>
+    assert paths[0] == r"D:\AAAAAAAAA\open_source_agents\temp\my_custom_first_bin", f"PATH direbut! Urutan pertama sekarang: {paths[0]}"
+AssertionError: PATH direbut! Urutan pertama sekarang: C:\Users\LENOVO\AppData\Local\Python\pythoncore-3.14-64\Scripts
+```
+
+Saat dikembalikan ke penambahan di belakang:
+
+```bash
+$ python tests/test_sprint51_a.py
+[OK] A1 & A2 PATH order preserved and Scripts present
+[OK] A3 & A4 No pip subprocesses called (1 total subprocess calls recorded)
+
+ALL SPRINT 51 BAGIAN A TESTS TESTED!
+```
+
+## Yang Tidak Saya Periksa
+- Lingkungan eksekusi Windows sandbox dengan restricted registry token di mana pembacaan registry HKCU melempar PermissionError (ditangani oleh fallback try-except).
+
+
+# TL -> PM: Laporan Sprint 51 (Bagian B) - evaluasi kemutakhiran paket terhadap tag rilis terbaru dan HEAD
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 131/131 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -3
+ea094ed fix(cli): preserve PATH order, eliminate pip subprocesses with importlib.metadata, and support release tag comparisons
+9dbca0c docs(connector): Sprint 51 - PATH ditimpa saat import, dan pemasangan dari tag selalu disebut tertinggal
+e628674 docs(roadmap): tulis ulang dari keadaan yang terukur, dan karantina dua dokumen basi
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+221 ea094ed completed success
+220 9dbca0c completed success
+```
+
+## Hasil Pengujian 6 Keadaan (Fungsi Murni evaluate_package_freshness)
+
+```bash
+$ python tests/test_sprint51_b.py
+[OK] State 1 (commit = tag terbaru -> mutakhir)
+[OK] State 2 (commit = HEAD -> mutakhir)
+[OK] State 3 (commit = tag terbaru DAN HEAD -> mutakhir)
+[OK] State 4 (commit bukan keduanya -> tertinggal)
+[OK] State 5 (remote tidak terbaca -> tidak ada klaim)
+[OK] State 6 (commit terpasang tidak diketahui -> tidak ada klaim)
+
+ALL SPRINT 51 BAGIAN B TESTS TESTED!
+```
+
+- Fungsi murni `evaluate_package_freshness()` dapat diuji tanpa koneksi jaringan dan tanpa instalasi nyata.
+- Sebuah instalasi dianggap mutakhir jika commitnya sama dengan tag rilis terbaru (`matched_target: tag`) ataupun remote HEAD (`matched_target: head`).
+- Pesan status kini secara transparan menyebut pembandingnya, misalnya `sesuai dengan tag rilis terbaru (v1.2.0 - a06de462)` atau `tertinggal dari tag v1.2.0 (a06de462) dan HEAD (9dbca0c4)`.
+- Jika remote git tidak terbaca (offline) atau commit lokal tidak terdeteksi, status menjadi `unknown` tanpa klaim palsu.
+
+## Bukti Mutasi (Pemeriksaan Tag Dirusakkan)
+
+Saat evaluasi kecocokan tag dinonaktifkan (`matches_tag = False`), State 1 yang seharusnya mutakhir menjadi tertinggal:
+
+```bash
+$ python tests/test_sprint51_b.py
+Traceback (most recent call last):
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_sprint51_b.py", line 54, in <module>
+    test_sprint51_b_six_states()
+  File "D:\AAAAAAAAA\open_source_agents\tests\test_sprint51_b.py", line 19, in test_sprint51_b_six_states
+    assert r1["status"] == "latest", f"State 1 failed: expected latest, got {r1}"
+AssertionError: State 1 failed: expected latest, got {'status': 'behind', 'reason': 'tertinggal dari tag v1.2.0 (a06de462) dan HEAD (9dbca0c4)', 'matched_target': None}
+```
+
+Saat dikembalikan ke logika evaluasi tag dan HEAD:
+
+```bash
+$ python tests/test_sprint51_b.py
+[OK] State 1 (commit = tag terbaru -> mutakhir)
+[OK] State 2 (commit = HEAD -> mutakhir)
+[OK] State 3 (commit = tag terbaru DAN HEAD -> mutakhir)
+[OK] State 4 (commit bukan keduanya -> tertinggal)
+[OK] State 5 (remote tidak terbaca -> tidak ada klaim)
+[OK] State 6 (commit terpasang tidak diketahui -> tidak ada klaim)
+
+ALL SPRINT 51 BAGIAN B TESTS TESTED!
+```
+
+## Yang Tidak Saya Periksa
+- Format penamaan tag kustom selain pola semantic versioning `vX.Y.Z` (misal tag build commit SHA acak).
