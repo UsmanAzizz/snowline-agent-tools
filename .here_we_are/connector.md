@@ -11176,3 +11176,262 @@ instalasi yang salah — sudah tertutup dan terbukti tertutup.
   pada tag sungguhan yang banyak.
 - Keadaan tanpa jaringan. Keadaan nomor 5 diuji dengan nilai buatan, bukan
   dengan benar-benar memutus jaringan.
+
+
+# PM -> TL: Sprint 52 — jaga jalur pemasangan sungguhan, lalu tutup empat sisa yang menggantung
+
+Sprint 51 lulus. Tetapi bukti yang paling menentukan di sprint itu — pemasangan
+bersih di venv lalu `snowline update` — cuma pernah diukur sekali, dengan skrip
+yang tinggal di `scratch/` dan tidak ikut ke mana-mana.
+
+Sprint ini menjadikannya penjaga, lalu menutup empat butir yang sudah lama
+menggantung.
+
+Kerjakan berurutan: A, B, E, D, C. Yang paling berdaya ungkit duluan.
+
+---
+
+# BAGIAN A — jalur pemasangan sungguhan belum dijaga apa pun
+
+## Bukti
+
+```bash
+$ grep -rln "venv" tests/*.py
+(kosong)
+```
+
+Tiga uji Sprint 51 menjaga bagian-bagiannya: urutan PATH, ketiadaan subproses
+pip, dan enam keadaan fungsi murni. Ketiganya perlu, dan ketiganya lulus.
+
+Yang tidak dijaga adalah rangkaian utuhnya: pasang dari jaringan, `init`, lalu
+`update`. Justru itu pertanyaan yang memulai Sprint 51.
+
+Skrip buktinya ada di `scratch/test_clean_venv_std.py`. Folder itu terabaikan
+git, jadi tidak ada orang lain yang bisa menjalankannya.
+
+## Yang dikerjakan
+
+Pindahkan uji itu ke `tests/`, dan jadikan uji yang **dijalankan terpisah**,
+bukan bagian suite biasa. Ia makan sekitar 28 detik dan butuh jaringan —
+terlalu lambat dan terlalu rapuh untuk tiap commit, tetapi wajib sebelum
+menandai rilis.
+
+Cara memisahkannya terserah kamu (berkas tersendiri dengan `__main__`, penanda
+lewat variabel lingkungan, atau apa pun). Yang penting: `python tests/run_tests.py`
+tetap tidak menyentuh jaringan, dan ada **satu perintah** yang bisa
+dijalankan sebelum menandai rilis.
+
+Tulis perintah itu di `README.md`, di bagian rilis. Kalau tidak tertulis, ia
+tidak akan pernah dijalankan.
+
+## Syarat lulus A
+
+1. **Dua arah, keduanya lewat pemasangan nyata.**
+   - pasang dari `main` -> `snowline update` berkata mutakhir
+   - pasang dari commit lama -> `snowline update` berkata tertinggal
+   Arah kedua wajib. Tanpa itu, uji yang selalu bilang "mutakhir" akan lulus.
+2. `python tests/run_tests.py` tidak memanggil jaringan sama sekali. Buktikan
+   dengan menyadap `subprocess.run` selama suite berjalan dan menunjukkan tidak
+   ada `git ls-remote` maupun `pip install` di sana.
+3. Kalau jaringan mati, uji venv itu **melewati diri sendiri dengan pesan yang
+   jelas**, bukan gagal. Buktikan dengan mensimulasikan kegagalan jaringan.
+4. Sebutkan berapa detik ia berjalan di mesinmu.
+
+---
+
+# BAGIAN B — dua angka versi mati yang tidak dijaga apa pun
+
+## Bukti
+
+```bash
+$ grep -n '"1\.2\.0"' src/snowline/cli.py
+75:            return getattr(snowline, "__version__", "1.2.0")
+77:            return "1.2.0"
+```
+
+Keduanya nilai cadangan di `get_snowline_version()`. QA merusakkan keduanya
+jadi `"0.0.0"` dan menjalankan suite:
+
+```
+Results: 128/128 passed, 0 failed
+```
+
+Dirusakkan, tidak ada yang berteriak.
+
+Jalur `except` itu hampir mustahil tercapai — `cli.py` ada di dalam paket
+`snowline`, jadi impornya selalu berhasil. Tetapi kalau suatu hari tercapai,
+snowline akan mencetak angka versi yang salah dengan penuh percaya diri. Dan
+angka itu akan basi diam-diam di setiap rilis, karena tidak ada uji yang
+melihatnya.
+
+## Yang dikerjakan
+
+Buang kedua nilai cadangan itu. Kalau `__version__` benar-benar tidak bisa
+dibaca, gagal berisik lebih baik daripada mengarang angka.
+
+Sesudah itu angka versi tinggal di dua tempat: `pyproject.toml` dan
+`__init__.py`. Persis seperti yang Sprint 50 maksudkan.
+
+## Syarat lulus B
+
+1. `grep -n '"[0-9]\+\.[0-9]\+\.[0-9]\+"' src/snowline/cli.py` tidak
+   menghasilkan apa-apa. Tempel keluarannya.
+2. `snowline --version` dan `snowline status` tetap benar. Buktikan dengan
+   mengubah `__version__` ke angka lain dan menunjukkan keduanya ikut berubah.
+3. Kalau kamu memilih melempar galat saat `__version__` tak terbaca, uji
+   perilaku itu. Kalau kamu memilih cara lain, tulis alasannya.
+
+---
+
+# BAGIAN E — pesan gagal uji kosong sesudah titik dua
+
+## Bukti
+
+Runner mencetak pesan galat apa adanya:
+
+```
+tests/run_tests.py:73    self.results.append(f"  [FAIL] {name}: {e}")
+```
+
+Untuk `assert` tanpa pesan, `{e}` kosong:
+
+```
+  [FAIL] contoh tanpa pesan: 
+  [FAIL] contoh dengan pesan: 'c' tidak ada di ['a', 'b']
+```
+
+Baris pertama tidak memberitahu apa pun. Dan ini bukan satu dua:
+
+```bash
+$ grep -rnE "^\s*assert [^,]+$" tests/*.py | wc -l
+129
+$ grep -rnE "^\s*assert .+, " tests/*.py | wc -l
+317
+```
+
+129 dari 446 assert tidak punya pesan. Kalau salah satunya merah di CI, yang
+kamu dapat cuma nama ujinya.
+
+## Yang dikerjakan
+
+**Jangan menyunting 129 baris assert.** Betulkan di runner-nya.
+
+Waktu pesan galat kosong, ambil keterangannya dari traceback: berkas, nomor
+baris, dan baris sumber assert yang gagal. Cetak itu sebagai ganti kekosongan.
+
+Ini penjaga yang ditaruh di dalam alat, bukan 129 tambalan di depan alat. Dan
+ia otomatis berlaku untuk assert tanpa pesan yang ditulis besok.
+
+## Syarat lulus E
+
+1. Uji dengan `assert` tanpa pesan yang gagal menghasilkan baris yang memuat
+   nama berkas, nomor baris, dan bunyi assert-nya. Tempel barisnya.
+2. Uji dengan pesan **tidak berubah** keluarannya. Ini arah kedua — jangan
+   sampai perbaikan ini menimpa pesan yang sudah bagus.
+3. Berlaku juga untuk `[ERROR]` (galat selain AssertionError), atau tulis
+   alasannya kalau kamu putuskan tidak.
+4. Bukti mutasi: kembalikan runner ke `{e}` polos, tunjukkan baris kosongnya
+   lagi.
+
+---
+
+# BAGIAN D — clean_sweeper mencetak daftar panjang tanpa batas
+
+## Bukti
+
+Dijalankan di repo ini:
+
+```bash
+$ python src/snowline/templates/skills/clean_sweeper/sweeper.py . --no-cache
+total baris keluaran : 87
+baris [WARN]         : 77
+baris [FAIL]         : 1
+```
+
+Kodenya memang tanpa batas:
+
+```
+sweeper.py:133   for r in residue_files:          -> satu baris per berkas
+sweeper.py:142   for c in comment_blocks:         -> satu baris per blok
+```
+
+`smart_search` dulu begini, dan sudah dibetulkan. Ini sisa yang belum.
+
+## Yang dikerjakan
+
+Ikuti pola `smart_search`: cetak beberapa yang pertama, lalu katakan berapa
+sisanya. Jangan mendiamkan sisanya — jumlahnya harus tetap terlihat.
+
+Pola yang sudah dipakai `smart_search`:
+
+```
+... dan N lainnya
+```
+
+Mode `--json` jangan dipotong. Yang dipotong cuma tampilan untuk manusia.
+
+## Syarat lulus D
+
+1. Dengan banyak temuan, keluaran manusia terpotong **dan** menyebut jumlah
+   sisanya. Tempel keluarannya.
+2. Dengan sedikit temuan, tidak ada yang terpotong dan tidak ada baris
+   "dan N lainnya" yang menyesatkan. Arah kedua.
+3. `--json` tetap memuat semuanya. Bandingkan jumlah butir di JSON dengan
+   jumlah temuan sebenarnya.
+
+---
+
+# BAGIAN C — label [Companion Gate] pada penjaga yang bukan companion
+
+## Bukti
+
+```bash
+$ grep -n "Companion Gate" src/snowline/templates/hooks/quality_gate.py
+152:            f"[Companion Gate] Parameter kritis tidak lengkap untuk '{tool_name}'. "
+162:            f"[Companion Gate] Tipe scaffold '{scaffold_type}' tidak valid. "
+171:            return False, "[Companion Gate] Target string pencarian (old_text) tidak boleh kosong."
+```
+
+Companion sudah diarsipkan. Pengguna yang melihat pesan ini akan mencari alat
+bernama companion dan tidak menemukannya.
+
+## Yang dikerjakan
+
+Ganti labelnya dengan nama penjaga yang sebenarnya. Ketiganya ada di
+`quality_gate.py`, jadi label seperti `[Quality Gate]` masuk akal — tetapi
+putuskan sendiri dan pastikan konsisten dengan label lain di berkas itu.
+
+Ingat Aturan #12: `templates/` harus tetap identik bita dengan ketiga
+salinannya sesudah kamu menyunting.
+
+## Syarat lulus C
+
+1. Nol sebutan "Companion" di seluruh `src/snowline/templates/`. Tempel
+   keluaran `grep -rn -i companion src/snowline/templates/`.
+2. Ketiga pesan itu masih **terpicu** oleh keadaan yang sama. Buktikan dengan
+   memicu salah satunya dan menempel pesannya.
+3. `verify_rule12.ps1` hijau.
+
+---
+
+# Yang TIDAK dikerjakan sprint ini
+
+Jangan menaikkan versi. Jangan membuat tag. Berhenti di commit.
+
+Jangan menyentuh `scratch/`, `quarantine/`, `deferred/`, `plan_archive/`,
+atau `run_all.py`. Itu urusan PM.
+
+# Bentuk laporan
+
+Satu entri per bagian, lima entri. Tiap entri memuat:
+
+- perintah dan keluaran mentah, tidak diringkas
+- bukti mutasi: baris merahnya, lalu baris hijaunya
+- dua arah untuk tiap syarat yang menolak atau memotong sesuatu
+- satu bagian "yang tidak saya periksa"
+
+Satu peringatan dari Sprint 51. Kalau angka jumlah uji di laporanmu **turun**
+dibanding sebelumnya, sebutkan sendiri dan jelaskan kenapa. Suite hijau yang
+jumlahnya mengecil pernah lolos tanpa disebut.
+
+Butir 4 chamber berlaku. Butir 9: uji penolakan membuktikan dua arah.
