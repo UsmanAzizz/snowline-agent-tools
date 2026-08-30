@@ -444,6 +444,9 @@ def main():
     import test_runner_error_format
     runner.run("runner error formatting", test_runner_error_format.test_runner_error_formatting)
 
+    import test_sprint53_b
+    runner.run("sprint53_b update freshness", test_sprint53_b.test_sprint53_b_three_directions)
+
     success = runner.summary()
 
     if success:

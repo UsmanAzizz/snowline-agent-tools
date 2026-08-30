@@ -574,6 +574,9 @@ def update(apply=False):
     # Check package status via importlib.metadata & remote tags/HEAD
     pkg_info = get_installed_package_info()
     installed_commit = pkg_info.get("commit")
+    pkg_unknown_kind = pkg_info.get("unknown_kind")
+    pkg_unknown_reason = pkg_info.get("unknown_reason")
+
     remote_info = fetch_remote_package_info()
     freshness = evaluate_package_freshness(
         installed_commit=installed_commit,
@@ -581,16 +584,29 @@ def update(apply=False):
         latest_tag_commit=remote_info.get("latest_tag_commit"),
         tag_name=remote_info.get("latest_tag_name")
     )
+    pkg_latest = (freshness["status"] == "latest")
     pkg_behind = (freshness["status"] == "behind")
+    pkg_unknown = (freshness["status"] == "unknown")
 
-    if not new_files and not modified_files and not agents_md_modified and not pkg_behind and not obsolete_files:
-        print_success("All skills are up to date!")
-        return
+    skills_synced = (not new_files and not modified_files and not agents_md_modified and not obsolete_files)
 
-    if pkg_behind and not new_files and not modified_files and not agents_md_modified and not obsolete_files:
+    if skills_synced:
+        if pkg_latest:
+            print_success("All skills are up to date!")
+            return
+        elif pkg_behind:
+            print_warning(f"Package version tertinggal! ({freshness['reason']})")
+            print_info("Skill files sudah sinkron. Jalankan 'snowline reinstall --latest' untuk update package.")
+            return
+        else:
+            print_info("Skill files sudah sinkron.")
+            print_info(f"Versi package tidak dapat dipastikan ({pkg_unknown_reason or freshness['reason']}).")
+            return
+
+    if pkg_behind:
         print_warning(f"Package version tertinggal! ({freshness['reason']})")
-        print_info("Skill files sudah sinkron. Jalankan 'snowline reinstall --latest' untuk update package.")
-        return
+    elif pkg_unknown:
+        print_info(f"Versi package tidak dapat dipastikan ({pkg_unknown_reason or freshness['reason']}).")
 
     print_info(f"Available: {len(new_files)} new, {len(modified_files)} modified, {len(obsolete_files)} obsolete")
 
