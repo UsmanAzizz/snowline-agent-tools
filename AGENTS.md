@@ -90,7 +90,6 @@ These tools do NOT run until the user explicitly approves.
 
 These analytical and read-only tools run DIRECTLY without approval:
 
-    companion / companion_cli.py         (intent & ambiguity analysis)
     deep_analyzer / impact_analyzer     (project analysis)
     smart_search                         (code search)
     selective_reader                     (file reading)
@@ -132,7 +131,6 @@ Tool usage priority:
 7. DEBUG CRASH: crash_decoder/decoder.py <file>
 8. CREATE FILES: auto_scaffolder/scaffolder.py <type> <name>
 9. FIX IMPORTS: import_fixer/fixer.py <file> <import_string>
-10. INTENT ANALYSIS: companion/companion_cli.py "<instruction>"
 
 ================================================================
 
@@ -177,7 +175,7 @@ Execution rules:
 If a task touches MORE THAN 3 files simultaneously (delete/create/modify),
 you MUST start task_lock first:
 
-    python .agents/skills/companion_cli.py task start <task_id> "<description>"
+    # (Gunakan task lock sesuai kebutuhan sebelum operasi refaktor besar)
 
 Task lock MUST be started BEFORE any filesystem operation
 (Bash rm, Write, Edit) — not after.
