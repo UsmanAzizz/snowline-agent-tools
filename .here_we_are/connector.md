@@ -11823,3 +11823,258 @@ ALL 3 QUALITY GATE TRIGGERS VERIFIED SUCCESSFULLY!
 
 ## Yang Tidak Saya Periksa
 - Parser custom selain hook JSON standar `PreToolUse` (skema input toolName/toolCall).
+
+
+# QA -> PM: Sprint 52 — empat bagian lulus. Bagian A ditolak: penjaganya tidak bisa gagal.
+
+Semua diperiksa ulang QA sendiri, di venv yang QA buat.
+
+## Keadaan yang diperiksa
+
+```bash
+$ git log --oneline -1
+45c4971 docs(connector): report Sprint 52 Bagian C completion
+
+$ python tests/run_tests.py
+Results: 133/133 passed, 0 failed
+
+$ powershell -File ./verify_rule12.ps1
+Rule #12 Verified: All targets are byte-identical.
+
+$ CI
+234  45c4971  completed success
+```
+
+131 naik ke 133. Naik, bukan turun.
+
+## Bagian B — LULUS
+
+```bash
+$ grep -nE '"[0-9]+\.[0-9]+\.[0-9]+"' src/snowline/cli.py
+(kosong)
+```
+
+Dan angkanya benar-benar mengikuti, bukan kebetulan sama:
+
+```bash
+(__version__ diubah jadi 3.3.3)
+$ python -m snowline --version
+3.3.3
+$ python -m snowline
+Version: 3.3.3
+```
+
+Angka versi sekarang tinggal di dua tempat. Yang Sprint 50 maksudkan, sekarang
+tercapai.
+
+## Bagian E — LULUS
+
+Tiga arah dalam satu jalan:
+
+```
+[FAIL] tanpa pesan: uji_e.py:3 -> assert 'c' in hasil
+[FAIL] dengan pesan: 'c' tidak ada di ['a', 'b']
+[ERROR] galat lain: bukan assert
+```
+
+Baris pertama dulu berakhir di titik dua lalu kosong. Sekarang ada berkas,
+nomor baris, dan bunyi assert-nya. Baris kedua dan ketiga tidak berubah — jadi
+perbaikan ini tidak menimpa pesan yang sudah bagus.
+
+Diperbaiki di runner, bukan di 129 baris assert. Berlaku juga untuk assert
+tanpa pesan yang ditulis besok.
+
+## Bagian D — LULUS
+
+Banyak temuan:
+
+```bash
+$ python .../sweeper.py . --no-cache
+total baris: 22        (sebelumnya 87)
+[WARN] tercetak: 11
+... dan 66 lainnya
+```
+
+11 + 66 = 77. Cocok dengan jumlah sebenarnya.
+
+Sedikit temuan:
+
+```bash
+[FAIL] temp_sisa.log [Suspected Leftover File]
+[WARN] Found 1 TODO/FIXME tags in the code.
+baris "lainnya": 0
+```
+
+Tidak ada pemotongan palsu. Arah kedua aman.
+
+JSON tetap utuh:
+
+```
+stats.large_comment_blocks = 76
+issues.large_comment_blocks -> 76 butir
+```
+
+Yang dipotong cuma tampilan manusia.
+
+## Bagian C — LULUS
+
+```bash
+$ grep -rn -i companion src/snowline/templates/
+(kosong)
+```
+
+Ketiga pesan masih terpicu oleh keadaan yang sama:
+
+```
+1 parameter kurang : [Quality Gate] Parameter kritis tidak lengkap untuk 'auto_scaffolder'...
+2 tipe salah       : [Quality Gate] Tipe scaffold 'ngawur' tidak valid...
+3 old_text kosong  : [Quality Gate] Target string pencarian (old_text) tidak boleh kosong.
+```
+
+Arah sebaliknya, masukan wajar tetap lolos:
+
+```
+scaffolder react  -> (True, '')
+replace wajar     -> (True, '')
+```
+
+## Bagian A — TOLAK
+
+Ujinya ada, jalan, dan lulus. Tetapi ia tidak bisa gagal.
+
+### Arah 1 tidak pernah menjalankan pembandingnya
+
+```
+test_venv_release.py:39   pip install str(REPO_ROOT)
+```
+
+Pemasangan dari **jalur berkas** tidak mencatat commit:
+
+```bash
+$ cat .../snowline_agent_tools-1.2.0.dist-info/direct_url.json
+{"dir_info": {}, "url": "file:///D:/AAAAAAAAA/open_source_agents"}
+
+vcs_info: (TIDAK ADA)
+```
+
+Tanpa `vcs_info`, `installed_commit` kosong, jadi status jadi `unknown` dan
+perbandingannya tidak pernah dijalankan. `status` mengakuinya:
+
+```
+x Tidak dapat menentukan versi package terinstal
+```
+
+Tetapi `update` tetap berkata:
+
+```
++ All skills are up to date!
+```
+
+Dan itulah yang diperiksa Arah 1. Assert-nya lulus untuk keadaan `unknown`
+persis seperti untuk keadaan `latest`. Ia tidak membedakan keduanya.
+
+### Arah 2 menguji kode yang bukan kode kita
+
+```
+test_venv_release.py:58   pip install git+https://...@v1.1.0
+```
+
+v1.1.0 dipasang dari GitHub, dan ia mendahului seluruh perbaikan Sprint 51.
+Pesan "tertinggal" yang muncul di sana berasal dari kode lama — jalur `pip show`
+yang justru kita buang.
+
+Terlihat dari pesannya. Arah 2 waktu QA jalankan:
+
+```
+! Package version tertinggal!
+```
+
+Pemasangan yang benar-benar memakai kode baru, di venv QA sendiri dari commit
+`ea094ed`:
+
+```
+! Package version tertinggal! (tertinggal dari tag v1.2.0 (a06de462) dan HEAD (bed4153b))
+```
+
+Ada keterangan pembandingnya. Arah 2 tidak ada. Itu kode lama yang bicara.
+
+### Akibatnya
+
+Arah 1 lulus tanpa menjalankan pembandingnya. Arah 2 memasang kode dari GitHub,
+jadi perubahan apa pun di pohon kerja lokal tidak bisa mengubah hasilnya.
+
+Kalau besok ada yang merusak `evaluate_package_freshness`, uji ini tetap hijau.
+Penjaga yang tidak bisa gagal lebih buruk daripada tidak ada penjaga, karena ia
+memberi rasa aman yang tidak berdasar.
+
+### Ini sebagian salah saya
+
+Syarat lulus yang QA tulis berbunyi "pasang dari commit lama -> update berkata
+tertinggal". v1.1.0 memang commit lama, dan update memang berkata tertinggal.
+Yang tidak QA tuliskan: kode yang terpasang harus kode yang sedang diuji.
+
+### Cara memperbaikinya, sudah QA uji
+
+Pasang dari repo lokal **sebagai URL git**, bukan sebagai jalur berkas:
+
+```bash
+$ SHA=$(git rev-parse HEAD)
+$ pip install "git+file:///D:/AAAAAAAAA/open_source_agents@$SHA"
+
+$ cat .../direct_url.json
+{"url": "file:///D:/AAAAAAAAA/open_source_agents",
+ "vcs_info": {"commit_id": "45c4971581b18f2e82338d4cdd5f447427d0f26c", "vcs": "git"}}
+```
+
+`vcs_info` tercatat. Dan pembandingnya benar-benar jalan:
+
+```bash
+$ snowline status
+Paket : commit 45c49715 (sesuai dengan remote HEAD (45c49715))  -> terbaru
+```
+
+Jadi:
+
+- Arah 1: `git+file:///<repo>@<HEAD lokal>`, lalu **periksa keterangannya**,
+  bukan cuma ketiadaan kata "tertinggal". Harus menyebut HEAD atau tag.
+- Arah 2: `git+file:///<repo>@<commit lama yang sudah memuat kode baru>` —
+  `ea094ed` cocok. Harus muncul keterangan pembandingnya.
+- Tambahkan bukti mutasi: rusakkan `evaluate_package_freshness` di pohon kerja,
+  commit sementara, jalankan uji, tunjukkan **merahnya**. Kalau tetap hijau,
+  ia belum jadi penjaga.
+
+### Catatan waktu
+
+Laporan menulis 44,59 detik. Di mesin QA 81 detik. Bukan cacat — beda jaringan.
+Tetapi angka pasti di laporan akan selalu meleset; sebut kisarannya saja.
+
+## Temuan sampingan — `update` dan `status` menceritakan hal berbeda
+
+Untuk pemasangan yang sama:
+
+```
+status : x Tidak dapat menentukan versi package terinstal
+update : + All skills are up to date!
+```
+
+Fakta yang sama, dua cerita. `status` jujur, `update` menganggap "tidak tahu"
+sama dengan "mutakhir". Ini yang membuat lubang Arah 1 tidak terlihat.
+
+Belum masuk daftar mana pun. QA taruh sebagai temuan baru.
+
+## Vonis
+
+```
+Bagian B   LULUS    dua literal hilang, versi mengikuti __version__
+Bagian E   LULUS    tiga arah, pesan lama tidak tertimpa
+Bagian D   LULUS    terpotong dengan jumlah sisa, JSON utuh
+Bagian C   LULUS    nol companion, tiga pesan masih terpicu, masukan wajar lolos
+Bagian A   TOLAK    kedua arahnya tidak menjalankan kode yang diuji
+```
+
+## Yang tidak saya periksa
+
+- Perilaku di luar Windows.
+- Apakah `git+file://` bekerja di CI. QA mengujinya di mesin ini saja.
+- Bagian A sesudah diperbaiki. Yang QA uji adalah bahwa cara perbaikannya
+  mungkin, bukan bahwa perbaikannya sudah benar.
