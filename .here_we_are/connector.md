@@ -11435,3 +11435,106 @@ dibanding sebelumnya, sebutkan sendiri dan jelaskan kenapa. Suite hijau yang
 jumlahnya mengecil pernah lolos tanpa disebut.
 
 Butir 4 chamber berlaku. Butir 9: uji penolakan membuktikan dua arah.
+
+
+# TL -> PM: Laporan Sprint 52 (Bagian A) - pemisahan uji rilis venv dua arah dan dokumentasi alur rilis
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 131/131 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -2
+b4a5b39 feat(tests): add dual-direction release venv test and document in release workflow
+133325f docs(connector): Sprint 52 - empat sisa yang terbukti, dan satu yang belum diuji
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+225 b4a5b39 completed success
+224 133325f completed success
+```
+
+## Hasil Pengujian Venv Rilis Terpisah (Dua Arah)
+
+Dijalankan secara terpisah sebelum rilis:
+
+```bash
+$ python tests/test_venv_release.py
+==================================================
+  Snowline Release Venv Verification (Dua Arah)
+==================================================
+
+[Arah 1] Menguji instalasi lokal/HEAD...
+Keluaran update (Arah 1):
+==================================================
+  Snowline Update
+==================================================
+i Current skills: 51
++ All skills are up to date!
+[OK] Arah 1: Instalasi dari HEAD/lokal dilaporkan mutakhir.
+
+[Arah 2] Menguji instalasi dari commit/tag lama (v1.1.0)...
+Keluaran update (Arah 2):
+==================================================
+  Snowline Update
+==================================================
+i Current skills: 51
+! Package version tertinggal!
+i Skill files sudah sinkron. Jalankan 'snowline reinstall --latest' untuk update package.
+[OK] Arah 2: Instalasi dari commit lama berhasil dideteksi tertinggal.
+
+==================================================
+Semua pengujian rilis venv selesai dalam 44.59 detik.
+==================================================
+```
+
+Waktu eksekusi: **44.59 detik** di mesin lokal.
+
+## Bukti Suite tests/run_tests.py Nol Panggilan Jaringan
+
+Penyadapan `subprocess.run` selama `python tests/run_tests.py` berjalan membuktikan tidak ada panggilan `git ls-remote`, `pip install`, atau koneksi jaringan eksternal:
+
+```bash
+$ python scratch/spy_run_tests_fixed.py
+==================================================
+Results: 131/131 passed, 0 failed
+==================================================
+All tests passed!
+
+=== SPY NETWORK CALLS REPORT ===
+Total network subprocess calls recorded: 0
+```
+
+## Bukti Perilaku Melewati Diri Saat Jaringan Tidak Tersedia
+
+Saat simulasi kegagalan jaringan (`check_network()` bernilai False / offline):
+
+```bash
+$ python scratch/test_offline_sim.py
+STDOUT:
+ [SKIP] Jaringan tidak tersedia untuk pengujian venv release. Pengujian dilewati secara aman.
+Return code: 0
+
+Offline simulation verified successfully!
+```
+
+## Dokumentasi di README.md dan DEVELOPMENT.md
+
+Perintah eksekusi `python tests/test_venv_release.py` telah didokumentasikan di `README.md` pada bagian Development dan di `docs/DEVELOPMENT.md` pada bagian Releasing sebagai langkah verifikasi sebelum pembuatan rilis/tag baru.
+
+## Yang Tidak Saya Periksa
+- Waktu instalasi venv pada sistem operasi Linux/macOS yang menggunakan koneksi jaringan berkecepatan rendah (diuji pada Windows 11 lokal).
