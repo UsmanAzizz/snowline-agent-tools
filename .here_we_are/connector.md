@@ -12741,3 +12741,195 @@ python tests/test_venv_release.py
   tidak pernah menjalankannya. Belum ada yang membuktikan ia jalan di sana.
 - Daftar Terbuka di `STATE.md`. Beberapa butirnya kelihatan sudah tutup sejak
   lama tetapi belum dicoret. Itu perlu disisir tersendiri.
+
+
+# PM -> TL: Sprint 54 — sisir daftar Terbuka di STATE.md, dan betulkan bagian yang tugasnya mendeteksi kebasian
+
+Tidak ada kode yang diubah di sprint ini kecuali kalau penyisiran menemukan
+sesuatu yang benar-benar masih rusak. Ini pekerjaan memastikan, bukan
+membangun.
+
+Alasannya: kita hendak menandai v1.2.1. Menandai rilis di atas daftar yang basi
+berarti kita tidak benar-benar tahu apa yang dirilis.
+
+---
+
+# Aturan yang mengikat seluruh sprint ini
+
+**Satu butir hanya boleh ditutup dengan perintah dan keluaran yang menunjukkan
+perilakunya, bukan keberadaan kodenya.**
+
+Ini bukan formalitas. QA pernah meloloskan sprint karena syarat lulusnya
+memeriksa keberadaan berkas, bukan isinya, dan panduan uji yang terkirim
+ternyata tinggal potongan kecilnya saja.
+Jebakan yang sama menunggu di sini: butir 1 berbunyi "rotate harus memvalidasi
+baris masuk = baris keluar". Membuktikan `rotate_command` ada **tidak**
+menutup butir itu. Yang menutupnya adalah menjalankan rotate dan menunjukkan
+angka barisnya cocok.
+
+Tiap butir dapat salah satu dari tiga vonis:
+
+```
+TUTUP                 disertai perintah dan keluaran yang menunjukkan perilakunya
+MASIH TERBUKA         disertai perintah dan keluaran yang menunjukkan ia masih rusak
+TIDAK BISA DIPUTUSKAN disertai alasan kenapa
+```
+
+Vonis ketiga itu jawaban yang sah. Lebih baik daripada menutup butir dengan
+tebakan.
+
+**Cara menyunting STATE.md:** per bagian, jangan menulis ulang seluruh berkas
+dari draf. Draf yang disiapkan lebih awal akan menimpa perubahan yang terjadi
+di antaranya. Aturan ini tertulis di butir 5 daftar itu sendiri.
+
+---
+
+# BAGIAN A — sebelas butir di daftar Terbuka
+
+Daftarnya ada di `.here_we_are/STATE.md`, bagian `## Terbuka`.
+
+QA sudah mengintip empat butir dengan `grep`, dan hasilnya di bawah ini.
+**Angka-angka ini tidak menutup apa pun.** Itu cuma penunjuk arah — semuanya
+hitungan kecocokan teks, bukan perilaku. Buktikan sendiri.
+
+```
+1  rotasi otomatis     grep 'def rotate_command'          -> 1
+2  4 perkakas belum uji grep smart_tree di test_d1        -> 7
+                        grep db_extractor di test_d1      -> 10
+                        grep deep_analyzer di test_d1     -> 7
+4  gerbang CRITICAL    grep install-hooks di cli.py       -> 5
+7  role.json absen     grep role.json di cli.py           -> 12
+10 penegak scope       berkas yang menyebut scope_lock    -> 6
+```
+
+Butir 2 punya jebakan tambahan: ia menyebut empat perkakas, dan salah satunya
+`companion` — yang sudah diarsipkan. Butir yang menyebut alat yang tidak ada
+lagi tidak bisa ditutup begitu saja; tulis apa yang terjadi padanya.
+
+Butir 11 (agents.md tidak dilindungi scope sementara `knowledge/` diblokir)
+adalah keputusan arsitektur. Itu wewenang PM. Jangan diputuskan sendiri —
+siapkan bahannya: apa pilihannya, apa akibat masing-masing, dan apa yang
+sekarang benar-benar terjadi kalau agents.md ditulis. Lalu tandai
+TIDAK BISA DIPUTUSKAN dan sebutkan itu menunggu PM.
+
+## Yang dikerjakan
+
+1. Sisir kesebelas butir, satu per satu, dengan perintah dan keluaran.
+2. Butir yang TUTUP dipindahkan ke tempat yang benar di STATE.md, bukan
+   dihapus begitu saja. Kalau ia punya topik arsip, catat topiknya.
+3. Butir yang MASIH TERBUKA dibiarkan di daftar, tetapi kalimatnya diperbarui
+   kalau bunyinya sudah tidak menggambarkan keadaan sekarang.
+4. Penomorannya dirapikan sesudah itu. Butir 6 di daftar itu justru mencatat
+   bahwa penomoran pernah ganda — jadi periksa penomorannya sendiri sebelum
+   selesai.
+
+## Syarat lulus A
+
+1. Kesebelas butir punya vonis, dan tiap vonis punya perintah dan keluaran.
+   Tidak ada butir yang lewat tanpa diperiksa.
+2. Untuk butir yang ditutup, keluarannya menunjukkan **perilaku**. Contoh yang
+   sah untuk butir 1: jalankan `snowline rotate` dan tunjukkan
+   `baris masuk = baris keluar`. Contoh yang **tidak** sah: menunjukkan
+   fungsinya ada.
+3. Jumlah butir sesudah penyisiran disebutkan, dan cocok dengan isi daftar
+   sesudahnya. Hitung, jangan taksir.
+4. `python tests/run_tests.py` tetap hijau sesudah STATE.md disunting.
+
+---
+
+# BAGIAN B — bagian "Cara memeriksa berkas ini" adalah yang paling basi
+
+## Bukti
+
+Bagian itu ada supaya orang bisa mendeteksi STATE.md yang basi. Isinya:
+
+```
+STATE.md menulis          kenyataan sekarang
+uji        : 50/50        134/134
+commit     : c08767f      1305eae
+git status : 2 berkas     0
+```
+
+Ketiganya meleset. Yang tugasnya menangkap kebasian, dia sendiri basi paling
+jauh — angka ujinya tertinggal 84.
+
+## Yang dikerjakan
+
+Betulkan angkanya. Tetapi jangan berhenti di situ, karena angka yang sama akan
+basi lagi bulan depan.
+
+Pikirkan bentuk yang tidak bisa membusuk diam-diam. Beberapa arah yang bisa
+dipilih, dan kamu boleh memilih yang lain:
+
+- buang angka yang pasti berubah (commit, jumlah berkas `git status`), sisakan
+  perintahnya saja, dan katakan apa yang harus dilihat pembaca
+- atau pertahankan angkanya, tetapi buat satu uji yang merah kalau angka di
+  STATE.md tidak cocok dengan kenyataan
+
+Yang kedua lebih kuat tetapi lebih mahal. Putuskan sendiri, dan tulis
+alasannya.
+
+## Syarat lulus B
+
+1. Sesudah diperbaiki, jalankan sendiri semua perintah yang tertulis di bagian
+   itu dan tunjukkan hasilnya cocok.
+2. Kalau kamu memilih menyisakan angka, jelaskan apa yang akan menangkapnya
+   waktu ia basi. Kalau jawabannya "tidak ada", pilih arah yang pertama.
+3. Kalau kamu membuat uji penjaga, buktikan ia merah: ubah satu angka di
+   STATE.md, tunjukkan merahnya, kembalikan, tunjukkan hijaunya.
+
+---
+
+# BAGIAN C — bagian Utang Teknis rusak bentuknya
+
+## Bukti
+
+```
+## Utang Teknis (Technical Debt)
+- Ada 5 instans except Exception: pass lain di src/snowline/cli.py yang menelan galat dan belum diperbaiki di sprint ini.
+6. Berkas uji liar di `tests/` lolos penjaga yatim karena namanya bukan `test_*.py`.
+```
+
+Satu butir bertanda hubung, satu bertanda "6." tanpa 1 sampai 5. Butir kedua
+itu kelihatannya nyasar dari daftar lain.
+
+## Yang dikerjakan
+
+Rapikan bentuknya. Dan periksa kedua butirnya masih benar:
+
+- apakah masih ada 5 `except Exception: pass` di `cli.py`? Hitung.
+- apakah berkas uji yang namanya bukan `test_*.py` masih lolos penjaga yatim?
+  Buktikan dengan membuat satu berkas semacam itu dan menjalankan penjaganya.
+
+Kalau salah satunya sudah tidak benar, perbaiki kalimatnya atau tutup butirnya.
+
+## Syarat lulus C
+
+1. Kedua butir punya angka atau keluaran yang membuktikan keadaannya sekarang.
+2. Bentuknya konsisten dengan bagian lain di STATE.md.
+
+---
+
+# Yang TIDAK dikerjakan sprint ini
+
+Jangan menaikkan versi. Jangan membuat tag. Jangan menyentuh `quarantine/`,
+`deferred/`, `plan_archive/`, atau `run_all.py`.
+
+Jangan memperbaiki kode kecuali penyisiran menemukan sesuatu yang benar-benar
+masih rusak — dan kalau itu terjadi, laporkan dulu, jangan langsung tambal.
+Temuan baru bukan bagian sprint ini.
+
+# Bentuk laporan
+
+Satu entri untuk A, satu untuk B dan C boleh digabung.
+
+Entri A memuat tabel vonis kesebelas butir, lalu perintah dan keluaran untuk
+tiap butir. Panjang tidak apa-apa. Yang tidak boleh: butir yang divonis tanpa
+keluaran.
+
+Tiap entri memuat satu bagian "yang tidak saya periksa".
+
+Butir 4 chamber berlaku. Dan satu hal khusus sprint ini: kalau kamu menutup
+sebuah butir, keluaran yang kamu tempel harus berasal dari kode yang sekarang
+di-commit. Sprint lalu ada bukti mutasi yang ditempel dari versi uji yang lebih
+lama; kesimpulannya kebetulan benar, tetapi buktinya tidak membuktikan apa-apa.
