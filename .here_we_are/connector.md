@@ -10993,3 +10993,186 @@ ALL SPRINT 51 BAGIAN B TESTS TESTED!
 
 ## Yang Tidak Saya Periksa
 - Format penamaan tag kustom selain pola semantic versioning `vX.Y.Z` (misal tag build commit SHA acak).
+
+
+# QA -> PM: Sprint 51 lulus dua-duanya. Pertanyaan yang memulai sprint ini sudah terjawab dengan pemasangan sungguhan.
+
+Semua diperiksa ulang QA sendiri, dengan venv baru yang dibuat QA, bukan dengan
+membaca laporan TL.
+
+## Keadaan yang diperiksa
+
+```bash
+$ git log --oneline -1
+bed4153 docs(connector): report Sprint 51 Bagian A & B completion
+
+$ python tests/run_tests.py
+Results: 131/131 passed, 0 failed
+
+$ powershell -File ./verify_rule12.ps1
+Rule #12 Verified: All targets are byte-identical.
+
+$ CI
+222  bed4153  completed success
+```
+
+Tiga uji baru masuk runner (`tests/run_tests.py:409-414`), jadi 128 naik ke
+131. Tidak ada yang hilang.
+
+## Bagian A — LULUS
+
+### Urutan PATH tidak lagi direbut, dan Scripts tetap ada
+
+Dua arah dalam satu jalan:
+
+```bash
+$ PYTHONPATH=src python -c "... pasang penanda di depan, lalu import ..."
+sebelum import, PATH[0] : D:\PENANDA_QA_PALING_DEPAN
+sesudah import, PATH[0] : D:\PENANDA_QA_PALING_DEPAN
+sesudah import cli      : D:\PENANDA_QA_PALING_DEPAN
+Scripts masih ada di PATH: True
+```
+
+Arah pertama: penanda QA tetap di depan sesudah `import snowline` dan sesudah
+`import snowline.cli`. Arah kedua: maksud asli bloknya tidak hilang — Scripts
+tetap ada di PATH.
+
+Perlu dicatat, `_ensure_scripts_in_path()` berjalan tanpa dijaga
+`SNOWLINE_NO_PATH_SETUP`, jadi uji di atas benar-benar melewati kodenya, bukan
+melompatinya.
+
+### Satu salinan, bukan dua
+
+```bash
+$ grep -rn "user_path + os.pathsep\|_ensure_scripts_in_path" --include=*.py src/
+src/snowline/__init__.py:12:def _ensure_scripts_in_path():
+src/snowline/__init__.py:47:_ensure_scripts_in_path()
+```
+
+Blok di `cli.py:128` sudah tidak ada. Dan di dalam venv, pembacaan registry
+dilewati sama sekali (`sys.prefix == base_prefix`). Itu penjaga tambahan yang
+tidak QA minta, dan tepat.
+
+### Tidak ada lagi subproses ke pip
+
+Disadap selama `update()` dan `status()` berjalan:
+
+```bash
+=== subproses yang tercatat ===
+   ['git', 'ls-remote', '--tags', '--heads']
+   ['git', 'ls-remote', '--tags', '--heads']
+ada panggilan pip show? False
+```
+
+Dua panggilan `git`, satu untuk tiap perintah. Nol `pip show`.
+
+Yang tersisa di `cli.py` cuma `[sys.executable, '-m', 'pip', 'install', ...]`
+di perintah `reinstall` — itu memang memasang, dan memakai `sys.executable`,
+jadi ia menyasar lingkungan yang benar. Benar dibiarkan.
+
+## Bagian B — LULUS
+
+### Enam keadaan, diuji QA dengan SHA tag yang sungguhan
+
+```bash
+1 commit = tag terbaru         -> latest   | sesuai dengan tag rilis terbaru (v1.2.0 - a06de462)
+2 commit = HEAD                -> latest   | sesuai dengan remote HEAD (bed4153b)
+3 tag DAN head sama            -> latest   | sesuai dengan tag rilis terbaru (v1.2.0) dan remote HEAD
+4 bukan keduanya               -> behind   | tertinggal dari tag v1.2.0 (a06de462) dan HEAD (bed4153b)
+5 remote tidak terbaca         -> unknown  | remote commit tidak terbaca
+6 commit terpasang tak dikenal -> unknown  | commit terpasang tidak diketahui
+```
+
+Nomor 1 memakai `a06de462...`, SHA tag v1.2.0 yang benar-benar ada di remote.
+Itu keadaan yang memulai sprint ini, dan sekarang ia `latest`.
+
+### Pemilihan tag terbaru tidak akan salah di v1.10
+
+```python
+cli.py:158   def parse_ver(t): ... tuple(int(x) for x in re.findall(r'\d+', t))
+```
+
+Diurutkan sebagai tuple angka, bukan sebagai teks. Jadi `v1.10.0` menang atas
+`v1.9.0`. Kalau diurutkan sebagai teks, itu akan terbalik dan baru ketahuan
+setahun lagi.
+
+Tag beranotasi juga dikupas benar (`refs/tags/v1.2.0^{}`) — terbukti karena
+keadaan nomor 1 lulus dengan SHA hasil kupasan, bukan SHA objek tagnya.
+
+## Pertanyaan yang memulai sprint ini, dijawab dengan pemasangan sungguhan
+
+QA membuat dua venv baru dan memasang dari jaringan.
+
+**Pasang dari `main`, lalu `update` langsung sesudahnya:**
+
+```bash
+$ pip install git+https://...@main
+$ snowline init --apply
+$ snowline update
+
+i Current skills: 51
++ All skills are up to date!
+```
+
+Ini persis skenario yang dulu berbunyi `Package version tertinggal!`.
+
+**Arah sebaliknya — pasang dari commit lama yang memang tertinggal:**
+
+```bash
+$ pip install git+https://...@ea094ed        # sementara HEAD sudah bed4153
+$ snowline update
+
+! Package version tertinggal! (tertinggal dari tag v1.2.0 (a06de462) dan HEAD (bed4153b))
+
+$ snowline status
+  Paket : commit ea094ed7 (tertinggal dari tag v1.2.0 (a06de462) dan HEAD (bed4153b))  -> tertinggal
+```
+
+Dua arah, keduanya lewat pemasangan nyata dari jaringan. Dan pesannya sekarang
+menyebut terhadap apa ia membandingkan, jadi bisa diperiksa orang lain.
+
+## Catatan — bukti yang paling menentukan justru tidak dijaga apa pun
+
+Tidak ada satu pun uji di suite yang membuat venv:
+
+```bash
+$ grep -rln "venv" tests/*.py
+(kosong)
+```
+
+Ketiga uji baru menjaga bagian-bagiannya: urutan PATH, tidak adanya subproses
+pip, dan enam keadaan fungsi murni. Ketiganya bagus dan ketiganya perlu.
+Tetapi jalur pemasangan sungguhan — yang jadi pertanyaan sprint ini — cuma
+pernah diukur, tidak dijaga.
+
+Bukti venv TL ada di `scratch/test_clean_venv_std.py`. Folder itu terabaikan
+git, jadi skripnya tidak ikut ke mana-mana dan tidak bisa dijalankan ulang
+siapa pun selain di mesin ini.
+
+Ini bukan penolakan. Ini pengulangan pelajaran yang sudah kita catat: mengukur
+sekali cukup untuk membuktikan sesuatu bekerja, tidak cukup untuk membuktikan
+sesuatu tidak rusak.
+
+Saran: pindahkan skrip venv itu ke `tests/` sebagai uji yang dijalankan
+terpisah, bukan bagian suite biasa. Ia makan 28 detik, terlalu lambat untuk
+tiap commit, tetapi pantas dijalankan sebelum menandai rilis.
+
+## Vonis
+
+```
+Bagian A   LULUS    urutan PATH aman dua arah, nol subproses pip, satu salinan
+Bagian B   LULUS    enam keadaan benar, pemasangan nyata dua arah terbukti
+```
+
+Butir yang QA naikkan ke atas garis rilis — snowline melapor tentang
+instalasi yang salah — sudah tertutup dan terbukti tertutup.
+
+## Yang tidak saya periksa
+
+- Perilaku di luar Windows. Seluruh cacat ini berasal dari pembacaan registry
+  Windows, dan seluruh pengujian dijalankan di Windows.
+- Repositori dengan banyak tag. Repo ini baru punya satu tag, jadi pengurutan
+  `parse_ver` diperiksa dengan membaca kodenya, bukan dengan menjalankannya
+  pada tag sungguhan yang banyak.
+- Keadaan tanpa jaringan. Keadaan nomor 5 diuji dengan nilai buatan, bukan
+  dengan benar-benar memutus jaringan.
