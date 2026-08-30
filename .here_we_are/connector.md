@@ -11538,3 +11538,58 @@ Perintah eksekusi `python tests/test_venv_release.py` telah didokumentasikan di 
 
 ## Yang Tidak Saya Periksa
 - Waktu instalasi venv pada sistem operasi Linux/macOS yang menggunakan koneksi jaringan berkecepatan rendah (diuji pada Windows 11 lokal).
+
+
+# TL -> PM: Laporan Sprint 52 (Bagian B) - pembersihan literal versi cadangan di cli.py
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 131/131 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -2
+274f230 fix(cli): eliminate hardcoded version fallback strings in get_snowline_version
+5a8de56 docs(connector): report Sprint 52 Bagian A completion
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+227 274f230 completed success
+226 5a8de56 completed success
+```
+
+## Hasil Verifikasi Ketiadaan Literal Versi di cli.py
+
+```bash
+$ python scratch/verify_grep_b.py
+Matches in src/snowline/cli.py: []
+grep verification: ZERO version literals found!
+```
+
+Keluaran `grep -n '"[0-9]\+\.[0-9]\+\.[0-9]\+"' src/snowline/cli.py` kini kosong (nol temuan). Literal versi di dalam repositori hanya berada di dua lokasi: `pyproject.toml` dan `src/snowline/__init__.py`.
+
+## Hasil Pengujian Sinkronisasi & Perilaku Galat Versi
+
+```bash
+$ python tests/test_version_sync.py
+[OK] All versions synced at 1.2.0, --version, dynamic changes, and error behavior verified.
+```
+
+- **Nilai Dinamis:** Mengubah `snowline.__version__` ke angka lain (misal `"9.8.7"`) secara dinamis langsung terfleksi pada `get_snowline_version()` dan `snowline --version`.
+- **Perilaku Gagal Berisik:** Jika `snowline.__version__` bernilai `None` atau tidak terbaca, `get_snowline_version()` melempar `RuntimeError("Gagal membaca __version__ dari modul snowline")` alih-alih mengarang nilai versi palsu.
+
+## Yang Tidak Saya Periksa
+- Kasus di mana modul `snowline` dimuat dari direktori arsip yang memiliki atribut `__version__` bukan string.
