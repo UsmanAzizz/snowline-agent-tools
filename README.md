@@ -297,7 +297,8 @@ Working on snowline itself — tests, Rule #12, CI, releasing: see
 [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
 ```bash
-python tests/run_tests.py     # 127 tests, ~147 seconds
+python tests/run_tests.py          # fast suite, unit & integration (no network)
+python tests/test_venv_release.py  # end-to-end venv release verification (dual-direction, network required)
 ```
 
 ## Compatibility

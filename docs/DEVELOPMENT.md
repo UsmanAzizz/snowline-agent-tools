@@ -115,6 +115,12 @@ Two rules there are worth knowing even if you never use the protocol:
 
 ## Releasing
 
+Before tagging a release, run the dual-direction venv test:
+
+```bash
+python tests/test_venv_release.py   # verifies fresh venv install & update against HEAD and previous tag
+```
+
 ```bash
 # bump version in three places, they must agree
 pyproject.toml        version = "x.y.z"

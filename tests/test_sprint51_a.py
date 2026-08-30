@@ -66,7 +66,8 @@ def test_sprint51_a_no_pip_subprocesses():
         return m
 
     from unittest.mock import patch
-    with patch("subprocess.run", side_effect=tracked_run):
+    with patch("snowline.cli.fetch_remote_package_info", return_value={"head_commit": "mockhead", "latest_tag_commit": None, "latest_tag_name": None}), \
+         patch("subprocess.run", side_effect=tracked_run):
         with tempfile.TemporaryDirectory() as tmpdir:
             old_cwd = os.getcwd()
             try:
