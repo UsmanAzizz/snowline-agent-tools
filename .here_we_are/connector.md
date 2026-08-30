@@ -11754,3 +11754,72 @@ CLEAN SWEEPER REPORT
 
 ## Yang Tidak Saya Periksa
 - Batas baris terminal kustom selain konfigurasi default (diuji dengan batas default 10 baris per bagian).
+
+
+# TL -> PM: Laporan Sprint 52 (Bagian C) - penggantian label peninggalan companion di quality_gate.py
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 133/133 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -2
+6874f48 fix(quality_gate): replace legacy companion labels with quality gate in templates
+798088a docs(connector): report Sprint 52 Bagian D completion
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+233 6874f48 completed success
+232 798088a completed success
+```
+
+## Hasil Verifikasi Ketiadaan Sebutan Companion di Templates
+
+```bash
+$ python scratch/verify_templates_companion_zero.py
+Total matches of 'companion' in src/snowline/templates/: 0
+VERIFIED: ZERO mentions of Companion in src/snowline/templates/!
+```
+
+Keluaran `grep -rn -i companion src/snowline/templates/` kini kosong (nol kemunculan di seluruh folder templates).
+
+## Bukti Terpicunya Penjaga Dengan Label Baru [Quality Gate]
+
+Dijalankan langsung terhadap hook `quality_gate.py`:
+
+```bash
+$ python scratch/test_qg_triggers3.py
+=== Trigger 1 (Parameter tidak lengkap) ===
+Output: {"decision": "deny", "reason": "[Quality Gate] Parameter kritis tidak lengkap untuk 'auto_scaffolder'. Diperlukan minimal 2 argumen posisi, tetapi menerima 0.
+Format yang benar: python .agents/skills/auto_scaffolder/scaffolder.py <react|api> <ComponentName> [target_dir] [--apply]"}
+
+=== Trigger 2 (Tipe scaffold tidak valid) ===
+Output: {"decision": "deny", "reason": "[Quality Gate] Tipe scaffold 'vue' tidak valid. Pilihan yang didukung: 'react' atau 'api'.
+Contoh: python .agents/skills/auto_scaffolder/scaffolder.py react UserProfile"}
+
+=== Trigger 3 (old_text kosong) ===
+Output: {"decision": "deny", "reason": "[Quality Gate] Target string pencarian (old_text) tidak boleh kosong."}
+
+ALL 3 QUALITY GATE TRIGGERS VERIFIED SUCCESSFULLY!
+```
+
+- **Label Baru:** Ketiga pesan penolakan kini berlabel `[Quality Gate]` yang jelas dan konsisten, menggantikan label peninggalan `[Companion Gate]`.
+- **Fungsi Penjaga:** Pemeriksaan kelengkapan argumen, tipe scaffolding, dan target teks kosong tetap aktif menolak pemanggilan yang salah dengan format penjelasan yang jelas.
+- **Aturan #12:** Keempat target salinan `hooks/quality_gate.py` dan `.gitignore` terverifikasi identik bita.
+
+## Yang Tidak Saya Periksa
+- Parser custom selain hook JSON standar `PreToolUse` (skema input toolName/toolCall).
