@@ -12078,3 +12078,203 @@ Bagian A   TOLAK    kedua arahnya tidak menjalankan kode yang diuji
 - Apakah `git+file://` bekerja di CI. QA mengujinya di mesin ini saja.
 - Bagian A sesudah diperbaiki. Yang QA uji adalah bahwa cara perbaikannya
   mungkin, bukan bahwa perbaikannya sudah benar.
+
+
+# PM -> TL: Sprint 53 — jadikan uji rilis venv benar-benar penjaga, dan buat `update` berhenti menyamakan "tidak tahu" dengan "mutakhir"
+
+Sprint 52 Bagian A ditolak. Ujinya ada dan lulus, tetapi kedua arahnya tidak
+menjalankan kode yang sedang diuji, jadi ia tidak bisa gagal.
+
+Dan waktu menelusurinya, ketemu sebab kenapa lubang itu tidak terlihat: `update`
+menganggap "tidak tahu" sama dengan "mutakhir".
+
+Kerjakan B dulu, baru A. Membetulkan B lebih dulu membuat A punya sesuatu yang
+sungguhan untuk diperiksa.
+
+---
+
+# BAGIAN B — `update` dan `status` menceritakan hal berbeda untuk pemasangan yang sama
+
+## Bukti
+
+Satu venv, satu pemasangan, dua perintah:
+
+```
+$ snowline status
+x Tidak dapat menentukan versi package terinstal
+
+$ snowline update
++ All skills are up to date!
+```
+
+`status` jujur. `update` mengarang.
+
+Sebabnya ada di kodenya. `evaluate_package_freshness` mengembalikan tiga
+keadaan — `latest`, `behind`, `unknown`. `status` membedakan ketiganya:
+
+```
+cli.py:793   pkg_latest  = (freshness["status"] == "latest")
+cli.py:794   pkg_behind  = (freshness["status"] == "behind")
+cli.py:795   pkg_unknown = (freshness["status"] == "unknown" and ...)
+```
+
+`update` cuma melihat satu:
+
+```
+cli.py:584   pkg_behind = (freshness["status"] == "behind")
+cli.py:586   if ... and not pkg_behind ...:
+cli.py:587       print_success("All skills are up to date!")
+```
+
+Tiga keadaan diperas jadi dua. `unknown` jatuh ke keranjang "mutakhir".
+
+Kapan `unknown` terjadi? Sering. Setiap pemasangan dari jalur berkas
+(`pip install .`) tidak mencatat `vcs_info`, jadi commitnya tidak diketahui.
+Itu cara memasang yang dipakai siapa pun yang bekerja dari salinan lokal.
+
+## Yang dikerjakan
+
+`update` membedakan ketiga keadaan, sama seperti `status`.
+
+Untuk `unknown`, katakan apa adanya: versi paket tidak bisa dipastikan, dan
+sebutkan kenapa. Jangan jadikan itu galat — ini keadaan wajar buat pemasangan
+lokal. Cukup jujur.
+
+Perhatikan: `update` juga melaporkan berkas skill. Jangan sampai pesan paket
+menenggelamkan pesan skill, atau sebaliknya. Keduanya kabar yang berbeda.
+
+## Syarat lulus B
+
+Tiga arah, semuanya wajib:
+
+1. Paket benar-benar mutakhir -> `update` berkata mutakhir.
+2. Paket tertinggal -> `update` berkata tertinggal, beserta pembandingnya
+   (perilaku sekarang, jangan sampai rusak).
+3. Commit paket tidak diketahui -> `update` **tidak** berkata mutakhir, dan
+   menyebut bahwa versinya tidak bisa dipastikan.
+
+Nomor 3 itu inti bagian ini. Nomor 1 arah sebaliknya — tanpa itu, "perbaikan"
+yang tidak pernah berkata mutakhir akan lulus.
+
+4. Untuk pemasangan yang sama, `update` dan `status` tidak boleh saling
+   bertentangan. Buktikan dengan menjalankan keduanya pada satu venv dan
+   menempel kedua keluarannya berdampingan.
+5. Bukti mutasi: kembalikan `update` ke perilaku lama, tempel baris merahnya.
+
+---
+
+# BAGIAN A — uji rilis venv, diulang supaya bisa gagal
+
+## Kenapa yang sekarang tidak bisa gagal
+
+**Arah 1** memasang dari jalur berkas:
+
+```
+tests/test_venv_release.py:39   pip install str(REPO_ROOT)
+```
+
+Pemasangan begitu tidak mencatat commit:
+
+```
+{"dir_info": {}, "url": "file:///D:/AAAAAAAAA/open_source_agents"}
+vcs_info: (TIDAK ADA)
+```
+
+Jadi status jadi `unknown`, pembandingnya tidak pernah jalan, dan assert-nya
+lulus untuk `unknown` persis seperti untuk `latest`.
+
+**Arah 2** memasang v1.1.0 dari GitHub:
+
+```
+tests/test_venv_release.py:58   pip install git+https://...@v1.1.0
+```
+
+v1.1.0 mendahului seluruh perbaikan Sprint 51. Pesan "tertinggal" di sana
+keluar dari kode lama yang justru kita buang. Kelihatan dari pesannya —
+tidak ada keterangan pembandingnya:
+
+```
+Arah 2 sekarang     : ! Package version tertinggal!
+kode baru (ea094ed) : ! Package version tertinggal! (tertinggal dari tag v1.2.0 (a06de462) dan HEAD (bed4153b))
+```
+
+Karena keduanya memasang kode dari luar pohon kerja, perubahan lokal apa pun
+tidak bisa mengubah hasil ujinya.
+
+Sebagian ini salah QA. Syarat lulus Sprint 52 cuma berbunyi "pasang dari commit
+lama", tanpa mensyaratkan kode terpasang adalah kode yang diuji.
+
+## Cara memasang yang benar, sudah QA uji
+
+Repo lokal, tetapi sebagai URL git:
+
+```bash
+$ SHA=$(git rev-parse HEAD)
+$ pip install "git+file:///D:/AAAAAAAAA/open_source_agents@$SHA"
+
+$ cat .../direct_url.json
+{"url": "file:///D:/AAAAAAAAA/open_source_agents",
+ "vcs_info": {"commit_id": "45c4971581b18f2e82338d4cdd5f447427d0f26c", "vcs": "git"}}
+
+$ snowline status
+Paket : commit 45c49715 (sesuai dengan remote HEAD (45c49715))  -> terbaru
+```
+
+`vcs_info` tercatat, pembandingnya jalan, dan yang terpasang adalah kode kita.
+
+Jangan patok jalur `D:\AAAAAAAAA\open_source_agents` di dalam uji. Turunkan dari
+letak berkas ujinya sendiri, supaya tetap jalan di mesin lain dan di CI.
+
+## Yang dikerjakan
+
+Tulis ulang kedua arah:
+
+- **Arah 1** — pasang `git+file:///<repo>@<HEAD lokal>`. Harus dilaporkan
+  mutakhir, dan **keterangannya diperiksa** — harus menyebut HEAD atau tag.
+  Bukan sekadar tidak adanya kata "tertinggal".
+- **Arah 2** — pasang `git+file:///<repo>@<commit lama yang sudah memuat kode
+  baru>`. `ea094ed` cocok. Harus dilaporkan tertinggal, **dengan** keterangan
+  pembandingnya.
+
+Yang lain dipertahankan: tetap di luar suite biasa, tetap melewati diri saat
+jaringan mati, tetap tercatat di README.
+
+## Syarat lulus A
+
+1. Kedua arah lulus, dan keluarannya memuat keterangan pembanding. Tempel
+   keduanya.
+2. **Bukti mutasi, dan ini yang membedakan penjaga dari pengukuran.** Rusakkan
+   `evaluate_package_freshness` sehingga semua dilaporkan mutakhir, lalu
+   jalankan uji ini dan tunjukkan ia **merah**. Kembalikan, tunjukkan hijaunya.
+
+   Catatan teknis: `git+file://` memasang dari commit, jadi perubahan yang
+   belum di-commit tidak akan terpasang. Pakai klon sementara untuk menampung
+   mutasinya. **Jangan meninggalkan commit mutasi di riwayat `main`.**
+
+   Kalau ternyata tidak bisa dibuat merah dengan cara apa pun, katakan begitu
+   apa adanya. Itu jawaban yang sah, dan lebih berguna daripada uji yang
+   tampak menjaga.
+3. Jaringan mati -> melewati diri dengan pesan jelas, bukan gagal.
+4. `python tests/run_tests.py` tetap nol panggilan jaringan. Buktikan lagi
+   dengan penyadapan, jangan mengandalkan bukti sprint lalu.
+5. Sebutkan kisaran waktu jalannya, bukan satu angka pasti. Di mesin TL 44
+   detik, di mesin QA 81 detik — angka tunggal akan selalu meleset.
+
+---
+
+# Yang TIDAK dikerjakan sprint ini
+
+Jangan menaikkan versi. Jangan membuat tag. Berhenti di commit.
+
+Jangan menyentuh `scratch/`, `quarantine/`, `deferred/`, `plan_archive/`,
+atau `run_all.py`.
+
+# Bentuk laporan
+
+Satu entri untuk B, satu untuk A. Tiap entri memuat perintah dan keluaran
+mentah, bukti mutasi merah lalu hijau, dua arah untuk tiap syarat yang menolak
+sesuatu, dan satu bagian "yang tidak saya periksa".
+
+Kalau jumlah uji turun dibanding 133, sebutkan sendiri dan jelaskan kenapa.
+
+Butir 4 chamber berlaku. Butir 9: uji penolakan membuktikan dua arah.
