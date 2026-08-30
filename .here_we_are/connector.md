@@ -10580,3 +10580,223 @@ tertutup dan terbukti tertutup.
 - Sistem berkas yang peka huruf. Semua uji Entri 5 dijalankan di Windows.
 - Apakah keempat perbaikan ini bertahan setelah dipasang dari paket, bukan
   dari sumber. Itu baru terbukti kalau ada rilis berikutnya.
+
+
+# PM -> TL: Sprint 51 — snowline melapor tentang instalasi yang salah, dan pemasangan baru pun langsung disuruh memperbarui
+
+Diuji QA dengan dua venv terpisah. Satu dipasang dari tag `v1.2.0`, satu dari
+`main` HEAD. Keduanya, langsung sesudah `init --apply`:
+
+```
+! Package version tertinggal!
+i Jalankan 'snowline reinstall --latest' untuk update package.
+```
+
+`venv_head` isinya persis sama dengan remote HEAD:
+
+```
+venv_head   -> e6286743fbe5e8234dd22cca6f0fde222a872699
+remote HEAD -> e6286743fbe5e8234dd22cca6f0fde222a872699
+```
+
+Tetap disuruh memperbarui. Perintah yang disarankan tidak akan pernah
+memuaskannya.
+
+Ada dua sebab yang berdiri sendiri. Perbaiki keduanya, jangan salah satu —
+menambal yang kedua saja akan membuat yang pertama tampak sembuh padahal tidak.
+
+Kerjakan berurutan: A dulu, baru B.
+
+---
+
+# BAGIAN A — snowline menimpa PATH, lalu memeriksa instalasi orang lain
+
+**Ini di atas garis rilis.**
+
+## Bukti
+
+Snowline membaca PATH dari registry Windows lalu menaruhnya **di depan** PATH
+yang sedang berlaku:
+
+```
+src/snowline/cli.py:128        os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
+src/snowline/__init__.py       blok yang sama persis, disalin
+```
+
+Akibatnya, di dalam venv mana pun, Python ambient menang atas venv yang aktif:
+
+```
+pip SEBELUM import snowline : ...\venv_head\Scripts\pip.EXE
+pip SESUDAH import snowline : C:\Users\LENOVO\AppData\Local\Python\bin\pip.EXE
+```
+
+Lalu `update()` memanggil `pip show` lewat subproses. QA menyadap panggilannya
+dari dalam `cli.update()` yang sedang berjalan di `venv_head`:
+
+```
+>> PANGGIL ['pip', 'show', 'snowline-agent-tools'] => rc 0 :: Version: 1.1.3
+```
+
+1.1.3 itu instalasi ambient di mesin QA. Yang sedang berjalan 1.2.0 di venv.
+Jadi `snowline update` dan `snowline status` melaporkan keadaan **paket lain**,
+bukan paket yang sedang dipakai.
+
+Kenapa ini di atas garis: bukan karena pesannya salah. Karena sesudah PATH
+ditimpa, **setiap subproses** yang snowline jalankan bisa mendarat di
+lingkungan yang salah — termasuk probe linter dan pemeriksa build di
+`smart_replace`. Yang rusak bukan laporannya, tetapi tanah tempat ia berdiri.
+
+## Yang dikerjakan
+
+**A1. Berhenti menimpa.** Maksud asli blok itu masih sah: sesudah `pip install`
+di Windows, `snowline` harus bisa dipanggil tanpa membuka ulang terminal.
+Menambahkan di **belakang** sudah cukup untuk itu, dan tidak merebut urutan
+dari lingkungan yang sedang aktif.
+
+Pertimbangkan juga melewati blok itu sama sekali kalau sedang di dalam venv
+(`sys.prefix != sys.base_prefix`). Putuskan sendiri, dan tulis alasannya.
+
+**A2. Satu salinan, bukan dua.** Blok itu ada di `cli.py` dan di `__init__.py`.
+Ini pola ketiga kalinya di proyek ini — sesudah angka versi di lima berkas, dan
+sesudah validasi topik serta `PROTECTED` di Sprint 50. Satukan.
+
+**A3. Berhenti bertanya ke `pip`.** Ini yang mematikan seluruh kelas galat ini.
+
+`subprocess.run(['pip', 'show', ...])` menanyakan "paket apa yang dilihat pip
+di PATH", padahal yang ingin diketahui adalah "paket mana yang sedang saya
+jalankan". Dua pertanyaan berbeda, dan jawabannya sering berbeda.
+
+Pakai `importlib.metadata` — ia membaca dari `sys.path` penafsir yang sedang
+berjalan, jadi jawabannya selalu tentang paket yang benar, dan tidak ada
+subproses sama sekali. Berlaku juga untuk blok kembarannya di `status()`
+(sekitar `cli.py:671`).
+
+## Syarat lulus A
+
+Uji harus memeriksa perilaku, bukan keberadaan fungsi.
+
+1. **Urutan PATH tidak direbut.** Pasang satu jalur penanda di paling depan
+   PATH, impor snowline, lalu pastikan jalur itu **masih paling depan**.
+   Jangan menguji dengan membaca kode.
+2. **Arah sebaliknya, dan ini wajib.** Buktikan maksud asli blok itu tidak
+   hilang: jalur Scripts tempat `snowline` terpasang **tetap ada** di PATH
+   sesudah impor. Kalau A1 dikerjakan dengan menghapus bloknya begitu saja,
+   uji ini yang akan menangkapnya.
+3. **Instalasi yang dilaporkan adalah yang sedang berjalan.** Versi yang
+   dilaporkan `status` harus sama dengan `snowline.__version__` dari modul yang
+   sedang diimpor. Bandingkan keduanya di dalam uji.
+4. Tidak ada lagi subproses ke `pip` di `update()` maupun `status()`.
+   Buktikan dengan menyadap `subprocess.run` selama keduanya berjalan, dan
+   tunjukkan daftar panggilan yang tercatat.
+5. **Bukti mutasi.** Kembalikan penambahan PATH jadi di depan lagi, jalankan
+   suite, tempel baris merahnya. Kembalikan, tempel baris hijaunya.
+
+---
+
+# BAGIAN B — pemasangan dari tag rilis selalu dianggap tertinggal
+
+**Ini di bawah garis.** Tetapi ia menjamin alarm palsu permanen untuk setiap
+orang yang memasang dari tag.
+
+## Bukti
+
+Pembandingnya HEAD `main`:
+
+```
+cli.py:441   git ls-remote ... HEAD
+cli.py:476   pkg_behind = (installed_commit and remote_commit and installed_commit != remote_commit)
+```
+
+```
+venv_tag    -> a06de462...   (tag v1.2.0, rilis terbaru)
+remote HEAD -> e6286743...
+```
+
+Berbeda, jadi "tertinggal". Padahal v1.2.0 adalah rilis terbaru yang ada.
+Begitu main maju satu commit, semua pemasangan dari tag jadi salah label.
+
+Ini bukan kasus pinggiran. README menyuruh memasang dari repo, dan waktu kita
+menguji lapangan kita selalu menyuruh memasang dari tag.
+
+## Yang dikerjakan
+
+Sebuah pemasangan disebut mutakhir kalau commitnya sama dengan **salah satu**
+dari dua ini:
+
+- commit yang ditunjuk tag rilis terbaru — ini pemakai biasa
+- remote HEAD — ini pengembang yang memasang dari `main`
+
+Selain itu baru tertinggal.
+
+Dan pesannya harus menyebut **terhadap apa** ia membandingkan. "Tertinggal"
+tanpa keterangan tidak bisa diperiksa siapa pun. Sebutkan commit atau tag
+pembandingnya.
+
+Kalau jaringan mati, jangan mengarang. Perilaku sekarang sudah benar —
+`remote_commit` kosong berarti tidak ada klaim sama sekali. Pertahankan.
+
+## Syarat lulus B
+
+Keputusannya harus bisa diuji tanpa jaringan dan tanpa memasang apa pun.
+Pisahkan penentuannya jadi fungsi murni yang menerima commit terpasang, commit
+HEAD, dan commit tag terbaru, lalu uji fungsi itu langsung.
+
+Enam keadaan, semuanya wajib:
+
+```
+1  commit = tag terbaru                       -> mutakhir
+2  commit = HEAD                              -> mutakhir
+3  commit = tag terbaru DAN HEAD (sama)       -> mutakhir
+4  commit bukan keduanya                      -> tertinggal
+5  remote tidak terbaca (None)                -> tidak ada klaim
+6  commit terpasang tidak diketahui (None)    -> tidak ada klaim
+```
+
+Nomor 1 itu inti sprint ini. Nomor 4 arah sebaliknya — tanpa itu, "perbaikan"
+yang menyebut semua orang mutakhir akan lulus.
+
+Bukti mutasi: buat nomor 1 kembali menghasilkan "tertinggal", tempel baris
+merahnya.
+
+---
+
+# Ujinya harus lepas dari mesin yang menjalankannya
+
+Peringatan, karena ini yang paling mudah salah di sprint ini.
+
+Uji tidak boleh bergantung pada snowline yang kebetulan terpasang di mesin.
+Di mesin QA, yang ambient masih 1.1.3 — dan justru itu yang membuat cacatnya
+terlihat. Di mesin lain, atau di CI, angka itu berbeda dan ujimu bisa hijau
+karena kebetulan.
+
+Pakai nilai buatan untuk Bagian B. Untuk Bagian A, kalau butuh venv sungguhan,
+katakan berapa lama ujinya jalan.
+
+---
+
+# Yang TIDAK dikerjakan sprint ini
+
+```
+dua literal versi "1.2.0" di cli.py get_snowline_version()
+label [Companion Gate] di quality_gate.py, 3 tempat
+clean_sweeper mencetak daftar panjang
+pesan gagal uji kosong
+```
+
+Jangan menaikkan versi. Jangan membuat tag. Berhenti di commit.
+
+# Bentuk laporan
+
+Satu entri untuk A, satu untuk B. Tiap entri memuat:
+
+- perintah dan keluaran mentah, tidak diringkas
+- bukti mutasi: baris merahnya, lalu baris hijaunya
+- dua arah untuk tiap syarat yang menolak sesuatu
+- satu bagian "yang tidak saya periksa"
+
+Untuk Bagian A, satu bukti yang QA harap ada di laporanmu: pemasangan bersih di
+venv, lalu `snowline update` langsung sesudahnya, dan keluarannya **tidak**
+berbunyi "tertinggal". Itu pertanyaan yang memulai sprint ini.
+
+Butir 4 chamber berlaku. Entri yang mengaku selesai tanpa blok perintah dan
+keluaran ditolak sebelum dibaca. Butir 9: uji penolakan membuktikan dua arah.
