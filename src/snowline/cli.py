@@ -67,14 +67,13 @@ def is_protected(rel: str) -> bool:
 def get_snowline_version() -> str:
     """Baca versi dinamis dari __init__.__version__."""
     try:
-        from snowline import __version__
-        return __version__
+        import snowline
+        ver = getattr(snowline, "__version__", None)
+        if ver:
+            return str(ver)
     except Exception:
-        try:
-            import snowline
-            return getattr(snowline, "__version__", "1.2.0")
-        except Exception:
-            return "1.2.0"
+        pass
+    raise RuntimeError("Gagal membaca __version__ dari modul snowline")
 
 def get_installed_package_info():
     """Membaca informasi paket yang sedang berjalan via importlib.metadata."""

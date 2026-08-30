@@ -3,11 +3,13 @@ import sys
 import subprocess
 import re
 from pathlib import Path
+from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
 import snowline
+from snowline.cli import get_snowline_version
 
 
 def _jalankan(args, env_extra=None):
@@ -74,7 +76,25 @@ def test_version_sync():
         f"Default header does not contain 'Version: {snowline.__version__}'!\nCleaned output:\n{cleaned_help}"
     )
 
-    print(f"[PASS] All versions synced at {init_version}, --version and __main__.py verified dynamically.")
+    # 6. Syarat Lulus B2: Mengubah __version__ ke angka lain dan menunjukkan get_snowline_version ikut berubah
+    with patch("snowline.__version__", "9.8.7"):
+        v_mod = get_snowline_version()
+        assert v_mod == "9.8.7", f"get_snowline_version failed to reflect modified __version__: got {v_mod}"
+
+    # 7. Syarat Lulus B3: Saat __version__ tidak terbaca/kosong, get_snowline_version melempar RuntimeError
+    with patch("snowline.__version__", None):
+        try:
+            get_snowline_version()
+            assert False, "get_snowline_version should raise RuntimeError when __version__ is None"
+        except RuntimeError as e:
+            assert "Gagal membaca __version__" in str(e)
+
+    # 8. Syarat Lulus B1: Memastikan tidak ada literal versi bertipe X.Y.Z di cli.py
+    cli_code = (root / 'src' / 'snowline' / 'cli.py').read_text(encoding='utf-8')
+    ver_literals = re.findall(r'"\d+\.\d+\.\d+"', cli_code)
+    assert len(ver_literals) == 0, f"Found unexpected version literals in cli.py: {ver_literals}"
+
+    print(f"[PASS] All versions synced at {init_version}, --version, dynamic changes, and error behavior verified.")
 
 
 if __name__ == '__main__':
