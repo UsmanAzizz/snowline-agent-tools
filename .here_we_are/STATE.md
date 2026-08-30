@@ -97,6 +97,14 @@ Tidak diperiksa ulang di sesi ini, dibiarkan sebagai klaim historis: guardian
                             (A) Lindungi agents.md dan knowledge/ dengan scope_lock
                             (B) Bebaskan keduanya dari pemblokiran otomatis
                             (C) Pertahankan asimetri saat ini (agents.md bebas, knowledge/ diblokir).
+
+2  lima penegak scope       DIBUKA KEMBALI oleh vonis QA Sprint 54.
+                            test_scope_callers.py memberi masukan berbeda ke tiap
+                            pemanggil dan tidak menguji satu pun masukan di luar
+                            lingkup, jadi ia belum menjawab pertanyaan butirnya:
+                            apakah kelimanya berperilaku sama persis untuk masukan
+                            yang sama. Perlu masukan identik ke kelimanya, dan
+                            perlu arah tolak.
 ```
 
 TUTUP lewat chamber, arsip per topik:
