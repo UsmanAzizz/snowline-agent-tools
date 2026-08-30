@@ -1,3 +1,4 @@
+import traceback
 import sys
 sys.dont_write_bytecode = True
 import os
@@ -70,12 +71,38 @@ class TestRunner:
             self.results.append(f"  [SKIP] {name}: {e}")
         except AssertionError as e:
             self.failed += 1
-            self.results.append(f"  [FAIL] {name}: {e}")
-            print(f"::error title=FAIL {name}::{e}")
+            msg = str(e).strip()
+            if not msg:
+                tb = sys.exc_info()[2]
+                last_frame = None
+                for frame in traceback.extract_tb(tb):
+                    last_frame = frame
+                if last_frame:
+                    fname = os.path.basename(last_frame.filename)
+                    line_no = last_frame.lineno
+                    code_line = (last_frame.line or "").strip()
+                    msg = f"{fname}:{line_no} -> {code_line}" if code_line else f"{fname}:{line_no}"
+                else:
+                    msg = "AssertionError"
+            self.results.append(f"  [FAIL] {name}: {msg}")
+            print(f"::error title=FAIL {name}::{msg}")
         except Exception as e:
             self.failed += 1
-            self.results.append(f"  [ERROR] {name}: {e}")
-            print(f"::error title=ERROR {name}::{e}")
+            msg = str(e).strip()
+            if not msg:
+                tb = sys.exc_info()[2]
+                last_frame = None
+                for frame in traceback.extract_tb(tb):
+                    last_frame = frame
+                if last_frame:
+                    fname = os.path.basename(last_frame.filename)
+                    line_no = last_frame.lineno
+                    code_line = (last_frame.line or "").strip()
+                    msg = f"{type(e).__name__} at {fname}:{line_no} -> {code_line}" if code_line else f"{type(e).__name__} at {fname}:{line_no}"
+                else:
+                    msg = f"{type(e).__name__}"
+            self.results.append(f"  [ERROR] {name}: {msg}")
+            print(f"::error title=ERROR {name}::{msg}")
 
     def summary(self):
         total = self.passed + self.failed
@@ -412,6 +439,9 @@ def main():
 
     import test_sprint51_b
     runner.run("sprint51_b six_states", test_sprint51_b.test_sprint51_b_six_states)
+
+    import test_runner_error_format
+    runner.run("runner error formatting", test_runner_error_format.test_runner_error_formatting)
 
     success = runner.summary()
 
