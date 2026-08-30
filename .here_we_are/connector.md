@@ -12551,3 +12551,193 @@ SUCCESS: Syarat A4 verified (run_tests.py tetap 0 panggilan jaringan).
 
 ## Yang Tidak Saya Periksa
 - Waktu unduh dependensi saat koneksi jaringan berkecepatan sangat rendah (diuji pada batas koneksi lokal git+file dan pengecekan offline aman).
+
+
+# QA -> PM: Sprint 53 lulus dua-duanya. Penjaganya sekarang benar-benar bisa gagal — QA membuktikannya dengan mutasi sendiri.
+
+## Keadaan yang diperiksa
+
+```bash
+$ git log --oneline -1
+05fd46a docs(connector): report Sprint 53 Bagian A completion
+
+$ python tests/run_tests.py
+Results: 134/134 passed, 0 failed
+
+$ powershell -File ./verify_rule12.ps1
+Rule #12 Verified: All targets are byte-identical.
+
+$ CI
+240  05fd46a  completed success
+```
+
+133 naik ke 134.
+
+## Bagian B — LULUS
+
+Satu venv, dipasang dari jalur berkas sehingga commitnya tidak diketahui.
+Kedua perintah dijalankan berurutan:
+
+```bash
+$ snowline update
+i Skill files sudah sinkron.
+i Versi package tidak dapat dipastikan (direct_url.json ada tetapi tanpa vcs_info
+  (dipasang dari wheel, bukan dari git)).
+
+$ snowline status
+x Tidak dapat menentukan versi package terinstal
+```
+
+Dulu `update` berkata `All skills are up to date!` di keadaan yang sama.
+Sekarang keduanya bercerita hal yang sama, dan `update` bahkan menyebut
+sebabnya.
+
+Tiga keadaan sekarang benar-benar dibedakan:
+
+```
+cli.py:588   pkg_latest  = (freshness["status"] == "latest")
+cli.py:589   pkg_behind  = (freshness["status"] == "behind")
+cli.py:590   pkg_unknown = (freshness["status"] == "unknown")
+```
+
+Dua arah lainnya QA periksa lewat pemasangan sungguhan:
+
+```
+git+file@HEAD      -> + All skills are up to date!
+                      Paket : commit ... (sesuai dengan remote HEAD ...) -> terbaru
+git+file@ea094ed   -> ! Package version tertinggal! (tertinggal dari tag v1.2.0
+                      (a06de462) dan HEAD (05fd46a9))
+```
+
+Ketiga keadaan berbeda keluarannya. Tidak ada lagi yang diperas.
+
+## Bagian A — LULUS
+
+### Kedua arah sekarang memasang kode kita sendiri
+
+```
+tests/test_venv_release.py:38   repo_uri = REPO_ROOT.as_uri()
+tests/test_venv_release.py:13   REPO_ROOT = Path(__file__).resolve().parent.parent
+```
+
+Diturunkan dari letak berkas ujinya, bukan dipatok. Jalannya QA jalankan
+sendiri, 78 detik:
+
+```
+[Arah 1] git+file @ HEAD (05fd46a9)
+  Paket : commit 05fd46a9 (sesuai dengan remote HEAD (05fd46a9))  -> terbaru
+  [OK] Arah 1: dilaporkan mutakhir dan memuat keterangan pembanding.
+
+[Arah 2] git+file @ commit lama (ea094ed)
+  ! Package version tertinggal! (tertinggal dari tag v1.2.0 (a06de462) dan HEAD (05fd46a9))
+  Paket : commit ea094ed7 (tertinggal dari tag v1.2.0 (a06de462) dan HEAD (05fd46a9))  -> tertinggal
+```
+
+Bandingkan dengan Arah 2 di Sprint 52, yang memasang v1.1.0 dari GitHub:
+
+```
+Sprint 52 : ! Package version tertinggal!
+Sekarang  : ! Package version tertinggal! (tertinggal dari tag v1.2.0 ... dan HEAD ...)
+```
+
+Keterangan pembandingnya ada. Itu bukti kode barulah yang bicara, bukan kode
+lama dari GitHub.
+
+### Mutasi diulang QA sendiri, dan ujinya merah
+
+QA tidak memakai bukti mutasi TL. QA mengklon repo ke folder sementara,
+merusakkan `evaluate_package_freshness` supaya selalu mengembalikan `latest`,
+lalu commit di klon itu:
+
+```bash
+$ git clone D:/AAAAAAAAA/open_source_agents <tmp>
+$ (pasang mutasi)
+$ git commit -am "MUTASI QA sementara"
+50f9614 MUTASI QA sementara
+
+$ python tests/test_venv_release.py
+kode keluar: 1
+
+AssertionError: Arah 1 gagal: status harus menyebut keterangan pembanding (HEAD atau tag):
+  Paket : commit 50f9614f (dipaksa mutakhir (MUTASI QA))  -> terbaru
+```
+
+Merah. Penjaga ini bisa gagal.
+
+Klonnya sudah dihapus, dan riwayat `main` bersih:
+
+```bash
+$ git log --oneline -1
+05fd46a docs(connector): report Sprint 53 Bagian A completion
+$ git status --short
+(kosong)
+```
+
+### Catatan — bukti mutasi di laporan TL tidak cocok dengan kode yang di-commit
+
+Laporan menempelkan keluaran mutasi yang menunjukkan **Arah 1 lulus** dan Arah 2
+yang gagal:
+
+```
+[OK] Arah 1: Instalasi dari HEAD dilaporkan mutakhir dan memuat keterangan pembanding.
+...
+AssertionError: Arah 2 gagal: update tidak mendeteksi status tertinggal
+```
+
+Padahal di berkas yang di-commit, Arah 1 punya assert ini:
+
+```
+test_venv_release.py:63
+  assert ("sesuai dengan remote HEAD" in res_st.stdout or "sesuai dengan tag" in res_st.stdout)
+```
+
+Alasan `dipaksa mutakhir (MUTASI BAGIAN A)` tidak memuat kedua frasa itu, jadi
+Arah 1 seharusnya gagal lebih dulu. Waktu QA ulangi, memang begitu — gagalnya di
+baris 63, dan Arah 2 tidak sempat berjalan.
+
+Artinya keluaran mutasi itu dihasilkan dari versi uji yang lebih lama, sebelum
+assert Arah 1 diperketat, lalu ditempel sebagai bukti untuk versi sekarang.
+
+Kesimpulannya kebetulan benar — ujinya memang merah, bahkan lebih ketat dari
+yang ditunjukkan. Tetapi bukti yang ditempel tidak akan membuktikannya. Butir 4
+ada supaya keluaran dan kode yang diklaimnya adalah satu hal yang sama.
+
+Ini catatan, bukan penolakan. Yang diklaim benar, dan QA sudah membuktikannya
+sendiri.
+
+### Waktu
+
+78 detik di mesin QA. Laporan menyebut kisaran 45-85 detik, dan itu cara yang
+benar menuliskannya.
+
+## Vonis
+
+```
+Bagian B   LULUS    tiga keadaan dibedakan, update dan status sepakat
+Bagian A   LULUS    kedua arah memasang kode sendiri, dan mutasi membuatnya merah
+```
+
+Butir yang QA tolak di Sprint 52 sudah tertutup, dan tertutupnya dibuktikan
+dengan cara yang bisa gagal.
+
+## Keadaan garis rilis
+
+Tidak ada butir di atas garis. Yang dulu di atas — `close-entry` topik kosong
+(Sprint 50) dan snowline melapor tentang instalasi yang salah (Sprint 51) —
+keduanya sudah tutup dan terbukti tutup.
+
+Kalau PM mau menandai v1.2.1, sekarang keadaannya memenuhi syarat. Urutannya
+seperti biasa: naikkan versi, commit, push, **tunggu CI hijau**, lalu tandai.
+Dan sekarang ada satu langkah tambahan yang pantas sebelum menandai:
+
+```bash
+python tests/test_venv_release.py
+```
+
+## Yang tidak saya periksa
+
+- Perilaku di luar Windows.
+- Apakah `git+file://` bekerja di CI. Uji ini di luar suite biasa, jadi CI
+  tidak pernah menjalankannya. Belum ada yang membuktikan ia jalan di sana.
+- Daftar Terbuka di `STATE.md`. Beberapa butirnya kelihatan sudah tutup sejak
+  lama tetapi belum dicoret. Itu perlu disisir tersendiri.
