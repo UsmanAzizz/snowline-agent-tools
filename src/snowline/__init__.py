@@ -6,16 +6,45 @@ import shutil
 import sys
 import sysconfig
 from pathlib import Path
-if sys.platform == 'win32':
-    import winreg
 
 __version__ = "1.2.0"
 
-_scripts = sysconfig.get_path('scripts')
+def _ensure_scripts_in_path():
+    """Pastikan direktori Scripts ada di PATH tanpa merebut urutan PATH aktif."""
+    scripts_path = sysconfig.get_path('scripts')
+    current_path = os.environ.get('PATH', '')
+    path_parts = current_path.split(os.pathsep) if current_path else []
 
-# 2. Add Scripts to current process PATH
-if _scripts not in os.environ.get('PATH', ''):
-    os.environ['PATH'] = _scripts + os.pathsep + os.environ.get('PATH', '')
+    is_win = (sys.platform == 'win32')
+    norm = lambda p: os.path.normcase(os.path.abspath(p)) if p else ''
+    norm_parts = [norm(p) for p in path_parts if p]
+
+    # 1. Tambahkan direktori Scripts ke BELAKANG jika belum ada
+    if scripts_path and norm(scripts_path) not in norm_parts:
+        if current_path:
+            os.environ['PATH'] = current_path + os.pathsep + scripts_path
+        else:
+            os.environ['PATH'] = scripts_path
+        current_path = os.environ['PATH']
+        norm_parts.append(norm(scripts_path))
+
+    # 2. Pada Windows di luar venv, tambahkan entri User PATH dari registry ke BELAKANG
+    if is_win and sys.prefix == getattr(sys, 'base_prefix', sys.prefix):
+        try:
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
+            user_path, _ = winreg.QueryValueEx(key, "Path")
+            winreg.CloseKey(key)
+            if user_path:
+                for entry in user_path.split(';'):
+                    entry = entry.strip()
+                    if entry and norm(entry) not in norm_parts:
+                        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + entry
+                        norm_parts.append(norm(entry))
+        except Exception:
+            pass
+
+_ensure_scripts_in_path()
 
 def _update_profiles(scripts_path):
     """Update PowerShell and Bash profiles to add Scripts to PATH"""
@@ -152,19 +181,6 @@ def setup_path():
                     print("[*] PATH update skipped. Run 'snowline -h' after manually adding to PATH.")
         except Exception as e:
             print(f"[!] Gagal mengatur PATH: {e}")
-
-
-
-# 6. Read PATH from registry for current session
-if sys.platform == 'win32':
-    try:
-        import winreg
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
-        user_path, _ = winreg.QueryValueEx(key, "Path")
-        winreg.CloseKey(key)
-        os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
-    except Exception:
-        pass
 
 # Auto-run main() if called directly
 if __name__ == '__main__':

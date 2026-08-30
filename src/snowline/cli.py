@@ -76,6 +76,160 @@ def get_snowline_version() -> str:
         except Exception:
             return "1.2.0"
 
+def get_installed_package_info():
+    """Membaca informasi paket yang sedang berjalan via importlib.metadata."""
+    import importlib.metadata
+    import json
+
+    installed_commit = None
+    pkg_unknown_reason = ""
+    pkg_unknown_kind = ""
+    version = None
+
+    try:
+        dist = importlib.metadata.distribution("snowline-agent-tools")
+        version = dist.version
+        direct_url_content = dist.read_text("direct_url.json")
+        if direct_url_content:
+            try:
+                data = json.loads(direct_url_content)
+                vcs_info = data.get("vcs_info", {})
+                installed_commit = vcs_info.get("commit_id", "")
+                if not installed_commit:
+                    dir_info = data.get("dir_info", {})
+                    if isinstance(dir_info, dict) and dir_info.get("editable") is True:
+                        pkg_unknown_kind = "editable"
+                        url_target = data.get("url", "")
+                        pkg_unknown_reason = f"dipasang dalam mode editable (menunjuk ke {url_target})"
+                    else:
+                        pkg_unknown_kind = "wheel"
+                        pkg_unknown_reason = "direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)"
+            except Exception as e:
+                pkg_unknown_kind = "parse_error"
+                pkg_unknown_reason = f"Gagal membaca direct_url.json: {e}"
+        else:
+            pkg_unknown_kind = "no_direct_url"
+            pkg_unknown_reason = "direct_url.json tidak ditemukan pada metadata paket terinstal"
+    except importlib.metadata.PackageNotFoundError:
+        pkg_unknown_kind = "no_dist_info"
+        pkg_unknown_reason = "Paket snowline-agent-tools tidak ditemukan di sys.path penafsir yang sedang berjalan"
+    except Exception as e:
+        pkg_unknown_kind = "no_package_info"
+        pkg_unknown_reason = f"Gagal membaca metadata paket: {e}"
+
+    return {
+        "commit": installed_commit,
+        "version": version,
+        "unknown_kind": pkg_unknown_kind,
+        "unknown_reason": pkg_unknown_reason,
+    }
+
+
+def fetch_remote_package_info(repo_url="https://github.com/UsmanAzizz/snowline-agent-tools.git", timeout=15):
+    """Membaca commit HEAD dan commit tag rilis terbaru dari remote git repo."""
+    remote_head = None
+    latest_tag_commit = None
+    latest_tag_name = None
+
+    try:
+        res = subprocess.run(
+            ["git", "ls-remote", "--tags", "--heads", repo_url],
+            capture_output=True, text=True, timeout=timeout
+        )
+        if res.returncode == 0 and res.stdout:
+            tags_map = {}
+            peeled_map = {}
+            for line in res.stdout.splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 2:
+                    sha, ref = parts[0], parts[1]
+                    if ref == "refs/heads/main" or ref == "HEAD":
+                        remote_head = sha
+                    elif ref.startswith("refs/tags/"):
+                        tag_ref = ref[len("refs/tags/"):]
+                        if tag_ref.endswith("^{}"):
+                            peeled_map[tag_ref[:-3]] = sha
+                        else:
+                            tags_map[tag_ref] = sha
+
+            def parse_ver(t):
+                import re
+                m = re.findall(r'\d+', t)
+                return tuple(int(x) for x in m) if m else (0,)
+
+            valid_tags = [t for t in tags_map.keys() if "alpha" not in t.lower() and "beta" not in t.lower()] or list(tags_map.keys())
+            if valid_tags:
+                valid_tags.sort(key=parse_ver)
+                latest_tag_name = valid_tags[-1]
+                latest_tag_commit = peeled_map.get(latest_tag_name, tags_map[latest_tag_name])
+    except Exception:
+        pass
+
+    return {
+        "head_commit": remote_head,
+        "latest_tag_commit": latest_tag_commit,
+        "latest_tag_name": latest_tag_name,
+    }
+
+
+def evaluate_package_freshness(installed_commit, remote_head_commit, latest_tag_commit, tag_name=None):
+    """
+    Evaluasi status kemutakhiran paket.
+    Return dict:
+      - status: 'latest' | 'behind' | 'unknown'
+      - reason: str (keterangan pembanding atau penyebab unknown)
+      - matched_target: 'tag' | 'head' | 'both' | None
+    """
+    if not installed_commit:
+        return {
+            "status": "unknown",
+            "reason": "commit terpasang tidak diketahui",
+            "matched_target": None,
+        }
+
+    if not remote_head_commit and not latest_tag_commit:
+        return {
+            "status": "unknown",
+            "reason": "remote commit tidak terbaca",
+            "matched_target": None,
+        }
+
+    matches_tag = bool(latest_tag_commit and installed_commit == latest_tag_commit)
+    matches_head = bool(remote_head_commit and installed_commit == remote_head_commit)
+
+    if matches_tag and matches_head:
+        return {
+            "status": "latest",
+            "reason": f"sesuai dengan tag rilis terbaru ({tag_name or 'tag'}) dan remote HEAD ({remote_head_commit[:8]})",
+            "matched_target": "both",
+        }
+    elif matches_tag:
+        return {
+            "status": "latest",
+            "reason": f"sesuai dengan tag rilis terbaru ({tag_name or 'tag'} - {latest_tag_commit[:8]})",
+            "matched_target": "tag",
+        }
+    elif matches_head:
+        return {
+            "status": "latest",
+            "reason": f"sesuai dengan remote HEAD ({remote_head_commit[:8]})",
+            "matched_target": "head",
+        }
+    else:
+        target_descs = []
+        if tag_name and latest_tag_commit:
+            target_descs.append(f"tag {tag_name} ({latest_tag_commit[:8]})")
+        elif latest_tag_commit:
+            target_descs.append(f"tag rilis ({latest_tag_commit[:8]})")
+        if remote_head_commit:
+            target_descs.append(f"HEAD ({remote_head_commit[:8]})")
+        pembanding = " dan ".join(target_descs) if target_descs else "remote"
+        return {
+            "status": "behind",
+            "reason": f"tertinggal dari {pembanding}",
+            "matched_target": None,
+        }
+
 def is_runtime_state(rel: str) -> bool:
     """Apakah jalur relatif di dalam .agents/ ini keadaan lokal, bukan templat."""
     norm = rel.replace(chr(92), "/")
@@ -114,20 +268,7 @@ def current_agents_md_hash(file_path: Path) -> str:
     return ""
 
 # Trigger PATH update on import
-
-# Trigger PATH update on import
 import snowline
-
-# Ensure Scripts folder is in PATH for this process (read from registry)
-_scripts = sysconfig.get_path('scripts')
-if sys.platform == 'win32':
-    try:
-        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Environment", 0, winreg.KEY_READ)
-        user_path, _ = winreg.QueryValueEx(key, "Path")
-        winreg.CloseKey(key)
-        os.environ['PATH'] = user_path + os.pathsep + os.environ.get('PATH', '')
-    except Exception:
-        pass
 
 
 # ANSI colors for terminal
@@ -431,56 +572,24 @@ def update(apply=False):
 
     print_info(f"Current skills: {total_current}")
 
-    # Check package commit (mirrors status() logic for consistency)
-    import glob
-    import json as _json
-
-    remote_commit = None
-    try:
-        result = subprocess.run(
-            ['git', 'ls-remote', 'https://github.com/UsmanAzizz/snowline-agent-tools.git', 'HEAD'],
-            capture_output=True, text=True, timeout=15
-        )
-        if result.returncode == 0 and result.stdout:
-            remote_commit = result.stdout.split()[0]
-    except Exception as e:
-        pass  # Silently fail - not critical
-
-    installed_commit = None
-    package_info = None
-    try:
-        result = subprocess.run(
-            ['pip', 'show', 'snowline-agent-tools'],
-            capture_output=True, text=True
-        )
-        if result.returncode == 0:
-            for line in result.stdout.split('\n'):
-                if line.startswith('Location:'):
-                    package_info = line.split(':', 1)[1].strip()
-    except Exception as e:
-        pass  # Silently fail - not critical
-
-    if package_info and remote_commit:
-        dist_info_pattern = os.path.join(package_info, 'snowline_agent_tools-*.dist-info')
-        matches = glob.glob(dist_info_pattern)
-        if matches:
-            direct_url_path = os.path.join(matches[0], 'direct_url.json')
-            if os.path.exists(direct_url_path):
-                try:
-                    with open(direct_url_path, 'r', encoding='utf-8') as f:
-                        data = _json.load(f)
-                    installed_commit = data.get('vcs_info', {}).get('commit_id', '')
-                except Exception as e:
-                    pass  # Silently fail - not critical
-
-    pkg_behind = (installed_commit and remote_commit and installed_commit != remote_commit)
+    # Check package status via importlib.metadata & remote tags/HEAD
+    pkg_info = get_installed_package_info()
+    installed_commit = pkg_info.get("commit")
+    remote_info = fetch_remote_package_info()
+    freshness = evaluate_package_freshness(
+        installed_commit=installed_commit,
+        remote_head_commit=remote_info.get("head_commit"),
+        latest_tag_commit=remote_info.get("latest_tag_commit"),
+        tag_name=remote_info.get("latest_tag_name")
+    )
+    pkg_behind = (freshness["status"] == "behind")
 
     if not new_files and not modified_files and not agents_md_modified and not pkg_behind and not obsolete_files:
         print_success("All skills are up to date!")
         return
 
     if pkg_behind and not new_files and not modified_files and not agents_md_modified and not obsolete_files:
-        print_warning("Package version tertinggal!")
+        print_warning(f"Package version tertinggal! ({freshness['reason']})")
         print_info("Skill files sudah sinkron. Jalankan 'snowline reinstall --latest' untuk update package.")
         return
 
@@ -668,75 +777,24 @@ def status():
     """Check package (GitHub) and project (.agents) layers."""
 
     # ---- Layer 1: Package (GitHub) ----
-    installed_commit = None
-    package_info = None
+    pkg_info = get_installed_package_info()
+    installed_commit = pkg_info.get("commit")
+    pkg_unknown_kind = pkg_info.get("unknown_kind")
+    pkg_unknown_reason = pkg_info.get("unknown_reason")
 
-    try:
-        result = subprocess.run(
-            ['pip', 'show', 'snowline-agent-tools'],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode == 0:
-            for line in result.stdout.split('\n'):
-                if line.startswith('Location:'):
-                    package_info = line.split(':', 1)[1].strip()
-    except Exception as e:
-        print_warning(f"Gagal memeriksa paket: {e}")
+    remote_info = fetch_remote_package_info()
+    remote_commit = remote_info.get("head_commit")
+    freshness = evaluate_package_freshness(
+        installed_commit=installed_commit,
+        remote_head_commit=remote_commit,
+        latest_tag_commit=remote_info.get("latest_tag_commit"),
+        tag_name=remote_info.get("latest_tag_name")
+    )
 
-    pkg_unknown_reason = ""
-    pkg_unknown_kind = ""
-    if package_info:
-        import glob
-        dist_info_pattern = os.path.join(package_info, 'snowline_agent_tools-*.dist-info')
-        matches = glob.glob(dist_info_pattern)
-        if matches:
-            direct_url_path = os.path.join(matches[0], 'direct_url.json')
-            if os.path.exists(direct_url_path):
-                try:
-                    with open(direct_url_path, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    vcs_info = data.get('vcs_info', {})
-                    installed_commit = vcs_info.get('commit_id', '')
-                    if not installed_commit:
-                        dir_info = data.get('dir_info', {})
-                        if isinstance(dir_info, dict) and dir_info.get('editable') is True:
-                            pkg_unknown_kind = "editable"
-                            url_target = data.get('url', '')
-                            pkg_unknown_reason = f"dipasang dalam mode editable (menunjuk ke {url_target})"
-                        else:
-                            pkg_unknown_kind = "wheel"
-                            pkg_unknown_reason = "direct_url.json ada tetapi tanpa vcs_info (dipasang dari wheel, bukan dari git)"
-                except Exception as e:
-                    pkg_unknown_kind = "parse_error"
-                    pkg_unknown_reason = f"Gagal membaca direct_url.json: {e}"
-            else:
-                pkg_unknown_kind = "no_direct_url"
-                pkg_unknown_reason = f"direct_url.json tidak ada di {matches[0]}"
-        else:
-            pkg_unknown_kind = "no_dist_info"
-            pkg_unknown_reason = f"dist-info tidak ditemukan di {package_info}"
-    else:
-        pkg_unknown_kind = "no_package_info"
-        pkg_unknown_reason = "Informasi lokasi package tidak ditemukan"
-
-
-    remote_commit = None
-    try:
-        result = subprocess.run(
-            ['git', 'ls-remote', 'https://github.com/UsmanAzizz/snowline-agent-tools.git', 'HEAD'],
-            capture_output=True,
-            text=True,
-            timeout=15
-        )
-        if result.returncode == 0 and result.stdout:
-            remote_commit = result.stdout.split()[0]
-    except Exception:
-        pass
-
-    pkg_latest = (installed_commit and remote_commit and installed_commit == remote_commit)
-    pkg_behind = (installed_commit and remote_commit and installed_commit != remote_commit)
-    pkg_unknown = (not installed_commit)
+    pkg_latest = (freshness["status"] == "latest")
+    pkg_behind = (freshness["status"] == "behind")
+    pkg_unknown = (freshness["status"] == "unknown" and (not installed_commit or pkg_unknown_kind))
+    pkg_reason = freshness["reason"]
 
     # ---- Layer 2: .agents files ----
     new_files_count = 0
@@ -791,9 +849,9 @@ def status():
         if pkg_unknown_kind not in ("wheel", "editable"):
             print_info("Coba: pip install --force-reinstall git+https://github.com/UsmanAzizz/snowline-agent-tools.git")
     elif pkg_latest:
-        safe_print(f"  Paket         : commit {installed_commit[:8]}  (GitHub: {remote_commit[:8]})      -> terbaru")
+        safe_print(f"  Paket         : commit {installed_commit[:8]} ({pkg_reason})      -> terbaru")
     elif pkg_behind:
-        safe_print(f"  Paket         : commit {installed_commit[:8]}  (GitHub: {remote_commit[:8]})      -> tertinggal")
+        safe_print(f"  Paket         : commit {installed_commit[:8]} ({pkg_reason})      -> tertinggal")
         print_info("  -> snowline status (lalu pilih y)")
     else:
         safe_print(f"  Paket         : commit {installed_commit[:8] if installed_commit else '?'}  (GitHub: {remote_commit[:8] if remote_commit else '?'})")

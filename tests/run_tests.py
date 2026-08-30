@@ -406,6 +406,13 @@ def main():
     runner.run("init_test reuses_empty_folder", test_init_test.test_init_test_reuses_empty_folder)
     runner.run("init_test creates_new_folder_when_filled", test_init_test.test_init_test_creates_new_folder_when_filled)
 
+    import test_sprint51_a
+    runner.run("sprint51_a path_order_and_presence", test_sprint51_a.test_sprint51_a_path_order_and_presence)
+    runner.run("sprint51_a no_pip_subprocesses", test_sprint51_a.test_sprint51_a_no_pip_subprocesses)
+
+    import test_sprint51_b
+    runner.run("sprint51_b six_states", test_sprint51_b.test_sprint51_b_six_states)
+
     success = runner.summary()
 
     if success:
