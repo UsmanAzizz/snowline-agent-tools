@@ -355,6 +355,7 @@ def main():
     runner.run("clean_sweeper clean_project", test_clean_sweeper.test_sweeper_clean_project)
     runner.run("clean_sweeper needs_cleanup", test_clean_sweeper.test_sweeper_needs_cleanup)
     runner.run("clean_sweeper cache_and_no_cache", test_clean_sweeper.test_sweeper_cache_and_no_cache)
+    runner.run("clean_sweeper truncation_and_json", test_clean_sweeper.test_sweeper_human_output_truncation_and_json)
     
     import test_crash_decoder
     print("Testing crash_decoder...")

@@ -2,6 +2,7 @@ import os
 import sys
 import tempfile
 import subprocess
+import json
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -76,3 +77,49 @@ def test_sweeper_cache_and_no_cache():
         assert "cache" not in res3.stdout.lower() or "[INFO] Menggunakan hasil cache" not in res3.stdout, "Arah b gagal: Run 3 dengan --no-cache tidak boleh menyebut cache!"
         assert "[INFO] Hasil di atas diambil dari cache" not in res3.stdout, "Arah b gagal: Run 3 dengan --no-cache tidak boleh menyebut cache di akhir!"
         print("PASS: Arah B (jalankan dengan --no-cache -> memindai ulang tanpa membaca cache)")
+
+def test_sweeper_human_output_truncation_and_json():
+    skrip = str(REPO / 'src' / 'snowline' / 'templates' / 'skills' / 'clean_sweeper' / 'sweeper.py')
+    
+    # 1. Banyak temuan (>10 items) -> terpotong dan menyebut jumlah sisanya
+    with tempfile.TemporaryDirectory() as tmpdir:
+        for i in range(15):
+            # Buat 15 file database lokal (.db)
+            with open(os.path.join(tmpdir, f"test_db_{i}.sqlite"), "w", encoding="utf-8") as f:
+                f.write("sqlite data")
+        
+        env = dict(os.environ)
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        res_many = subprocess.run([sys.executable, "-B", skrip, tmpdir, "--no-cache"], capture_output=True, text=True, encoding='utf-8', env=env)
+        assert res_many.returncode == 0
+        assert "... dan 5 lainnya" in res_many.stdout, f"Gagal memotong output: {res_many.stdout}"
+        print("PASS: Syarat D1 (banyak temuan terpotong dan menyebut '... dan 5 lainnya')")
+        
+        # 2. Syarat D3: Mode --json memuat seluruh 15 temuan tanpa terpotong
+        res_json = subprocess.run([sys.executable, "-B", skrip, tmpdir, "--json", "--no-cache"], capture_output=True, text=True, encoding='utf-8', env=env)
+        assert res_json.returncode == 0
+        data = json.loads(res_json.stdout)
+        assert data["stats"]["residue_files"] == 15, f"JSON stats residue mismatch: {data}"
+        assert len(data["issues"]["residue_files"]) == 15, f"JSON issues residue mismatch: {data}"
+        print("PASS: Syarat D3 (--json memuat semua 15 temuan utuh)")
+
+    # 3. Sedikit temuan (<=10 items) -> tidak terpotong dan tidak ada '... dan N lainnya' (Arah Kedua)
+    with tempfile.TemporaryDirectory() as tmpdir_few:
+        for i in range(3):
+            with open(os.path.join(tmpdir_few, f"small_db_{i}.sqlite"), "w", encoding="utf-8") as f:
+                f.write("sqlite data")
+        
+        res_few = subprocess.run([sys.executable, "-B", skrip, tmpdir_few, "--no-cache"], capture_output=True, text=True, encoding='utf-8', env=env)
+        assert res_few.returncode == 0
+        assert "... dan" not in res_few.stdout, f"Output sedikit temuan tidak boleh terpotong: {res_few.stdout}"
+        assert "small_db_0.sqlite" in res_few.stdout
+        assert "small_db_1.sqlite" in res_few.stdout
+        assert "small_db_2.sqlite" in res_few.stdout
+        print("PASS: Syarat D2 (sedikit temuan tidak terpotong dan tidak ada '... dan N lainnya')")
+
+if __name__ == '__main__':
+    test_sweeper_clean_project()
+    test_sweeper_needs_cleanup()
+    test_sweeper_cache_and_no_cache()
+    test_sweeper_human_output_truncation_and_json()
+    print("\nALL CLEAN SWEEPER TESTS PASSED!")

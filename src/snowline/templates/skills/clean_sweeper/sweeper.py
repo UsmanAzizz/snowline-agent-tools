@@ -125,22 +125,38 @@ def sweep(target):
 
     return residue_files, todo_count, comment_blocks, scanned_files, skipped_files
 
-def print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=False):
+def print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=False, max_display=10, base_dir=None):
     print("CLEAN SWEEPER REPORT")
     print("=" * 50)
 
+    base = base_dir or os.getcwd()
+
+    def get_rel(p):
+        try:
+            return os.path.relpath(p, base)
+        except Exception:
+            return p
+
     if residue_files:
-        for r in residue_files:
-            rel = os.path.relpath(r['path'], os.getcwd())
+        limit = max_display
+        for r in residue_files[:limit]:
+            rel = get_rel(r['path'])
             print(f"[FAIL] {rel} [{r['description']}]")
+        if len(residue_files) > limit:
+            sisa = len(residue_files) - limit
+            print(f"... dan {sisa} lainnya")
 
     if todo_count > 0:
         print(f"[WARN] Found {todo_count} TODO/FIXME tags in the code.")
 
     if comment_blocks:
-        for c in comment_blocks:
-            rel = os.path.relpath(c['path'], os.getcwd())
+        limit = max_display
+        for c in comment_blocks[:limit]:
+            rel = get_rel(c['path'])
             print(f"[WARN] {rel} (Lines {c['start_line']}-{c['end_line']}): {c['count']} consecutive commented lines")
+        if len(comment_blocks) > limit:
+            sisa = len(comment_blocks) - limit
+            print(f"... dan {sisa} lainnya")
 
     print("\n" + "=" * 50)
     
@@ -226,7 +242,7 @@ def main():
     if args.json:
         print_json(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=from_cache)
     else:
-        print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=from_cache)
+        print_human(residue_files, todo_count, comment_blocks, scanned_files, skipped_files, from_cache=from_cache, base_dir=target)
 
 if __name__ == "__main__":
     main()
