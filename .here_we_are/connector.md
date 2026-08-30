@@ -11672,3 +11672,85 @@ ALL RUNNER FORMATTING TESTS TESTED!
 
 ## Yang Tidak Saya Periksa
 - Kasus di mana berkas sumber uji telah dihapus dari disk sebelum traceback diekstrak (dalam skenario tersebut `frame.line` bernilai None dan format fallback menampilkan `fname:lineno`).
+
+
+# TL -> PM: Laporan Sprint 52 (Bagian D) - pembatasan panjang keluaran pada clean_sweeper
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python tests/run_tests.py
+==================================================
+Results: 133/133 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+Catatan jumlah uji: Total uji bertambah dari 132 menjadi **133** karena penambahan uji guard baru `clean_sweeper truncation_and_json` di `tests/test_clean_sweeper.py`.
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -2
+f78b86a fix(clean_sweeper): truncate human readable output at limit and preserve full issues in json output
+e929d54 docs(connector): report Sprint 52 Bagian E completion
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+231 f78b86a completed success
+230 e929d54 completed success
+```
+
+## Hasil Pengujian Pembatasan Keluaran Human-Readable & JSON
+
+```bash
+$ python tests/test_clean_sweeper.py
+[OK] Arah A & C (jalankan dua kali -> penanda cache muncul di awal DAN akhir)
+[OK] Arah B (jalankan dengan --no-cache -> memindai ulang tanpa membaca cache)
+[OK] Syarat D1 (banyak temuan terpotong dan menyebut '... dan 5 lainnya')
+[OK] Syarat D3 (--json memuat semua 15 temuan utuh)
+[OK] Syarat D2 (sedikit temuan tidak terpotong dan tidak ada '... dan N lainnya')
+
+ALL CLEAN SWEEPER TESTS TESTED!
+```
+
+## Bukti Keluaran Nyata di Repositori
+
+Dijalankan langsung pada repositori ini:
+
+```bash
+$ python src/snowline/templates/skills/clean_sweeper/sweeper.py . --no-cache
+CLEAN SWEEPER REPORT
+==================================================
+[FAIL] scratch [Suspected Backup/Temp Folder]
+[WARN] Found 121 TODO/FIXME tags in the code.
+[WARN] .venv\Lib\site-packages\pip\_internal\pyproject.py (Lines 109-119): 11 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\cli\cmdoptions.py (Lines 974-980): 7 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\cli\main.py (Lines 30-38): 9 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\cli\main_parser.py (Lines 73-79): 7 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\commands\cache.py (Lines 238-253): 16 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\commands\__init__.py (Lines 15-21): 7 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\index\package_finder.py (Lines 492-498): 7 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\locations\_sysconfig.py (Lines 18-24): 7 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\metadata\pkg_resources.py (Lines 284-291): 8 consecutive commented lines
+[WARN] .venv\Lib\site-packages\pip\_internal\network\download.py (Lines 285-293): 9 consecutive commented lines
+... dan 66 lainnya
+
+==================================================
+[INFO] Dilewati: 747 file (0 terlalu besar, 747 ekstensi tidak dipindai)
+[OK] Selesai memindai 652 file.
+```
+
+- **D1 (Banyak Temuan):** Daftar temuan panjang dipotong pada batas 10 butir teratas, diikuti keterangan sisa `... dan N lainnya`.
+- **D2 (Sedikit Temuan / Arah Kedua):** Bila temuan kurang dari atau sama dengan 10, seluruhnya ditampilkan tanpa pemotongan dan tanpa mencetak baris `... dan N lainnya`.
+- **D3 (Mode JSON):** Mode `--json` mempertahankan seluruh temuan tanpa batasan limit agar data mesin tetap lengkap.
+- **Aturan #12:** Keempat target salinan `clean_sweeper/sweeper.py` terverifikasi identik bita.
+
+## Yang Tidak Saya Periksa
+- Batas baris terminal kustom selain konfigurasi default (diuji dengan batas default 10 baris per bagian).
