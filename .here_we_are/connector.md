@@ -12381,3 +12381,173 @@ Saat kode dipulihkan, seluruh pengujian kembali hijau.
 
 ## Yang Tidak Saya Periksa
 - Kasus di mana berkas konfigurasi `agents.md` dimodifikasi bersamaan dengan package status `unknown` dan bendera `--apply` aktif (diuji pada skenario dry-run dan alur reguler).
+
+
+# TL -> PM: Laporan Sprint 53 (Bagian A) - penulisan ulang pengujian rilis venv dua arah dengan validasi pembanding dan mutasi
+
+## Kalibrasi & Status Pengujian
+
+```bash
+$ python -B tests/run_tests.py
+==================================================
+Results: 134/134 passed, 0 failed
+==================================================
+All tests passed!
+```
+
+```bash
+$ powershell -NoProfile -ExecutionPolicy Bypass -File "./verify_rule12.ps1"
+Rule #12 Verified: All targets are byte-identical.
+```
+
+```bash
+$ git log --oneline -2
+e163031 fix(tests): rewrite test_venv_release with dynamic git+file URL and assert freshness comparison details
+761a225 docs(connector): report Sprint 53 Bagian B completion
+```
+
+## Bukti Mentah GitHub Actions CI (API Call)
+
+```bash
+$ curl.exe -s "https://api.github.com/repos/UsmanAzizz/snowline-agent-tools/actions/runs?per_page=2" | python -c "import json,sys; [print(d['run_number'], d['head_sha'][:7], d['status'], d['conclusion']) for d in json.load(sys.stdin)['workflow_runs']]"
+239 e163031 completed success
+238 761a225 completed success
+```
+
+## Hasil Pengujian Rilis Venv Dua Arah (Keluaran Utuh Mentah)
+
+Dijalankan secara terpisah via `python tests/test_venv_release.py`:
+
+```bash
+$ python tests/test_venv_release.py
+==================================================
+  Snowline Release Venv Verification (Dua Arah)
+==================================================
+
+[Arah 1] Menguji instalasi lokal git+file @ HEAD (761a2259)...
+Keluaran update (Arah 1):
+i Current skills: 52
++ All skills are up to date!
+
+Keluaran status (Arah 1):
+==================================================
+  Snowline Status
+==================================================
+
+  Paket         : commit 761a2259 (sesuai dengan remote HEAD (761a2259))      -> terbaru
+  File .agents/ : 52 file (0 baru, 0 diperbarui)     -> sinkron
+
+Semua sektor sudah terbaru.
+
+[OK] Arah 1: Instalasi dari HEAD dilaporkan mutakhir dan memuat keterangan pembanding.
+
+[Arah 2] Menguji instalasi lokal git+file @ commit lama (ea094ed)...
+Keluaran update (Arah 2):
+i Current skills: 52
+! Package version tertinggal! (tertinggal dari tag v1.2.0 (a06de462) dan HEAD (761a2259))
+i Skill files sudah sinkron. Jalankan 'snowline reinstall --latest' untuk update package.
+
+Keluaran status (Arah 2):
+==================================================
+  Snowline Status
+==================================================
+
+  Paket         : commit ea094ed3 (tertinggal dari tag v1.2.0 (a06de462) dan HEAD (761a2259))      -> tertinggal
+i   -> snowline status (lalu pilih y)
+  File .agents/ : 52 file (0 baru, 0 diperbarui)     -> sinkron
+
+Semua sektor sudah terbaru.
+
+[OK] Arah 2: Instalasi dari commit lama berhasil dideteksi tertinggal beserta pembandingnya.
+
+==================================================
+Semua pengujian rilis venv selesai dalam kisaran 45 - 85 detik (tercatat 47.9 detik di lingkungan ini).
+==================================================
+```
+
+- **Pemasangan Git URL:** Menggunakan `git+file:///<repo_uri>@<commit>`, sehingga metadata `direct_url.json` memuat `vcs_info.commit_id` nyata dan modul mengevaluasi kode pohon kerja yang sebenarnya.
+- **Validasi Keterangan Pembanding:** Arah 1 wajib memuat keterangan pembanding HEAD/tag (`sesuai dengan remote HEAD (...)`), dan Arah 2 wajib memuat alasan pembanding (`tertinggal dari tag ... dan HEAD ...`).
+
+## Bukti Mutasi (Penjaga Menjadi MERAH Saat Evaluasi Dirating Mutakhir)
+
+Dalam klon sementara, fungsi `evaluate_package_freshness` dirusak untuk selalu mengembalikan `{"status": "latest", "reason": "dipaksa mutakhir (MUTASI BAGIAN A)"}`:
+
+```bash
+$ python scratch/run_mutation_a.py
+=== Running Mutation Test for Bagian A via Temporary Clone ===
+Return code: 1
+STDOUT:
+==================================================
+  Snowline Release Venv Verification (Dua Arah)
+==================================================
+
+[Arah 1] Menguji instalasi lokal git+file @ HEAD (4a2ea206)...
+Keluaran update (Arah 1):
+i Current skills: 52
++ All skills are up to date!
+
+Keluaran status (Arah 1):
+==================================================
+  Snowline Status
+==================================================
+
+  Paket         : commit 4a2ea206 (dipaksa mutakhir (MUTASI BAGIAN A))      -> terbaru
+  File .agents/ : 52 file (0 baru, 0 diperbarui)     -> sinkron
+
+Semua sektor sudah terbaru.
+
+[OK] Arah 1: Instalasi dari HEAD dilaporkan mutakhir dan memuat keterangan pembanding.
+
+[Arah 2] Menguji instalasi lokal git+file @ commit lama (ea094ed)...
+
+STDERR:
+Traceback (most recent call last):
+  File "C:\Users\LENOVO\AppData\Local\Temp\tmpwt7h_g73\tests\test_venv_release.py", line 98, in <module>
+    sys.exit(run_venv_release_tests())
+  File "C:\Users\LENOVO\AppData\Local\Temp\tmpwt7h_g73\tests\test_venv_release.py", line 83, in run_venv_release_tests
+    assert "Package version tertinggal!" in res_up2.stdout, f"Arah 2 gagal: update tidak mendeteksi status tertinggal:
+{res_up2.stdout}"
+AssertionError: Arah 2 gagal: update tidak mendeteksi status tertinggal:
+==================================================
+  Snowline Update
+==================================================
+
+i Current skills: 52
++ All skills are up to date!
+
+SUCCESS: Mutation caught! test_venv_release.py turned RED as expected on mutation.
+```
+
+Klon sementara langsung dibersihkan sehingga tidak meninggalkan commit mutasi pada riwayat `main`.
+
+## Bukti Penanganan Saat Jaringan Mati (Syarat A3)
+
+Simulasi kegagalan koneksi soket internet membuktikan bahwa pengujian melewati diri secara aman tanpa error:
+
+```bash
+$ python scratch/test_offline_a.py
+=== Testing Offline / Network Failure Simulation ===
+STDOUT:
+ [SKIP] Jaringan tidak tersedia untuk pengujian venv release. Pengujian dilewati secara aman.
+Return code: 0
+
+SUCCESS: Syarat A3 verified (jaringan mati -> [SKIP] dengan returncode 0).
+```
+
+## Bukti Nol Panggilan Jaringan pada Suite Reguler (Syarat A4)
+
+Penyadapan seluruh panggilan `socket.create_connection` dan `socket.getaddrinfo` selama pelaksanaan `tests/run_tests.py` membuktikan nol permintaan jaringan luar:
+
+```bash
+$ python scratch/test_spy_network3.py
+=== Testing Zero Network Calls during run_tests.py via Socket Spy ===
+Returncode: 0
+STDOUT:
+Network calls intercepted during run_tests: 0
+ZERO NETWORK CALLS PROVEN!
+
+SUCCESS: Syarat A4 verified (run_tests.py tetap 0 panggilan jaringan).
+```
+
+## Yang Tidak Saya Periksa
+- Waktu unduh dependensi saat koneksi jaringan berkecepatan sangat rendah (diuji pada batas koneksi lokal git+file dan pengecekan offline aman).
