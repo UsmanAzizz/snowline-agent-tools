@@ -136,7 +136,7 @@ def clean_target_cwd(workspace_paths):
     return target_cwd
 
 
-def validate_companion_intent(script_name: str, config: dict, args_list: list, cmd_str: str, target_cwd: str):
+def validate_tool_intent(script_name: str, config: dict, args_list: list, cmd_str: str, target_cwd: str):
     """
     Run tool argument completeness and arity checks.
     Returns (is_valid: bool, error_reason: str).
@@ -149,7 +149,7 @@ def validate_companion_intent(script_name: str, config: dict, args_list: list, c
     # 1. Parameter Completeness Check
     if len(positional_args) < config["min_args"]:
         return False, (
-            f"[Companion Gate] Parameter kritis tidak lengkap untuk '{tool_name}'. "
+            f"[Quality Gate] Parameter kritis tidak lengkap untuk '{tool_name}'. "
             f"Diperlukan minimal {config['min_args']} argumen posisi, tetapi menerima {len(positional_args)}.\n"
             f"Format yang benar: {config['usage']}"
         )
@@ -159,16 +159,16 @@ def validate_companion_intent(script_name: str, config: dict, args_list: list, c
         scaffold_type = positional_args[0].lower() if positional_args else ""
         if scaffold_type not in ("react", "api"):
             return False, (
-                f"[Companion Gate] Tipe scaffold '{scaffold_type}' tidak valid. "
+                f"[Quality Gate] Tipe scaffold '{scaffold_type}' tidak valid. "
                 f"Pilihan yang didukung: 'react' atau 'api'.\n"
                 f"Contoh: python .agents/skills/auto_scaffolder/scaffolder.py react UserProfile"
             )
 
     if tool_name == "smart_replace":
         if len(positional_args) >= 3:
-            old_str = positional_args[1]
+            old_str = positional_args[1].strip('"').strip("'")
             if len(old_str.strip()) == 0:
-                return False, "[Companion Gate] Target string pencarian (old_text) tidak boleh kosong."
+                return False, "[Quality Gate] Target string pencarian (old_text) tidak boleh kosong."
 
     return True, ""
 
@@ -253,7 +253,7 @@ def main():
                         break
 
                 tool_args = tokens[script_idx + 1:] if script_idx != -1 else []
-                is_valid, err_reason = validate_companion_intent(script_name, config, tool_args, cmd, target_cwd)
+                is_valid, err_reason = validate_tool_intent(script_name, config, tool_args, cmd, target_cwd)
                 
                 if not is_valid:
                     print(json.dumps({"decision": "deny", "reason": err_reason}))
